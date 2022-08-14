@@ -10,7 +10,7 @@
 /// @brief device accessible by reading/writing to/from registers
 /// @tparam T   the address type (e.g. uint8_t for I2C)
 template <typename T>
-class RegisterDevice : Device {
+class RegisterDevice : public Device {
 public:
     /// @brief write to the device
     /// @param addr     the register address to write to
