@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 #include "device/Device.h"
+#include "return.h"
 
 /// @brief network socket device
 class SocketDevice : public Device {

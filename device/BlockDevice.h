@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 #include "device/Device.h"
+#include "return.h"
 
 /// @brief device accessible by reading/writing to/from blocks
 /// @tparam BLOCK_SIZE the block size in bytes
