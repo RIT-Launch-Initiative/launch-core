@@ -3,11 +3,13 @@
 // try compiling with the '-E' flag to see some of the macro magic going on here
 
 #include "sched/macros.h"
-#inclide "return.h"
+#include "return.h"
 
 // some call that a task will make
 // e.g. a device call
 RetType some_call(int x) {
+    RESUME();
+
     // do some stuff
     int z = 12 + x;
 
@@ -44,9 +46,9 @@ RetType task() {
         BLOCK();
 
         // call some function
-        // if we don't get a successfull return, give control back to the scheduler
+        // if we don't get a successful return, give control back to the scheduler
         // someone may have called SLEEP or BLOCK so we need to return as soon as possible
-        CALL(some_call(8));
+        RetType ret = CALL(some_call(8));
 
         // wake somebody else up
         // we use a fake TID of 6 for their task ID
@@ -60,5 +62,5 @@ RetType task() {
     }
 
     // we should never get here :(
-    return;
+    return RET_ERROR;
 }

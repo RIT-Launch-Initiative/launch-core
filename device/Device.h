@@ -17,6 +17,11 @@ public:
     /// @brief release the device
     /// @return
     virtual RetType release() = 0;
+
+    /// @brief poll the device
+    ///        any synchronous work for the device should be done here
+    /// @return
+    virtual RetType poll() = 0;
 };
 
 #endif

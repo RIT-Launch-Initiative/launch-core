@@ -48,14 +48,13 @@
 /// @brief yield back to the scheduler
 #define YIELD() YIELD2(__COUNTER__)
 
+
+#define CALL2(F, RET) ({RetType RET = F; if(RET == RET_SLEEP || RET == RET_BLOCKED){return RET;}; RET;})
+
 /// @brief call a function 'F' and handle the return
 ///        propagates the error if not successfull
 ///        useful for calling in a task so you don't need to check for SLEEP or BLOCKED
 ///        as the task should return if either of those errors are returned
-#define CALL(F)\
-        RetType ret = F;\
-        if(ret != RET_SUCCESS) {\
-            return ret;\
-        }\
+#define CALL(F) CALL2(F, TOKENPASTE2(__ret, __COUNTER__))
 
 #endif
