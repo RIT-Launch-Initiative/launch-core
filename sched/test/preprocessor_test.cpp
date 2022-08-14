@@ -3,6 +3,20 @@
 // try compiling with the '-E' flag to see some of the macro magic going on here
 
 #include "sched/macros.h"
+#inclide "return.h"
+
+// some call that a task will make
+// e.g. a device call
+RetType some_call(int x) {
+    // do some stuff
+    int z = 12 + x;
+
+    // block on something
+    // this returns RET_BLOCKED
+    // if whoever called it uses the CALL macro, they should propogate the blocked
+    // return up until the task returns
+    BLOCK();
+}
 
 // some example task
 void task() {
@@ -28,6 +42,11 @@ void task() {
         // when someone else calls 'sched_wake' we will resume here
         // again BE CAREFUL about saving variables, this function must be reentrant!
         BLOCK();
+
+        // call some function
+        // if we don't get a successfull return, give control back to the scheduler
+        // someone may have called SLEEP or BLOCK so we need to return as soon as possible
+        CALL(some_call(8));
 
         // wake somebody else up
         // we use a fake TID of 6 for their task ID

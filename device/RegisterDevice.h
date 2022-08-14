@@ -15,15 +15,15 @@ public:
     /// @param addr     the register address to write to
     /// @param buff     the buffer to write
     /// @param len      the size of 'buff' in bytes
-    /// @return the number of bytes written successfully
-    virtual size_t write(T addr, uint8_t* buff, size_t len) = 0;
+    /// @return if all bytes were written successfully
+    virtual RetType write(T addr, uint8_t* buff, size_t len) = 0;
 
     /// @brief read from the device
     /// @param addr     the register address to read from
     /// @param buff     the buffer to read into
     /// @param len      the number of bytes to read
-    /// @return the number of bytes read successfully
-    virtual size_t read(T addr, uint8_t* buff, size_t len) = 0;
+    /// @return if all bytes were read successfully
+    virtual RetType read(T addr, uint8_t* buff, size_t len) = 0;
 };
 
 #endif

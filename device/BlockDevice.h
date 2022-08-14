@@ -15,15 +15,15 @@ public:
     /// @param block    the block number to write to
     /// @param data     the data to write to the block
     ///                 must be a buffer of at least BLOCK_SIZE bytes
-    /// @return 'true' if the entire block was written successfully, 'false' on error
-    virtual bool write(size_t block, uint8_t* data) = 0;
+    /// @return 'true' if the entire block was written successfully
+    virtual RetType write(size_t block, uint8_t* data) = 0;
 
     /// @brief read from a block
     /// @param block    the block number to read from
     /// @param buff     the buffer to read into
     ///                 must be a buffer of at least BLOCK_SIZE bytes
-    /// @return 'true' if the entire block was read successfully, 'false' on error
-    virtual bool write(size_t block, uint8_t* buff) = 0;
+    /// @return 'true' if the entire block was read successfully
+    virtual RetType write(size_t block, uint8_t* buff) = 0;
 };
 
 #endif

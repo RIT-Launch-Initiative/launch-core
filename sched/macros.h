@@ -2,6 +2,7 @@
 #define SCHED_MACROS_H
 
 #include "sched/sched.h"
+#include "return.h"
 
 // ** macros for use in scheduler tasks ** //
 
@@ -21,7 +22,7 @@
 #define SLEEP2(N, z)\
             _current = TOKENPASTE2(&&_sleep, z);\
             sched_sleep(sched_dispatched, N);\
-            return;\
+            return RET_SLEEP;\
             TOKENPASTE2(_sleep, z):\
 
 /// @brief sleep the currently running task for 'N' ticks
@@ -30,7 +31,7 @@
 #define BLOCK2(z)\
         _current = TOKENPASTE2(&&_block, z);\
         sched_block(sched_dispatched);\
-        return;\
+        return RET_BLOCKED;\
         TOKENPASTE2(_block, z):\
 
 /// @brief block the currently running task
@@ -41,10 +42,20 @@
 
 #define YIELD2(z)\
         _current = TOKENPASTE2(&&_yield, z);\
-        return;\
+        return RET_SUCCESS;\
         TOKENPASTE2(_yield, z):\
 
 /// @brief yield back to the scheduler
 #define YIELD() YIELD2(__COUNTER__)
+
+/// @brief call a function 'F' and handle the return
+///        propagates the error if not successfull
+///        useful for calling in a task so you don't need to check for SLEEP or BLOCKED
+///        as the task should return if either of those errors are returned
+#define CALL(F)\
+        RetType ret = F;\
+        if(ret != RET_SUCCESS) {\
+            return ret;\
+        }\
 
 #endif
