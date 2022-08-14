@@ -1,5 +1,5 @@
-#ifndef STREAMDEVICE_H
-#define STREAMDEVICE_H
+#ifndef STREAM_DEVICE_H
+#define STREAM_DEVICE_H
 
 #include <stdlib.h>
 #include <stdint.h>

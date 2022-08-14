@@ -39,7 +39,7 @@ public:
     /// @brief free an object back to the pool
     /// NOTE: if an object is freed twice, bad things will happen
     ///       the object will be offered in two nodes on the freeObjs list
-    /// @return 'true' if the free was successful
+    /// @return 'true' if the free was successful, 'false' on error
     bool free(T* obj) {
         Node<T*>* node = m_freeNodes.pop();
 

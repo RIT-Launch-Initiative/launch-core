@@ -1,5 +1,5 @@
-#ifndef REGISTER_DEVICE
-#define REGISTER_DEVICE
+#ifndef REGISTER_DEVICE_H
+#define REGISTER_DEVICE_H
 
 #include <stdlib.h>
 #include <stdint.h>

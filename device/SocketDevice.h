@@ -1,5 +1,5 @@
-#ifndef SOCKETDEVICE_H
-#define SOCKETDEVICE_H
+#ifndef SOCKET_DEVICE_H
+#define SOCKET_DEVICE_H
 
 #include <stdlib.h>
 #include <stdint.h>
