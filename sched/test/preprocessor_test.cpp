@@ -19,7 +19,7 @@ RetType some_call(int x) {
 }
 
 // some example task
-void task() {
+RetType task() {
     // resume the task
     // this will jump to wherever SLEEP, BLOCK, or YIELD was called last
     // if not, will start at the top of the function

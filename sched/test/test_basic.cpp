@@ -3,18 +3,19 @@
 #include <unistd.h>
 
 #include "sched/sched.h"
+#include "return.h"
 
 uint32_t tick = 0;
 uint32_t systime() {
     return tick;
 }
 
-void task1() {
+RetType task1() {
     printf("task1\n");
     sched_sleep(sched_dispatched, 5);
 }
 
-void task2() {
+RetType task2() {
     printf("task2\n");
     sched_sleep(sched_dispatched, 1);
 }

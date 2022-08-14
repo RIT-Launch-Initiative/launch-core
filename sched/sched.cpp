@@ -51,11 +51,14 @@ tid_t sched_start(task_func_t func) {
             tasks[i].stack.curr = tasks[i].stack.block; // reset stack
             tasks[i].func = func;
             tasks[i].tid = i;
+            tasks[i].queued = true;
 
             // put it on the ready queue
             // NOTE: we assume this never fails, since the queue size
             //       is the same as the maximum number of tasks
             ready_q.push(&tasks[i]);
+
+            return i;
         }
     }
 
@@ -81,6 +84,7 @@ void _sched_wakeup_tasks() {
 
             // set active
             task->state = STATE_ACTIVE;
+            task->queued = true;
 
             // enqueue
             ready_q.push(task);
@@ -111,12 +115,14 @@ void sched_dispatch() {
         if(STATE_ACTIVE != task->state) {
             if(STATE_SLEEPING == task->state) {
                 // this task was slept while it was on the ready queue
+                task->queued = false;
                 sleep_q.push(task);
                 // NOTE: we again assume we can always push
                 continue;
             } else {
                 // blocked or something else
                 // don't do anything, leave it off the ready queue
+                task->queued = false;
                 continue;
             }
         }
@@ -125,7 +131,11 @@ void sched_dispatch() {
         sched_dispatched = task->tid;
         task->func();
 
-        // put it back in the ready queue if it wasn't slept/blocked
+        // even if it was slept or blocked, put it back on the ready queue
+        // we use the lazy approach and deal with it when it's popped off the ready queue
+        // NOTE: this means a task that blocks and unblocks before it's popped off the ready queue
+        //       gets to "cut" in line in the queue
+        //       but we do guarantee it's only on the queue once or we'd have space issues
         ready_q.push(task);
         // NOTE: we again assume we can always push
 
@@ -158,8 +168,11 @@ void sched_wake(tid_t tid) {
     }
 
     task->state = STATE_ACTIVE;
-    ready_q.push(task);
-    // NOTE: we again assume we can always push
+
+    if(!task->queued) {
+        ready_q.push(task);
+        // NOTE: we again assume we can always push
+    } // otherwise it never left the ready queue, let it stay and skip the line
 }
 
 /// @brief block a task

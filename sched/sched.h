@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+#include "return.h"
+
 /// @brief task id, any tid < 0 is an error
 typedef int tid_t;
 
@@ -15,7 +17,7 @@ extern tid_t sched_dispatched;
 typedef uint32_t (*time_func_t)();
 
 /// @brief task function type
-typedef void (*task_func_t)();
+typedef RetType (*task_func_t)();
 
 // constants
 static const size_t SAVE_BLOCK_SIZE = 256;
@@ -43,6 +45,7 @@ typedef struct {
     uint32_t wake_time;
     task_func_t func;
     tid_t tid;
+    bool queued; // if it's on the ready queue
 } task_t;
 
 /// @brief initialize the scheduler
