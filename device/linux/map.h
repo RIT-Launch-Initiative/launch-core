@@ -14,19 +14,12 @@ public:
 
     /// @brief initialize the Linux platform specific map
     RetType init() {
-        RESUME();
-        static RetType ret;
+        // add our devices
+        // NOTE: we don't error check here
+        // if we add too many devices, it's our own fault
+        // just make MAP_SIZE bigger if we need more
+        add("console", &m_console)
 
-        ret = RET_SUCCESS;
-
-        ret = CALL(add("console", &m_console));
-        if(RET_ERROR == ret) {
-            return ret;
-        } // SLEEP and BLOCK are handled by CALL
-
-        // TODO more devices
-
-        RESET();
         return alloc::DeviceMap<MAP_SIZE>::init();
     }
 private:
