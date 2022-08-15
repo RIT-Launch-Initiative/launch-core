@@ -6,6 +6,10 @@
 #include <sys/select.h>
 #include <sys/time.h>
 
+#ifdef DEBUG
+#include <stdio.h>
+#endif
+
 #include "sched/macros.h"
 #include "device/Device.h"
 #include "device/StreamDevice.h"
@@ -101,6 +105,13 @@ public:
         RESET();
         return RET_SUCCESS;
     }
+
+    #ifdef DEBUG
+    /// @brief print a textual representation of the device using 'printf'
+    void print() {
+        printf("Linux Console Device\t---\tunique ID %u\r\n", m_uid);
+    }
+    #endif
 
 private:
     RingBuffer<256, true> m_rxBuff;

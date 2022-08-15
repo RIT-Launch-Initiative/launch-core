@@ -40,14 +40,22 @@ LinuxDeviceMap map{};
 RetType echo() {
     RESUME();
 
-    printf("task started\r\n");
+    printf("echo task started\r\n");
 
     Device* dev = map.get("console");
     if(dev == NULL) {
+        // returning error removes the task from the scheduler
         return RET_ERROR;
     }
 
     static StreamDevice* console = reinterpret_cast<StreamDevice*>(dev);
+
+    if(RET_SUCCESS != console->obtain()) {
+        printf("failed to acquire console device\r\n");
+
+        // returning error removes the task from the scheduler
+        return RET_ERROR;
+    }
 
     RetType ret;
 
@@ -80,6 +88,7 @@ RetType echo() {
     }
 
     // should never get here
+    console->release();
     return RET_ERROR;
 }
 
@@ -94,16 +103,28 @@ uint32_t systime() {
 int main() {
     set_conio_terminal_mode();
 
+    // TODO put in init task? that does init work and spins or flashes an LED or something?
     if(RET_SUCCESS != map.init()) {
         printf("failed to initialize device map\r\n");
         return -1;
     }
+
+    #ifdef DEBUG
+    map.print();
+    #endif
 
     if(NULL == map.get("console")) {
         printf("failed to lookup device 'console'\r\n");
         return -1;
     } else {
         printf("looked up device 'console' successfully\r\n");
+    }
+
+    if(NULL == map.get("debug")) {
+        printf("failed to lookup device 'debug'\r\n");
+        return -1;
+    } else {
+        printf("looked up device 'debug' successfully\r\n");
     }
 
     if(!sched_init(&systime)) {

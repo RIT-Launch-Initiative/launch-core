@@ -1,6 +1,9 @@
 #ifndef QUEUE_H
 #define QUEUE_H
 
+#include <stdlib.h>
+#include <stdint.h>
+
 /// @brief queue node
 /// @tparam T   the object type stored in the node
 template <typename T>

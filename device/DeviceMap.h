@@ -41,7 +41,7 @@ public:
 
     /// @brief poll all the devices in the table
     /// @return error if any devices errored, will still poll all devices
-    RetType poll() {
+    virtual RetType poll() {
         RetType ret = RET_SUCCESS;
 
         for(size_t i = 0; i < m_count; i++) {
@@ -52,6 +52,11 @@ public:
 
         return ret;
     }
+
+    #ifdef DEBUG
+    // @brief use 'printf' to output a textual representation of the device map
+    virtual void print() = 0;
+    #endif
 
 protected:
     /// @brief protected constructor
@@ -78,7 +83,7 @@ protected:
 
         return RET_SUCCESS;
     }
-private:
+protected:
     // list of string names
     const char** m_names;
 
@@ -100,10 +105,10 @@ template <const size_t SIZE>
 class DeviceMap : public ::DeviceMap {
 public:
     /// @brief constructor
-    DeviceMap() : ::DeviceMap(m_names, m_devices, SIZE) {};
+    DeviceMap() : ::DeviceMap(m_internalNames, m_internalDevices, SIZE) {};
 private:
-    const char* m_names[SIZE];
-    Device* m_devices[SIZE];
+    const char* m_internalNames[SIZE];
+    Device* m_internalDevices[SIZE];
 };
 }
 

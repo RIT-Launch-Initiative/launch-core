@@ -1,6 +1,9 @@
 #ifndef ALLOCATED_QUEUE_H
 #define ALLOCATED_QUEUE_H
 
+#include <stdlib.h>
+#include <stdint.h>
+
 #include "queue/queue.h"
 #include "pool/pool.h"
 
