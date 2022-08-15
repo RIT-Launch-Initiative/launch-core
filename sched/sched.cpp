@@ -87,6 +87,8 @@ void _sched_wakeup_tasks() {
             task->queued = true;
 
             // enqueue
+            // we can do this because a task is never on both the
+            // ready queue and the sleep queue
             ready_q.push(task);
             // NOTE: we again assume we can always push
         } else {
@@ -116,6 +118,7 @@ void sched_dispatch() {
             if(STATE_SLEEPING == task->state) {
                 // this task was slept while it was on the ready queue
                 task->queued = false;
+
                 sleep_q.push(task);
                 // NOTE: we again assume we can always push
                 continue;
@@ -129,7 +132,12 @@ void sched_dispatch() {
 
         // dispatch the task
         sched_dispatched = task->tid;
-        task->func();
+        if(RET_ERROR == task->func()) {
+            // don't put back on the ready queue
+            // free this task
+            task->state = STATE_UNALLOCATED;
+            break;
+        }
 
         // even if it was slept or blocked, put it back on the ready queue
         // we use the lazy approach and deal with it when it's popped off the ready queue

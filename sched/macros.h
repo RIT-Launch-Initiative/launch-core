@@ -48,13 +48,23 @@
 /// @brief yield back to the scheduler
 #define YIELD() YIELD2(__COUNTER__)
 
-
-#define CALL2(F, RET) ({RetType RET = F; if(RET == RET_SLEEP || RET == RET_BLOCKED){return RET;}; RET;})
+// TODO just return RET_YIELD when we want to get back to the scheduler?
+#define CALL2(F, RET, z)\
+    ({_current = TOKENPASTE2(&&_call, z); TOKENPASTE2(_call, z):; RetType RET = F; if(RET == RET_SLEEP || RET == RET_BLOCKED){return RET;}; RET;})\
 
 /// @brief call a function 'F' and handle the return
-///        propagates the error if not successfull
 ///        useful for calling in a task so you don't need to check for SLEEP or BLOCKED
 ///        as the task should return if either of those errors are returned
-#define CALL(F) CALL2(F, TOKENPASTE2(__ret, __COUNTER__))
+///        the task will return re-execute the line when it is scheduled again
+///        if SLEEP or BLOCKED are returned
+#define CALL(F) CALL2(F, TOKENPASTE2(__ret, __COUNTER__), __COUNTER__)
+
+/// @brief reset a task to the top
+#define RESET() _current = &&_start;
+
+// #define SAVE2(RET, z) _current = TOKENPASTE2(&&_save, z); return RET; TOKENPASTE2(_save, z):
+//
+// /// @brief save location in a task
+// #define SAVE(RET) SAVE2(RET, __COUNTER__)
 
 #endif

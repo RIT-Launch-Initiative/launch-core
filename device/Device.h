@@ -1,11 +1,18 @@
 #ifndef DEVICE_H
 #define DEVICE_H
 
+#include "queue/allocated_queue.h"
 #include "return.h"
 
 /// @brief generic device
 class Device {
 public:
+    /// @brief constructor
+    Device() {};
+
+    /// @brief destructor
+    virtual ~Device() {};
+
     /// @brief initialize the device
     /// @return
     virtual RetType init() = 0;

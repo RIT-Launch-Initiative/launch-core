@@ -18,6 +18,11 @@ RetType some_call(int x) {
     // if whoever called it uses the CALL macro, they should propogate the blocked
     // return up until the task returns
     BLOCK();
+
+    // we need to reset at the end
+    // since we called block, if we didn't do this we would always execute at the block
+    // after we get this far once
+    RESET();
 }
 
 // some example task
@@ -61,6 +66,8 @@ RetType task() {
         YIELD();
     }
 
+
     // we should never get here :(
+    RESET();
     return RET_ERROR;
 }

@@ -8,25 +8,9 @@
 #include "device/Device.h"
 
 /// @brief maps devices to names
+/// this class is intended to be inherited to a platform specific map
 class DeviceMap {
 public:
-
-    /// @brief add a socket device to the map
-    /// @param name     the name of the device
-    /// @param dev      the device to add
-    /// @return
-    RetType add(const char* name, Device* dev) {
-        if(m_count >= m_size) {
-            return RET_ERROR;
-        }
-
-        m_names[m_count] = name;
-        m_devices[m_count] = dev;
-        m_count++;
-
-        return RET_SUCCESS;
-    }
-
     /// @brief get a device from the map with a specific name
     /// @param name     the name of the device
     /// @return         a pointer to the device, or NULL on error
@@ -39,6 +23,20 @@ public:
         }
 
         return NULL;
+    }
+
+    /// @brief initialize all devices added to the map
+    /// @return error if any errors are returned, all devices are still initialized
+    virtual RetType init() {
+        RetType ret = RET_SUCCESS;
+
+        for(size_t i = 0; i < m_count; i++) {
+            if(RET_SUCCESS != m_devices[i]->init()) {
+                ret = RET_ERROR;
+            }
+        }
+
+        return ret;
     }
 
     /// @brief poll all the devices in the table
@@ -63,6 +61,23 @@ protected:
                                                         m_devices(devices),
                                                         m_size(size),
                                                         m_count(0) {};
+
+    /// @brief add a socket device to the map
+    ///        this should be called by derived classes to setup the map in 'init'
+    /// @param name     the name of the device
+    /// @param dev      the device to add
+    /// @return
+    RetType add(const char* name, Device* dev) {
+        if(m_count >= m_size) {
+            return RET_ERROR;
+        }
+
+        m_names[m_count] = name;
+        m_devices[m_count] = dev;
+        m_count++;
+
+        return RET_SUCCESS;
+    }
 private:
     // list of string names
     const char** m_names;
