@@ -109,7 +109,7 @@ public:
     #ifdef DEBUG
     /// @brief print a textual representation of the device using 'printf'
     void print() {
-        printf("Linux Console Device\t---\tunique ID %u\r\n", m_uid);
+        printf("Linux Console Device\t---\tunique ID 0x%04x\r\n", m_uid);
     }
     #endif
 

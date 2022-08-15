@@ -42,11 +42,11 @@ public:
     /// @brief use 'printf' to output a textual representation of the device map
     void print() {
         printf("Linux Test Device Map version 0.1\r\n");
-        printf("--------------------------------------------\r\n");
+        printf("------------------------------------------------\r\n");
         for(size_t i = 0; i < m_count; i++) {
             m_devices[i]->print();
         }
-        printf("--------------------------------------------\r\n");
+        printf("------------------------------------------------\r\n");
     }
     #endif
 

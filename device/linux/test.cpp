@@ -83,12 +83,115 @@ RetType echo() {
         buff[6] = '\n';
         console->write(buff, 8); // don't care if it works
 
-        // sleep for a thousand ticks
-        SLEEP(1000);
+        // yield our time back to the scheduler
+        YIELD();
     }
 
     // should never get here
+    RESET();
     console->release();
+    return RET_ERROR;
+}
+
+// basic timer task
+RetType timer() {
+    RESUME();
+
+    printf("timer task started\r\n");
+
+    Device* dev = map.get("debug");
+    if(dev == NULL) {
+        // returning error removes the task from the scheduler
+        return RET_ERROR;
+    }
+
+    static StreamDevice* debug = reinterpret_cast<StreamDevice*>(dev);
+
+    if(RET_SUCCESS != debug->obtain()) {
+        printf("failed to acquire debug device\r\n");
+
+        // returning error removes the task from the scheduler
+        return RET_ERROR;
+    }
+
+    static uint8_t msg[8] = "ding!\r\n";
+
+    while(1) {
+        SLEEP(1000);
+        debug->write(msg, 7);
+    }
+
+    // should never get here
+    RESET();
+    debug->release();
+    return RET_ERROR;
+}
+
+// another basic timer task
+RetType timer2() {
+    RESUME();
+
+    printf("timer2 task started\r\n");
+
+    Device* dev = map.get("debug");
+    if(dev == NULL) {
+        // returning error removes the task from the scheduler
+        return RET_ERROR;
+    }
+
+    static StreamDevice* debug = reinterpret_cast<StreamDevice*>(dev);
+
+    if(RET_SUCCESS != debug->obtain()) {
+        printf("failed to acquire debug device\r\n");
+
+        // returning error removes the task from the scheduler
+        return RET_ERROR;
+    }
+
+    static uint8_t msg[8] = "dong!\r\n";
+
+    while(1) {
+        SLEEP(1000);
+        debug->write(msg, 7);
+    }
+
+    // should never get here
+    RESET();
+    debug->release();
+    return RET_ERROR;
+}
+
+// slow timer task
+RetType slow_timer() {
+    RESUME();
+
+    printf("slow_timer task started\r\n");
+
+    Device* dev = map.get("debug");
+    if(dev == NULL) {
+        // returning error removes the task from the scheduler
+        return RET_ERROR;
+    }
+
+    static StreamDevice* debug = reinterpret_cast<StreamDevice*>(dev);
+
+    if(RET_SUCCESS != debug->obtain()) {
+        printf("failed to acquire debug device\r\n");
+
+        // returning error removes the task from the scheduler
+        return RET_ERROR;
+    }
+
+    static uint8_t msg[8] = "dung?\r\n";
+
+    while(1) {
+        SLEEP(5000);
+        debug->write(msg, 7);
+    }
+
+    // should never get here
+    RESET();
+    debug->release();
     return RET_ERROR;
 }
 
@@ -134,6 +237,21 @@ int main() {
 
     if(-1 == sched_start(&echo)) {
         printf("failed to start echo task\r\n");
+        return -1;
+    }
+
+    if(-1 == sched_start(&timer)) {
+        printf("failed to start timer task\r\n");
+        return -1;
+    }
+
+    if(-1 == sched_start(&timer2)) {
+        printf("failed to start timer2 task\r\n");
+        return -1;
+    }
+
+    if(-1 == sched_start(&slow_timer)) {
+        printf("failed to start slow_timer task\r\n");
         return -1;
     }
 

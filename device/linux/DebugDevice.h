@@ -15,26 +15,18 @@
 
 class LinuxDebugDevice : public StreamDevice {
 public:
-    LinuxDebugDevice() : m_lock(false) {};
+    LinuxDebugDevice() {};
 
     RetType init() {
-        // nothing to do stdout already open for us
+        // nothing to do since stderr is already open for us
         return RET_SUCCESS;
     }
 
-    // can only be obtained by one
     RetType obtain() {
-        if(m_lock) {
-            return RET_ERROR;
-        }
-
-        m_lock = true;
         return RET_SUCCESS;
     }
 
     RetType release() {
-        // always succeed
-        m_lock = false;
         return RET_SUCCESS;
     }
 
@@ -45,7 +37,7 @@ public:
     }
 
     RetType write(uint8_t* buff, size_t len) {
-        if(-1 == ::write(1, buff, len)) {
+        if(-1 == ::write(2, buff, len)) {
             return RET_ERROR;
         }
 
@@ -73,12 +65,9 @@ public:
     #ifdef DEBUG
     /// @brief print a textual representation of the device using 'printf'
     void print() {
-        printf("Linux Debug Device\t---\tunique ID %u\r\n", m_uid);
+        printf("Linux Debug Device\t---\tunique ID 0x%04x\r\n", m_uid);
     }
     #endif
-
-private:
-    bool m_lock;
 };
 
 #endif
