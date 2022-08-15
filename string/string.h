@@ -11,17 +11,16 @@
 
 const char NULL_TERMINATOR = '\0';
 
-// template <const size_t size>
+template <const size_t size>
 class String {
     public:
         int len;
-        size_t size;
-        char string[];
+        char string[size];
 
-        String(char const* buffer, size_t buff_size): size(buff_size) {
+        String(char const* buffer): len(0), string({}) {
             int i;
 
-            for (i = 0; i < buff_size - 1; i++) {
+            for (i = 0; i < size - 1; i++) {
                 this->string[i] = buffer[i];
 
                 if (this->string[i] == NULL_TERMINATOR) break;
