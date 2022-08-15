@@ -18,9 +18,7 @@ class String {
         size_t size;
         char string[];
 
-        String(char const* buffer, size_t buff_size) {
-            this->size = buff_size;
-
+        String(char const* buffer, size_t buff_size): size(buff_size) {
             int i;
 
             for (i = 0; i < buff_size - 1; i++) {
@@ -29,7 +27,6 @@ class String {
             }
 
             if (this->string[i] != NULL_TERMINATOR) {
-                std::cout << "Adding null terminator" << std::endl;
                 this->string[i] = '\0';
             }
 
