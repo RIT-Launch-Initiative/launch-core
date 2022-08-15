@@ -18,7 +18,7 @@ class String {
         char string[size] = {};
 
     explicit String(char const* buffer) {
-            int i;
+            int i; // Reduce errors from using len as counter
 
             for (i = 0; i < size - 1; i++) {
                 this->string[i] = buffer[i];
@@ -28,8 +28,6 @@ class String {
 
             // Developers should still add a null terminator in their buffers, especially if len < buff_size
             if (this->string[i] != NULL_TERMINATOR) {
-
-
                 this->string[i] = '\0';
             }
 
