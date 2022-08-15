@@ -24,10 +24,15 @@ class String {
             for (i = 0; i < buff_size - 1; i++) {
                 this->string[i] = buffer[i];
                 std::cout << "Added: " << buffer[i] << std::endl;
+
+                if (this->string[i] == NULL_TERMINATOR) break;
             }
 
             // Developers should still add a null terminator in their buffers, especially if len < buff_size
             if (this->string[i] != NULL_TERMINATOR) {
+                std::cout << "Added null term" << std::endl;
+
+
                 this->string[i] = '\0';
             }
 
