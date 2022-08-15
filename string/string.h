@@ -33,6 +33,26 @@ public:
 
         this->len = i;
     }
+
+    bool is_trunc() {
+        return this->len < size;
+    }
+
+    void init_free_space() {
+        if (is_trunc()) {
+            for (int i = len; i < size; i++) {
+                this->string[i] = NULL_TERMINATOR;
+            }
+        }
+    }
+
+    char* get_end() {
+        return this->string[len];
+    }
+
+
+
+
 };
 
 
