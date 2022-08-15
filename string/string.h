@@ -14,10 +14,10 @@ const char NULL_TERMINATOR = '\0';
 template <const size_t size>
 class String {
     public:
-        int len;
-        char string[size];
+        int len = 0;
+        char string[size] = {};
 
-        String(char const* buffer): len(0), string({}) {
+    explicit String(char const* buffer) {
             int i;
 
             for (i = 0; i < size - 1; i++) {
