@@ -1,26 +1,25 @@
-#include <iostream>
+#include <cstdio>
 #include "string/string.h"
-
-#include <memory>
 
 int main() {
     char buffer[] = {'R','I','T',' ','L','a','u','n','c','h',' ','I','n','i','t','i','a','t','i','v','e', '\0'};
 
-    std::cout << "Full String Test: " << std::endl;
+    printf("Full String Test: \n");
     auto full_string = String(buffer, sizeof(buffer));
-    std::cout << "\tExpected: RIT Launch Initiative" << std::endl;
-    std::cout << "\tActual: " << full_string.string << std::endl;
-    std::cout << buffer << std::endl;
+    printf("\tExpected: RIT Launch Initiative\n");
+    printf("\tActual: %s\n", full_string.string);
 
-    std::cout << "Extra Space String Test: " << std::endl;
+    printf("Extra Space String Test: \n");
     auto much_storage_string = String(buffer, 999);
-    std::cout << "\tExpected: RIT Launch Initiative" << std::endl;
-    std::cout << "\tActual: " << much_storage_string.string << std::endl;
+    printf("\tExpected: RIT Launch Initiative\n");
+    printf("\tActual: %s\n", much_storage_string.string);
 
-    std::cout << "Truncated String Test: " << std::endl;
+
+    printf("Truncated String Test: \n");
     auto trunc_string = String(buffer, 4);
-    std::cout << "\tExpected: RIT" << std::endl;
-    std::cout << "\tActual: " << trunc_string.string << std::endl;
+    printf("\tExpected: RIT\n");
+    printf("\tActual: %s\n", trunc_string.string);
+
 
 
     return 0;
