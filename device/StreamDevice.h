@@ -21,6 +21,16 @@ public:
     /// @param len      the number of bytes to read
     /// @return
     virtual RetType read(uint8_t* buff, size_t len) = 0;
+
+    /// @brief get how many bytes are available for reading without blocking
+    /// @return the number of bytes available
+    virtual size_t available() = 0;
+
+    /// @brief wait for a certain amount of data to be ready for reading
+    ///        blocks the current process, caller must return to scheduler
+    ///        as soon as possible
+    /// @return RET_BLOCKED or error
+    virtual RetType wait(size_t len) = 0;
 };
 
 #endif

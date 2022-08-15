@@ -51,6 +51,12 @@ public:
     /// @param addr     the multicast group address to subscribe to
     /// @return
     virtual RetType subscribe(addr_t* addr) = 0;
+
+    /// @brief get how much data can currently be read
+    /// NOTE: units are up to the device
+    ///       for datagrams it may be packets rather than bytes
+    /// @return the amount of data that can be read in bytes
+    virtual size_t available() = 0;
 };
 
 #endif

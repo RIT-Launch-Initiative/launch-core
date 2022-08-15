@@ -22,11 +22,14 @@ public:
             if(OVERWRITABLE) {
                 // move the head back to make room
                 m_head = (len + m_tail) % SIZE;
+                printf("head moved\n");
             } else {
                 // copy less data
                 len = SIZE - m_len;
                 m_len += len;
             }
+        } else {
+            m_len += len;
         }
 
         size_t i = 0;
