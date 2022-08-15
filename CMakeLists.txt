@@ -31,26 +31,33 @@ add_library(launch_core
 
         sched/macros.h
         sched/sched.h
+        sched/sched.cpp
         spinlock/spinlock.h
-        string/lstring.h
+        string/string.h
         return.h
         )
 
 
 add_executable(preprocessor_test sched/test/preprocessor_test.cpp)
+target_link_libraries(preprocessor_test launch_core)
 
 add_executable(sched_basic_test sched/test/test_basic.cpp)
+target_link_libraries(sched_basic_test launch_core)
+
+add_executable(pool_test pool/test/test.cpp)
+target_link_libraries(pool_test launch_core)
 
 add_executable(hashmap_test hashmap/test/test.cpp)
+target_link_libraries(hashmap_test launch_core)
 
-add_executable(queue_test queue/test/test.cpp)
+#add_executable(queue_test queue/test/test.cpp)
+#target_link_libraries(queue_test launch_core)
 
 add_executable(ringbuffer_test ringbuffer/test/test.cpp)
+target_link_libraries(ringbuffer_test launch_core)
 
 add_executable(sched_test sched/sched.cpp)
+target_link_libraries(sched_test launch_core)
 
 add_executable(string_test string/test/string_test.cpp)
-
-
-
-
+target_link_libraries(string_test launch_core)

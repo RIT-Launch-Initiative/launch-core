@@ -7,8 +7,6 @@
 #ifndef STRING_H
 #define STRING_H
 
-#include <stdlib.h>
-#include <iostream>
 
 const char NULL_TERMINATOR = '\0';
 
