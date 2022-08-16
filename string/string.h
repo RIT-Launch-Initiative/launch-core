@@ -96,17 +96,26 @@ public:
     /**************************************
      * Element Modifiers
      **************************************/
-     void replace(int position, char character) {
+    void replace(int position, char character) {
         this->string[position] = character;
-     }
+    }
 
-    void replace(int start, int end, char const* character) {
-         if (start < 0 || end > size || end < start) return;
+    void replace(int start, int end, char const *character) {
+        if (start < 0 || end > size || end < start) return;
 
-         for (int i = start; i < end; i++) {
-             this->string[i] = *character++;
-         }
-         // TODO: Add something if end goes past the original end of the string
+        int i;
+        for (i = start; i < len; i++) {
+            this->string[i] = *character++;
+        }
+
+        if (i < end) {
+            for (; i < end; i++) {
+                this->string[i] = *character++;
+                this->len++;
+            }
+
+            this->string[++i] = NULL_TERMINATOR;
+        }
     }
 
     void insert(int position, char character) {
@@ -118,31 +127,31 @@ public:
 
         this->string[position] = character;
         this->len++;
-     }
+    }
 
-     /**
-      * Removes character at position specified
-      * @param position to remove at
-      */
-     void remove(int position) {
-         if (position > len) return;
+    /**
+     * Removes character at position specified
+     * @param position to remove at
+     */
+    void remove(int position) {
+        if (position > len) return;
 
-         for (int i = position; i < len + 1; i++) {
-             this->string[i] = this->string[i + 1];
-         }
-         this->len--;
-     }
+        for (int i = position; i < len + 1; i++) {
+            this->string[i] = this->string[i + 1];
+        }
+        this->len--;
+    }
 
-     /**
-      * Wipes the entire string buffer
-      */
-     void clear() {
-         int i = 0;
-         while (this->len > 0) {
-             string[i++] = NULL_TERMINATOR;
-             this->len--;
-         }
-     }
+    /**
+     * Wipes the entire string buffer
+     */
+    void clear() {
+        int i = 0;
+        while (this->len > 0) {
+            string[i++] = NULL_TERMINATOR;
+            this->len--;
+        }
+    }
 
     /**************************************
      * Iterators
@@ -200,6 +209,7 @@ public:
      * Converts remaining characters in buffer to \0
      */
     void init_free_space() {
+        // TODO: Use memset or bad for embedded?
         if (is_trunc()) {
             for (int i = len; i < size; i++) {
                 this->string[i] = NULL_TERMINATOR;

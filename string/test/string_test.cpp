@@ -26,7 +26,6 @@ int main() {
     new_test("Truncated String", "RIT Launch Initiative");
     printf("\tActual: %s\n", trunc_string.string);
 
-
     // Accessor Tests
     new_test("Get Front", "R");
     printf("\tActual: %c\n", full_string.front());
@@ -64,6 +63,11 @@ int main() {
     new_test("Replace Substring", "RPI Launch");
     char inferior_rocket_team[] = {'R', 'P', 'I'};
     much_storage_string.replace(0, 3, &inferior_rocket_team[0]);
+    printf("\tActual: %s\n", much_storage_string.string);
+
+    new_test("Replace Substring (and append)", "RPI Initiative");
+    char initiative[11] = {' ', 'I', 'n', 'i', 't', 'i', 'a', 't', 'i', 'v', 'e'};
+    much_storage_string.replace(3, 15, &initiative[0]);
     printf("\tActual: %s\n", much_storage_string.string);
 
     new_test("Clear", "(blank)");
