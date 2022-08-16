@@ -94,7 +94,50 @@ public:
     /**************************************
      * Element Modifiers
      **************************************/
+     void replace(int position, char character) {
+        this->string[position] = character;
+     }
 
+    void replace(int start, int end, char* character) {
+         if (start < 0 || end > size || end < start) return;
+
+         for (int i = start; i < end; i++) {
+             this->string[i] = character++;
+         }
+         // TODO: Add something if end goes past the original end of the string
+    }
+
+    void insert(int position, char character) {
+        if (position > len || len + 1 >= this->size) return;
+
+        for (int i = position + 1; position < len; i++) {
+            this->string[i] = this->string[i - 1];
+        }
+
+        this->string[position] = character;
+        this->len++;
+     }
+
+     /**
+      * Removes character at position specified
+      * @param position to remove at
+      */
+     void remove(int position) {
+         if (position > len) return;
+
+         for (int i = position; position < len - 1; i++) {
+             this->string[i] = this->string[i + 1];
+         }
+         this->len--;
+     }
+
+     /**
+      * Wipes the entire string buffer
+      */
+     void clear() {
+         this->string = {};
+         this->len = 0;
+     }
 
     /**************************************
      * Iterators
