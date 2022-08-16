@@ -57,8 +57,11 @@ int main() {
     printf("\tActual: %s\n", much_storage_string.string);
 
     new_test("Replace Character", "RIT Launch");
-    much_storage_string.replace(11, '\0');
+    much_storage_string.replace(10, '\0');
     printf("\tActual: %s\n", much_storage_string.string);
+
+    new_test("Recount", "10");
+    printf("\tActual: %d\n", much_storage_string.recount());
 
     new_test("Replace Substring", "RPI Launch");
     char inferior_rocket_team[] = {'R', 'P', 'I'};

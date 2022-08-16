@@ -153,6 +153,26 @@ public:
         }
     }
 
+    /**
+     * Recount the length of the string in case
+     * null gets randomly added to a string
+     *
+     * @return New Length or -1 if unchanged
+     */
+    int recount() {
+        int len_count = 0;
+
+        while (this->string[(len_count++) + 1] != NULL_TERMINATOR);
+
+        if (len_count != this->len) {
+            this->len = len_count;
+
+            return this->len;
+        }
+
+        return -1;
+    }
+
     /**************************************
      * Iterators
      **************************************/
