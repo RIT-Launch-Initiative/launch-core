@@ -41,34 +41,34 @@ public:
     /**************************************
      * Element Access
      **************************************/
-     char* front() {
-         return this->string[0];
-     }
+    char *front() {
+        return this->string[0];
+    }
 
-     char* back() {
-         return this->string[len - 1];
-     }
+    char *back() {
+        return this->string[len - 1];
+    }
 
-     char* at(int index) {
-         if (index > len) return nullptr;
+    char *at(int index) {
+        if (index > len) return nullptr;
 
-         return this->string[index];
-     }
+        return this->string[index];
+    }
 
-     char* substr(int start, int end) {
-         if (len < start || end < start || len < end) return nullptr;
+    char *substr(int start, int end) {
+        if (len < start || end < start || len < end) return nullptr;
 
-         char sub[(end - start) + 1];
-         int sub_index = 0;
+        char sub[(end - start) + 1];
+        int sub_index = 0;
 
-         for (int i = start; i < end; i++) {
-             sub[sub_index++] = string[i];
-         }
+        for (int i = start; i < end; i++) {
+            sub[sub_index++] = string[i];
+        }
 
-         sub[sub_index] = NULL_TERMINATOR;
+        sub[sub_index] = NULL_TERMINATOR;
 
-         return sub; // TODO: Change this. This will go out of scope.
-     }
+        return sub; // TODO: Change this. This will go out of scope.
+    }
 
     /**************************************
      * Element Modifiers
@@ -82,10 +82,25 @@ public:
     /**************************************
      * Capacity
      **************************************/
+    bool empty() const {
+        return this->len == 0;
+    }
 
+    bool full() const {
+        return this->len >= size;
+    }
 
+    size_t max_size() const {
+        return size;
+    }
 
+    size_t available() const {
+        return size - len - 1;
+    }
 
+    void resize(size_t new_size) {
+        this->size = new_size;
+    }
 
     /**************************************
      * Improve interfacing with C APIs
