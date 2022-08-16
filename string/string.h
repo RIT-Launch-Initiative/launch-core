@@ -35,12 +35,40 @@ public:
             this->string[i] = '\0';
         }
 
-        this->len = i;
+        this->len = i - 1;
     }
 
     /**************************************
      * Element Access
      **************************************/
+     char* front() {
+         return this->string[0];
+     }
+
+     char* back() {
+         return this->string[len - 1];
+     }
+
+     char* at(int index) {
+         if (index > len) return nullptr;
+
+         return this->string[index];
+     }
+
+     char* substr(int start, int end) {
+         if (len < start || end < start || len < end) return nullptr;
+
+         char sub[(end - start) + 1];
+         int sub_index = 0;
+
+         for (int i = start; i < end; i++) {
+             sub[sub_index++] = string[i];
+         }
+
+         sub[sub_index] = NULL_TERMINATOR;
+
+         return sub; // TODO: Change this. This will go out of scope.
+     }
 
     /**************************************
      * Element Modifiers
