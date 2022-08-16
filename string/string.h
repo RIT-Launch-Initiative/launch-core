@@ -100,11 +100,11 @@ public:
         this->string[position] = character;
      }
 
-    void replace(int start, int end, char* character) {
+    void replace(int start, int end, char const* character) {
          if (start < 0 || end > size || end < start) return;
 
          for (int i = start; i < end; i++) {
-             this->string[i] = character++;
+             this->string[i] = *character++;
          }
          // TODO: Add something if end goes past the original end of the string
     }

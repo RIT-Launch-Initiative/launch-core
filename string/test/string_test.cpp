@@ -57,10 +57,13 @@ int main() {
     much_storage_string.insert(555, '-');
     printf("\tActual: %s\n", much_storage_string.string);
 
-    new_test("Replace Character", "RIT Launch Initiative");
+    new_test("Replace Character", "RIT Launch");
+    much_storage_string.replace(11, '\0');
     printf("\tActual: %s\n", much_storage_string.string);
 
-    new_test("Replace Substring", "RIT Launch Initiative");
+    new_test("Replace Substring", "RPI Launch");
+    char inferior_rocket_team[] = {'R', 'P', 'I'};
+    much_storage_string.replace(0, 3, &inferior_rocket_team[0]);
     printf("\tActual: %s\n", much_storage_string.string);
 
     new_test("Clear", "(blank)");
