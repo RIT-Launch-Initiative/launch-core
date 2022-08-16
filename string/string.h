@@ -46,7 +46,7 @@ public:
      * Retrieves first value in string
      * @return First Element in String
      */
-    char *front() {
+    char front() {
         return this->string[0];
     }
 
@@ -54,8 +54,8 @@ public:
      * Retrieves last value in string
      * @return Last Element in String
      */
-    char *back() {
-        return this->string[len - 1];
+    char back() {
+        return this->string[len];
     }
 
     /**
@@ -63,10 +63,12 @@ public:
      * @param index to retrieve element at
      * @return Element at index or nullptr if invalid
      */
-    char *at(int index) {
-        if (index > len || index < 0) return nullptr;
+    char at(int index) {
+        if (index > len || index < 0) {
+            return NULL_TERMINATOR;
+        }
 
-        return this->string[index];
+        return this->string[index]; // TODO: Not actually returning character
     }
 
     /**
