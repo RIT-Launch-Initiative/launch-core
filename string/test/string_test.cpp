@@ -2,6 +2,8 @@
 #include <string.h>
 #include "string/string.h"
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wwritable-strings"
 void new_test(char *test_name, char *expected) {
     printf("%s Test: \n", test_name);
     printf("\tExpected: %s\n", expected);
@@ -38,9 +40,39 @@ int main() {
     new_test("At Index (Out of Bounds)", "(Invalid Character)");
     printf("\tActual: %c\n", full_string.at(21));
 
+    // Modifier Tests
+//    new_test("Remove (In Bounds)", "RIT Lunch Initiative");
+//    much_storage_string.remove(5);
+//    printf("\tActual: %s\n", much_storage_string.string);
+//
+//    new_test("Remove (Out of Bounds)", "RIT Launch Initiative");
+//    printf("\tActual: %s\n", much_storage_string.string);
+
+    new_test("Insert (In Bounds)", "RIT Launch Initiative");
+    much_storage_string.insert(10, '-');
+    printf("\tActual: %s\n", much_storage_string.string);
+
+    new_test("Insert (Out of Bounds)", "RIT Launch Initiative");
+    printf("\tActual: %s\n", much_storage_string.string);
+
+    new_test("Replace Character", "RIT Launch Initiative");
+    printf("\tActual: %s\n", much_storage_string.string);
+
+    new_test("Replace Substring", "RIT Launch Initiative");
+    printf("\tActual: %s\n", much_storage_string.string);
+
+    new_test("Clear", "(blank)");
+    much_storage_string.clear();
+    printf("\tActual: %s(blank)\n", much_storage_string.string);
+
+
+
+
+
 
 
     // Modifier Tests
 
     return 0;
 }
+#pragma clang diagnostic pop

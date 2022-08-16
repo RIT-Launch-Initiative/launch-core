@@ -110,7 +110,7 @@ public:
     }
 
     void insert(int position, char character) {
-        if (position > len || len + 1 >= this->size) return;
+        if (position > len || len + 1 >= size) return;
 
         for (int i = position + 1; position < len; i++) {
             this->string[i] = this->string[i - 1];
@@ -126,7 +126,7 @@ public:
       */
      void remove(int position) {
          if (position > len) return;
-
+         // TODO: Invalid ptr arithmetic here
          for (int i = position; position < len - 1; i++) {
              this->string[i] = this->string[i + 1];
          }
@@ -137,8 +137,11 @@ public:
       * Wipes the entire string buffer
       */
      void clear() {
-         this->string = {};
-         this->len = 0;
+         int i = 0;
+         while (this->len > 0) {
+             string[i++] = NULL_TERMINATOR;
+             this->len--;
+         }
      }
 
     /**************************************
