@@ -38,21 +38,23 @@ int main() {
     printf("\tActual: %c\n", full_string.at(3));
 
     new_test("At Index (Out of Bounds)", "(Invalid Character)");
-    printf("\tActual: %c\n", full_string.at(21));
+    printf("\tActual: %c\n", full_string.at(21)); // TODO: Verify this
 
     // Modifier Tests
-//    new_test("Remove (In Bounds)", "RIT Lunch Initiative");
-//    much_storage_string.remove(5);
-//    printf("\tActual: %s\n", much_storage_string.string);
-//
-//    new_test("Remove (Out of Bounds)", "RIT Launch Initiative");
-//    printf("\tActual: %s\n", much_storage_string.string);
+    new_test("Remove (In Bounds)", "RIT Lunch Initiative");
+    much_storage_string.remove(5);
+    printf("\tActual: %s\n", much_storage_string.string);
+
+    new_test("Remove (Out of Bounds)", "RIT Lunch Initiative");
+    much_storage_string.remove(10000);
+    printf("\tActual: %s\n", much_storage_string.string);
 
     new_test("Insert (In Bounds)", "RIT Launch Initiative");
-    much_storage_string.insert(10, '-');
+    much_storage_string.insert(5, 'a');
     printf("\tActual: %s\n", much_storage_string.string);
 
     new_test("Insert (Out of Bounds)", "RIT Launch Initiative");
+    much_storage_string.insert(555, '-');
     printf("\tActual: %s\n", much_storage_string.string);
 
     new_test("Replace Character", "RIT Launch Initiative");
