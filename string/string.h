@@ -68,7 +68,7 @@ public:
             return NULL_TERMINATOR;
         }
 
-        return this->string[index]; // TODO: Not actually returning character
+        return this->string[index];
     }
 
     /**
@@ -193,6 +193,7 @@ public:
     /**************************************
      * Iterators
      **************************************/
+     // TODO: Could be nice. Maybe add later after getting base functionality down.
 
     /**************************************
      * Capacity

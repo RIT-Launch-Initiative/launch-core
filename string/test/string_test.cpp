@@ -34,10 +34,10 @@ int main() {
     printf("\tActual: %c\n", full_string.back());
 
     new_test("At Index (In Bounds)", "T");
-    printf("\tActual: %c\n", full_string.at(3));
+    printf("\tActual: %c\n", full_string.at(2));
 
     new_test("At Index (Out of Bounds)", "(Invalid Character)");
-    printf("\tActual: %c\n", full_string.at(21)); // TODO: Verify this
+    printf("\tActual: %c\n", full_string.at(21));
 
     // Modifier Tests
     new_test("Remove (In Bounds)", "RIT Lunch Initiative");
