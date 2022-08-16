@@ -70,18 +70,14 @@ int main() {
 
     new_test("Replace Substring (and append)", "RPI Initiative");
     char initiative[11] = {' ', 'I', 'n', 'i', 't', 'i', 'a', 't', 'i', 'v', 'e'};
-    much_storage_string.replace(3, 15, &initiative[0]);
+    much_storage_string.replace(3, 14, &initiative[0]);
     printf("\tActual: %s\n", much_storage_string.string);
+    printf("\tExpected: 14");
+    printf("\tActual: %d\n", much_storage_string.len);
 
     new_test("Clear", "(blank)");
     much_storage_string.clear();
     printf("\tActual: %s(blank)\n", much_storage_string.string);
-
-
-
-
-
-
 
     // Modifier Tests
 

@@ -104,7 +104,7 @@ public:
         if (start < 0 || end > size || end < start) return;
 
         int i;
-        for (i = start; i < len; i++) {
+        for (i = start; i < len && i < end; i++) {
             this->string[i] = *character++;
         }
 
@@ -114,7 +114,7 @@ public:
                 this->len++;
             }
 
-            this->string[++i] = NULL_TERMINATOR;
+            this->string[this->len] = NULL_TERMINATOR;
         }
     }
 
