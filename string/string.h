@@ -41,20 +41,41 @@ public:
     /**************************************
      * Element Access
      **************************************/
+
+    /**
+     * Retrieves first value in string
+     * @return First Element in String
+     */
     char *front() {
         return this->string[0];
     }
 
+    /**
+     * Retrieves last value in string
+     * @return Last Element in String
+     */
     char *back() {
         return this->string[len - 1];
     }
 
+    /**
+     * Retrieves value at specified index
+     * @param index to retrieve element at
+     * @return Element at index or nullptr if invalid
+     */
     char *at(int index) {
-        if (index > len) return nullptr;
+        if (index > len || index < 0) return nullptr;
 
         return this->string[index];
     }
 
+    /**
+     * Retrieve a substring of the original string
+     *
+     * @param start index of substring
+     * @param end index of substring
+     * @return Substring of String
+     */
     char *substr(int start, int end) {
         if (len < start || end < start || len < end) return nullptr;
 
@@ -82,28 +103,41 @@ public:
     /**************************************
      * Capacity
      **************************************/
+
+    /**
+     * Check if string is empty
+     * @return
+     */
     bool empty() const {
         return this->len == 0;
     }
 
+    /**
+     * Check if string fills entire buffer
+     * @return
+     */
     bool full() const {
         return this->len >= size;
     }
 
+    /**
+     * Get the max size of the buffer
+     * @return
+     */
     size_t max_size() const {
         return size;
     }
 
+    /**
+     * Get the remaining available space in the buffer
+     * @return
+     */
     size_t available() const {
         return size - len - 1;
     }
 
-    void resize(size_t new_size) {
-        this->size = new_size;
-    }
-
     /**************************************
-     * Improve interfacing with C APIs
+     * C API Interfacing
      **************************************/
 
     /**
