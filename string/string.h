@@ -96,10 +96,22 @@ public:
     /**************************************
      * Element Modifiers
      **************************************/
+
+    /**
+     * Replaces character at certain position
+     * @param position
+     * @param character
+     */
     void replace(int position, char character) {
         this->string[position] = character;
     }
 
+    /**
+     * Replaces a substring of characters
+     * @param start
+     * @param end
+     * @param character
+     */
     void replace(int start, int end, char const *character) {
         if (start < 0 || end > size || end < start) return;
 
@@ -118,6 +130,11 @@ public:
         }
     }
 
+    /**
+     * Insert a character at a certain index
+     * @param position
+     * @param character
+     */
     void insert(int position, char character) {
         if (position > len || len + 1 >= size) return;
 
