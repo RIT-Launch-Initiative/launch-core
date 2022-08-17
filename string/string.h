@@ -76,21 +76,19 @@ public:
      *
      * @param start index of substring
      * @param end index of substring
-     * @return Substring of String
+     * @param substr buffer for storing substring
      */
-    char *substr(int start, int end) {
-        if (len < start || end < start || len < end) return nullptr;
+    void substr(int start, int end, char substr[]) {
+        if (len < start || end < start || len < end) return;
 
-        char sub[(end - start) + 1];
-        int sub_index = 0;
-
+        char* substr_head = substr;
         for (int i = start; i < end; i++) {
-            sub[sub_index++] = string[i];
+            *substr = string[i];
+            substr++;
         }
 
-        sub[sub_index] = NULL_TERMINATOR;
-
-        return sub; // TODO: Change this. This will go out of scope.
+        *substr = NULL_TERMINATOR;
+        substr = substr_head;
     }
 
     /**************************************

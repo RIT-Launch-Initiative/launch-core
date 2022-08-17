@@ -39,6 +39,11 @@ int main() {
     new_test("At Index (Out of Bounds)", "(Invalid Character)");
     printf("\tActual: %c\n", full_string.at(21));
 
+    new_test("Get Substring", "RIT");
+    char result[4];
+    full_string.substr(0, 3, result);
+    printf("\tActual: %s\n", result);
+
     // Modifier Tests
     new_test("Remove (In Bounds)", "RIT Lunch Initiative");
     much_storage_string.remove(5);
