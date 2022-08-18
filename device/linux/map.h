@@ -13,6 +13,7 @@
 #include "sched/macros.h"
 #include "device/linux/ConsoleDevice.h"
 #include "device/linux/DebugDevice.h"
+#include "device/linux/LinuxUdpSocketDevice.h"
 
 
 static const size_t MAP_SIZE = 10;
@@ -21,7 +22,8 @@ class LinuxDeviceMap : public alloc::DeviceMap<MAP_SIZE> {
 public:
     /// @brief constructor
     LinuxDeviceMap() : m_console(),
-                       m_debug() {};
+                       m_debug(),
+                       m_socket() {};
 
     /// @brief initialize the Linux platform specific map
     /// TODO put in cpp file
@@ -32,6 +34,7 @@ public:
         // just make MAP_SIZE bigger if we need more
         add("console", &m_console);
         add("debug", &m_debug);
+        add("net", &m_socket);
 
         // duplicate the console as our debug output
 
@@ -56,6 +59,9 @@ private:
 
     // debug device
     LinuxDebugDevice m_debug;
+
+    // socket device
+    LinuxUdpSocketDevice m_socket;
 };
 
 #endif

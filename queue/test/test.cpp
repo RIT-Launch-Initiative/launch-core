@@ -210,22 +210,12 @@ bool prealloc_basic() {
     }
 
     // pop off of queue
-    int temp;
-
     if(*(q.peek()) != 0) {
         printf("bad peek on node 0\n");
         return false;
     }
 
-    if(!q.pop(&temp)) {
-        printf("pop failed on node 0\n");
-        return false;
-    }
-
-    if(temp != 0) {
-        printf("bad value on pop from node 0, got %i should be 0\n", temp);
-        return false;
-    }
+    q.pop();
 
     if(q.size() != 2) {
         printf("bad size on queue, should be 2 but is %lu\n", q.size());
@@ -237,15 +227,7 @@ bool prealloc_basic() {
         return false;
     }
 
-    if(!q.pop(&temp)) {
-        printf("pop failed on node 1\n");
-        return false;
-    }
-
-    if(temp != 1) {
-        printf("bad value on pop from node 1, got %i should be 1\n", temp);
-        return false;
-    }
+    q.pop();
 
     if(q.size() != 1) {
         printf("bad size on queue, should be 1 but is %lu\n", q.size());
@@ -257,15 +239,7 @@ bool prealloc_basic() {
         return false;
     }
 
-    if(!q.pop(&temp)) {
-        printf("pop failed on node 2\n");
-        return false;
-    }
-
-    if(temp != 2) {
-        printf("bad value on pop from node 2, got %i should be 2\n", temp);
-        return false;
-    }
+    q.pop();
 
     if(q.size() != 0) {
         printf("bad size on queue, should be 0 but is %lu\n", q.size());
@@ -308,15 +282,7 @@ bool prealloc_sorted() {
         return false;
     }
 
-    if(!q.pop(&temp)) {
-        printf("pop failed on node 0\n");
-        return false;
-    }
-
-    if(temp != 3) {
-        printf("bad value on pop from node 0, got %i should be 3\n", temp);
-        return false;
-    }
+    q.pop();
 
     if(q.size() != 2) {
         printf("bad size on queue, should be 2 but is %lu\n", q.size());
@@ -328,15 +294,7 @@ bool prealloc_sorted() {
         return false;
     }
 
-    if(!q.pop(&temp)) {
-        printf("pop failed on node 1\n");
-        return false;
-    }
-
-    if(temp != 2) {
-        printf("bad value on pop from node 1, got %i should be 2\n", temp);
-        return false;
-    }
+    q.pop();
 
     if(q.size() != 1) {
         printf("bad size on queue, should be 1 but is %lu\n", q.size());
@@ -348,15 +306,7 @@ bool prealloc_sorted() {
         return false;
     }
 
-    if(!q.pop(&temp)) {
-        printf("pop failed on node 2\n");
-        return false;
-    }
-
-    if(temp != 1) {
-        printf("bad value on pop from node 2, got %i should be 1\n", temp);
-        return false;
-    }
+    q.pop();
 
     if(q.size() != 0) {
         printf("bad size on queue, should be 0 but is %lu\n", q.size());

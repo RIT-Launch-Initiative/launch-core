@@ -11,8 +11,8 @@
 class SocketDevice : public Device {
 public:
     typedef struct {
-        uint32_t addr;      // network address
-        uint16_t port;      // transport port
+        uint32_t addr;      // network address in system endianness
+        uint16_t port;      // transport port in system endianness
     } addr_t;
 
     typedef struct {
@@ -36,9 +36,9 @@ public:
     ///             'addr.port' is the source port of the message, filled by function
     ///             'payload' is the buffer to copy the payload to
     ///             'payload_len' is the size of the buffer, up to this many bytes are copied
-    /// @param received  location to write the actual number of received bytes
-    /// @return the actual number of bytes received, may be greater than 'payload_len'
-    virtual RetType recvmsg(msg_t* msg, size_t* received) = 0;
+    ///                           this is set to the actual number of bytes copied
+    /// @return
+    virtual RetType recvmsg(msg_t* msg) = 0;
 
     /// @brief bind this socket to an address
     ///        the socket will send and receive from this address

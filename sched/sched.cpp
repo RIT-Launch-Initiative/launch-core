@@ -80,7 +80,7 @@ void _sched_wakeup_tasks() {
 
         if(get_time() > task->wake_time) {
             // pop off the sleep queue
-            sleep_q.pop(&task);
+            sleep_q.pop();
 
             // set active
             task->state = STATE_ACTIVE;
@@ -104,13 +104,15 @@ void sched_dispatch() {
         // wakeup any sleeping tasks
         _sched_wakeup_tasks();
 
-        task_t* task = NULL;
-        ready_q.pop(&task);
+        task_t** task_p = ready_q.peek();
 
-        if(task == NULL) {
+        if(NULL == task_p) {
             // nothing to dispatch
             break;
         }
+
+        ready_q.pop();
+        task_t* task = *task_p;
 
         // NOTE: this a 'lazy' scheduler, when task state changes the task
         //       stays on the ready queue and is popped when ready

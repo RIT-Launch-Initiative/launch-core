@@ -32,27 +32,38 @@ public:
         return true;
     }
 
-    /// @brief pop an object off the queue, copying it into 'obj'
-    /// @return 'true' on success, 'false' on error
-    bool pop(T* obj) {
-        Node<T>* node = ::Queue<T>::pop();
+    /// @brief create an object at the end of the queue and get a pointer to it
+    /// @return the object, or NULL on error
+    T* push() {
+        Node<T>* node = m_pool.alloc();
+
+        if(node == NULL) {
+            return NULL;
+        }
+
+        ::Queue<T>::push(node);
+        return &(node->data);
+    }
+
+    /// @brief pop an object off the queue, if there is one to pop
+    /// @return
+    void pop() {
+        Node<T>* node =::Queue<T>::pop();
 
         if(node == NULL) {
             // nothing popped
-            return false;
+            return;
         }
 
-        // copy out
-        *obj = node->data;
-
         // give the node back to the pool
-        return m_pool.free(node);
+        // TODO do something with return?
+        m_pool.free(node);
     }
 
     /// @brief peek at the object on the back of the queue
     /// @return the object, or NULL on error
     T* peek() {
-        const Node<T>* node = ::Queue<T>::peek();
+        Node<T>* node = ::Queue<T>::peek();
 
         if(node == NULL) {
             return NULL;
@@ -88,21 +99,32 @@ public:
         return true;
     }
 
-    /// @brief pop an object off the queue, copying it into 'obj'
-    /// @return 'true' on success, 'false' on error
-    bool pop(T* obj) {
+    /// @brief create an object at the end of the queue and get a pointer to it
+    /// @return the object, or NULL on error
+    T* push() {
+        Node<T>* node = m_pool.alloc();
+
+        if(node == NULL) {
+            return NULL;
+        }
+
+        ::SortedQueue<T>::push(node);
+        return &(node->data);
+    }
+
+    /// @brief pop an object off the queue, if there is one to pop
+    /// @return
+    void pop() {
         Node<T>* node = ::SortedQueue<T>::pop();
 
         if(node == NULL) {
             // nothing popped
-            return false;
+            return;
         }
 
-        // copy out
-        *obj = node->data;
-
         // give the node back to the pool
-        return m_pool.free(node);
+        // TODO do something with return?
+        m_pool.free(node);
     }
 
     /// @brief peek at the object on the back of the queue
