@@ -25,35 +25,22 @@ public:
         DOWN
     };
 
-    enum class TriggerState {
-        RISING,
-        FALLING
-    };
-
     Pin pin;
     Direction direction;
     Pull pull;
 
-    gpio(Pin pin, Direction direction, Pull pull = Pull::DOWN) {
-        this->pin = pin;
-        this->direction = direction;
-        this->pull = pull;
-    }
+    gpio(Pin pin, Direction direction, Pull pull = Pull::DOWN) : pin(pin), direction(direction), pull(pull) {}
 
     Pin getPin() const {
         return pin;
-    }
-
-    void setPin(Pin pin) {
-        gpio::pin = pin;
     }
 
     Direction getDirection() const {
         return direction;
     }
 
-    void setDirection(Direction direction) {
-        gpio::direction = direction;
+    void toggleDirection() {
+        this->direction = direction == Direction::OUTPUT ? Direction::INPUT : Direction::OUTPUT;
     }
 
     Pull getPull() const {
