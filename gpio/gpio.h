@@ -51,7 +51,7 @@ public:
         gpio::pull = pull;
     }
 
-
+    virtual State getState() = 0;
 };
 
 
