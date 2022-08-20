@@ -21,6 +21,8 @@ add_library(launch_core
         device/SocketDevice.h
         device/StreamDevice.h
 
+        gpio/gpio.h
+
         hashmap/hashmap.h
         pool/test/test.cpp
         pool/pool.h
@@ -36,6 +38,7 @@ add_library(launch_core
 #        string/string.h
         return.h
         )
+
 
 #add_executable(string_test string/test/string_test.cpp)
 #target_link_libraries(string_test launch_core)
