@@ -8,6 +8,7 @@
 
 class gpio {
 public:
+    enum class Pin;
     enum class State {
         LOW,
         HIGH
@@ -29,6 +30,7 @@ public:
         FALLING
     };
 
+    Pin pin;
     Direction direction;
     Pull pull;
 
