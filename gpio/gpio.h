@@ -29,6 +29,9 @@ public:
         FALLING
     };
 
+    Direction direction;
+    Pull pull;
+
 
 
 
