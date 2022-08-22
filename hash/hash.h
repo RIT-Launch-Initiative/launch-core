@@ -7,6 +7,7 @@
 /// @tparam T   the object type to be hashed
 template <typename T>
 class Hash {
+public:
     /// @brief default constructor
     Hash() {};
 
@@ -25,13 +26,14 @@ class Hash {
 /// @tparam T   the object type to be hashed
 template <typename T>
 class XORHash : public Hash<T> {
+public:
     /// @brief default constructor
     XORHash() {};
 
     /// @brief return the hash using XORing
     size_t hash(const T& obj) {
         size_t hash = 0;
-        const uint8_t* data8 = reinterpret_cast<uint8_t*>(&obj);
+        const uint8_t* data8 = reinterpret_cast<const uint8_t*>(&obj);
 
         // get to an offset of the output len
         size_t start = sizeof(T) % sizeof(size_t);
@@ -40,7 +42,7 @@ class XORHash : public Hash<T> {
         }
 
         // hash the rest using the output len size
-        const size_t* data = reinterpret_cast<size_t*>(&obj + start);
+        const size_t* data = reinterpret_cast<const size_t*>(&obj + start);
         for(size_t i = 0; i < (sizeof(T) / sizeof(size_t)); i++) {
             hash ^= data[i];
         }
