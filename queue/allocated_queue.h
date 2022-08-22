@@ -73,7 +73,7 @@ public:
     }
 
 private:
-    Pool<Node<T>, SIZE> m_pool;
+    alloc::Pool<Node<T>, SIZE> m_pool;
 };
 
 /// @brief preallocated sorted queue
@@ -140,7 +140,7 @@ public:
     }
 
 private:
-    Pool<Node<T>, SIZE> m_pool;
+    alloc::Pool<Node<T>, SIZE> m_pool;
 };
 
 }
