@@ -24,11 +24,11 @@ public:
     /// @return a pointer to the value to be copied into, or NULL on error
     /// NOTE: the way we add we don't look for collisions with other keys
     /// the first key added will be returned by get until it is removed
-    T* add(uint32_t key) {
-        uint32_t index = (key % NUM_BUCKETS) * BUCKET_SIZE;
+    T* add(size_t key) {
+        size_t index = (key % NUM_BUCKETS) * BUCKET_SIZE;
 
         // find an unused location in this bucket
-        for(uint32_t i = index; i < index + BUCKET_SIZE; i++) {
+        for(size_t i = index; i < index + BUCKET_SIZE; i++) {
             if(!m_used[i]) {
                 // this is our location!
                 m_entries[i].key = key;
@@ -43,11 +43,11 @@ public:
     /// @brief remove a value at a key
     /// @param key    the key of the value to remove
     /// @return 'true' if key was deleted, 'false' on error
-    bool rm(uint32_t key) {
-        uint32_t index = (key % NUM_BUCKETS) * BUCKET_SIZE;
+    bool rm(size_t key) {
+        size_t index = (key % NUM_BUCKETS) * BUCKET_SIZE;
 
         // search this bucket for an entry with this key
-        for(uint32_t i = index; i < index + BUCKET_SIZE; i++) {
+        for(size_t i = index; i < index + BUCKET_SIZE; i++) {
             if(m_used[i]) {
                 if(m_entries[i].key == key) {
                     // we found it!
@@ -64,11 +64,11 @@ public:
     /// @brief get the value at a key
     /// @param key  the key of the value
     /// @return a pointer to the value, or NULL on error
-    T* get(uint32_t key) {
-        uint32_t index = (key % NUM_BUCKETS) * BUCKET_SIZE;
+    T* get(size_t key) {
+        size_t index = (key % NUM_BUCKETS) * BUCKET_SIZE;
 
         // search this bucket
-        for(uint32_t i = index; i < index + BUCKET_SIZE; i++) {
+        for(size_t i = index; i < index + BUCKET_SIZE; i++) {
             if(m_used[i]) {
                 if(m_entries[i].key == key) {
                     // we found it!
@@ -82,7 +82,7 @@ public:
 
 private:
     typedef struct {
-        uint32_t key;
+        size_t key;
         T val;
     } entry_t;
 
