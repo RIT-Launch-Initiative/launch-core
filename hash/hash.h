@@ -10,11 +10,9 @@ class Hash {
     /// @brief default constructor
     Hash() {};
 
-
     /// @brief calculate the hash
     /// @return the hash
     virtual size_t hash(const T& obj) = 0;
-
 
     /// @brief calculate the hash
     /// @return the hash
