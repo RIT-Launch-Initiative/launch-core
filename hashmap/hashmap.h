@@ -57,7 +57,7 @@ public:
             }
         }
 
-        // oterhwise it's a bad key
+        // otherwise it's a bad key
         return false;
     }
 
@@ -78,6 +78,13 @@ public:
         }
 
         return NULL;
+    }
+
+    /// @brief get the value at a key
+    /// @param key  the key of the value
+    /// @return a pointer to the value, or NULL on error
+    inline T* operator[](size_t key) {
+        return get(key);
     }
 
 private:
