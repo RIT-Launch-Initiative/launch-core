@@ -21,6 +21,9 @@ public:
         size_t payload_len; // payload length
     } msg_t;
 
+    /// @brief constructor
+    SocketDevice(const char* name) : Device(name) {};
+
     /// @brief send a message from the socket
     /// @param msg  the message to send
     ///             'addr.addr' is the destination address
@@ -52,11 +55,23 @@ public:
     /// @return
     virtual RetType subscribe(addr_t* addr) = 0;
 
+    /// @brief close the socket
+    /// @return
+    virtual RetType close() = 0;
+
     /// @brief get how much data can currently be read
     /// NOTE: units are up to the device
     ///       for datagrams it may be packets rather than bytes
     /// @return the amount of data that can be read in bytes
     virtual size_t available() = 0;
+
+    /// @brief fill in the 'addr' field with an IPv4 address a.b.c.d
+    static void IPv4Address(uint8_t a, uint8_t b, uint8_t c, uint8_t d, addr_t* addr) {
+        addr->addr = d;
+        addr->addr |= (c << 8);
+        addr->addr |= (b << 16);
+        addr->addr |= (a << 24);
+    }
 };
 
 #endif

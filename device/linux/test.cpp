@@ -195,6 +195,49 @@ RetType slow_timer() {
     return RET_ERROR;
 }
 
+// task that waits to receive packets on the network
+RetType echo_net() {
+    RESUME();
+
+    printf("network echo task started\r\n");
+
+    Device* dev = map.get("socket_pool");
+    if(dev == NULL) {
+        printf("failed to get socket pool device\r\n");
+        // returning error removes the task from the scheduler
+        return RET_ERROR;
+    }
+
+    SocketPool* pool = reinterpret_cast<SocketPool*>(dev);
+
+    static SocketDevice* sock = pool->alloc();
+    if(NULL == sock) {
+        printf("failed to allocate socket from socket pool\r\n");
+        return RET_ERROR;
+    }
+
+    SocketDevice::addr_t addr;
+    addr.port = 8000;
+    addr.addr = 0; // listen to any interface
+
+    if(RET_SUCCESS != sock->bind(&addr)) {
+        printf("failed to bind socket to addr\r\n");
+        return RET_ERROR;
+    }
+
+    while(1) {
+        if(sock->available()) {
+            printf("UDP packet received!\r\n");
+
+            // get off the scheduler
+            printf("exiting network echo task\r\n");
+            return RET_ERROR;
+        }
+
+        YIELD();
+    }
+}
+
 uint32_t tick = 0;
 uint32_t systime() {
     usleep(1000);
@@ -252,6 +295,11 @@ int main() {
 
     if(-1 == sched_start(&slow_timer)) {
         printf("failed to start slow_timer task\r\n");
+        return -1;
+    }
+
+    if(-1 == sched_start(&echo_net)) {
+        printf("failed to start network echo task\r\n");
         return -1;
     }
 

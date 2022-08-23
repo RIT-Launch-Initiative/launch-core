@@ -14,6 +14,7 @@
 #include "device/linux/ConsoleDevice.h"
 #include "device/linux/DebugDevice.h"
 #include "device/linux/LinuxUdpSocketDevice.h"
+#include "device/SocketPool.h"
 
 
 static const size_t MAP_SIZE = 10;
@@ -23,7 +24,7 @@ public:
     /// @brief constructor
     LinuxDeviceMap() : m_console(),
                        m_debug(),
-                       m_socket() {};
+                       m_sockets("Linux Socket Pool") {};
 
     /// @brief initialize the Linux platform specific map
     /// TODO put in cpp file
@@ -34,7 +35,7 @@ public:
         // just make MAP_SIZE bigger if we need more
         add("console", &m_console);
         add("debug", &m_debug);
-        add("net", &m_socket);
+        add("socket_pool", &m_sockets);
 
         // duplicate the console as our debug output
 
@@ -60,8 +61,8 @@ private:
     // debug device
     LinuxDebugDevice m_debug;
 
-    // socket device
-    LinuxUdpSocketDevice m_socket;
+    // socket pool
+    alloc::SocketPool<LinuxUdpSocketDevice, 10> m_sockets;
 };
 
 #endif

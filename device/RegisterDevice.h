@@ -12,6 +12,9 @@
 template <typename T>
 class RegisterDevice : public Device {
 public:
+    /// @brief constructor
+    RegisterDevice(const char* name) : Device(name) {};
+
     /// @brief write to the device
     /// @param addr     the register address to write to
     /// @param buff     the buffer to write

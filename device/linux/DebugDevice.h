@@ -15,7 +15,7 @@
 
 class LinuxDebugDevice : public StreamDevice {
 public:
-    LinuxDebugDevice() {};
+    LinuxDebugDevice() : StreamDevice("Linux Debug Device") {};
 
     RetType init() {
         // nothing to do since stderr is already open for us
@@ -61,13 +61,6 @@ public:
         // will never be able to read any data
         return RET_ERROR;
     }
-
-    #ifdef DEBUG
-    /// @brief print a textual representation of the device using 'printf'
-    void print() {
-        printf("Linux Debug Device\t---\tunique ID 0x%04x\r\n", m_uid);
-    }
-    #endif
 };
 
 #endif

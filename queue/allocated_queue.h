@@ -12,7 +12,7 @@ namespace alloc {
 /// @brief preallocated queue
 ///        methods work directly on stored data type
 template <typename T, const size_t SIZE>
-class Queue : public ::Queue<T> {
+class Queue : public ::SimpleQueue<T>, public ::Queue<T> {
 public:
     /// @brief constructor
     Queue() : m_pool() {};
@@ -28,7 +28,7 @@ public:
 
         node->data = obj;
 
-        ::Queue<T>::push(node);
+        ::SimpleQueue<T>::push_node(node);
         return true;
     }
 
@@ -41,14 +41,14 @@ public:
             return NULL;
         }
 
-        ::Queue<T>::push(node);
+        ::SimpleQueue<T>::push_node(node);
         return &(node->data);
     }
 
     /// @brief pop an object off the queue, if there is one to pop
     /// @return
     void pop() {
-        Node<T>* node =::Queue<T>::pop();
+        Node<T>* node =::SimpleQueue<T>::pop_node();
 
         if(node == NULL) {
             // nothing popped
@@ -63,13 +63,25 @@ public:
     /// @brief peek at the object on the back of the queue
     /// @return the object, or NULL on error
     T* peek() {
-        Node<T>* node = ::Queue<T>::peek();
+        Node<T>* node = ::SimpleQueue<T>::peek_node();
 
         if(node == NULL) {
             return NULL;
         }
 
         return &(node->data);
+    }
+
+    /// @brief get the number of nodes on the queue
+    /// @return the size of the queue
+    size_t size() {
+        return ::SimpleQueue<T>::num_nodes();
+    }
+
+    /// @brief get an iterator starting at the head
+    /// @return the iterator
+    QueueIterator<T> iterator() {
+        return QueueIterator<T>{SimpleQueue<T>::head()};
     }
 
 private:
@@ -79,10 +91,10 @@ private:
 /// @brief preallocated sorted queue
 ///        methods work directly on stored data type
 template <typename T, const size_t SIZE>
-class SortedQueue : public ::SortedQueue<T> {
+class SortedQueue : public ::SimpleSortedQueue<T>, public ::Queue<T> {
 public:
     /// @brief constructor
-    explicit SortedQueue(sort_t<T> sort) : m_pool(), ::SortedQueue<T>(sort) {};
+    explicit SortedQueue(sort_t<T> sort) : m_pool(), ::SimpleSortedQueue<T>(sort) {};
 
     /// @brief push an object onto the queue
     /// @return 'true' on success, 'false' on error
@@ -95,7 +107,7 @@ public:
 
         node->data = obj;
 
-        ::SortedQueue<T>::push(node);
+        ::SimpleSortedQueue<T>::push_node(node);
         return true;
     }
 
@@ -108,14 +120,14 @@ public:
             return NULL;
         }
 
-        ::SortedQueue<T>::push(node);
+        ::SimpleSortedQueue<T>::push_node(node);
         return &(node->data);
     }
 
     /// @brief pop an object off the queue, if there is one to pop
     /// @return
     void pop() {
-        Node<T>* node = ::SortedQueue<T>::pop();
+        Node<T>* node = ::SimpleSortedQueue<T>::pop_node();
 
         if(node == NULL) {
             // nothing popped
@@ -130,13 +142,25 @@ public:
     /// @brief peek at the object on the back of the queue
     /// @return the object, or NULL on error
     T* peek() {
-        Node<T>* node = ::SortedQueue<T>::peek();
+        Node<T>* node = ::SimpleSortedQueue<T>::peek_node();
 
         if(node == NULL) {
             return NULL;
         }
 
         return &(node->data);
+    }
+
+    /// @brief get the number of nodes on the queue
+    /// @return the size of the queue
+    size_t size() {
+        return ::SimpleSortedQueue<T>::num_nodes();
+    }
+
+    /// @brief get an iterator starting at the head
+    /// @return the iterator
+    QueueIterator<T> iterator() {
+        return QueueIterator<T>{SimpleSortedQueue<T>::head()};
     }
 
 private:

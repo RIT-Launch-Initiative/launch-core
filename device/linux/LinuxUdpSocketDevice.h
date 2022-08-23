@@ -29,7 +29,8 @@ public:
     } Packet;
 
     /// @brief constructor
-    LinuxUdpSocketDevice() : m_sockFd(-1), m_prealloc(NULL) {};
+    LinuxUdpSocketDevice() : m_sockFd(-1), m_prealloc(NULL),
+                             SocketDevice("Linux UDP Socket Device") {};
 
     RetType init() {
         m_sockFd = socket(AF_INET, SOCK_DGRAM | SOCK_NONBLOCK, 0);
@@ -137,17 +138,30 @@ public:
         return RET_SUCCESS;
     }
 
+    /// @brief close the socket
+    /// @return
+    RetType close() {
+        if(-1 == m_sockFd) {
+            // never opened
+            return RET_SUCCESS;
+        }
+
+        if(-1 == ::close(m_sockFd)) {
+            return RET_ERROR;
+        }
+    }
+
     /// @brief get how many packets are available
     /// @return the number of available packets
     size_t available() {
-        return m_queue.size();
-    }
+        size_t size = m_queue.size();
 
-    #ifdef DEBUG
-    void print() {
-        printf("Linux UDP Socket Device\t---\tunique ID 0x%04x\r\n", m_uid);
+        if(m_prealloc) {
+            size--;
+        }
+
+        return size;
     }
-    #endif
 
 private:
     int m_sockFd;

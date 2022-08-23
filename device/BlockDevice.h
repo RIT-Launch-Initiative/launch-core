@@ -10,6 +10,9 @@
 /// @brief device accessible by reading/writing to/from blocks
 class BlockDevice : public Device {
 public:
+    /// @brief constructor
+    BlockDevice(const char* name) : Device(name) {};
+
     /// @brief write to a block
     /// @param block    the block number to write to
     /// @param data     the data to write to the block
