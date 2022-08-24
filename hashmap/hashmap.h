@@ -31,7 +31,7 @@ public:
     /// NOTE: the way we add we don't look for collisions with other keys
     /// the first key added will be returned by get until it is removed
     VALUE* add(KEY key) {
-        size_t index = (key % m_numBuckets) * m_bucketSize;
+        size_t index = (m_hash.hash(key) % m_numBuckets) * m_bucketSize;
 
         // find an unused location in this bucket
         for(size_t i = index; i < index + m_bucketSize; i++) {

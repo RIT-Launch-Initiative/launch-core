@@ -126,6 +126,7 @@ public:
 
         if(packet == NULL) {
             // nothing popped
+            // TODO block the calling tid if we have room to store the tid so we can wake it back up
             return RET_ERROR;
         }
 
