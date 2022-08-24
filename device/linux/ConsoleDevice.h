@@ -13,7 +13,7 @@
 #include "sched/macros.h"
 #include "device/Device.h"
 #include "device/StreamDevice.h"
-#include "ringbuffer/ringbuffer.h"
+#include "ringbuffer/RingBuffer.h"
 #include "queue/allocated_queue.h"
 
 class LinuxConsoleDevice : public StreamDevice {
@@ -116,7 +116,7 @@ public:
     }
 
 private:
-    RingBuffer<256, true> m_rxBuff;
+    alloc::RingBuffer<256, true> m_rxBuff;
     bool m_lock;
 
     tid_t m_blockTid;

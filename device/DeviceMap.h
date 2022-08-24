@@ -4,6 +4,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef DEBUG
+#include <stdio.h>
+#endif
+
 #include "return.h"
 #include "device/Device.h"
 
@@ -53,15 +57,23 @@ public:
         return ret;
     }
 
-    #ifdef DEBUG
-    // @brief use 'printf' to output a textual representation of the device map
-    virtual void print() = 0;
+    #ifdef DEBUG\
+    /// @brief use 'printf' to output a textual representation of the device map
+    void print() {
+        printf("%s\r\n", m_name);
+        printf("------------------------------------------------\r\n");
+        for(size_t i = 0; i < m_count; i++) {
+            m_devices[i]->print();
+        }
+        printf("------------------------------------------------\r\n");
+    }
     #endif
 
 protected:
     /// @brief protected constructor
     /// use the constructor for the alloc::DeviceMap instead
-    DeviceMap(const char** names, Device** devices, size_t size) :
+    DeviceMap(const char* name, const char** names, Device** devices, size_t size) :
+                                                        m_name(name),
                                                         m_names(names),
                                                         m_devices(devices),
                                                         m_size(size),
@@ -84,6 +96,9 @@ protected:
         return RET_SUCCESS;
     }
 protected:
+    // name of the device map
+    const char* m_name;
+
     // list of string names
     const char** m_names;
 
@@ -105,7 +120,8 @@ template <const size_t SIZE>
 class DeviceMap : public ::DeviceMap {
 public:
     /// @brief constructor
-    DeviceMap() : ::DeviceMap(m_internalNames, m_internalDevices, SIZE) {};
+    /// @param name     the name of the device map
+    DeviceMap(const char* name) : ::DeviceMap(name, m_internalNames, m_internalDevices, SIZE) {};
 private:
     const char* m_internalNames[SIZE];
     Device* m_internalDevices[SIZE];

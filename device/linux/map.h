@@ -5,10 +5,6 @@
 //      this is specific to the platform and peripherals so should not be in core
 //      for now it's convenient to test with
 
-#ifdef DEBUG
-#include <stdio.h>
-#endif
-
 #include "device/DeviceMap.h"
 #include "sched/macros.h"
 #include "device/linux/ConsoleDevice.h"
@@ -24,7 +20,8 @@ public:
     /// @brief constructor
     LinuxDeviceMap() : m_console(),
                        m_debug(),
-                       m_sockets("Linux Socket Pool") {};
+                       m_sockets("Linux Socket Pool"),
+                       alloc::DeviceMap<MAP_SIZE>("Linux Test Device Map") {};
 
     /// @brief initialize the Linux platform specific map
     /// TODO put in cpp file
@@ -41,18 +38,6 @@ public:
 
         return alloc::DeviceMap<MAP_SIZE>::init();
     }
-
-    #ifdef DEBUG
-    /// @brief use 'printf' to output a textual representation of the device map
-    void print() {
-        printf("Linux Test Device Map version 0.1\r\n");
-        printf("------------------------------------------------\r\n");
-        for(size_t i = 0; i < m_count; i++) {
-            m_devices[i]->print();
-        }
-        printf("------------------------------------------------\r\n");
-    }
-    #endif
 
 private:
     // console device
