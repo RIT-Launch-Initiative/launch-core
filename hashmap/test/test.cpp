@@ -1,10 +1,11 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
 
 #include "hashmap/hashmap.h"
 
 bool basic() {
-    Hashmap<int, 5, 1> hm;
+    alloc::Hashmap<uint8_t, int, 5, 1> hm;
 
     int* val = hm.add(1);
     *val = 10;

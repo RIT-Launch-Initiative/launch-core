@@ -13,7 +13,7 @@ public:
 
     /// @brief calculate the hash
     /// @return the hash
-    virtual size_t hash(const T& obj) = 0;
+    virtual inline size_t hash(const T& obj) = 0;
 
     /// @brief calculate the hash
     /// @return the hash

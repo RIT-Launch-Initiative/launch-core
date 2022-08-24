@@ -4,31 +4,37 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+#include "hash/hash.h"
+
+namespace hashmap_internal {
+
+/// @brief hashmap internal entry type
+template <typename KEY, typename VALUE>
+struct entry_t {
+    KEY key;
+    VALUE val;
+};
+
+};
+
 /// @brief hashmap
-/// @tparam T           the type of values in the hashmap
-/// @tparam NUM_BUCKETS the number of buckets that can be stored in the map
-/// @tparam BUCKET_SIZE the size of each bucket
+/// @tparam KEY     the type of the keys in the hashmap
+/// @tparam VALUE   the type of values in the hashmap
 /// operations are O(BUCKET_SIZE)
-template <typename T, const size_t NUM_BUCKETS, const size_t BUCKET_SIZE>
+// TODO template the hash function? for now only XORHash is used
+template <typename KEY, typename VALUE>
 class Hashmap {
 public:
-    /// @brief constructor
-    Hashmap() {
-        for(size_t i = 0; i < NUM_BUCKETS * BUCKET_SIZE; i++) {
-            m_used[i] = false;
-        }
-    }
-
     /// @brief add a value to the map
     /// @param key  the key of the value
     /// @return a pointer to the value to be copied into, or NULL on error
     /// NOTE: the way we add we don't look for collisions with other keys
     /// the first key added will be returned by get until it is removed
-    T* add(size_t key) {
-        size_t index = (key % NUM_BUCKETS) * BUCKET_SIZE;
+    VALUE* add(KEY key) {
+        size_t index = (key % m_numBuckets) * m_bucketSize;
 
         // find an unused location in this bucket
-        for(size_t i = index; i < index + BUCKET_SIZE; i++) {
+        for(size_t i = index; i < index + m_bucketSize; i++) {
             if(!m_used[i]) {
                 // this is our location!
                 m_entries[i].key = key;
@@ -43,11 +49,11 @@ public:
     /// @brief remove a value at a key
     /// @param key    the key of the value to remove
     /// @return 'true' if key was deleted, 'false' on error
-    bool rm(size_t key) {
-        size_t index = (key % NUM_BUCKETS) * BUCKET_SIZE;
+    bool rm(KEY key) {
+        size_t index = (m_hash.hash(key) % m_numBuckets) * m_bucketSize;
 
         // search this bucket for an entry with this key
-        for(size_t i = index; i < index + BUCKET_SIZE; i++) {
+        for(size_t i = index; i < index + m_bucketSize; i++) {
             if(m_used[i]) {
                 if(m_entries[i].key == key) {
                     // we found it!
@@ -64,11 +70,11 @@ public:
     /// @brief get the value at a key
     /// @param key  the key of the value
     /// @return a pointer to the value, or NULL on error
-    T* get(size_t key) {
-        size_t index = (key % NUM_BUCKETS) * BUCKET_SIZE;
+    VALUE* get(KEY key) {
+        size_t index = (m_hash.hash(key) % m_numBuckets) * m_bucketSize;
 
         // search this bucket
-        for(size_t i = index; i < index + BUCKET_SIZE; i++) {
+        for(size_t i = index; i < index + m_bucketSize; i++) {
             if(m_used[i]) {
                 if(m_entries[i].key == key) {
                     // we found it!
@@ -83,18 +89,57 @@ public:
     /// @brief get the value at a key
     /// @param key  the key of the value
     /// @return a pointer to the value, or NULL on error
-    inline T* operator[](size_t key) {
+    inline VALUE* operator[](KEY key) {
         return get(key);
     }
 
-private:
-    typedef struct {
-        size_t key;
-        T val;
-    } entry_t;
+protected:
+    /// @brief protected constructor, use alloc::Hashmap to declare instead
+    Hashmap(size_t num_buckets, size_t bucket_size,
+            hashmap_internal::entry_t<KEY, VALUE>* entries, bool* used) :
+                                            m_numBuckets(num_buckets),
+                                            m_bucketSize(bucket_size),
+                                            m_entries(entries),
+                                            m_used(used),
+                                            m_hash() {
+        for(size_t i = 0; i < num_buckets * bucket_size; i++) {
+            m_used[i] = false;
+        }
+    }
 
-    entry_t m_entries[NUM_BUCKETS * BUCKET_SIZE];
-    bool m_used[NUM_BUCKETS * BUCKET_SIZE];
+private:
+    // size = num buckets X bucket size
+    hashmap_internal::entry_t<KEY, VALUE>* m_entries;
+    bool* m_used;
+
+    size_t m_numBuckets;
+    size_t m_bucketSize;
+
+    XORHash<KEY> m_hash;
 };
+
+namespace alloc {
+
+/// @brief preallocated hashmap
+/// @tparam KEY           the type of keys in the hashmap
+/// @tparam value         the type of values in the hashmap
+/// @tparam NUM_BUCKETS   the number of buckets that can be stored in the map
+/// @tparam BUCKET_SIZE   the size of each bucket
+/// operations are O(BUCKET_SIZE)
+template <typename KEY, typename VALUE, const size_t NUM_BUCKETS, const size_t BUCKET_SIZE>
+class Hashmap : public ::Hashmap<KEY, VALUE> {
+public:
+    /// @brief constructor
+    Hashmap() : ::Hashmap<KEY, VALUE>(NUM_BUCKETS,
+                                      BUCKET_SIZE,
+                                      m_internalEntries,
+                                      m_internalUsed) {};
+
+private:
+    hashmap_internal::entry_t<KEY, VALUE> m_internalEntries[NUM_BUCKETS * BUCKET_SIZE];
+    bool m_internalUsed[NUM_BUCKETS * BUCKET_SIZE];
+};
+
+}
 
 #endif
