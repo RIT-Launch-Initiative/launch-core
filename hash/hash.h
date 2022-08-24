@@ -13,7 +13,7 @@ public:
 
     /// @brief calculate the hash
     /// @return the hash
-    virtual inline size_t hash(const T& obj) = 0;
+    virtual size_t hash(const T& obj) = 0;
 
     /// @brief calculate the hash
     /// @return the hash
@@ -45,6 +45,30 @@ public:
         const size_t* data = reinterpret_cast<const size_t*>(&obj + start);
         for(size_t i = 0; i < (sizeof(T) / sizeof(size_t)); i++) {
             hash ^= data[i];
+        }
+
+        return hash;
+    }
+};
+
+/// @brief hash a C-style string
+class StringHash : public Hash<char*> {
+    /// @brief constructor
+    StringHash();
+
+    /// @brief return a hash of the string
+    /// @return the hash
+    size_t hash(const char*& obj) {
+        size_t hash = 0;
+        size_t i = 0;
+        size_t ii = 0;
+
+        while(obj[i]) {
+            hash ^= (((size_t)obj[i]) << (ii * 8));
+            i++;
+
+            ii++;
+            i %= sizeof(hash);
         }
 
         return hash;

@@ -96,12 +96,13 @@ public:
 protected:
     /// @brief protected constructor, use alloc::Hashmap to declare instead
     Hashmap(size_t num_buckets, size_t bucket_size,
-            hashmap_internal::entry_t<KEY, VALUE>* entries, bool* used) :
+            hashmap_internal::entry_t<KEY, VALUE>* entries,
+            bool* used, Hash<KEY>& hash) :
                                             m_numBuckets(num_buckets),
                                             m_bucketSize(bucket_size),
                                             m_entries(entries),
                                             m_used(used),
-                                            m_hash() {
+                                            m_hash(hash) {
         for(size_t i = 0; i < num_buckets * bucket_size; i++) {
             m_used[i] = false;
         }
@@ -115,7 +116,7 @@ private:
     size_t m_numBuckets;
     size_t m_bucketSize;
 
-    XORHash<KEY> m_hash;
+    Hash<KEY>& m_hash;
 };
 
 namespace alloc {
@@ -125,19 +126,24 @@ namespace alloc {
 /// @tparam value         the type of values in the hashmap
 /// @tparam NUM_BUCKETS   the number of buckets that can be stored in the map
 /// @tparam BUCKET_SIZE   the size of each bucket
+/// @tparam HASH          the hash to use for keys, defaults to basic XOR hash
 /// operations are O(BUCKET_SIZE)
-template <typename KEY, typename VALUE, const size_t NUM_BUCKETS, const size_t BUCKET_SIZE>
+template <typename KEY, typename VALUE,
+          const size_t NUM_BUCKETS, const size_t BUCKET_SIZE,
+          typename HASH = XORHash<KEY>>
 class Hashmap : public ::Hashmap<KEY, VALUE> {
 public:
     /// @brief constructor
     Hashmap() : ::Hashmap<KEY, VALUE>(NUM_BUCKETS,
                                       BUCKET_SIZE,
                                       m_internalEntries,
-                                      m_internalUsed) {};
+                                      m_internalUsed,
+                                      m_internalHash) {};
 
 private:
     hashmap_internal::entry_t<KEY, VALUE> m_internalEntries[NUM_BUCKETS * BUCKET_SIZE];
     bool m_internalUsed[NUM_BUCKETS * BUCKET_SIZE];
+    HASH m_internalHash;
 };
 
 }
