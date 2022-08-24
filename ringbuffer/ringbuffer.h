@@ -1,6 +1,8 @@
 #ifndef RINGBUFF_H
 #define RINGBUFF_H
 
+#include "return.h"
+
 /// @brief ring buffer
 /// @tparam SIZE            the size in bytes of the buffer
 /// @tparam OVERWRITABLE    if the buffer is overwritable,
@@ -22,7 +24,6 @@ public:
             if(OVERWRITABLE) {
                 // move the head back to make room
                 m_head = (len + m_tail) % SIZE;
-                printf("head moved\n");
             } else {
                 // copy less data
                 len = SIZE - m_len;
@@ -40,6 +41,19 @@ public:
         }
 
         return i;
+    }
+
+    /// @brief push data intto the buffer
+    /// @tparam T    the type of the object to push
+    /// @param obj   the data to be pushed
+    /// @return
+    template <typename T>
+    RetType push(T* obj) {
+        if(sizeof(T) != push(reinterpret_cast<uint8_t*>(obj), sizeof(T))) {
+            return RET_ERROR;
+        }
+
+        return RET_SUCCESS;
     }
 
     /// @brief pop data off of the buffer
@@ -61,6 +75,19 @@ public:
 
         m_len -= i;
         return i;
+    }
+
+    /// @brief pop data off the buffer
+    /// @tparam T   the type to pop it as
+    /// @param obj  the object to copy the data into
+    /// @return
+    template <typename T>
+    RetType pop(T* obj) {
+        if(sizeof(T) != pop(reinterpret_cast<uint8_t*>(obj), sizeof(T))) {
+            return RET_ERROR;
+        }
+
+        return RET_SUCCESS;
     }
 
     /// @brief get the current size of the buffer

@@ -10,6 +10,9 @@
 /// @brief device written/read to/from as a stream
 class StreamDevice : public Device {
 public:
+    /// @brief constructor
+    StreamDevice(const char* name) : Device(name) {};
+
     /// @brief write to the stream
     /// @param buff     the buffer to write
     /// @param len      the size of 'buff' in bytes

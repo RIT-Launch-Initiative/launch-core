@@ -18,7 +18,11 @@
 
 class LinuxConsoleDevice : public StreamDevice {
 public:
-    LinuxConsoleDevice() : m_rxBuff(), m_lock(false), m_blockTid(-1), m_blockLen(0) {};
+    LinuxConsoleDevice() : m_rxBuff(),
+                           m_lock(false),
+                           m_blockTid(-1),
+                           m_blockLen(0),
+                           StreamDevice("Linux Console Device") {};
 
     RetType init() {
         // nothing to do, stdin and stdout are already open for us
@@ -105,13 +109,6 @@ public:
         RESET();
         return RET_SUCCESS;
     }
-
-    #ifdef DEBUG
-    /// @brief print a textual representation of the device using 'printf'
-    void print() {
-        printf("Linux Console Device\t---\tunique ID 0x%04x\r\n", m_uid);
-    }
-    #endif
 
 private:
     RingBuffer<256, true> m_rxBuff;

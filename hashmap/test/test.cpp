@@ -28,7 +28,7 @@ bool basic() {
         return false;
     }
 
-    val = hm.get(7);
+    val = hm[7]; // same as 'get'
     if(val == NULL) {
         printf("get returned NULL (7)\n");
         return false;

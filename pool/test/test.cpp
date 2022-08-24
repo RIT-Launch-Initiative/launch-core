@@ -4,7 +4,7 @@
 #include "pool/pool.h"
 
 bool basic() {
-    Pool<int, 5> pool;
+    alloc::Pool<int, 5> pool;
 
     int* ptrs[5];
     for(size_t i = 0; i < 5; i++) {

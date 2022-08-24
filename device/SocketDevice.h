@@ -11,8 +11,8 @@
 class SocketDevice : public Device {
 public:
     typedef struct {
-        uint32_t addr;      // network address
-        uint16_t port;      // transport port
+        uint32_t addr;      // network address in system endianness
+        uint16_t port;      // transport port in system endianness
     } addr_t;
 
     typedef struct {
@@ -20,6 +20,9 @@ public:
         uint8_t* payload;   // payload
         size_t payload_len; // payload length
     } msg_t;
+
+    /// @brief constructor
+    SocketDevice(const char* name) : Device(name) {};
 
     /// @brief send a message from the socket
     /// @param msg  the message to send
@@ -36,9 +39,9 @@ public:
     ///             'addr.port' is the source port of the message, filled by function
     ///             'payload' is the buffer to copy the payload to
     ///             'payload_len' is the size of the buffer, up to this many bytes are copied
-    /// @param received  location to write the actual number of received bytes
-    /// @return the actual number of bytes received, may be greater than 'payload_len'
-    virtual RetType recvmsg(msg_t* msg, size_t* received) = 0;
+    ///                           this is set to the actual number of bytes copied
+    /// @return
+    virtual RetType recvmsg(msg_t* msg) = 0;
 
     /// @brief bind this socket to an address
     ///        the socket will send and receive from this address
@@ -52,11 +55,23 @@ public:
     /// @return
     virtual RetType subscribe(addr_t* addr) = 0;
 
+    /// @brief close the socket
+    /// @return
+    virtual RetType close() = 0;
+
     /// @brief get how much data can currently be read
     /// NOTE: units are up to the device
     ///       for datagrams it may be packets rather than bytes
     /// @return the amount of data that can be read in bytes
     virtual size_t available() = 0;
+
+    /// @brief fill in the 'addr' field with an IPv4 address a.b.c.d
+    static void IPv4Address(uint8_t a, uint8_t b, uint8_t c, uint8_t d, addr_t* addr) {
+        addr->addr = d;
+        addr->addr |= (c << 8);
+        addr->addr |= (b << 16);
+        addr->addr |= (a << 24);
+    }
 };
 
 #endif
