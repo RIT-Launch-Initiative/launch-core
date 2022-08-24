@@ -9,7 +9,7 @@
 #include "device/Device.h"
 
 /// @brief defines a device interface for an aysnchronous callback enabled device
-class CallbackDevice : Device {
+class CallbackDevice {
 public:
     /// @brief callback function to be called aysnchronously by an ISR
     /// @param num  some unique number set by the device that registered
@@ -17,6 +17,7 @@ public:
     ///             between multiple callbacks if it's registered to multiple
     virtual void callback(int num) = 0;
 };
+
 
 namespace HALHandlers {
 

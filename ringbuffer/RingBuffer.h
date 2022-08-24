@@ -1,18 +1,11 @@
-#ifndef RINGBUFF_H
-#define RINGBUFF_H
+#ifndef RINGBUFFER_H
+#define RINGBUFFER_H
 
 #include "return.h"
 
 /// @brief ring buffer
-/// @tparam SIZE            the size in bytes of the buffer
-/// @tparam OVERWRITABLE    if the buffer is overwritable,
-///                         e.g. writing past head moves the head over old data
-template <const size_t SIZE, const bool OVERWRITABLE>
 class RingBuffer {
 public:
-    /// @brief constructor
-    RingBuffer() : m_head(0), m_tail(0), m_len(0) {};
-
     /// @brief push data into the buffer
     /// @param buff     the data to push
     /// @param len      the number of bytes to push
@@ -20,13 +13,13 @@ public:
     /// Will push at most 'len' bytes onto the buffer
     /// if overwrite is enabled, will guaranteed push 'len' bytes
     size_t push(uint8_t* buff, size_t len) {
-        if(m_len + len > SIZE) {
-            if(OVERWRITABLE) {
+        if(m_len + len > m_size) {
+            if(m_overwrite) {
                 // move the head back to make room
-                m_head = (len + m_tail) % SIZE;
+                m_head = (len + m_tail) % m_size;
             } else {
                 // copy less data
-                len = SIZE - m_len;
+                len = m_size - m_len;
                 m_len += len;
             }
         } else {
@@ -37,7 +30,7 @@ public:
         while(i < len) {
             m_buff[m_tail] = buff[i];
             i++;
-            m_tail = (m_tail + 1) % SIZE;
+            m_tail = (m_tail + 1) % m_size;
         }
 
         return i;
@@ -67,7 +60,7 @@ public:
         while(i < len) {
             buff[i] = m_buff[m_head];
             i++;
-            m_head = (m_head + 1) % SIZE;
+            m_head = (m_head + 1) % m_size;
             if(m_head == m_tail) {
                 break;
             }
@@ -96,11 +89,49 @@ public:
         return m_len;
     }
 
+    /// @brief get the maximum capacity of the buffer
+    /// @return the maximum capacity in bytes
+    size_t capacity() {
+        return m_size;
+    }
+
+protected:
+    /// @brief protected constructor, use alloc::RingBuffer to declare
+    RingBuffer(uint8_t* buff, size_t size, bool overwrite) :
+                                                            m_buff(buff),
+                                                            m_size(size),
+                                                            m_overwrite(overwrite),
+                                                            m_head(0),
+                                                            m_tail(0),
+                                                            m_len(0) {};
+
 private:
     size_t m_head;
     size_t m_tail;
-    uint8_t m_buff[SIZE];
     size_t m_len;
+
+    uint8_t* m_buff;
+    size_t m_size; // size of the buffer
+
+    bool m_overwrite;
 };
+
+namespace alloc {
+
+/// @brief ring buffer
+/// @tparam SIZE            the size in bytes of the buffer
+/// @tparam OVERWRITABLE    if the buffer is overwritable,
+///                         e.g. writing past head moves the head over old data
+template <const size_t SIZE, const bool OVERWRITABLE>
+class RingBuffer : public ::RingBuffer {
+public:
+    /// @brief constructor
+    RingBuffer() : ::RingBuffer(m_internalBuff, SIZE, OVERWRITABLE) {};
+
+private:
+    uint8_t m_internalBuff[SIZE];
+};
+
+}
 
 #endif

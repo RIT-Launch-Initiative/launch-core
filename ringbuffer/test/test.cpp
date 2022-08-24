@@ -2,10 +2,10 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "ringbuffer/ringbuffer.h"
+#include "ringbuffer/RingBuffer.h"
 
 uint8_t buff[3];
-RingBuffer<3, 1> rb;
+alloc::RingBuffer<3, 1> rb;
 
 uint8_t out[3];
 uint8_t test[3];

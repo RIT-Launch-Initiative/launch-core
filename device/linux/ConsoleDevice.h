@@ -80,6 +80,8 @@ public:
     }
 
     RetType read(uint8_t* buff, size_t len) {
+        RESUME();
+
         if(m_rxBuff.size() >= len) {
             if(len != m_rxBuff.pop(buff, len)) {
                 return RET_ERROR;
@@ -89,7 +91,10 @@ public:
         }
 
         // otherwise block
-        wait(len);
+        RetType ret = CALL(wait(len));
+
+        RESET();
+        return ret;
     }
 
     size_t available() {
