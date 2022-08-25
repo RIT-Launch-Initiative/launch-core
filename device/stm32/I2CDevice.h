@@ -104,7 +104,7 @@ private:
     static const int TX_NUM = 0;
     static const int RX_NUM = 1;
 
-    /// @brief called by UART handler asynchronously
+    /// @brief called by I2C handler asynchronously
     void callback(int) {
         // don't care if it was tx or rx, for now
 
