@@ -3,10 +3,26 @@
 
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_spi.h"
+#include "stm32f4xx_hal_gpio.h"
 
 #include "device/StreamDevice.h"
 #include "device/stm32/HAL_handlers.h"
 #include "sched/sched.h"
+
+// /// @brief defines which GPIO pin and state selects a chip
+// typedef struct {
+//     GPIO_TypeDef* gpio;     // GPIO device
+//     uint16_t pin;           // which pin to change the state of
+//     GPIO_PinState state;    // what to set the pin too
+// } ChipSelect_t;
+
+// TODO how to be able to read and write before toggling chip select?
+// maybe just make the underlying device do this actually
+
+// TODO really need a way to let multiple users use this device
+// queue writes and receives? then process them when poll() is called?
+// or keep track of multiple TIDs and block a task if someone else is currently reading or writing
+// these changes should go for I2CDevice as well
 
 /// @brief SPI device controller
 class SPIDevice : public StreamDevice, public CallbackDevice {
@@ -14,7 +30,8 @@ public:
     /// @brief constructor
     /// @param name     the name of this device
     /// @param h12c     the HAL SPI device wrapped by this device
-    SPIDevice(const char* name, SPI_HandleTypeDef* hspi) : m_spi(hspi),
+    SPIDevice(const char* name, SPI_HandleTypeDef* hspi) :
+                                                           m_spi(hspi),
                                                            m_lock(false),
                                                            m_blocked(-1),
                                                            StreamDevice(name) {};
@@ -101,6 +118,7 @@ public:
     ///        this will always be 0 for a SPI device,
     ///        all reads must be blocking with the 'read' function
     /// @return the number of available bytes to read, which is always 0
+    // TODO this should return 1 if no one is currently blocking on this device, 0 otherwise
     size_t available() {
         return 0;
     }
@@ -110,6 +128,7 @@ public:
     ///        function will always return RET_ERROR
     /// @param len
     /// @return RET_ERROR
+    // TODO this should wait until the device is free to be used
     RetType wait(size_t len) {
         return RET_ERROR;
     }
