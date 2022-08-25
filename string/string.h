@@ -57,6 +57,14 @@ public:
         return this->string[index];
     }
 
+    char* at_ptr(int index) const {
+        if (index > strlen || index < 0) {
+            return nullptr;
+        }
+
+        return &this->string[index];
+    }
+
     /**
      * Retrieve a substring of the original string
      *
