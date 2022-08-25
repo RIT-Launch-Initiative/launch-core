@@ -225,6 +225,15 @@ public:
      **************************************/
 
     /**
+     * Checks to see if the string buffer is full
+     *
+     * @return boolean on if there buffer is filled
+     */
+    bool is_full() {
+        return this->strlen >= size;
+    }
+
+    /**
      * Checks if there is extra space in the buffer
      * @return boolean on if there's extra space
      */
