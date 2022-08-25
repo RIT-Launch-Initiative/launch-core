@@ -7,8 +7,6 @@
 #ifndef STRING_H
 #define STRING_H
 
-#include <stddef.h>
-
 const char NULL_TERMINATOR = '\0';
 
 class String {
@@ -26,7 +24,7 @@ public:
      *
      * @return String Length
      */
-    int len() {
+    int len() const {
         return this->strlen;
     }
 
@@ -226,7 +224,7 @@ public:
      *
      * @return boolean on if there buffer is filled
      */
-    bool is_full() {
+    bool is_full() const {
         return this->strlen >= size;
     }
 
@@ -234,7 +232,7 @@ public:
      * Checks if there is extra space in the buffer
      * @return boolean on if there's extra space
      */
-    bool is_trunc() {
+    bool is_trunc() const {
         return this->strlen < size;
     }
 
@@ -242,16 +240,12 @@ public:
      * Get the first terminator
      * @return
      */
-    char *get_end() {
+    char *get_end() const {
         return this->string + len();
     }
 
 protected:
-    String(char *buffer, size_t size): size(size) {
-        this->string = buffer;
-    }
-
-
+    String(char *buffer, size_t size): size(size), string(buffer) {}
 };
 
 namespace str {
@@ -262,12 +256,8 @@ namespace str {
          * String constructor
          * @param buffer
          */
-        explicit String(char *buffer) : ::String(buffer, SIZE) {
-            this->buffer = buffer;
-        };
+        explicit String(char *buffer) : ::String(buffer, SIZE) {};
 
-    private:
-        char *buffer;
     };
 }
 
