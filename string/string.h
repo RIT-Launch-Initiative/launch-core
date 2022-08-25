@@ -14,7 +14,7 @@ const char NULL_TERMINATOR = '\0';
 template<const size_t size>
 class String {
 public:
-    int len = 0;
+    int strlen = 0;
     char string[size] = {};
 
     String() {}
@@ -23,6 +23,10 @@ public:
     /**************************************
      * Element Access
      **************************************/
+
+    int len() {
+        return this->strlen;
+    }
 
     /**
      * Retrieves first value in string
@@ -37,7 +41,7 @@ public:
      * @return Last Element in String
      */
     char back() {
-        return this->string[len];
+        return this->string[strlen];
     }
 
     /**
@@ -46,7 +50,7 @@ public:
      * @return Element at index or nullptr if invalid
      */
     char at(int index) {
-        if (index > len || index < 0) {
+        if (index > strlen || index < 0) {
             return NULL_TERMINATOR;
         }
 
@@ -61,7 +65,7 @@ public:
      * @param substr buffer for storing substring
      */
     void substr(int start, int end, char substr[]) {
-        if (len < start || end < start || len < end) return;
+        if (strlen < start || end < start || strlen < end) return;
 
         char *substr_head = substr;
         for (int i = start; i < end; i++) {
@@ -96,17 +100,17 @@ public:
         if (start < 0 || end > size || end < start) return;
 
         int i;
-        for (i = start; i < len && i < end; i++) {
+        for (i = start; i < strlen && i < end; i++) {
             this->string[i] = *character++;
         }
 
         if (i < end) {
             for (; i < end; i++) {
                 this->string[i] = *character++;
-                this->len++;
+                this->strlen++;
             }
 
-            this->string[this->len] = NULL_TERMINATOR;
+            this->string[this->strlen] = NULL_TERMINATOR;
         }
     }
 
@@ -116,14 +120,14 @@ public:
      * @param character
      */
     void insert(int position, char character) {
-        if (position > len || len + 1 >= size) return;
+        if (position > strlen || strlen + 1 >= size) return;
 
-        for (int i = len + 2; i > position - 1; i--) {
+        for (int i = strlen + 2; i > position - 1; i--) {
             this->string[i] = this->string[i - 1];
         }
 
         this->string[position] = character;
-        this->len++;
+        this->strlen++;
     }
 
     /**
@@ -131,12 +135,12 @@ public:
      * @param position to remove at
      */
     void remove(int position) {
-        if (position > len) return;
+        if (position > strlen) return;
 
-        for (int i = position; i < len + 1; i++) {
+        for (int i = position; i < strlen + 1; i++) {
             this->string[i] = this->string[i + 1];
         }
-        this->len--;
+        this->strlen--;
     }
 
     /**
@@ -144,9 +148,9 @@ public:
      */
     void clear() {
         int i = 0;
-        while (this->len > 0) {
+        while (this->strlen > 0) {
             string[i++] = NULL_TERMINATOR;
-            this->len--;
+            this->strlen--;
         }
     }
 
@@ -161,10 +165,10 @@ public:
 
         while (this->string[(len_count++) + 1] != NULL_TERMINATOR);
 
-        if (len_count != this->len) {
-            this->len = len_count;
+        if (len_count != this->strlen) {
+            this->strlen = len_count;
 
-            return this->len;
+            return this->strlen;
         }
 
         return -1;
@@ -184,7 +188,7 @@ public:
      * @return
      */
     bool empty() const {
-        return this->len == 0;
+        return this->strlen == 0;
     }
 
     /**
@@ -192,7 +196,7 @@ public:
      * @return
      */
     bool full() const {
-        return this->len >= size;
+        return this->strlen >= size;
     }
 
     /**
@@ -208,7 +212,7 @@ public:
      * @return
      */
     size_t available() const {
-        return size - len - 1;
+        return size - strlen - 1;
     }
 
     /**************************************
@@ -220,7 +224,7 @@ public:
      * @return boolean on if there's extra space
      */
     bool is_trunc() {
-        return this->len < size;
+        return this->strlen < size;
     }
 
     /**
@@ -229,7 +233,7 @@ public:
     void init_free_space() {
         // TODO: Use memset or bad for embedded?
         if (is_trunc()) {
-            for (int i = len; i < size; i++) {
+            for (int i = strlen; i < size; i++) {
                 this->string[i] = NULL_TERMINATOR;
             }
         }
@@ -240,12 +244,12 @@ public:
      * @return
      */
     char *get_end() {
-        return this->string[len];
+        return this->string[strlen];
     }
 
 protected:
     String(char const *buffer) {
-        int i; // Reduce errors from using len as counter
+        int i; // Reduce errors from using strlen as counter
 
         for (i = 0; i < size - 1; i++) {
             this->string[i] = buffer[i];
@@ -253,12 +257,12 @@ protected:
             if (this->string[i] == NULL_TERMINATOR) break;
         }
 
-        // Developers should still add a null terminator in their buffers, especially if len < buff_size
+        // Developers should still add a null terminator in their buffers, especially if strlen < buff_size
         if (this->string[i] != NULL_TERMINATOR) {
             this->string[i] = '\0';
         }
 
-        this->len = i - 1;
+        this->strlen = i - 1;
     }
 
 

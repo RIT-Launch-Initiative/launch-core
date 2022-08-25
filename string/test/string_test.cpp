@@ -78,7 +78,7 @@ int main() {
     much_storage_string.replace(3, 14, &initiative[0]);
     printf("\tActual: %s\n", much_storage_string.string);
     printf("\tExpected: 14");
-    printf("\tActual: %d\n", much_storage_string.len);
+    printf("\tActual: %d\n", much_storage_string.strlen);
 
     new_test("Clear", "(blank)");
     much_storage_string.clear();
