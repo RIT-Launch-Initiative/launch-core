@@ -6,6 +6,7 @@
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_uart.h"
 #include "stm32f4xx_hal_i2c.h"
+#include "stm32f4xx_hal_spi.h"
 
 #include "return.h"
 #include "device/Device.h"
@@ -66,6 +67,22 @@ RetType register_i2c_tx(I2C_HandleTypeDef* hi2c, CallbackDevice* dev, int num);
 ///                 function of 'dev' when the event occurs
 /// @return
 RetType register_i2c_rx(I2C_HandleTypeDef* huart, CallbackDevice* dev, int num);
+
+/// @brief register a device for SPI transmit complete callback
+/// @param hspi     the SPI device to register the callback for
+/// @param dev      the device registering
+/// @param num      some unique number that will be passed back in the 'callback'
+///                 function of 'dev' when the event occurs
+/// @return
+RetType register_spi_tx(SPI_HandleTypeDef* hspi, CallbackDevice* dev, int num);
+
+/// @brief register a device for SPI receive complete callback
+/// @param hspi     the SPI device to register the callback for
+/// @param dev      the device registering
+/// @param num      some unique number that will be passed back in the 'callback'
+///                 function of 'dev' when the event occurs
+/// @return
+RetType register_spi_rx(SPI_HandleTypeDef* hspi, CallbackDevice* dev, int num);
 
 }
 

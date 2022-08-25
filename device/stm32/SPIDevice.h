@@ -1,34 +1,34 @@
-#ifndef I2C_DEVICE_H
-#define I2C_DEVICE_H
+#ifndef SPI_DEVICE_H
+#define SPI_DEVICE_H
 
 #include "stm32f4xx_hal.h"
-#include "stm32f4xx_hal_i2c.h"
+#include "stm32f4xx_hal_spi.h"
 
-#include "device/RegisterDevice.h"
+#include "device/StreamDevice.h"
 #include "device/stm32/HAL_handlers.h"
 #include "sched/sched.h"
 
-/// @brief I2C device controller
-class I2CDevice : public RegisterDevice<I2CAddr_t>, public CallbackDevice {
+/// @brief SPI device controller
+class SPIDevice : public StreamDevice, public CallbackDevice {
 public:
     /// @brief constructor
     /// @param name     the name of this device
-    /// @param h12c     the HAL I2C device wrapped by this device
-    I2CDevice(const char* name, I2C_HandleTypeDef* hi2c) : m_i2c(hi2c),
+    /// @param h12c     the HAL SPI device wrapped by this device
+    SPIDevice(const char* name, SPI_HandleTypeDef* hspi) : m_spi(hspi),
                                                            m_lock(false),
                                                            m_blocked(-1),
-                                                           RegisterDevice<I2CAddr_t>(name) {};
+                                                           StreamDevice(name) {};
 
     /// @brief initialize
     RetType init() {
         // register for tx callback
-        RetType ret = HALHandlers::register_i2c_tx(m_i2c, this, TX_NUM);
+        RetType ret = HALHandlers::register_spi_tx(m_spi, this, TX_NUM);
         if(ret != RET_SUCCESS) {
             return ret;
         }
 
         // register for rx callback
-        ret = HALHandlers::register_i2c_rx(m_i2c, this, RX_NUM);
+        ret = HALHandlers::register_spi_rx(m_spi, this, RX_NUM);
         if(ret != RET_SUCCESS) {
             return ret;
         }
@@ -60,16 +60,14 @@ public:
         return RET_SUCCESS;
     }
 
-    /// @brief write to the I2C
-    /// @param addr     the I2C address to write to
+    /// @brief write to the SPI
     /// @param buff     the buffer to write
     /// @param len      the size of 'buff' in bytes
     /// @return
-    RetType write(I2CAddr_t addr, uint8_t* buff, size_t len) {
+    RetType write(uint8_t* buff, size_t len) {
         RESUME();
 
-        if(HAL_OK != HAL_I2C_Mem_Write_IT(m_i2c, addr.dev_addr, addr.mem_addr,
-                                               addr.mem_addr_size, buff, len)) {
+        if(HAL_OK != HAL_SPI_Transmit_IT(m_spi, buff, len)) {
             return RET_ERROR;
         }
 
@@ -80,17 +78,15 @@ public:
         return RET_SUCCESS;
     }
 
-    /// @brief read from the I2C
+    /// @brief read from the SPI
     ///        blocks until enough data is ready
-    /// @param addr     the I2C address to read from
     /// @param buff     the buffer to read into
     /// @param len      the number of bytes to read
     /// @return
-    RetType read(I2CAddr_t addr, uint8_t* buff, size_t len) {
+    RetType read(uint8_t* buff, size_t len) {
         RESUME();
 
-        if(HAL_OK != HAL_I2C_Mem_Read_IT(m_i2c, addr.dev_addr, addr.mem_addr,
-                                               addr.mem_addr_size, buff, len)) {
+        if(HAL_OK != HAL_SPI_Receive_IT(m_spi, buff, len)) {
             return RET_ERROR;
         }
 
@@ -101,8 +97,24 @@ public:
         return RET_SUCCESS;
     }
 
+    /// @brief get the number of available bytes to read
+    ///        this will always be 0 for a SPI device,
+    ///        all reads must be blocking with the 'read' function
+    /// @return the number of available bytes to read, which is always 0
+    size_t available() {
+        return 0;
+    }
 
-    /// @brief called by I2C handler asynchronously
+    /// @brief wait for 'len' bytes to be ready for reading
+    ///        for SPI, we only use the blocking 'read' function, so this
+    ///        function will always return RET_ERROR
+    /// @param len
+    /// @return RET_ERROR
+    RetType wait(size_t len) {
+        return RET_ERROR;
+    }
+
+    /// @brief called by SPI handler asynchronously
     void callback(int) {
         // don't care if it was tx or rx, for now
 
@@ -119,7 +131,7 @@ private:
     bool m_lock;
     tid_t m_blocked;  // currently blocked task
 
-    I2C_HandleTypeDef* m_i2c;
+    SPI_HandleTypeDef* m_spi;
 };
 
 #endif
