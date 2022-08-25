@@ -1,6 +1,6 @@
 /*
 *   Implementation of a Wiznet W5500 Ethernet chip driver.
-*   Written to be platform independent, it requires a "RegisterDevice" that
+*   Written to be platform independent, it requires a "StreamDevice" that
 *   handles SPI communication with the device and a "GPIODevice" that controls
 *   setting the CS pin.
 *
@@ -16,7 +16,7 @@
 
 #include "device/peripherals/w5500/w5500_defines.h"
 #include "device/peripherals/w5500/w5500_socket.h"
-#include "device/RegisterDevice.h"
+#include "device/StreamDevice.h"
 #include "sched/macros.h"
 #include "return.h"
 
@@ -57,8 +57,9 @@ public:
 
     /// @brief open a socket
     /// @param sock     the socket to open
+    /// @param mode     the mode to open it in
     /// @return
-    RetType open(W5500Socket_t sock) {
+    RetType open(W5500Socket_t sock, W5500SocketMode_t mode) {
         // TODO
         return RET_SUCCESS;
     }
@@ -112,8 +113,104 @@ public:
     }
 
 private:
+    /// @brief helper function to write data to the chip
+    /// @param block_addr       the block address to write to
+    /// @param offset_addr      the offset address to write to
+    /// @param buff             the data to write
+    /// @param len              the length of 'buff' in bytes
+    /// @return
+    RetType write_bytes(uint8_t block_addr, uint16_t offset_addr, uint8_t* buff, size_t len) {
+        RESUME();
+        RetType ret;
+
+        uint8_t cmd[3];
+
+        // address phase (MSB -> LSB)
+        cmd[0] = (uint8_t)(offset_addr >> 8); // MSB
+        cmd[1] = (uint8_t)(offset_addr);      // LSB
+
+        // control phase
+        cmd[2] = (block_addr << W5500_BS_SHIFT); // block select
+        cmd[2] |= (W5500_WRITE << W5500_RW_SHIFT);       // write access mode
+        cmd[2] |= (W5500_VDL_MODE << W5500_OM_SHIFT);    // variable data length mode
+        // TODO this would need to change to support fixed data length mode
+
+        // TODO toggle CS here!!!!!
+
+        // send the address and control phase data
+        ret = CALL(m_spi.write(cmd, 3));
+
+        // something bad happened
+        if(ret != RET_SUCCESS) {
+            goto write_bytes_end;
+        }
+
+        // send the data
+        ret = CALL(m_spi.write(buff, len));
+
+        // something bad happened
+        if(ret != RET_SUCCESS) {
+            goto write_bytes_end;
+        }
+
+
+    write_bytes_end:
+        // TODO toggle CS back here!!!!!
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    /// @brief helper function to read data from the chip
+    /// @param block_addr       the block address to read from
+    /// @param offset_addr      the offset address to read from
+    /// @param buff             the buffer pointer to read into
+    /// @param len              the length of 'buff' in bytes
+    /// @return
+    RetType read_bytes(uint8_t block_addr, uint16_t offset_addr, uint8_t* data, size_t len) {
+        RESUME();
+        RetType ret;
+
+        uint8_t cmd[3];
+
+        // address phase (MSB -> LSB)
+        cmd[0] = (uint8_t)(offset_addr >> 8); // MSB
+        cmd[1] = (uint8_t)(offset_addr);      // LSB
+
+        // control phase
+        cmd[2] = (block_addr << W5500_BS_SHIFT); // block select
+        cmd[2] |= (W5500_WRITE << W5500_RW_SHIFT);       // write access mode
+        cmd[2] |= (W5500_VDL_MODE << W5500_OM_SHIFT);    // variable data length mode
+        // TODO this would need to change to support fixed data length mode
+
+        // TODO toggle CS here!!!!!
+
+        // send the address and control phase data
+        ret = CALL(m_spi.write(cmd, 3));
+
+        // something bad happened
+        if(ret != RET_SUCCESS) {
+            goto read_bytes_end;
+        }
+
+        // send the data
+        ret = CALL(m_spi.read(buff, len));
+
+        // something bad happened
+        if(ret != RET_SUCCESS) {
+            goto read_bytes_end;
+        }
+
+
+    read_bytes_end:
+        // TODO toggle CS back here!!!!!
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
     // passed in SPI controller
-    RegisterDevice& m_spi;
+    StreamDevice& m_spi;
 };
 
 #endif

@@ -25,6 +25,12 @@ typedef struct {
     uint8_t rx_buff;    // receive buffer block select address
 } W5500SocketDescriptor_t;
 
+/// @brief socket mode
+// TODO only UDP is supported at the moment
+typedef enum {
+    UDP_MODE
+} W550SocketMode_t;
+
 /// @brief current state of a socket
 typedef struct {
     bool send_okay;     // if the last transmit command has completed
