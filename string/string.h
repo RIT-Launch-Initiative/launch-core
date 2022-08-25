@@ -7,18 +7,15 @@
 #ifndef STRING_H
 #define STRING_H
 
-#include <cstddef>
+#include <stddef.h>
 
 const char NULL_TERMINATOR = '\0';
 
-template<const size_t size>
 class String {
 public:
+    char *string;
     int strlen = 0;
-    char string[size] = {};
-
-    String() {}
-
+    int size;
 
     /**************************************
      * Element Access
@@ -246,11 +243,11 @@ public:
      * @return
      */
     char *get_end() {
-        return this->string[strlen];
+        return this->string + len();
     }
 
 protected:
-    String(char const *buffer) {
+    String(char const *buffer, size_t size): size(size) {
         int i; // Reduce errors from using strlen as counter
 
         for (i = 0; i < size - 1; i++) {
@@ -279,13 +276,13 @@ protected:
 
 namespace str {
     template<const size_t SIZE>
-    class String : public ::String<SIZE> {
+    class String : public ::String {
     public:
         /**
          * String constructor
          * @param buffer
          */
-        String(char *buffer) : ::String<SIZE>(buffer) {};
+        String(char *buffer) : ::String(buffer, SIZE) {};
 
     private:
         char buffer[SIZE];
