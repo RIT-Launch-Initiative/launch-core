@@ -24,6 +24,11 @@ public:
      * Element Access
      **************************************/
 
+    /**
+     * Get length of string
+     *
+     * @return String Length
+     */
     int len() {
         return this->strlen;
     }
