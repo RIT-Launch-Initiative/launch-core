@@ -17,8 +17,8 @@ public:
     /// @param buff     the data to push
     /// @param len      the number of bytes to push
     /// @return the number of bytes pushed
-    /// Will push at most 'strlen' bytes onto the buffer
-    /// if overwrite is enabled, will guaranteed push 'strlen' bytes
+    /// Will push at most 'len' bytes onto the buffer
+    /// if overwrite is enabled, will guaranteed push 'len' bytes
     size_t push(uint8_t* buff, size_t len) {
         if(m_len + len > SIZE) {
             if(OVERWRITABLE) {
@@ -60,7 +60,7 @@ public:
     /// @param buff     the buffer to copy in to
     /// @param len      the size of the buffer in bytes
     /// @return the actual number of bytes popped
-    /// Will pop at most 'strlen' bytes, but will pop less if there is less data
+    /// Will pop at most 'len' bytes, but will pop less if there is less data
     /// in the buffer
     size_t pop(uint8_t* buff, size_t len) {
         size_t i = 0;
