@@ -14,15 +14,15 @@ int main() {
                      'e', '\0'};
 
     // Init tests
-    auto full_string = String<22>(buffer);
+    auto full_string = str::String<22>(buffer);
     new_test("Full String", "RIT Launch Initiative");
     printf("\tActual: %s\n", full_string.string);
 
-    auto much_storage_string = String<999>(buffer);
+    auto much_storage_string = str::String<999>(buffer);
     new_test("Extra Space String", "RIT Launch Initiative");
     printf("\tActual: %s\n", much_storage_string.string);
 
-    auto trunc_string = String<4>(buffer);
+    auto trunc_string = str::String<4>(buffer);
     new_test("Truncated String", "RIT Launch Initiative");
     printf("\tActual: %s\n", trunc_string.string);
 

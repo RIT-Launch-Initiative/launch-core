@@ -1,6 +1,6 @@
 /**
  * Library for embedded strings
- * 
+ *
  * @author Aaron Chan
  */
 
@@ -17,26 +17,8 @@ public:
     int len = 0;
     char string[size] = {};
 
-    /**
-     * String constructor
-     * @param buffer
-     */
-    explicit String(char const *buffer) {
-        int i; // Reduce errors from using len as counter
+    String() {}
 
-        for (i = 0; i < size - 1; i++) {
-            this->string[i] = buffer[i];
-
-            if (this->string[i] == NULL_TERMINATOR) break;
-        }
-
-        // Developers should still add a null terminator in their buffers, especially if len < buff_size
-        if (this->string[i] != NULL_TERMINATOR) {
-            this->string[i] = '\0';
-        }
-
-        this->len = i - 1;
-    }
 
     /**************************************
      * Element Access
@@ -81,7 +63,7 @@ public:
     void substr(int start, int end, char substr[]) {
         if (len < start || end < start || len < end) return;
 
-        char* substr_head = substr;
+        char *substr_head = substr;
         for (int i = start; i < end; i++) {
             *substr = string[i];
             substr++;
@@ -191,7 +173,7 @@ public:
     /**************************************
      * Iterators
      **************************************/
-     // TODO: Could be nice. Maybe add later after getting base functionality down.
+    // TODO: Could be nice. Maybe add later after getting base functionality down.
 
     /**************************************
      * Capacity
@@ -261,7 +243,42 @@ public:
         return this->string[len];
     }
 
+protected:
+    String(char const *buffer) {
+        int i; // Reduce errors from using len as counter
+
+        for (i = 0; i < size - 1; i++) {
+            this->string[i] = buffer[i];
+
+            if (this->string[i] == NULL_TERMINATOR) break;
+        }
+
+        // Developers should still add a null terminator in their buffers, especially if len < buff_size
+        if (this->string[i] != NULL_TERMINATOR) {
+            this->string[i] = '\0';
+        }
+
+        this->len = i - 1;
+    }
+
+
 };
+
+namespace str {
+    template<const size_t SIZE>
+    class String : public ::String<SIZE> {
+    public:
+        /**
+         * String constructor
+         * @param buffer
+         */
+        String(char *buffer) : ::String<SIZE>(buffer) {};
+
+    private:
+        char buffer[SIZE];
+
+    };
+}
 
 
 #endif
