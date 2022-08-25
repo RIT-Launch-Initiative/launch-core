@@ -34,7 +34,7 @@ public:
      * Retrieves first value in string
      * @return First Element in String
      */
-    char front() {
+    char front() const {
         return this->string[0];
     }
 
@@ -42,7 +42,7 @@ public:
      * Retrieves last value in string
      * @return Last Element in String
      */
-    char back() {
+    char back() const {
         return this->string[strlen];
     }
 
@@ -51,7 +51,7 @@ public:
      * @param index to retrieve element at
      * @return Element at index or nullptr if invalid
      */
-    char at(int index) {
+    char at(int index) const {
         if (index > strlen || index < 0) {
             return NULL_TERMINATOR;
         }
@@ -66,7 +66,7 @@ public:
      * @param end index of substring
      * @param substr buffer for storing substring
      */
-    void substr(int start, int end, char substr[]) {
+    void substr(int start, int end, char substr[]) const {
         if (strlen < start || end < start || strlen < end) return;
 
         char *substr_head = substr;
