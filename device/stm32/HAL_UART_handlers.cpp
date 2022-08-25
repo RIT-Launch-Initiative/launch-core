@@ -1,20 +1,12 @@
 #include <stdlib.h>
 
 #include "stm32f4xx_hal.h"
+#include "stm32f4xx_hal_uart.h"
 
 #include "device/stm32/HAL_handlers.h"
 #include "hashmap/hashmap.h"
 
 namespace HALHandlers {
-
-/// @brief stores information about a registered device
-typedef struct {
-    CallbackDevice* dev;    // pointer to the registered device
-    int num;                // unique number the device registered with
-} dev_t;
-
-// maximum number of UART devices supported
-static const size_t MAX_UART_DEVICES = 5;
 
 // hashmap that maps UART devices to registered devices
 // uses the default XOR hash
@@ -79,6 +71,7 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
     }
 }
 
+// receive complete
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
     // lookup if there's a device registered for this UART
     HALHandlers::dev_t* dev = HALHandlers::uart_rx_map[huart];

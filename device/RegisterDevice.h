@@ -28,16 +28,18 @@ public:
     /// @param len      the number of bytes to read
     /// @return if all bytes were read successfully
     virtual RetType read(T addr, uint8_t* buff, size_t len) = 0;
-
-    /// @brief get how many bytes are available to read
-    /// @return the number of bytes available to read
-    virtual size_t available() = 0;
-
-    /// @brief wait for a certain amount of data to be ready for reading
-    ///        blocks the current process, caller must return to scheduler
-    ///        as soon as possible
-    /// @return RET_BLOCKED or error
-    virtual RetType wait(size_t len) = 0;
 };
+
+// some common address types
+
+// SPI memory address
+typedef uint16_t SPIAddr_t;
+
+// I2C address
+typedef struct {
+    uint16_t dev_addr;      // device address
+    uint16_t mem_addr;      // memory address
+    uint16_t mem_addr_size; // size of memory addresses (in bytes)
+} I2CAddr_t;
 
 #endif

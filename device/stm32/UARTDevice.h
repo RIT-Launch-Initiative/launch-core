@@ -1,7 +1,7 @@
 #ifndef UART_DEVICE_H
 #define UART_DEVICE_H
 
-#include "stm32f4xx_hal.h"
+#include "stm32f4xx_hal_uart.h"
 
 #include "device/StreamDevice.h"
 #include "device/stm32/HAL_handlers.h"
@@ -37,7 +37,9 @@ public:
         }
 
         // start the first read
-        HAL_UART_Receive_IT(m_uart, &m_byte, sizeof(uint8_t));
+        if(HAL_OK != HAL_UART_Receive_IT(m_uart, &m_byte, sizeof(uint8_t))) {
+            return RET_ERROR;
+        }
 
         return RET_SUCCESS;
     }
@@ -74,7 +76,9 @@ public:
         RESUME();
 
         // start the write
-        HAL_UART_Transmit_IT(m_uart, &m_byte, sizeof(uint8_t));
+        if(HAL_OK != HAL_UART_Transmit_IT(m_uart, &m_byte, sizeof(uint8_t))) {
+            return RET_ERROR;
+        }
 
         // NOTE: we assume no one else is currently blocking, if that's not the
         //       case we will no longer track their TID and they may never wake up
