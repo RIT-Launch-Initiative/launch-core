@@ -1,15 +1,5 @@
-/*
-*   Implementation of a Wiznet W5500 Ethernet chip driver.
-*   Written to be platform independent, it requires a "RegisterDevice" that
-*   handles SPI communication with the device and a "GPIODevice" that controls
-*   setting the CS pin.
-*
-*   Currently, the driver only works for variable length data mode, so the CS
-*   pin must be used and cannot be tied to ground like for fixed length data mode.
-*
-*/
-#ifndef W550_H
-#define W5500_H
+#ifndef W5500_DEFINES_H
+#define W5500_DEDINES_H
 
 // *** bit masks for control phase byte *** //
 // block select

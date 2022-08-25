@@ -26,8 +26,8 @@ static const tid_t MAX_NUM_TASKS = 32;
 /// @brief save stack
 ///        used for storing variables from a task
 typedef struct {
-    uint8_t block[SAVE_BLOCK_SIZE]; // block to store data in
-    uint8_t* curr;                     // current position in block
+    uint8_t block[SAVE_BLOCK_SIZE];     // block to store data in
+    uint8_t* curr;                      // current position in block
 } stack_t;
 
 /// @brief task states

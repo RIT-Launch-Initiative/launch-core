@@ -48,15 +48,14 @@
 /// @brief yield back to the scheduler
 #define YIELD() YIELD2(__COUNTER__)
 
-// TODO just return RET_YIELD when we want to get back to the scheduler?
 #define CALL2(F, RET, z)\
-    ({_current = TOKENPASTE2(&&_call, z); TOKENPASTE2(_call, z):; RetType RET = F; if(RET == RET_SLEEP || RET == RET_BLOCKED){return RET;}; RET;})\
+    ({_current = TOKENPASTE2(&&_call, z); TOKENPASTE2(_call, z):; RetType RET = F; if(RET == RET_SLEEP || RET == RET_BLOCKED || RET == RET_YIELD){return RET;}; RET;})\
 
 /// @brief call a function 'F' and handle the return
-///        useful for calling in a task so you don't need to check for SLEEP or BLOCKED
+///        useful for calling in a task so you don't need to check for SLEEP, BLOCKED, or YIELD
 ///        as the task should return if either of those errors are returned
 ///        the task will return re-execute the line when it is scheduled again
-///        if SLEEP or BLOCKED are returned
+///        if SLEEP or BLOCKED or YIELD are returned
 #define CALL(F) CALL2(F, TOKENPASTE2(__ret, __COUNTER__), __COUNTER__)
 
 /// @brief reset a task to the top
