@@ -1,5 +1,4 @@
 #include <cstdio>
-#include <string.h>
 #include "string/string.h"
 
 #pragma clang diagnostic push
@@ -89,3 +88,5 @@ int main() {
     return 0;
 }
 #pragma clang diagnostic pop
+
+

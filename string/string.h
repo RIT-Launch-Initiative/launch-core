@@ -247,28 +247,8 @@ public:
     }
 
 protected:
-    String(char const *buffer, size_t size): size(size) {
-        int i; // Reduce errors from using strlen as counter
-
-        for (i = 0; i < size - 1; i++) {
-            this->string[i] = buffer[i];
-
-            if (this->string[i] == NULL_TERMINATOR) break;
-        }
-
-        // Developers should still add a null terminator in their buffers, especially if strlen < buff_size
-        if (this->string[i] != NULL_TERMINATOR) {
-            this->string[i] = '\0';
-        }
-
-        this->strlen = i - 1;
-
-        // Zero out remaining space
-        if (is_trunc()) {
-            for (int j = strlen; j < size; j++) {
-                this->string[j] = NULL_TERMINATOR;
-            }
-        }
+    String(char *buffer, size_t size): size(size) {
+        this->string = buffer;
     }
 
 
@@ -282,11 +262,12 @@ namespace str {
          * String constructor
          * @param buffer
          */
-        String(char *buffer) : ::String(buffer, SIZE) {};
+        explicit String(char *buffer) : ::String(buffer, SIZE) {
+            this->buffer = buffer;
+        };
 
     private:
-        char buffer[SIZE];
-
+        char *buffer;
     };
 }
 
