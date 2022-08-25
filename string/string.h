@@ -233,18 +233,6 @@ public:
     }
 
     /**
-     * Converts remaining characters in buffer to \0
-     */
-    void init_free_space() {
-        // TODO: Use memset or bad for embedded?
-        if (is_trunc()) {
-            for (int i = strlen; i < size; i++) {
-                this->string[i] = NULL_TERMINATOR;
-            }
-        }
-    }
-
-    /**
      * Get the first terminator
      * @return
      */
@@ -268,6 +256,13 @@ protected:
         }
 
         this->strlen = i - 1;
+
+        // Zero out remaining space
+        if (is_trunc()) {
+            for (int j = strlen; j < size; j++) {
+                this->string[j] = NULL_TERMINATOR;
+            }
+        }
     }
 
 
