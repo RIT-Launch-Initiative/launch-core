@@ -26,13 +26,78 @@ public:
     /// @brief constructor
     /// @param spi      SPI controller device
     // TODO pass in GPIO for CS
-    W5500(RegisterDevice& spi) : m_spi(spi) {};
+    W5500(StreamDevice& spi) : m_spi(spi) {};
 
-    /// @brief initialize the device
+    /// @brief initialize the chip
+    /// @param gw       gateway IPv4 address
+    /// @param subnet   subnet IPv4 address mask
+    /// @param mac      source MAC address for the device
+    /// @param ip       source IP address for the device
     /// @return
-    RetType init() {
-        // TODO
-        return RET_SUCCESS;
+    RetType init(uint8_t gw[4], uint8_t subnet[4], uint8_t mac[6], uint8_t ip[4]) {
+        RESUME();
+
+        RetType ret;
+
+        // mode configuration:
+        //  reset = 1
+        //  reserved
+        //  wake on lan = 0
+        //  ping block = 0
+        //  PPPoE = 0
+        //  reserved
+        //  force ARP = 0
+        //  reserved
+        uint8_t mode = 0b1000000;
+
+        // PHY configuration:
+        //  reset = 1
+        //  config operation mode = 1 (use the next 3 bits instead of HW pins)
+        //  operation mode = 111 (all capable, auto negotation)
+        //  all else read only
+        uint8_t phy_cfg = 0b11111000;
+
+        // mode
+        ret = CALL(write_bytes(W5500_COMMON_REG, W5500_COMMON_MR, &mode, 1));
+        if(ret != RET_SUCCESS) {
+            goto init_end;
+        }
+
+        // gateway address
+        ret = CALL(write_bytes(W5500_COMMON_REG, W5500_COMMON_GAR0, gw, 4));
+        if(ret != RET_SUCCESS) {
+            goto init_end;
+        }
+
+        // subnet mask address
+        ret = CALL(write_bytes(W5500_COMMON_REG, W5500_COMMON_SUBR0, subnet, 4));
+        if(ret != RET_SUCCESS) {
+            goto init_end;
+        }
+
+        // source MAC address
+        ret = CALL(write_bytes(W5500_COMMON_REG, W5500_COMMON_SHAR0, mac, 6));
+        if(ret != RET_SUCCESS) {
+            goto init_end;
+        }
+
+        // source IP address
+        ret = CALL(write_bytes(W5500_COMMON_REG, W5500_COMMON_SIPR0, ip, 4));
+        if(ret != RET_SUCCESS) {
+            goto init_end;
+        }
+
+        // PHY
+        ret = CALL(write_bytes(W5500_COMMON_REG, W5500_COMMON_PHYCFGR, &phy_cfg, 1));
+
+        // don't care about any other settings at the moment
+        // TODO maybe do some interrupt masking until we actually open the socket?
+        // TODO TCP will need some more settings like rety count and retry time
+        // TODO read the version and make sure we are talking to a W5500?
+
+    init_end:
+        RESET();
+        return ret;
     }
 
     /// @brief set a sockets source address and port
@@ -167,7 +232,7 @@ private:
     /// @param buff             the buffer pointer to read into
     /// @param len              the length of 'buff' in bytes
     /// @return
-    RetType read_bytes(uint8_t block_addr, uint16_t offset_addr, uint8_t* data, size_t len) {
+    RetType read_bytes(uint8_t block_addr, uint16_t offset_addr, uint8_t* buff, size_t len) {
         RESUME();
         RetType ret;
 
