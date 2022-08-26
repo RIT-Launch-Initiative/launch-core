@@ -247,9 +247,14 @@ namespace str {
          * String constructor
          * @param buffer
          */
-        explicit String(char *buffer) : ::String(buffer, SIZE) {};
+        explicit String() : ::String(buffer, SIZE) {};
 
+
+    private:
+        char buffer[SIZE] = {};
     };
+
+
 }
 
 
