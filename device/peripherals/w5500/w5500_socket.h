@@ -33,7 +33,7 @@ typedef enum {
 
 /// @brief current state of a socket
 typedef struct {
-    bool send_okay;     // if the last transmit command has completed
+    bool send_ok;       // if the last transmit command has completed
     bool rx_ready;      // if there is data ready to be received
     // TODO there are some other interrupt flags TCP needs,
     //      but we mostly care about UDP at the moment

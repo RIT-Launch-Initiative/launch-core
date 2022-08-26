@@ -26,7 +26,11 @@ public:
     /// @brief constructor
     /// @param spi      SPI controller device
     // TODO pass in GPIO for CS
-    W5500(StreamDevice& spi) : m_spi(spi) {};
+    W5500(StreamDevice& spi) : m_spi(spi) {
+        for(size_t i = 0; i < static_cast<int>(W5500_NUM_SOCKETS); i++) {
+            m_states[i] = {false, false};
+        }
+    };
 
     /// @brief initialize the chip
     /// @param gw       gateway IPv4 address
@@ -137,12 +141,70 @@ public:
         return RET_SUCCESS;
     }
 
-    /// @brief process interrupts
-    ///        this can be triggered by the interrupt line or continuously polled
+    /// @brief process interrupt
+    /// NOTE: this can be triggered by an ISR or polled
+    ///       it uses scheduler macros so it should not be called directly from an ISR
     /// @return
     RetType process_int() {
-        // TODO
-        return RET_SUCCESS;
+        RESUME();
+
+        RetType ret;
+        uint8_t sir;
+
+        // TODO we don't check for any interrupts in the common block
+        // most of those aren't that interesting, but maybe IP conflict is worth looking at
+
+        // TODO set GPIO for CS
+
+        // read the socket interrupt register
+        ret = CALL(read_bytes(W5500_COMMON_REG, W5500_COMMON_SIR, &sir, 1));
+        if(ret != RET_SUCCESS) {
+            goto process_int_end;
+        }
+
+        // check which sockets have interrupts
+        for(int i = 0; i < static_cast<int>(W5500_NUM_SOCKETS); i++) {
+            if(!(sir & (1 << i))) {
+                // this socket does not have an interrupt
+                continue;
+            } // else we need to process the interrupt for this socket
+
+            W5500SocketDescriptor_t sock = W5500_SOCKET_MAP[i];
+
+            uint8_t ir;
+            ret = CALL(read_bytes(sock.reg, W5500_SOCKET_IR, &ir, 1));
+            if(ret != RET_SUCCESS) {
+                // try the other sockets instead of failing out
+                continue;
+            }
+
+            // TODO we only check receive and send complete interrupt for now
+
+            // send ok
+            if(ir & (0b10000)) {
+                m_states[i].send_ok = true;
+
+                // TODO if anything wrote to the buffer while we were waiting
+                //      for a tx to finish, start another SEND command
+            }
+
+            // recv
+            if(ir & (0b100)) {
+                m_states[i].rx_ready = true;
+            }
+
+            // clear the interrupts
+            ret = CALL(write_bytes(sock.reg, W5500_SOCKET_IR, &ir, 1));
+            if(ret != RET_SUCCESS) {
+                // try the other sockets
+                continue;
+            }
+        }
+
+    process_int_end:
+        // TODO reset GPIO for CS
+        RESET();
+        return ret;
     }
 
     /// @brief register a task to be woken up when this socket updates
@@ -175,6 +237,13 @@ public:
     RetType receive(W5500Socket_t sock, uint8_t* buff, size_t len, size_t* read) {
         // TODO
         return RET_SUCCESS;
+    }
+
+    /// @brief get the state of a socket
+    /// @param sock     the socket to get the state of
+    /// @return a reference to the socket's state
+    W5500SocketState_t& state(W5500Socket_t sock) {
+        return m_states[static_cast<int>(sock)];
     }
 
 private:
@@ -276,6 +345,9 @@ private:
 
     // passed in SPI controller
     StreamDevice& m_spi;
+
+    // socket states
+    W5500SocketState_t m_states[W5500_NUM_SOCKETS];
 };
 
 #endif
