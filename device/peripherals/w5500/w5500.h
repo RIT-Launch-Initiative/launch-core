@@ -29,6 +29,7 @@ public:
     W5500(StreamDevice& spi) : m_spi(spi) {
         for(size_t i = 0; i < static_cast<int>(W5500_NUM_SOCKETS); i++) {
             m_states[i] = {false, false};
+            m_claimed[i] = false;
         }
     };
 
@@ -248,6 +249,56 @@ public:
         return m_states[static_cast<int>(sock)];
     }
 
+    /// @brief attempt to claim a socket
+    ///        will claim socket 0 last as it's the only one that can do MACRAW mode
+    ///        unless the 'raw' flag is true
+    /// @param sock     a pointer that will be set to the claimed socket
+    /// @param raw      if we're attemmpting to claim a raw socket
+    /// @return
+    RetType claim_sock(W5500Socket_t* sock, bool raw = false) {
+        if(raw) {
+            // we need socket 0
+            if(m_claimed[0]) {
+                return RET_ERROR;
+            }
+
+            *sock = W5500_SOCKET0;
+            m_claimed[0] = true;
+
+            return RET_SUCCESS;
+        }
+
+        // look for an unclaimed socket (not socket 0)
+        bool claimed = false;
+        for(size_t i = 1; i < static_cast<int>(W5500_NUM_SOCKETS); i++) {
+            if(!m_claimed[i]) {
+                // we can claim this socket
+                *sock = static_cast<W5500Socket_t>(i);
+                m_claimed[i] = true;
+                claimed = true;
+                break;
+            }
+        }
+
+        // if we haven't found any unclaimed socket, we can take socket 0
+        if(!claimed) {
+            if(m_claimed[0]) {
+                return RET_ERROR;
+            }
+
+            *sock = W5500_SOCKET0;
+            m_claimed[0] = true;
+        }
+
+        return RET_SUCCESS;
+    }
+
+    /// @brief unclaim a socket
+    /// @param sock     the socket to unclaim
+    void unclaim_sock(W5500Socket_t sock) {
+        m_claimed[static_cast<int>(sock)] = false;
+    }
+
 private:
     /// @brief helper function to write data to the chip
     /// @param block_addr       the block address to write to
@@ -349,7 +400,10 @@ private:
     StreamDevice& m_spi;
 
     // socket states
-    W5500SocketState_t m_states[W5500_NUM_SOCKETS];
+    W5500SocketState_t m_states[static_cast<int>(W5500_NUM_SOCKETS)];
+
+    // which sockets are currently claimed
+    bool m_claimed[static_cast<int>(W5500_NUM_SOCKETS)];
 };
 
 #endif
