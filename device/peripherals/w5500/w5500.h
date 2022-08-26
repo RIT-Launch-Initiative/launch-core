@@ -125,8 +125,9 @@ public:
     }
 
     /// @brief open a socket
-    /// @param sock     the socket to open
-    /// @param mode     the mode to open it in
+    /// @param sock         the socket to open
+    /// @param mode         the mode to open it in
+    /// @param multicast    'true' if this socket should listen for multicasts
     /// @return
     RetType open(W5500Socket_t sock, W5500SocketMode_t mode) {
         // TODO
