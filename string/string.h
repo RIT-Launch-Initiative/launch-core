@@ -7,10 +7,10 @@
 #ifndef STRING_H
 #define STRING_H
 
-const char NULL_TERMINATOR = '\0';
 
 class String {
 public:
+    const char NULL_TERMINATOR = '\0';
     char *string;
     int strlen = 0;
     int size;
@@ -239,7 +239,7 @@ protected:
     String(char *buffer, size_t size): size(size), string(buffer) {}
 };
 
-namespace str {
+namespace alloc {
     template<const size_t SIZE>
     class String : public ::String {
     public:

@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <string.h>
 #include "string/string.h"
 
 #pragma clang diagnostic push
@@ -9,19 +10,20 @@ void new_test(char *test_name, char *expected) {
 }
 
 int main() {
-    char buffer[] = {'R', 'I', 'T', ' ', 'L', 'a', 'u', 'n', 'c', 'h', ' ', 'I', 'n', 'i', 't', 'i', 'a', 't', 'i', 'v',
+    char buf_one[] = {'R', 'I', 'T', ' ', 'L', 'a', 'u', 'n', 'c', 'h', ' ', 'I', 'n', 'i', 't', 'i', 'a', 't', 'i', 'v',
                      'e', '\0'};
 
     // Init tests
-    String full_string = str::String<22>(buffer);
+    String full_string = alloc::String<22>();
+    full_string.string = buf_one;
     new_test("Full String", "RIT Launch Initiative");
     printf("\tActual: %s\n", full_string.string);
 
-    String much_storage_string = str::String<999>(buffer);
+    String much_storage_string = alloc::String<999>();
     new_test("Extra Space String", "RIT Launch Initiative");
     printf("\tActual: %s\n", much_storage_string.string);
 
-    String trunc_string = str::String<4>(buffer);
+    String trunc_string = alloc::String<4>();
     new_test("Truncated String", "RIT Launch Initiative");
     printf("\tActual: %s\n", trunc_string.string);
 
