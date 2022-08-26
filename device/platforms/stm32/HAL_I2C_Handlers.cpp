@@ -4,7 +4,7 @@
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_i2c.h"
 
-#include "device/stm32/HAL_handlers.h"
+#include "device/platforms/stm32/HAL_handlers.h"
 
 namespace HALHandlers {
 

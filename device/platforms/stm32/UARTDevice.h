@@ -4,7 +4,7 @@
 #include "stm32f4xx_hal_uart.h"
 
 #include "device/StreamDevice.h"
-#include "device/stm32/HAL_handlers.h"
+#include "device/platforms/stm32/HAL_handlers.h"
 #include "sched/macros.h"
 #include "ringbuffer/RingBuffer.h"
 
@@ -16,7 +16,6 @@ public:
     /// @param name     the name of this device
     /// @param huart    the HAL UART device wrapped by this device
     UARTDevice(const char* name, UART_HandleTypeDef* huart) : m_uart(huart),
-                                                              m_lock(false),
                                                               m_blocked(-1),
                                                               m_waiting(false),
                                                               m_buff(),
@@ -45,24 +44,19 @@ public:
     }
 
     /// @brief obtain this device
-    ///        for now, the device can only be obtained by a single person
+    /// @return always succeeds
     RetType obtain() {
-        if(m_lock) {
-            return RET_ERROR;
-        }
-
-        m_lock = true;
         return RET_SUCCESS;
     }
 
     /// @brief release this device
+    /// @return always succeeds
     RetType release() {
-        m_lock = false;
-
         return RET_SUCCESS;
     }
 
     /// @brief poll this device
+    /// @return
     RetType poll() {
         // for now does nothing
         return RET_SUCCESS;
@@ -75,16 +69,24 @@ public:
     RetType write(uint8_t* buff, size_t len) {
         RESUME();
 
+        // block waiting for the device to be free
+        RetType ret = CALL(check_block());
+        if(ret != RET_SUCCESS) {
+            // some error
+            return ret;
+        }
+
         // start the write
         if(HAL_OK != HAL_UART_Transmit_IT(m_uart, &m_byte, sizeof(uint8_t))) {
             return RET_ERROR;
         }
 
-        // NOTE: we assume no one else is currently blocking, if that's not the
-        //       case we will no longer track their TID and they may never wake up
+        // block and wait for our transmit to complete
         m_blocked = sched_dispatched;
-
         BLOCK();
+
+        // we can unblock someone else if they were waiting
+        check_unblock();
 
         RESET();
         return RET_SUCCESS;
@@ -98,17 +100,25 @@ public:
     RetType read(uint8_t* buff, size_t len) {
         RESUME();
 
-        if(m_buff.size() >= len) {
-            // we can ready right away
-            if(len != m_buff.pop(buff, len)) {
-                return RET_ERROR;
-            }
-
-            return RET_SUCCESS;
+        // block until the device is free to use
+        RetType ret = CALL(check_block());
+        if(ret != RET_SUCCESS) {
+            // some error
+            return ret;
         }
 
-        // otherwise we need to block and wait for data
-        RetType ret = CALL(wait(len));
+        // wait until we have enough data
+        // we keep the device blocked so no one else can read while we wait
+        ret = CALL(wait(len));
+        if(ret == RET_SUCCESS) {
+            // read the data
+            if(len != m_buff.pop(buff, len)) {
+                ret = RET_ERROR;
+            }
+        }
+
+        // we can unblock someone else if they were waiting
+        check_unblock();
 
         RESET();
         return ret;
@@ -132,8 +142,6 @@ public:
             return RET_SUCCESS;
         }
 
-        // NOTE: we assume no one else is currently blocking, if that's not the
-        //       case we will no longer track their TID and they may never wake up
         m_blocked = sched_dispatched;
         m_waiting = len;
 
@@ -179,13 +187,52 @@ private:
     // TODO not sure what size this should be yet
     alloc::RingBuffer<256, true> m_buff;
 
-    bool m_lock;
     tid_t m_blocked;  // currently blocked task
     size_t m_waiting; // amount of data the blocked task is waiting for (if rx)
 
+    // HAL handler
     UART_HandleTypeDef* m_uart;
 
+    // single byte to read into
     uint8_t m_byte;
+
+    // queue of tasks waiting on the device to be unblocked
+    alloc::Queue<tid_t, MAX_NUM_TASKS> m_queue;
+
+
+    /// @brief helper function that blocks the calling task if the device is busy
+    /// @return
+    RetType check_block() {
+        RESUME();
+
+        // someone else is blocked on this device, wait for them
+        if(m_blocked != -1) {
+            if(!m_queue.push(sched_dispatched)) {
+                return RET_ERROR;
+            }
+
+            BLOCK();
+        }
+
+        BLOCK();
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    /// @brief helper function that unblocks the next waiting task if there is one
+    void check_unblock() {
+        tid_t* task = m_queue.peek();
+
+        if(task == NULL) {
+            // nothing is waiting
+            return;
+        }
+
+        // otherwise wake up the next task
+        WAKE(*task);
+        m_queue.pop();
+    }
 };
 
 #endif

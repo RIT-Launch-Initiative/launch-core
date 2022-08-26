@@ -5,8 +5,8 @@
 #include "stm32f4xx_hal_i2c.h"
 
 #include "device/RegisterDevice.h"
-#include "device/stm32/HAL_handlers.h"
-#include "sched/sched.h"
+#include "device/platforms/stm32/HAL_handlers.h"
+#include "sched/macros.h"
 
 /// @brief I2C device controller
 class I2CDevice : public RegisterDevice<I2CAddr_t>, public CallbackDevice {
@@ -15,7 +15,6 @@ public:
     /// @param name     the name of this device
     /// @param h12c     the HAL I2C device wrapped by this device
     I2CDevice(const char* name, I2C_HandleTypeDef* hi2c) : m_i2c(hi2c),
-                                                           m_lock(false),
                                                            m_blocked(-1),
                                                            RegisterDevice<I2CAddr_t>(name) {};
 
@@ -37,20 +36,14 @@ public:
     }
 
     /// @brief obtain this device
-    ///        for now, the device can only be obtained by a single person
+    /// @return always successful
     RetType obtain() {
-        if(m_lock) {
-            return RET_ERROR;
-        }
-
-        m_lock = true;
         return RET_SUCCESS;
     }
 
     /// @brief release this device
+    /// @return always successful
     RetType release() {
-        m_lock = false;
-
         return RET_SUCCESS;
     }
 
@@ -68,13 +61,25 @@ public:
     RetType write(I2CAddr_t addr, uint8_t* buff, size_t len) {
         RESUME();
 
+        // block and wait for the device to be available
+        RetType ret = CALL(check_block());
+        if(ret != RET_SUCCESS) {
+            // some error
+            return ret;
+        }
+
+        // start the transfer
         if(HAL_OK != HAL_I2C_Mem_Write_IT(m_i2c, addr.dev_addr, addr.mem_addr,
                                                addr.mem_addr_size, buff, len)) {
             return RET_ERROR;
         }
 
+        // block and wait for the transfer to complete
         m_blocked = sched_dispatched;
         BLOCK();
+
+        // we can unblock someone else if they were waiting
+        check_unblock();
 
         RESET();
         return RET_SUCCESS;
@@ -89,13 +94,25 @@ public:
     RetType read(I2CAddr_t addr, uint8_t* buff, size_t len) {
         RESUME();
 
+        // block and wait for the device to be available
+        RetType ret = CALL(check_block());
+        if(ret != RET_SUCCESS) {
+            // some error
+            return ret;
+        }
+
+        // start the transfer
         if(HAL_OK != HAL_I2C_Mem_Read_IT(m_i2c, addr.dev_addr, addr.mem_addr,
                                                addr.mem_addr_size, buff, len)) {
             return RET_ERROR;
         }
 
+        // wait for the transfer to complete
         m_blocked = sched_dispatched;
         BLOCK();
+
+        // we can unblock someone else if they were waiting
+        check_unblock();
 
         RESET();
         return RET_SUCCESS;
@@ -116,10 +133,48 @@ private:
     static const int TX_NUM = 0;
     static const int RX_NUM = 1;
 
-    bool m_lock;
-    tid_t m_blocked;  // currently blocked task
+    // currently blocked task
+    tid_t m_blocked;
 
+    // HAL I2C handle
     I2C_HandleTypeDef* m_i2c;
+
+    // queue of tasks waiting on the device to be unblocked
+    alloc::Queue<tid_t, MAX_NUM_TASKS> m_queue;
+
+    /// @brief helper function that blocks the calling task if the device is busy
+    /// @return
+    RetType check_block() {
+        RESUME();
+
+        // someone else is blocked on this device, wait for them
+        if(m_blocked != -1) {
+            if(!m_queue.push(sched_dispatched)) {
+                return RET_ERROR;
+            }
+
+            BLOCK();
+        }
+
+        BLOCK();
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    /// @brief helper function that unblocks the next waiting task if there is one
+    void check_unblock() {
+        tid_t* task = m_queue.peek();
+
+        if(task == NULL) {
+            // nothing is waiting
+            return;
+        }
+
+        // otherwise wake up the next task
+        WAKE(*task);
+        m_queue.pop();
+    }
 };
 
 #endif

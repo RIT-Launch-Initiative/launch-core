@@ -6,7 +6,7 @@
 #include "stm32f4xx_hal_gpio.h"
 
 #include "device/StreamDevice.h"
-#include "device/stm32/HAL_handlers.h"
+#include "device/platforms/stm32/HAL_handlers.h"
 #include "sched/sched.h"
 
 // /// @brief defines which GPIO pin and state selects a chip
@@ -19,11 +19,6 @@
 // TODO how to be able to read and write before toggling chip select?
 // maybe just make the underlying device do this actually
 
-// TODO really need a way to let multiple users use this device
-// queue writes and receives? then process them when poll() is called?
-// or keep track of multiple TIDs and block a task if someone else is currently reading or writing
-// these changes should go for I2CDevice as well
-
 /// @brief SPI device controller
 class SPIDevice : public StreamDevice, public CallbackDevice {
 public:
@@ -32,7 +27,6 @@ public:
     /// @param h12c     the HAL SPI device wrapped by this device
     SPIDevice(const char* name, SPI_HandleTypeDef* hspi) :
                                                            m_spi(hspi),
-                                                           m_lock(false),
                                                            m_blocked(-1),
                                                            StreamDevice(name) {};
 
@@ -54,24 +48,19 @@ public:
     }
 
     /// @brief obtain this device
-    ///        for now, the device can only be obtained by a single person
+    /// @return always successful
     RetType obtain() {
-        if(m_lock) {
-            return RET_ERROR;
-        }
-
-        m_lock = true;
         return RET_SUCCESS;
     }
 
     /// @brief release this device
+    /// @return always successful
     RetType release() {
-        m_lock = false;
-
         return RET_SUCCESS;
     }
 
     /// @brief poll this device
+    /// @return
     RetType poll() {
         // for now does nothing
         return RET_SUCCESS;
@@ -84,12 +73,24 @@ public:
     RetType write(uint8_t* buff, size_t len) {
         RESUME();
 
+        // block waiting for the device to be free to use
+        RetType ret = CALL(check_block());
+        if(ret != RET_SUCCESS) {
+            // some error
+            return ret;
+        }
+
+        // do our transmit
         if(HAL_OK != HAL_SPI_Transmit_IT(m_spi, buff, len)) {
             return RET_ERROR;
         }
 
+        // block until the transmit is complete
         m_blocked = sched_dispatched;
         BLOCK();
+
+        // we can unblock someone else if they were waiting
+        check_unblock();
 
         RESET();
         return RET_SUCCESS;
@@ -103,34 +104,46 @@ public:
     RetType read(uint8_t* buff, size_t len) {
         RESUME();
 
+        // block waiting for the device to be available
+        RetType ret = CALL(check_block());
+        if(ret != RET_SUCCESS) {
+            // some error
+            return ret;
+        }
+
+        // start the transfer
         if(HAL_OK != HAL_SPI_Receive_IT(m_spi, buff, len)) {
             return RET_ERROR;
         }
 
+        // block waiting for our read to complete
         m_blocked = sched_dispatched;
         BLOCK();
 
+        // we can unblock someone else if they were waiting
+        check_unblock();
+
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
-    /// @brief get the number of available bytes to read
-    ///        this will always be 0 for a SPI device,
-    ///        all reads must be blocking with the 'read' function
-    /// @return the number of available bytes to read, which is always 0
-    // TODO this should return 1 if no one is currently blocking on this device, 0 otherwise
+    /// @brief get if the device is currently available
+    /// @return 1 if it is free, 0 if it is in use
     size_t available() {
-        return 0;
+        return (m_blocked == -1);
     }
 
-    /// @brief wait for 'len' bytes to be ready for reading
-    ///        for SPI, we only use the blocking 'read' function, so this
-    ///        function will always return RET_ERROR
-    /// @param len
-    /// @return RET_ERROR
-    // TODO this should wait until the device is free to be used
-    RetType wait(size_t len) {
-        return RET_ERROR;
+    /// @brief wait for the device to be free to use
+    ///        blocks the calling task until the device is free
+    /// @param size     ignored parameter
+    /// @return
+    RetType wait(size_t) {
+        RESUME();
+
+        RetType ret = CALL(check_block());
+
+        RESET();
+        return ret;
     }
 
     /// @brief called by SPI handler asynchronously
@@ -138,6 +151,7 @@ public:
         // don't care if it was tx or rx, for now
 
         if(m_blocked != -1) {
+            // wake up the task that's blocked
             WAKE(m_blocked);
         }
     }
@@ -147,10 +161,48 @@ private:
     static const int TX_NUM = 0;
     static const int RX_NUM = 1;
 
-    bool m_lock;
-    tid_t m_blocked;  // currently blocked task
+    // current blocked task
+    tid_t m_blocked;
 
+    // queue of tasks waiting on the device to be unblocked
+    alloc::Queue<tid_t, MAX_NUM_TASKS> m_queue;
+
+    // HAL handle
     SPI_HandleTypeDef* m_spi;
+
+    /// @brief helper function that blocks the calling task if the device is busy
+    /// @return
+    RetType check_block() {
+        RESUME();
+
+        // someone else is blocked on this device, wait for them
+        if(m_blocked != -1) {
+            if(!m_queue.push(sched_dispatched)) {
+                return RET_ERROR;
+            }
+
+            BLOCK();
+        }
+
+        BLOCK();
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    /// @brief helper function that unblocks the next waiting task if there is one
+    void check_unblock() {
+        tid_t* task = m_queue.peek();
+
+        if(task == NULL) {
+            // nothing is waiting
+            return;
+        }
+
+        // otherwise wake up the next task
+        WAKE(*task);
+        m_queue.pop();
+    }
 };
 
 #endif
