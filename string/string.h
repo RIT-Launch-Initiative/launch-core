@@ -228,23 +228,6 @@ public:
      **************************************/
 
     /**
-     * Checks to see if the string buffer is full
-     *
-     * @return boolean on if there buffer is filled
-     */
-    bool is_full() const {
-        return this->strlen >= size;
-    }
-
-    /**
-     * Checks if there is extra space in the buffer
-     * @return boolean on if there's extra space
-     */
-    bool is_trunc() const {
-        return this->strlen < size;
-    }
-
-    /**
      * Get the first terminator
      * @return
      */
