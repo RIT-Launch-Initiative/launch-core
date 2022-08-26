@@ -45,6 +45,8 @@ public:
 
     /// @brief bind this socket to an address
     ///        the socket will send and receive from this address
+    /// NOTE: some platforms may treat the IP address differently,
+    ///       for devices where the IP cannot be reconfigured it is ignored
     /// @param addr     the address to bind to
     /// @return
     virtual RetType bind(addr_t* addr) = 0;

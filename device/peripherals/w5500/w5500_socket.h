@@ -28,7 +28,8 @@ typedef struct {
 /// @brief socket mode
 // TODO only UDP is supported at the moment
 typedef enum {
-    UDP_MODE
+    UDP_MODE,
+    RAW_MODE // only valid for SOCKET0
 } W5500SocketMode_t;
 
 /// @brief current state of a socket
