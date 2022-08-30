@@ -30,6 +30,7 @@ public:
         for(size_t i = 0; i < static_cast<int>(W5500_NUM_SOCKETS); i++) {
             m_states[i] = {false, false};
             m_claimed[i] = false;
+            m_tids[i] = -1;
         }
     };
 
@@ -183,17 +184,30 @@ public:
 
             // TODO we only check receive and send complete interrupt for now
 
+            bool updated = false;
+
             // send ok
             if(ir & (0b10000)) {
                 m_states[i].send_ok = true;
 
                 // TODO if anything wrote to the buffer while we were waiting
                 //      for a tx to finish, start another SEND command
+                if(m_states[i].)
+
+                updated = true;
             }
 
             // recv
             if(ir & (0b100)) {
                 m_states[i].rx_ready = true;
+                updated = true;
+            }
+
+            if(updated) {
+                // wake up the task that called registered for this socket if there is one
+                if(m_tids[i] != -1) {
+                    WAKE(m_tids[i]);
+                }
             }
 
             // clear the interrupts
@@ -215,15 +229,16 @@ public:
     /// @param sock     the socket the task should wait for
     /// @param task     the task to register
     void register_task(W5500Socket_t sock, tid_t task) {
-        // TODO
+        m_tids[static_cast<int>(sock)] = task;
     }
 
-    /// @brief transmit a packet over a socket
+    /// @brief start a transmit a packet over a socket
+    /// the transmit is complete when the socket state tx_send_ok flag is 'true'
     /// @param sock     the socket to transmit on
     /// @param buff     the packet to send
     /// @param len      the length of the packet
     /// @return
-    RetType transmit(W5500Socket_t sock, uint8_t* buff, size_t len) {
+    RetType start_transmit(W5500Socket_t sock, uint8_t* buff, size_t len) {
         // TODO
         return RET_SUCCESS;
     }
@@ -237,7 +252,7 @@ public:
     //         only len bytes will be copied into 'buff'. If there are no packets
     //         to read, 'read' will be 0 and nothing is copied to 'buff'.
     /// @return
-    RetType receive(W5500Socket_t sock, uint8_t* buff, size_t len, size_t* read) {
+    RetType start_receive(W5500Socket_t sock, uint8_t* buff, size_t len, size_t* read) {
         // TODO
         return RET_SUCCESS;
     }
@@ -404,6 +419,9 @@ private:
 
     // which sockets are currently claimed
     bool m_claimed[static_cast<int>(W5500_NUM_SOCKETS)];
+
+    // tasks that should be woken up when each socket is updated (tx complete or rx ready)
+    tid_t m_tids[static_cast<int>(W5500_NUM_SOCKETS)];
 };
 
 #endif

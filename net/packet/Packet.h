@@ -13,7 +13,7 @@ public:
     /// @brief write data to the packet
     /// @return
     RetType push(uint8_t* buff, size_t len) {
-        if(len + m_wpos > m_size) {
+        if(len + m_wpos >= m_size) {
             // no room
             return RET_ERROR;
         }
@@ -57,6 +57,32 @@ public:
         return read(reinterpret_cast<uint8_t*>(obj), sizeof(OBJ));
     }
 
+    /// @brief skip reading some bytes
+    /// @param len  the number of bytes to skip
+    /// @return
+    RetType skip_read(size_t len) {
+        if(rpos + len > wpos) {
+            return RET_ERROR;
+        }
+
+        rpos += len;
+
+        return RET_SUCCESS;
+    }
+
+    /// @brief skip writing some bytes
+    /// @param len  the number of bytes to skip
+    /// @return
+    RetType skip_write(size_t len) {
+        if(len + wpos >= m_size) {
+            return RET_ERROR;
+        }
+
+        wpos += len;
+
+        return RET_SUCCESS;
+    }
+
     /// @brief reset the reading position to the beginning of the packet
     void seek() {
         m_rpos = 0;
@@ -84,6 +110,12 @@ public:
     /// @return the capacity of the packet
     size_t capacity() {
         return m_size;
+    }
+
+    /// @brief get the raw pointer to the beginning of the packet payload
+    /// @return the pointer
+    uint8_t* raw() {
+        return m_buff;
     }
 
 protected:
