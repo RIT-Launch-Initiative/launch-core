@@ -7,8 +7,10 @@
 #include "net/routing/Router.h"
 #include "hashmap/hashmap.h"
 #include "bloom_filter/bloom_filter.h"
+#include "net/ipv4/ipv4.h"
 
-typedef uint32_t IPv4Addr_t;
+namespace ipv4 {
+
 
 class IPv4Router : public Router {
 public:
@@ -53,6 +55,7 @@ public:
 
         // TODO record dst address
         // TODO check the address is ours OR a multicast address
+        // TODO to know our address, we should have the calling router passed in
 
         // read forward in the payload so it's at the payload
         // we don't handle options for now
@@ -189,21 +192,6 @@ private:
     alloc::Hashmap<uint8_t, Router&, 20, 20> m_protMap;
     BloomFilter<uint8_t> m_protFilter;
 
-    // IP Header struct
-    typedef struct {
-        uint8_t version_ihl;
-        uint8_t dscp_ecn;
-        uint16_t total_len;
-        uint16_t identification;
-        uint16_t flags_frag;
-        uint8_t ttl;
-        uint8_t protocol;
-        uint16_t checksum;
-        uint32_t src;
-        uint32_t dst;
-        // options
-    } IPv4Header_t;
-
     /// @brief calculates IPv4 checksum
     /// header checksum field must be zero before calling!
     uint16_t checksum(const uint16_t* data, uint16_t len) {
@@ -216,5 +204,7 @@ private:
         return ~sum;
     }
 };
+
+} // namespace ipv4
 
 #endif
