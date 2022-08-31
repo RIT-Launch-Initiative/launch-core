@@ -316,6 +316,66 @@ bool prealloc_sorted() {
     return true;
 }
 
+bool prealloc_remove() {
+    alloc::Queue<int, 3> q;
+
+    // push onto queue
+    q.push(0);
+
+    if(q.size() != 1) {
+        printf("bad size on queue, should be 1 but is %lu\n", q.size());
+        return false;
+    }
+
+    q.push(1);
+
+    if(q.size() != 2) {
+        printf("bad size on queue, should be 2 but is %lu\n", q.size());
+        return false;
+    }
+
+    q.push(2);
+
+    if(q.size() != 3) {
+        printf("bad size on queue, should be 3 but is %lu\n", q.size());
+        return false;
+    }
+
+    int* i = q.peek();
+    q.remove(i);
+
+    if(q.size() != 2) {
+        printf("bad size on queue, should be 2 but is %lu\n", q.size());
+        return false;
+    }
+
+    if(*(q.peek()) != 1) {
+        printf("bad peek on node 1\n");
+        return false;
+    }
+
+    q.pop();
+
+    if(q.size() != 1) {
+        printf("bad size on queue, should be 1 but is %lu\n", q.size());
+        return false;
+    }
+
+    if(*(q.peek()) != 2) {
+        printf("bad peek on node 2\n");
+        return false;
+    }
+
+    q.pop();
+
+    if(q.size() != 0) {
+        printf("bad size on queue, should be 0 but is %lu\n", q.size());
+        return false;
+    }
+
+    return true;
+}
+
 int main() {
     if(!basic()) {
         printf("failed basic push/pop test\n");
@@ -339,5 +399,11 @@ int main() {
         printf("failed preallocated sorted test\n");
     } else {
         printf("passed preallocated sorted test\n");
+    }
+
+    if(!prealloc_remove()) {
+        printf("failed preallocated remove test\n");
+    } else {
+        printf("passed preallocated remove test\n");
     }
 }

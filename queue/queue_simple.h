@@ -52,6 +52,22 @@ public:
         return ret;
     }
 
+    /// @brief remove a node from the queue
+    void remove_node(Node<T>* node) {
+        if(node == m_head) {
+            m_head = node->next;
+            m_head->prev = NULL;
+        } else if(node == m_tail) {
+            m_tail = node->prev;
+            m_tail->next = NULL;
+        } else {
+            node->prev->next = node->next;
+            node->next->prev = node->prev;
+        }
+
+        m_size--;
+    }
+
     /// @brief get the node from the back of the queue without popping it
     /// @return the node on the end of the queue
     Node<T>* peek_node() {

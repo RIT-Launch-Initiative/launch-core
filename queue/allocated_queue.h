@@ -6,6 +6,7 @@
 
 #include "queue/queue.h"
 #include "pool/pool.h"
+#include "macros.h"
 
 namespace alloc {
 
@@ -70,6 +71,14 @@ public:
         }
 
         return &(node->data);
+    }
+
+    /// @brief remove an entry from the queue
+    /// @param obj  a pointer to the object to remove
+    /// NOTE: if 'obj' was not allocated by the queue, bad things will happen
+    void remove(T* obj) {
+        Node<T>* node = container_of(obj, Node<T>, data);
+        ::SimpleQueue<T>::remove_node(node);
     }
 
     /// @brief get the number of nodes on the queue
@@ -149,6 +158,14 @@ public:
         }
 
         return &(node->data);
+    }
+
+    /// @brief remove an entry from the queue
+    /// @param obj  a pointer to the object to remove
+    /// NOTE: if 'obj' was not allocated by the queue, bad things will happen
+    void remove(T* obj) {
+        Node<T>* node = container_of(obj, Node<T>, data);
+        ::SimpleSortedQueue<T>::remove_node(node);
     }
 
     /// @brief get the number of nodes on the queue

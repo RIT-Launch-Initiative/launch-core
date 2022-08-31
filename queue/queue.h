@@ -29,6 +29,11 @@ public:
     /// @return the object, or NULL on error
     virtual T* peek() = 0;
 
+    /// @brief remove an entry from the queue
+    /// @param obj  a pointer to the object to remove
+    /// @return
+    virtual void remove(T* obj) = 0;
+
     /// @brief get the number of nodes on the queue
     /// @return the size of the queue
     virtual size_t size() = 0;
