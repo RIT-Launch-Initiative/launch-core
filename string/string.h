@@ -7,7 +7,6 @@
 #ifndef STRING_H
 #define STRING_H
 
-#include <utility>
 
 class String {
 public:
