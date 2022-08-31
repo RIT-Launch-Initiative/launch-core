@@ -37,7 +37,7 @@ add_library(launch_core
         spinlock/spinlock.h
 #        string/string.h
         return.h
-        )
+        device/GPIODevice.h)
 
 
 #add_executable(string_test string/test/string_test.cpp)
