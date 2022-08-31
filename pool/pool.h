@@ -5,66 +5,93 @@
 #include <stdint.h>
 
 #include "queue/queue.h"
+#include "macros.h"
+
+/// @brief descriptor for an object
+/// @tparam T   type of object described
+template <typename T>
+struct PoolDescriptor {
+    void* owner;
+    bool allocated;
+    T obj;
+};
 
 /// @brief memory pool of preallocated objects
 /// @tparam T       the type of objects in the pool
-template<typename T>
+template <typename T>
 class Pool {
 public:
     /// @brief allocate an object from the pool
     /// @return the pointer to the object, or NULL on failure
     T* alloc() {
-        Node<T*>* node = m_freeObjs.pop_node();
+        Node<PoolDescriptor<T>*>* node = m_freeDesc.pop_node();
 
         if(node == NULL) {
             // no room
             return NULL;
         }
 
+        // this node is unused now
         m_freeNodes.push_node(node);
 
-        return node->data;
+        node->data->allocated = true;
+        return &(node->data->obj);
     }
 
     /// @brief free an object back to the pool
-    /// NOTE: if an object is freed twice, bad things will happen
-    ///       the object will be offered in two nodes on the freeObjs list
+    /// NOTE: some double frees are caught, but it's possible a double free
+    ///       could result in an object being on the free list twice
     /// @return 'true' if the free was successful, 'false' on error
     virtual bool free(T* obj) {
-        Node<T*>* node = m_freeNodes.pop_node();
+        // check this object is both allocated and from this pool
+        PoolDescriptor<T>* desc = container_of(obj, PoolDescriptor<T>, obj);
+
+        if(!desc->allocated) {
+            return false;
+        }
+
+        if(desc->owner != this) {
+            return false;
+        }
+
+        Node<PoolDescriptor<T>*>* node = m_freeNodes.pop_node();
 
         if(node == NULL) {
             return false;
         }
 
-        // offer this object as free now
-        node->data = obj;
-        m_freeObjs.push_node(node);
+        // offer this descriptor as free now
+        desc->allocated = false;
+        node->data = desc;
+        m_freeDesc.push_node(node);
 
         return true;
     }
 protected:
     /// @brief protected constructor
     ///        use the alloc::Pool constructor directly
-    /// @param objs     array of 'size' many preallocated objects
+    /// @param desc     array of 'size' many preallocated descriptors
     /// @param nodes    array of 'size' many preallocated nodes
     /// @param size     the number of objects in the pool
-    Pool(T* objs, Node<T*>* nodes, const size_t size) : m_objs(objs),
+    Pool(PoolDescriptor<T>* desc, Node<PoolDescriptor<T>*>* nodes, const size_t size) :
+                                                        m_desc(desc),
                                                         m_nodes(nodes),
-                                                        m_freeObjs(),
+                                                        m_freeDesc(),
                                                         m_freeNodes() {
         // construct the free object list
         for(size_t i = 0; i < size; i++) {
-            m_nodes[i].data = &(m_objs[i]);
-            m_freeObjs.push_node(&m_nodes[i]);
+            m_desc[i].owner = this;
+            m_desc[i].allocated = false;
+            m_nodes[i].data = &(m_desc[i]);
+            m_freeDesc.push_node(&m_nodes[i]);
         }
     }
 
 private:
-    T* m_objs;
-    Node<T*>* m_nodes;
-    SimpleQueue<T*> m_freeObjs;  // holds free objects
-    SimpleQueue<T*> m_freeNodes; // holds free nodes not associated with objects
+    PoolDescriptor<T>* m_desc;
+    Node<PoolDescriptor<T>*>* m_nodes;
+    SimpleQueue<PoolDescriptor<T>*> m_freeDesc;  // holds free descriptors, unallocated
+    SimpleQueue<PoolDescriptor<T>*> m_freeNodes; // holds free nodes that have their descriptors allocated
 };
 
 namespace alloc {
@@ -76,11 +103,11 @@ template <typename T, const size_t SIZE>
 class Pool : public ::Pool<T> {
 public:
     /// @brief constructor
-    Pool() : ::Pool<T>(m_internalObjs, m_internalNodes, SIZE) {};
+    Pool() : ::Pool<T>(m_internalDesc, m_internalNodes, SIZE) {};
 
 private:
-    T m_internalObjs[SIZE];
-    Node<T*> m_internalNodes[SIZE];
+    PoolDescriptor<T> m_internalDesc[SIZE];
+    Node<PoolDescriptor<T>*> m_internalNodes[SIZE];
 };
 
 }
