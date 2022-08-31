@@ -50,7 +50,7 @@ public:
      * @param direction
      * @param pull
      */
-    gpio(Pin pin, Direction direction, Pull pull = Pull::DOWN) : pin(pin), direction(direction), pull(pull) {}
+    GPIODevice(Pin pin, Direction direction, Pull pull = Pull::DOWN) : pin(pin), direction(direction), pull(pull) {}
 
     /**
      * Getter for the pin field
@@ -85,7 +85,7 @@ public:
      * @param pull
      */
     void setPull(Pull pull) {
-        gpio::pull = pull;
+        GPIODevice::pull = pull;
     }
 
     /**
