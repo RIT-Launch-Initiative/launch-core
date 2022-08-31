@@ -12,18 +12,22 @@ void new_test(char *test_name, char *expected) {
 int main() {
     char buf_one[] = {'R', 'I', 'T', ' ', 'L', 'a', 'u', 'n', 'c', 'h', ' ', 'I', 'n', 'i', 't', 'i', 'a', 't', 'i', 'v',
                      'e', '\0'};
+    char buf_two[] = {'R', 'I', 'T', ' ', 'L', 'a', 'u', 'n', 'c', 'h', ' ', 'I', 'n', 'i', 't', 'i', 'a', 't', 'i', 'v',
+                                       'e', '\0'};
+
+    char buf_three[] = {'R', 'I', 'T', ' ', 'L', 'a', 'u', 'n', 'c', 'h', ' ', 'I', 'n', 'i', 't', 'i', 'a', 't', 'i', 'v',
+                      'e', '\0'};
 
     // Init tests
-    String full_string = alloc::String<22>();
-    full_string.string = buf_one;
+    String full_string = buf_one;
     new_test("Full String", "RIT Launch Initiative");
     printf("\tActual: %s\n", full_string.string);
 
-    String much_storage_string = alloc::String<999>();
+    String much_storage_string = buf_two;
     new_test("Extra Space String", "RIT Launch Initiative");
     printf("\tActual: %s\n", much_storage_string.string);
 
-    String trunc_string = alloc::String<4>();
+    String trunc_string = buf_three;
     new_test("Truncated String", "RIT Launch Initiative");
     printf("\tActual: %s\n", trunc_string.string);
 

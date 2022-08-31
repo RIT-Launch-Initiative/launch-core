@@ -7,13 +7,18 @@
 #ifndef STRING_H
 #define STRING_H
 
+#include <utility>
 
 class String {
 public:
-    const char NULL_TERMINATOR = '\0';
     char *string;
+    char NULL_TERMINATOR = '\0';
     int strlen = 0;
     int size;
+
+    String(const char *buffer): string(const_cast<char *>(buffer)) {
+        recount();
+    }
 
     /**************************************
      * Element Access
