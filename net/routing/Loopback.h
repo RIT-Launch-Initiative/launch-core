@@ -17,7 +17,7 @@ public:
 
     /// @brief receive
     /// @return always error, loopback cannot receive
-    RetType receive(Packet&, msg_&, NetworkLayer*) {
+    RetType receive(Packet&, msg_t&, NetworkLayer*) {
         return RET_ERROR;
     }
 };
