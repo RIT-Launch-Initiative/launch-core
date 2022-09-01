@@ -10,24 +10,20 @@ void new_test(char *test_name, char *expected) {
 }
 
 int main() {
-    char buf_one[] = {'R', 'I', 'T', ' ', 'L', 'a', 'u', 'n', 'c', 'h', ' ', 'I', 'n', 'i', 't', 'i', 'a', 't', 'i', 'v',
+    char buffer[] = {'R', 'I', 'T', ' ', 'L', 'a', 'u', 'n', 'c', 'h', ' ', 'I', 'n', 'i', 't', 'i', 'a', 't', 'i', 'v',
                      'e', '\0'};
-    char buf_two[] = {'R', 'I', 'T', ' ', 'L', 'a', 'u', 'n', 'c', 'h', ' ', 'I', 'n', 'i', 't', 'i', 'a', 't', 'i', 'v',
-                                       'e', '\0'};
-
-    char buf_three[] = {'R', 'I', 'T', ' ', 'L', 'a', 'u', 'n', 'c', 'h', ' ', 'I', 'n', 'i', 't', 'i', 'a', 't', 'i', 'v',
-                      'e', '\0'};
 
     // Init tests
-    String full_string = buf_one;
+//    String full_string = buffer;
+    String full_string = "RIT Launch Initiative";
     new_test("Full String", "RIT Launch Initiative");
     printf("\tActual: %s\n", full_string.string);
 
-    String much_storage_string = buf_two;
+    String much_storage_string = buffer;
     new_test("Extra Space String", "RIT Launch Initiative");
     printf("\tActual: %s\n", much_storage_string.string);
 
-    String trunc_string = buf_three;
+    String trunc_string = buffer;
     new_test("Truncated String", "RIT Launch Initiative");
     printf("\tActual: %s\n", trunc_string.string);
 
