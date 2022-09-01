@@ -120,18 +120,7 @@ public:
         return true;
     }
 
-    /// @brief create an object at the end of the queue and get a pointer to it
-    /// @return the object, or NULL on error
-    T* push() {
-        Node<T>* node = m_pool.alloc();
-
-        if(node == NULL) {
-            return NULL;
-        }
-
-        ::SimpleSortedQueue<T>::push_node(node);
-        return &(node->data);
-    }
+    // can't preallocate an object because then we can't sort until the pointer is set
 
     /// @brief pop an object off the queue, if there is one to pop
     /// @return

@@ -5,6 +5,9 @@
 
 namespace ipv4 {
 
+static const int DEFAULT_VERSION_IHL = 0x45; // version 4, length 5 (4 * 5 = 20 bytes)
+static const int DEFAULT_TTL = 255;
+
 // IP Header struct
 typedef struct {
     uint8_t version_ihl;
@@ -21,6 +24,7 @@ typedef struct {
 } header_t;
 
 // address is 32 bits
+// always assume in system endianness
 typedef uint32_t addr_t;
 
 /// @brief fill in the 'addr' field with an IPv4 address a.b.c.d

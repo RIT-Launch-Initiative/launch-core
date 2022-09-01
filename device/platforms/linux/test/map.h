@@ -20,7 +20,7 @@ public:
     /// @brief constructor
     LinuxDeviceMap() : m_console(),
                        m_debug(),
-                       m_sockets("Linux Socket Pool"),
+                       // m_sockets("Linux Socket Pool"),
                        alloc::DeviceMap<MAP_SIZE>("Linux Test Device Map") {};
 
     /// @brief initialize the Linux platform specific map
@@ -32,7 +32,7 @@ public:
         // just make MAP_SIZE bigger if we need more
         add("console", &m_console);
         add("debug", &m_debug);
-        add("socket_pool", &m_sockets);
+        // add("socket_pool", &m_sockets);
 
         // duplicate the console as our debug output
 
@@ -47,7 +47,7 @@ private:
     LinuxDebugDevice m_debug;
 
     // socket pool
-    alloc::SocketPool<LinuxUdpSocketDevice, 10> m_sockets;
+    // alloc::SocketPool<LinuxUdpSocketDevice, 10> m_sockets;
 };
 
 #endif
