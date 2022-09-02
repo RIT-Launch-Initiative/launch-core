@@ -170,11 +170,11 @@ public:
         NetworkLayer* next = *next_ptr;
 
         // zero the checksum in order to calculate, cache first
-        uint16_t checksum = ntoh16(hdr->checksum);
+        uint16_t check = ntoh16(hdr->checksum);
         hdr->checksum = 0;
 
         // check the checkcum
-        if(checksum != checksum(packet->raw(), header_len)) {
+        if(check != checksum(packet->raw(), header_len)) {
             // invalid checksum
             return RET_ERROR;
         }
@@ -291,18 +291,6 @@ private:
     /// @brief sorting function to store routes by largest subnet first
     bool route_sort(Route& fst, Route& snd) {
         return subnet_len(fst.subnet) > subnet_len(snd.subnet);
-    }
-
-    /// @brief calculates IPv4 checksum
-    /// header checksum field must be zero before calling!
-    uint16_t checksum(const uint16_t* data, uint16_t len) {
-        uint16_t sum = 0;
-        for(int i = 0; i < (len / sizeof(uint16_t)); i++) {
-            sum += data[i];
-        }
-
-        // retrun one's complement
-        return ~sum;
     }
 
     // stores all outgoing routes

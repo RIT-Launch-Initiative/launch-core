@@ -35,6 +35,18 @@ static inline void IPv4Address(uint8_t a, uint8_t b, uint8_t c, uint8_t d, addr_
     addr |= (a << 24);
 }
 
+/// @brief calculates IPv4 checksum
+/// header checksum field must be zero before calling!
+uint16_t checksum(const uint16_t* data, uint16_t len) {
+    uint16_t sum = 0;
+    for(int i = 0; i < (len / sizeof(uint16_t)); i++) {
+        sum += data[i];
+    }
+
+    // retrun one's complement
+    return ~sum;
+}
+
 } // namespace ipv4
 
 #endif
