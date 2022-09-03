@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <string.h>
 #include "string/string.h"
+#include <utility>
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wwritable-strings"
@@ -14,16 +15,15 @@ int main() {
                      'e', '\0'};
 
     // Init tests
-//    String full_string = buffer;
-    String full_string = "RIT Launch Initiative";
+    String full_string = alloc::String<22>();
     new_test("Full String", "RIT Launch Initiative");
     printf("\tActual: %s\n", full_string.string);
 
-    String much_storage_string = buffer;
+    String much_storage_string = std::move(full_string);
     new_test("Extra Space String", "RIT Launch Initiative");
     printf("\tActual: %s\n", much_storage_string.string);
 
-    String trunc_string = buffer;
+    String trunc_string = std::move(much_storage_string);
     new_test("Truncated String", "RIT Launch Initiative");
     printf("\tActual: %s\n", trunc_string.string);
 

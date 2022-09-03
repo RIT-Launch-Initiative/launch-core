@@ -15,8 +15,9 @@ public:
     int strlen = 0;
     int size;
 
-    String(const char *buffer): string(const_cast<char *>(buffer)) {
-        recount();
+    String(String&& str)  {
+        this->string = str.string;
+        this->strlen = str.strlen;
     }
 
 
