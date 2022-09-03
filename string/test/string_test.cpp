@@ -16,6 +16,7 @@ int main() {
 
     // Init tests
     String full_string = alloc::String<22>();
+    full_string.string = buffer;
     new_test("Full String", "RIT Launch Initiative");
     printf("\tActual: %s\n", full_string.string);
 
