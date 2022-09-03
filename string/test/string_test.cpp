@@ -13,6 +13,10 @@ void new_test(char *test_name, char *expected) {
 int main() {
     char buffer[] = {'R', 'I', 'T', ' ', 'L', 'a', 'u', 'n', 'c', 'h', ' ', 'I', 'n', 'i', 't', 'i', 'a', 't', 'i', 'v',
                      'e', '\0'};
+    char buffer_two[] = {'R', 'I', 'T', ' ', 'L', 'a', 'u', 'n', 'c', 'h', ' ', 'I', 'n', 'i', 't', 'i', 'a', 't', 'i', 'v',
+                     'e', '\0'};
+    char buffer_three[] = {'R', 'I', 'T', ' ', 'L', 'a', 'u', 'n', 'c', 'h', ' ', 'I', 'n', 'i', 't', 'i', 'a', 't', 'i', 'v',
+                     'e', '\0'};
 
     // Init tests
     String full_string = alloc::String<22>();

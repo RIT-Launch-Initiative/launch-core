@@ -18,6 +18,7 @@ public:
     String(String&& str)  {
         this->string = str.string;
         this->strlen = str.strlen;
+        recount();
     }
 
 
