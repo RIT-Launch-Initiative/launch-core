@@ -3,7 +3,7 @@
 #include <unistd.h>
 #include <termios.h>
 
-#include "device/linux/map.h"
+#include "device/platforms/linux/test/map.h"
 #include "device/StreamDevice.h"
 #include "sched/sched.h"
 #include "sched/macros.h"
@@ -210,13 +210,13 @@ RetType echo_net() {
 
     SocketPool* pool = reinterpret_cast<SocketPool*>(dev);
 
-    static SocketDevice* sock = pool->alloc();
+    static Socket* sock = pool->alloc();
     if(NULL == sock) {
         printf("failed to allocate socket from socket pool\r\n");
         return RET_ERROR;
     }
 
-    SocketDevice::addr_t addr;
+    sockaddr_t addr;
     addr.port = 8000;
     addr.addr = 0; // listen to any interface
 

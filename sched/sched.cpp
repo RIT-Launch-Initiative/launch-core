@@ -151,6 +151,8 @@ void sched_dispatch() {
 
         break;
     }
+
+    sched_dispatched = -1;
 }
 
 /// @brief sleep a task

@@ -29,10 +29,10 @@ typedef uint32_t addr_t;
 
 /// @brief fill in the 'addr' field with an IPv4 address a.b.c.d
 static inline void IPv4Address(uint8_t a, uint8_t b, uint8_t c, uint8_t d, addr_t* addr) {
-    addr = d;
-    addr |= (c << 8);
-    addr |= (b << 16);
-    addr |= (a << 24);
+    *addr = d;
+    *addr |= (c << 8);
+    *addr |= (b << 16);
+    *addr |= (a << 24);
 }
 
 /// @brief calculates IPv4 checksum

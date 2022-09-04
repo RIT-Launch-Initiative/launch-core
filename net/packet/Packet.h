@@ -50,22 +50,35 @@ public:
 
     /// @brief read data from the packet
     /// @tparam OBJ     type of object to read data as
-    /// @tparam obj     pointer to the object to read into
+    /// @param obj     pointer to the object to read into
     /// @return
     template <typename OBJ>
     RetType read(OBJ* obj) {
         return read(reinterpret_cast<uint8_t*>(obj), sizeof(OBJ));
     }
 
+    /// @brief get a pointer to data in the packet
+    /// @tparam OBJ     the object type to interpret the data as
+    /// @return a pointer to the object, or NULL on error
+    template <typename OBJ>
+    OBJ* ptr() {
+        if(m_wpos + sizeof(OBJ) > m_size) {
+            // no room
+            return NULL;
+        }
+
+        return reinterpret_cast<OBJ*>(raw() + m_wpos);
+    }
+
     /// @brief skip reading some bytes
     /// @param len  the number of bytes to skip
     /// @return
     RetType skip_read(size_t len) {
-        if(rpos + len > wpos) {
+        if(m_rpos + len > m_wpos) {
             return RET_ERROR;
         }
 
-        rpos += len;
+        m_rpos += len;
 
         return RET_SUCCESS;
     }
@@ -74,12 +87,23 @@ public:
     /// @param len  the number of bytes to skip
     /// @return
     RetType skip_write(size_t len) {
-        if(len + wpos >= m_size) {
+        if(len + m_wpos >= m_size) {
             return RET_ERROR;
         }
 
-        wpos += len;
+        m_wpos += len;
 
+        return RET_SUCCESS;
+    }
+
+    /// @brief move the write position back
+    /// @param len  the amount to move the the write position back by
+    RetType reverse(size_t len) {
+        if(len > m_wpos) {
+            return RET_ERROR;
+        }
+
+        m_wpos -= len;
         return RET_SUCCESS;
     }
 

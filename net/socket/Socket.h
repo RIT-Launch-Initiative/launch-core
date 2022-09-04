@@ -6,22 +6,27 @@
 
 #include "return.h"
 
+typedef struct {
+    uint32_t addr;      // network address in system endianness
+    uint16_t port;      // transport port in system endianness
+} sockaddr_t;
+
+typedef struct {
+    sockaddr_t addr;
+    uint8_t* payload;    // payload
+    size_t payload_len;  // payload length
+} sockmsg_t;
+
+
 /// @brief network socket device
 class Socket {
 public:
-    typedef struct {
-        uint32_t addr;      // network address in system endianness
-        uint16_t port;      // transport port in system endianness
-    } addr_t;
-
-    typedef struct {
-        addr_t addr;
-        uint8_t* payload;    // payload
-        size_t payload_len;  // payload length
-    } msg_t;
-
     /// @brief constructor
-    SocketDevice() {};
+    Socket() {};
+
+    /// @brief initialize
+    /// @return
+    virtual RetType init() = 0;
 
     /// @brief send a message from the socket
     /// @param msg  the message to send
@@ -30,7 +35,7 @@ public:
     ///             'payload' is a buffer holding the payload
     ///             'payload_len' is the length of the payload
     /// @return if all bytes were sent
-    virtual RetType sendmsg(msg_t* msg) = 0;
+    virtual RetType sendmsg(sockmsg_t* msg) = 0;
 
     /// @brief received a message on the socket
     /// @param msg  the message to receive
@@ -40,7 +45,7 @@ public:
     ///             'payload_len' is the size of the buffer, up to this many bytes are copied
     ///                           this is set to the actual number of bytes copied
     /// @return
-    virtual RetType recvmsg(msg_t* msg) = 0;
+    virtual RetType recvmsg(sockmsg_t* msg) = 0;
 
     /// @brief bind this socket to an address
     ///        the socket will send and receive from this address
@@ -48,13 +53,13 @@ public:
     ///       for devices where the IP cannot be reconfigured it is ignored
     /// @param addr     the address to bind to
     /// @return
-    virtual RetType bind(addr_t* addr) = 0;
+    virtual RetType bind(sockaddr_t* addr) = 0;
 
     /// @brief subscribe to a multicast group address
     ///        generally only the network address will be used
     /// @param addr     the multicast group address to subscribe to
     /// @return
-    virtual RetType subscribe(addr_t* addr) = 0;
+    virtual RetType subscribe(sockaddr_t* addr) = 0;
 
     /// @brief close the socket
     /// @return

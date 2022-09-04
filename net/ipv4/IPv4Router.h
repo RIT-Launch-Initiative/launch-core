@@ -4,13 +4,12 @@
 #include <stdint.h>
 
 #include "net/common.h"
-#include "net/routing/NetworkLayer.h"
+#include "net/network_layer/NetworkLayer.h"
 #include "net/ipv4/ipv4.h"
-#include "net/Socket.h"
+#include "net/socket/Socket.h"
 #include "hashmap/hashmap.h"
 #include "queue/allocated_queue.h"
-
-using Socket::msg_t;
+#include "sched/macros.h"
 
 namespace ipv4 {
 
@@ -41,7 +40,7 @@ public:
         }
 
         // add to the device map
-        NetworLayer** dev_ptr = m_devMap[addr];
+        NetworkLayer** dev_ptr = m_devMap[addr];
         if(dev_ptr) {
             // something else has this address
             return RET_ERROR;
@@ -74,7 +73,7 @@ public:
     RetType remove_route(addr_t addr) {
         // remove the device from the hashmap
         // we don't check the return because if the address doesn't exist it's already removed
-        m_devMap.remove(addr));
+        m_devMap.remove(addr);
 
         // search for the address in the routing table
         QueueIterator<Route> it = m_routingTable.iterator();
@@ -127,8 +126,14 @@ public:
 
     /// @brief receive a packet
     /// @return
-    RetType receive(Packet& packet, msg_t& info, NetworkLayer* caller) {
-        header_t* hdr = (header_t*)(packet.raw() + (uint8_t*)packet.size());
+    RetType receive(Packet& packet, sockmsg_t& info, NetworkLayer* caller) {
+        RESUME();
+
+        header_t* hdr = packet.ptr<header_t>();
+
+        if(hdr == NULL) {
+            return RET_ERROR;
+        }
 
         uint8_t version = (hdr->version_ihl & (0b11110000)) >> 4;
         if(version != 4) {
@@ -136,7 +141,7 @@ public:
             return RET_ERROR;
         }
 
-        if(hdr->flags & 0b00111111) {
+        if(hdr->flags_frag & 0b00111111) {
             // MF is set or there's a fragment offset
             // TODO we discard fragmented packets for now
             return RET_ERROR;
@@ -173,14 +178,14 @@ public:
         uint16_t check = ntoh16(hdr->checksum);
         hdr->checksum = 0;
 
-        // check the checkcum
-        if(check != checksum(packet->raw(), header_len)) {
+        // check the checksum
+        if(check != checksum(packet.ptr<uint16_t>(), header_len / sizeof(uint16_t))) {
             // invalid checksum
             return RET_ERROR;
         }
 
         // record the source address
-        msg.addr.addr = ntoh32(hdr->src);
+        info.addr.addr = ntoh32(hdr->src);
 
         // read forward in the payload so it's at the payload
         // we don't handle options for now
@@ -188,12 +193,17 @@ public:
             return RET_ERROR;
         }
 
-        return next->receive(packet, info, this);
+        RetType ret = CALL(next->receive(packet, info, this));
+
+        RESET();
+        return ret;
     }
 
     /// @brief transmit a packet
     /// @return
-    RetType transmit(Packet& packet, msg_t& info, NetworkLayer*) {
+    RetType transmit(Packet& packet, sockmsg_t& info, NetworkLayer*) {
+        RESUME();
+
         // first find the route to send this packet over
         QueueIterator<Route> it = m_routingTable.iterator();
         Route* route;
@@ -207,7 +217,7 @@ public:
                 break;
             }
 
-            it++;
+            ++it;
         }
 
         if(!found) {
@@ -217,30 +227,31 @@ public:
             return RET_ERROR;
         }
 
-        uint8_t* curr = packet.raw() + (uint8_t*)packet.size();
-        IPHeader_t* hdr = (IPHeader_t*)curr;
+        // make room for the IPv4 header
+        if(RET_SUCCESS != packet.reverse(sizeof(header_t))) {
+            return RET_ERROR;
+        }
+
+        header_t* hdr = packet.ptr<header_t>();
 
         hdr->version_ihl = DEFAULT_VERSION_IHL;
         hdr->dscp_ecn = 0;
-        hdr->total_len = msg.payload_len;
+        hdr->total_len = info.payload_len;
         hdr->identification = 0;
         hdr->flags_frag = 0;
         hdr->ttl = DEFAULT_TTL;
         hdr->protocol = 0; // TODO need to get passed a protocol somehows, or look it up based on the layer that called us
         hdr->checksum = 0;
-        hdr->dst = hton32(msg.addr.addr);
+        hdr->dst = hton32(info.addr.addr);
         hdr->src = hton32(route->addr);
 
         // calculate checksum
-        hdr->checksum = checksum(curr, sizeof(IPHeader_t));
+        hdr->checksum = checksum((uint16_t*)hdr, sizeof(header_t) / sizeof(uint16_t));
 
-        // TODO how to preallocate space for headers in the packet
-        // for now we just move it along
-        if(RET_SUCCESS != packet.skip_read(sizeof(IPHeader_t))) {
-            return RET_ERROR;
-        }
+        RetType ret =  CALL(route->next->transmit(packet, info, this));
 
-        return route->next->transmit(packet, info, this);
+        RESET();
+        return ret;
     }
 
 private:

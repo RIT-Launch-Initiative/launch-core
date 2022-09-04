@@ -34,6 +34,7 @@ public:
     }
 
     /// @brief create an object at the end of the queue and get a pointer to it
+    /// NOTE: this is more functionality than the standard queue
     /// @return the object, or NULL on error
     T* push() {
         Node<T>* node = m_pool.alloc();
@@ -79,6 +80,7 @@ public:
     void remove(T* obj) {
         Node<T>* node = container_of(obj, Node<T>, data);
         ::SimpleQueue<T>::remove_node(node);
+        m_pool.free(node); // not checking return, should always succeed
     }
 
     /// @brief get the number of nodes on the queue
@@ -155,6 +157,7 @@ public:
     void remove(T* obj) {
         Node<T>* node = container_of(obj, Node<T>, data);
         ::SimpleSortedQueue<T>::remove_node(node);
+        m_pool.free(node); // not checking return, should always succeed
     }
 
     /// @brief get the number of nodes on the queue
