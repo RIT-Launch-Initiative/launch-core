@@ -15,11 +15,7 @@ public:
     int strlen = 0;
     int size;
 
-    String(String&& str)  {
-        this->string = str.string;
-        this->strlen = str.strlen;
-        recount();
-    }
+    String()  {}
 
 
     /**************************************
@@ -233,6 +229,19 @@ public:
     /**************************************
      * C API Interfacing
      **************************************/
+
+    /**
+     * Compares String with another String
+     * @param other
+     * @return
+     */
+    bool equals(String other) {
+        if (strcmp(this->string, other.string) == 0) {
+            return true;
+        } else {
+            return false;
+        }
+    }
 
     /**
      * Get the first terminator

@@ -89,6 +89,19 @@ int main() {
     much_storage_string.clear();
     printf("\tActual: %s(blank)\n", much_storage_string.string);
 
+
+    full_string.string = buffer;
+    much_storage_string.string = buffer_two;
+
+    String one = alloc::String<5>();
+    String two = alloc::String<5>();
+
+    one.string = "123";
+    two.string = "123";
+    one.strlen = 4;
+    two.strlen = 4;
+
+    printf("%d", full_string.equals(much_storage_string));
     // Modifier Tests
 
     return 0;
