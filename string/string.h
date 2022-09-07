@@ -15,7 +15,11 @@ public:
     int strlen = 0;
     int size;
 
-    String()  {}
+    String(char *buffer)  {
+        while (*(buffer + strlen++) != NULL_TERMINATOR) {
+            string[strlen] = buffer[strlen];
+        }
+    }
 
 
     /**************************************
