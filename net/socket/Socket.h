@@ -6,13 +6,22 @@
 
 #include "return.h"
 
-typedef struct {
-    uint32_t addr;      // network address in system endianness
-    uint16_t port;      // transport port in system endianness
+typedef union {
+    uint32_t ipv4;
 } sockaddr_t;
+
+typedef union {
+    uint16_t udp;
+} sockport_t;
+
+typedef enum {
+    IPV4_UDP_SOCK
+} socktype_t;
 
 typedef struct {
     sockaddr_t addr;
+    sockport_t port;
+    socktype_t type;
     uint8_t* payload;    // payload
     size_t payload_len;  // payload length
 } sockmsg_t;

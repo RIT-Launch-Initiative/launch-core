@@ -33,7 +33,7 @@ public:
     //        ex) add a route for the layer with address 234.0.0.1/32
     // for now there can be only device per address (including multicast)
     /// @return
-    RetType add_route(addr_t addr, addr_t subnet, NetworkLayer& layer) {
+    RetType add_route(IPv4Addr_t addr, IPv4Addr_t subnet, NetworkLayer& layer) {
         // check that it's a valid subnet
         if(!valid_subnet(subnet)) {
             return RET_ERROR;
@@ -70,7 +70,7 @@ public:
     /// @brief remove a device route
     /// @param addr     the address of the device to remove
     /// @return returns success if the route no longer exists (including if it never did)
-    RetType remove_route(addr_t addr) {
+    RetType remove_route(IPv4Addr_t addr) {
         // remove the device from the hashmap
         // we don't check the return because if the address doesn't exist it's already removed
         m_devMap.remove(addr);
@@ -129,7 +129,7 @@ public:
     RetType receive(Packet& packet, sockmsg_t& info, NetworkLayer* caller) {
         RESUME();
 
-        header_t* hdr = packet.ptr<header_t>();
+        IPv4Header_t* hdr = packet.ptr<IPv4Header_t>();
 
         if(hdr == NULL) {
             return RET_ERROR;
@@ -152,7 +152,7 @@ public:
         // TODO anything with the len? pass it up to transport probably, in case we get extra data
 
         // check the address
-        addr_t addr = ntoh32(hdr->dst);
+        IPv4Addr_t addr = ntoh32(hdr->dst);
 
         NetworkLayer** dev_ptr = m_devMap[addr];
         if(dev_ptr == NULL) {
@@ -185,7 +185,7 @@ public:
         }
 
         // record the source address
-        info.addr.addr = ntoh32(hdr->src);
+        info.addr.ipv4 = ntoh32(hdr->src);
 
         // read forward in the payload so it's at the payload
         // we don't handle options for now
@@ -209,7 +209,7 @@ public:
         Route* route;
         bool found = false;
         while(route = *it) {
-            if(route->addr == ((info.addr.addr) & route->subnet)) {
+            if(route->addr == ((info.addr.ipv4) & route->subnet)) {
                 // this is a good match!
                 // since the queue is presorted by biggest subnet mask, we know
                 // this is the longest prefix match!
@@ -228,11 +228,11 @@ public:
         }
 
         // make room for the IPv4 header
-        if(RET_SUCCESS != packet.reverse(sizeof(header_t))) {
+        if(RET_SUCCESS != packet.reverse(sizeof(IPv4Header_t))) {
             return RET_ERROR;
         }
 
-        header_t* hdr = packet.ptr<header_t>();
+        IPv4Header_t* hdr = packet.ptr<IPv4Header_t>();
 
         hdr->version_ihl = DEFAULT_VERSION_IHL;
         hdr->dscp_ecn = 0;
@@ -242,11 +242,11 @@ public:
         hdr->ttl = DEFAULT_TTL;
         hdr->protocol = 0; // TODO need to get passed a protocol somehows, or look it up based on the layer that called us
         hdr->checksum = 0;
-        hdr->dst = hton32(info.addr.addr);
+        hdr->dst = hton32(info.addr.ipv4);
         hdr->src = hton32(route->addr);
 
         // calculate checksum
-        hdr->checksum = checksum((uint16_t*)hdr, sizeof(header_t) / sizeof(uint16_t));
+        hdr->checksum = checksum((uint16_t*)hdr, sizeof(IPv4Header_t) / sizeof(uint16_t));
 
         RetType ret =  CALL(route->next->transmit(packet, info, this));
 
@@ -257,15 +257,15 @@ public:
 private:
     // IPv4 route to be used for longest prefix matching
     struct Route {
-        addr_t addr;            // device or network address
-        addr_t subnet;          // subnet
+        IPv4Addr_t addr;            // device or network address
+        IPv4Addr_t subnet;          // subnet
         NetworkLayer* next;     // layer to forward to
     };
 
     /// @brief helper function to validate a subnet address
     /// @param subnet   the subnet mask to validate
     /// @return 'true' if valid, 'false' otherwise
-    bool valid_subnet(addr_t subnet) {
+    bool valid_subnet(IPv4Addr_t subnet) {
         // validate the subnet is of the form 0b111....111000...000
         bool ones = false;
         for(size_t i = 0; i < (sizeof(subnet) * 8); i++) {
@@ -288,7 +288,7 @@ private:
     ///        assumes the subnet mask is valid
     /// @param subnet   the subnet mask
     /// @return the length
-    inline size_t subnet_len(addr_t subnet) {
+    inline size_t subnet_len(IPv4Addr_t subnet) {
         for(size_t i = 0; i < (sizeof(subnet) * 8); i++) {
             if(subnet & (1 << i)) {
                 return (sizeof(subnet) * 8) - i;
@@ -309,7 +309,7 @@ private:
     alloc::SortedQueue<Route, SIZE> m_routingTable;
 
     // maps device addresses to layers those addresses should be received from
-    alloc::Hashmap<addr_t, NetworkLayer*, SIZE, SIZE> m_devMap;
+    alloc::Hashmap<IPv4Addr_t, NetworkLayer*, SIZE, SIZE> m_devMap;
 
     // maps device protocol to a next layer
     alloc::Hashmap<uint8_t, NetworkLayer*, SIZE, SIZE> m_protMap;

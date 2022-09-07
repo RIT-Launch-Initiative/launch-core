@@ -21,14 +21,14 @@ typedef struct {
     uint32_t src;
     uint32_t dst;
     // options
-} header_t;
+} IPv4Header_t;
 
 // address is 32 bits
 // always assume in system endianness
-typedef uint32_t addr_t;
+typedef uint32_t IPv4Addr_t;
 
 /// @brief fill in the 'addr' field with an IPv4 address a.b.c.d
-static inline void IPv4Address(uint8_t a, uint8_t b, uint8_t c, uint8_t d, addr_t* addr) {
+static inline void IPv4Address(uint8_t a, uint8_t b, uint8_t c, uint8_t d, IPv4Addr_t* addr) {
     *addr = d;
     *addr |= (c << 8);
     *addr |= (b << 16);
