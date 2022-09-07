@@ -121,6 +121,7 @@ void sched_dispatch() {
                 // this task was slept while it was on the ready queue
                 task->queued = false;
 
+                task->sleep_loc = task_p;
                 sleep_q.push(task);
                 // NOTE: we again assume we can always push
                 continue;
@@ -178,6 +179,9 @@ void sched_wake(tid_t tid) {
         // nothing to wake from
         return;
     }
+
+    // take it off the sleep queue
+    sleep_q.remove(task->sleep_loc);
 
     task->state = STATE_ACTIVE;
 

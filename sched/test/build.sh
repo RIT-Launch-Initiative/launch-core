@@ -1,3 +1,3 @@
 #!/bin/bash
 
-g++ ../sched.cpp $1 -I../.. -o test -ggdb
+g++ ../sched.cpp test_basic.cpp $1 -I../.. -o test -ggdb

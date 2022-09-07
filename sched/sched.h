@@ -39,13 +39,14 @@ typedef enum {
 } state_t;
 
 /// @brief task information
-typedef struct {
+typedef struct task_s {
     stack_t stack;
     state_t state;
     uint32_t wake_time;
     task_func_t func;
     tid_t tid;
     bool queued; // if it's on the ready queue
+    struct task_s** sleep_loc; // references where the pointer on the sleep queue is
 } task_t;
 
 /// @brief initialize the scheduler
