@@ -23,7 +23,7 @@ int main() {
     new_test("Full String", "RIT Launch Initiative");
     printf("\tActual: %s\n", full_string.string);
 
-    String much_storage_string = buffer;
+    String much_storage_string = std::move(full_string);
     new_test("Extra Space String", "RIT Launch Initiative");
     printf("\tActual: %s\n", much_storage_string.string);
 
