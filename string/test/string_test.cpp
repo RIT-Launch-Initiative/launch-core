@@ -15,12 +15,11 @@ int main() {
                      'e', '\0'};
     char buffer_two[] = {'R', 'I', 'T', ' ', 'L', 'a', 'u', 'n', 'c', 'h', ' ', 'I', 'n', 'i', 't', 'i', 'a', 't', 'i', 'v',
                      'e', '\0'};
-    char buffer_three[] = {'R', 'I', 'T', ' ', 'L', 'a', 'u', 'n', 'c', 'h', ' ', 'I', 'n', 'i', 't', 'i', 'a', 't', 'i', 'v',
-                     'e', '\0'};
 
     // Init tests
     String full_string = alloc::String<22>();
     full_string.string = buffer;
+    full_string.strlen = 22;
     new_test("Full String", "RIT Launch Initiative");
     printf("\tActual: %s\n", full_string.string);
 
