@@ -15,11 +15,13 @@ int main() {
                      'e', '\0'};
 
     // Init tests
-    String full_string = buffer;
+    String full_string = alloc::String<22>();
+    full_string = buffer;
     new_test("Full String", "RIT Launch Initiative");
     printf("\tActual: %s\n", full_string.string);
 
-    String much_storage_string = buffer;
+    String much_storage_string = alloc::String<1000>();
+    much_storage_string = buffer;
     new_test("Extra Space String", "RIT Launch Initiative");
     printf("\tActual: %s\n", much_storage_string.string);
 
@@ -84,7 +86,7 @@ int main() {
     new_test("Clear", "(blank)");
     much_storage_string.clear();
     printf("\tActual: %s(blank)\n", much_storage_string.string);
-    
+
     return 0;
 }
 #pragma clang diagnostic pop
