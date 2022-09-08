@@ -13,21 +13,17 @@ void new_test(char *test_name, char *expected) {
 int main() {
     char buffer[] = {'R', 'I', 'T', ' ', 'L', 'a', 'u', 'n', 'c', 'h', ' ', 'I', 'n', 'i', 't', 'i', 'a', 't', 'i', 'v',
                      'e', '\0'};
-    char buffer_two[] = {'R', 'I', 'T', ' ', 'L', 'a', 'u', 'n', 'c', 'h', ' ', 'I', 'n', 'i', 't', 'i', 'a', 't', 'i', 'v',
-                     'e', '\0'};
 
     // Init tests
-    String full_string = alloc::String<22>();
-    full_string.string = buffer;
-    full_string.strlen = 22;
+    String full_string = buffer;
     new_test("Full String", "RIT Launch Initiative");
     printf("\tActual: %s\n", full_string.string);
 
-    String much_storage_string = std::move(full_string);
+    String much_storage_string = buffer;
     new_test("Extra Space String", "RIT Launch Initiative");
     printf("\tActual: %s\n", much_storage_string.string);
 
-    String trunc_string = std::move(much_storage_string);
+    String trunc_string = buffer;
     new_test("Truncated String", "RIT Launch Initiative");
     printf("\tActual: %s\n", trunc_string.string);
 
@@ -88,22 +84,7 @@ int main() {
     new_test("Clear", "(blank)");
     much_storage_string.clear();
     printf("\tActual: %s(blank)\n", much_storage_string.string);
-
-
-    full_string.string = buffer;
-    much_storage_string.string = buffer_two;
-
-    String one = alloc::String<5>();
-    String two = alloc::String<5>();
-
-    one.string = "123";
-    two.string = "123";
-    one.strlen = 4;
-    two.strlen = 4;
-
-    printf("%d", full_string.equals(much_storage_string));
-    // Modifier Tests
-
+    
     return 0;
 }
 #pragma clang diagnostic pop
