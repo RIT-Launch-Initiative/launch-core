@@ -15,10 +15,7 @@ public:
     int strlen = 0;
     int size;
 
-    String(char *buffer)  {
-        while (*(buffer + strlen++) != NULL_TERMINATOR) {
-            string[strlen] = buffer[strlen];
-        }
+    String(char *buffer) {
     }
 
 
@@ -64,7 +61,7 @@ public:
         return this->string[index];
     }
 
-    char* at_ptr(int index) const {
+    char *at_ptr(int index) const {
         if (index > strlen || index < 0) {
             return nullptr;
         }
@@ -255,8 +252,18 @@ public:
         return this->string + len();
     }
 
+    void operator=(char *buffer) {
+        strncpy(buffer, this->string, sizeof(buffer));
+        recount();
+    }
+
+    void operator=(const String str) {
+        strncpy(str.string, this->string, sizeof(str.string));
+        recount();
+    }
+
 protected:
-    String(char *buffer, size_t size): size(size), string(buffer) {}
+    String(char *buffer, size_t size) : size(size), string(buffer) {}
 };
 
 namespace alloc {
