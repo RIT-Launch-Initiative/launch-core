@@ -25,7 +25,8 @@ int main() {
     new_test("Extra Space String", "RIT Launch Initiative");
     printf("\tActual: %s\n", much_storage_string.string);
 
-    String trunc_string = buffer;
+    String trunc_string = alloc::String<11>();
+    trunc_string = buffer;
     new_test("Truncated String", "RIT Launch Initiative");
     printf("\tActual: %s\n", trunc_string.string);
 

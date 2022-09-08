@@ -1,7 +1,7 @@
 all:
-	g++ -o test.o string_test.cpp -I../..
+	g++ -ggdb -o test.o string_test.cpp -I../..
 
-testi:
+test:
 	rm *.o
 	g++ -o test.o string_test.cpp -I../..
 	./test
