@@ -1,6 +1,3 @@
-//
-// Created by aaron on 8/19/22.
-//
 
 #ifndef LAUNCH_CORE_GPIO_H
 #define LAUNCH_CORE_GPIO_H
