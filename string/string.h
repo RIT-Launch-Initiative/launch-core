@@ -253,12 +253,12 @@ public:
     }
 
     void operator=(char *buffer) {
-        strncpy(this->string, buffer, sizeof(buffer));
+        strncpy(this->string, buffer, size);
         recount();
     }
 
     void operator=(const String str) {
-        strncpy(this->string, str.string, sizeof(str.string));
+        strncpy(this->string, str.string, size);
         recount();
     }
 
