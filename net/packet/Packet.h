@@ -109,6 +109,19 @@ public:
         return RET_SUCCESS;
     }
 
+    /// @brief truncate the packet to only have a certain size remaining
+    /// @param size     the new amount of unread data in the packet
+    /// @return
+    RetType truncate(size_t size) {
+        if(size > available()) {
+            // can't truncate to bigger than the packet is
+            return RET_ERROR;
+        }
+
+        // shrink by the difference b/w available and size
+        rpos -= (available() - size);
+    }
+
     /// @brief allocate a header
     ///        headers are allocated in decreasing memory addresses
     ///         e.g. if the packet is currently:

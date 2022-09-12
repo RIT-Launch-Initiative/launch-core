@@ -67,12 +67,7 @@ public:
     RetType transmit(Packet& packet, msg_t& msg, NetworkLayer*) {
         RESUME();
 
-        if(RET_SUCCESS != packet.reverse(sizeof(EthHeader_t))) {
-            return RET_ERROR;
-        }
-
-        EthHeader_t* hdr = packet.ptr<EthHeader_t>();
-
+        EthHeader_t* hdr = packet.allocate_header<EthHeader_t>();
         if(hdr == NULL) {
             return RET_ERROR;
         }
@@ -82,8 +77,12 @@ public:
         }
 
         // TODO ARP lookup for dst
+        // for now zeroes field
+        for(size_t i = 0; i < 6; i++) {
+            hdr.dst[i] = 0x00;
+        }
 
-        // TODO pass in the protocol somehow (IPv4)
+        hdr->ethertype = hton16(ETH_PROTO[msg.type]);
 
         RetType ret = CALL(m_out.transmit(packet, msg, this));
 

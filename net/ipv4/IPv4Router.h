@@ -148,8 +148,15 @@ public:
         }
 
         uint8_t header_len = (hdr->version_ihl & (0b00001111)) * 4;
-        // uint16_t total_len = ntoh16(hdr.total_len);
-        // TODO anything with the len? pass it up to transport probably, in case we get extra data
+        uint16_t total_len = ntoh16(hdr.total_len);
+        uint16_t payload_len = total_len - header_len;
+
+        if(packet.available() < payload_len) {
+            // we don't have enough data
+            return RET_ERROR;
+        } else {
+            packet.truncate(payload_len);
+        }
 
         // check the address
         IPv4Addr_t addr = ntoh32(hdr->dst);
