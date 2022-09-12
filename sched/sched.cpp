@@ -1,3 +1,14 @@
+/*******************************************************************************
+*
+*  Name: sched.cpp
+*
+*  Purpose: Implements a cooperative scheduler.
+*
+*  Author: Will Merges
+*
+*  RIT Launch Initiative
+*
+*******************************************************************************/
 #include "sched/sched.h"
 #include "queue/allocated_queue.h"
 

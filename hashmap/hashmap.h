@@ -1,3 +1,14 @@
+/*******************************************************************************
+*
+*  Name: hashmap.h
+*
+*  Purpose: Contains implementation for a fixed sized hashmap.
+*
+*  Author: Will Merges
+*
+*  RIT Launch Initiative
+*
+*******************************************************************************/
 #ifndef HASHMAP_H
 #define HASHMAP_H
 

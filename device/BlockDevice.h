@@ -1,3 +1,15 @@
+/*******************************************************************************
+*
+*  Name: BlockDevice.h
+*
+*  Purpose: Contains interface for a block device, where data is accessible in
+*           fixed size blocks.
+*
+*  Author: Will Merges
+*
+*  RIT Launch Initiative
+*
+*******************************************************************************/
 #ifndef BLOCK_DEVICE_H
 #define BLOCK_DEVICE_H
 

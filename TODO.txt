@@ -1,0 +1,20 @@
+Things that still need doing:
+
+• finish ARP layer
+ - in net/arp
+ - add reply functionality
+ - add request functionality
+ - allow tasks to block on waiting for an address to be populated (should have timeout too)
+
+• add simple networking stack
+ - reference implementation (or usable in most cases)
+ - socket router <--> UDP router <--> IPv4 router <--> Ethernet layer
+ - can add a device below the stack that handles layer 1
+
+• finish NIC driver
+ - Wiznet W5500 chip
+ - mostly care about using Socket 0 in raw mode
+
+• add GPIO device abstraction
+ - probably per pin, pins can be looked up by device string name
+ - should just have a set and a get

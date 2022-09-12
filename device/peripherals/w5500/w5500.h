@@ -1,13 +1,21 @@
-/*
-*   Implementation of a Wiznet W5500 Ethernet chip driver.
-*   Written to be platform independent, it requires a "StreamDevice" that
-*   handles SPI communication with the device and a "GPIODevice" that controls
-*   setting the CS pin.
+/*******************************************************************************
 *
-*   Currently, the driver only works for variable length data mode, so the CS
-*   pin must be used and cannot be tied to ground like for fixed length data mode.
+*  Name: w5500.h
 *
-*/
+*  Purpose: Implementation of a Wiznet W5500 Ethernet chip driver. Written to be
+*           platform independent, requires a "StreamDevice" that handles SPI
+*           communication for the platform and a "GPIODevice" to control the
+*           chip select (TODO add the GPIODevice here).
+*
+*           Currently only works in variable data length mode, so the chip
+*           select must be used and cannot be tied to ground like for fixed
+*           data length mode.
+*
+*  Author: Will Merges
+*
+*  RIT Launch Initiative
+*
+*******************************************************************************/
 #ifndef W5500_H
 #define W5500_H
 

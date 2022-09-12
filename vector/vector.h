@@ -1,3 +1,14 @@
+/*******************************************************************************
+*
+*  Name: vector.h
+*
+*  Purpose: Implements a fixed size vector.
+*
+*  Author: Will Merges
+*
+*  RIT Launch Initiative
+*
+*******************************************************************************/
 #ifndef VECTOR_H
 #define VECTOR_H
 

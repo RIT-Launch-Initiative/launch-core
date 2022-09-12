@@ -1,3 +1,14 @@
+/*******************************************************************************
+*
+*  Name: bloom_filter.h
+*
+*  Purpose: Contains implementation of a width bloom filter.
+*
+*  Author: Will Merges
+*
+*  RIT Launch Initiative
+*
+*******************************************************************************/
 #ifndef BLOOM_FILTER_H
 #define BLOOM_FILTER_H
 

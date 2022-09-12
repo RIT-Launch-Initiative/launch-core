@@ -1,3 +1,15 @@
+/*******************************************************************************
+*
+*  Name: SocketPool.h
+*
+*  Purpose: Manages a pool of sockets. Sockets can be allocated and returned
+*           to/from a socket pool.
+*
+*  Author: Will Merges
+*
+*  RIT Launch Initiative
+*
+*******************************************************************************/
 #ifndef SOCKET_POOL_H
 #define SOCKET_POOL_H
 

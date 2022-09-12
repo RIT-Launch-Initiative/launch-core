@@ -1,3 +1,14 @@
+/*******************************************************************************
+*
+*  Name: pool.h
+*
+*  Purpose: Contains implementation for a fixed size memory pool.
+*
+*  Author: Will Merges
+*
+*  RIT Launch Initiative
+*
+*******************************************************************************/
 #ifndef POOL_H
 #define POOL_H
 

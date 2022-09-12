@@ -1,3 +1,15 @@
+/*******************************************************************************
+*
+*  Name: w5500_defines.h
+*
+*  Purpose: Contains preprocessor definitions for constants relating to the
+*           Wiznet W5500 device.
+*
+*  Author: Will Merges
+*
+*  RIT Launch Initiative
+*
+*******************************************************************************/
 #ifndef W5500_DEFINES_H
 #define W5500_DEDINES_H
 

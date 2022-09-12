@@ -1,3 +1,15 @@
+/*******************************************************************************
+*
+*  Name: queue_simple.h
+*
+*  Purpose: Implements a simple queue that operates on nodes with no memory
+*           allocation for new nodes.
+*
+*  Author: Will Merges
+*
+*  RIT Launch Initiative
+*
+*******************************************************************************/
 #ifndef QUEUE_SIMPLE_H
 #define QUEUE_SIMPLE_H
 

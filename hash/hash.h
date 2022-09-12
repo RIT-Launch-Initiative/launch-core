@@ -1,3 +1,14 @@
+/*******************************************************************************
+*
+*  Name: hash.h
+*
+*  Purpose: Contains definition for a hash object and some common hashes.
+*
+*  Author: Will Merges
+*
+*  RIT Launch Initiative
+*
+*******************************************************************************/
 #ifndef HASH_H
 #define HASH_H
 

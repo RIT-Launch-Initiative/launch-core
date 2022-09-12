@@ -1,3 +1,14 @@
+/*******************************************************************************
+*
+*  Name: Device.h
+*
+*  Purpose: Contains interface for a generic device
+*
+*  Author: Will Merges
+*
+*  RIT Launch Initiative
+*
+*******************************************************************************/
 #ifndef DEVICE_H
 #define DEVICE_H
 

@@ -1,3 +1,16 @@
+/*******************************************************************************
+*
+*  Name: spinlock.h
+*
+*  Purpose: Implements a simple spin lock to wait for a certain time. Requires
+*           a variable named 'CPU_CLOCK_SPEED' to be defined somewhere, with
+*           a value of the CPU clock speed in Hz.
+*
+*  Author: Will Merges
+*
+*  RIT Launch Initiative
+*
+*******************************************************************************/
 #ifndef SPINLOCK_H
 #define SPINLOCK_H
 

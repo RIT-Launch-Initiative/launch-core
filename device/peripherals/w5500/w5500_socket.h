@@ -1,3 +1,15 @@
+/*******************************************************************************
+*
+*  Name: w5500_socket.h
+*
+*  Purpose: Contains definitions for socket structures used by the Wiznet W5500
+*           device.
+*
+*  Author: Will Merges
+*
+*  RIT Launch Initiative
+*
+*******************************************************************************/
 #ifndef W5500_SOCKET_H
 #define W5500_SOCKET_H
 

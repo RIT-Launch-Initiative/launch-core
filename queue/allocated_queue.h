@@ -1,3 +1,14 @@
+/*******************************************************************************
+*
+*  Name: allocated_queue.h
+*
+*  Purpose: Contains implementation for preallocated queues of a fixed size.
+*
+*  Author: Will Merges
+*
+*  RIT Launch Initiative
+*
+*******************************************************************************/
 #ifndef ALLOCATED_QUEUE_H
 #define ALLOCATED_QUEUE_H
 

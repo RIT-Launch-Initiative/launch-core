@@ -1,3 +1,15 @@
+/*******************************************************************************
+*
+*  Name: queue.h
+*
+*  Purpose: Defines the interface for a queue.
+*           The queues in 'allocated_queue.h' implement this interface.
+*
+*  Author: Will Merges
+*
+*  RIT Launch Initiative
+*
+*******************************************************************************/
 #ifndef QUEUE_H
 #define QUEUE_H
 

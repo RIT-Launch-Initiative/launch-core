@@ -1,3 +1,14 @@
+/*******************************************************************************
+*
+*  Name: queue_iterator.h
+*
+*  Purpose: Implements a queue iterator.
+*
+*  Author: Will Merges
+*
+*  RIT Launch Initiative
+*
+*******************************************************************************/
 #ifndef QUEUE_ITERATOR_H
 #define QUEUE_ITERATOR_H
 

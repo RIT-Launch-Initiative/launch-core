@@ -1,3 +1,15 @@
+/*******************************************************************************
+*
+*  Name: StreamDevice.h
+*
+*  Purpose: Contains the interface for a generic stream device, accessible by
+*           reading/writing a dynamic number of bytes.
+*
+*  Author: Will Merges
+*
+*  RIT Launch Initiative
+*
+*******************************************************************************/
 #ifndef STREAM_DEVICE_H
 #define STREAM_DEVICE_H
 

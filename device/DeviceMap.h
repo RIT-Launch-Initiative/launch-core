@@ -1,3 +1,15 @@
+/*******************************************************************************
+*
+*  Name: DeviceMap.h
+*
+*  Purpose: Maps devices to string names, there should be one device map for
+*           a specific hardware platform.
+*
+*  Author: Will Merges
+*
+*  RIT Launch Initiative
+*
+*******************************************************************************/
 #ifndef DEVICE_MAP_H
 #define DEVICE_MAP_H
 

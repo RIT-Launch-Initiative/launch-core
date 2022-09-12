@@ -1,3 +1,14 @@
+/*******************************************************************************
+*
+*  Name: sched.h
+*
+*  Purpose: Declares functions to use the cooperative scheduler.
+*
+*  Author: Will Merges
+*
+*  RIT Launch Initiative
+*
+*******************************************************************************/
 #ifndef SCHED_H
 #define SCHED_H
 

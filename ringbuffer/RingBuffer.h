@@ -1,3 +1,14 @@
+/*******************************************************************************
+*
+*  Name: RingBuffer.h
+*
+*  Purpose: Implements a fixed size circular queue / ring buffer.
+*
+*  Author: Will Merges
+*
+*  RIT Launch Initiative
+*
+*******************************************************************************/
 #ifndef RINGBUFFER_H
 #define RINGBUFFER_H
 

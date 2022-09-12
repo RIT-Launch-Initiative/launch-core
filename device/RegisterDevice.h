@@ -1,3 +1,15 @@
+/*******************************************************************************
+*
+*  Name: RegisterDevice.h
+*
+*  Purpose: Contains the interface for a register device, where data is accessed
+*           by fixed size addresses.
+*
+*  Author: Will Merges
+*
+*  RIT Launch Initiative
+*
+*******************************************************************************/
 #ifndef REGISTER_DEVICE_H
 #define REGISTER_DEVICE_H
 

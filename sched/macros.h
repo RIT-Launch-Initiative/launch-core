@@ -1,3 +1,14 @@
+/*******************************************************************************
+*
+*  Name: macros.h
+*
+*  Purpose: Contains preprocessor macros for using the scheduler.
+*
+*  Author: Will Merges
+*
+*  RIT Launch Initiative
+*
+*******************************************************************************/
 #ifndef SCHED_MACROS_H
 #define SCHED_MACROS_H
 

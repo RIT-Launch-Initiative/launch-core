@@ -1,3 +1,14 @@
+/*******************************************************************************
+*
+*  Name: queue_node.h
+*
+*  Purpose: Defines a queue node.
+*
+*  Author: Will Merges
+*
+*  RIT Launch Initiative
+*
+*******************************************************************************/
 #ifndef QUEUE_NODE_H
 #define QUEUE_NODE_H
 
