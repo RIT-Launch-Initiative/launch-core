@@ -266,6 +266,7 @@ protected:
 private:
     void assign_str(char *src, char *dst) {
         strncpy(src, dst, size);
+        this->string[size - 1] = NULL_TERMINATOR;
         recount();
     }
 
