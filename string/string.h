@@ -10,7 +10,7 @@
 
 class String {
 public:
-    char *string;
+    char *string = {};
     char NULL_TERMINATOR = '\0';
     int strlen = 0;
     int size;
@@ -253,17 +253,22 @@ public:
     }
 
     void operator=(char *buffer) {
-        strncpy(this->string, buffer, size);
-        recount();
+        assign_str(this->string, buffer);
     }
 
     void operator=(const String str) {
-        strncpy(this->string, str.string, size);
-        recount();
+        assign_str(this->string, str.string);
     }
 
 protected:
     String(char *buffer, size_t size) : size(size), string(buffer) {}
+
+private:
+    void assign_str(char *src, char *dst) {
+        strncpy(src, dst, size);
+        recount();
+    }
+
 };
 
 namespace alloc {
