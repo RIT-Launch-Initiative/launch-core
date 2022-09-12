@@ -19,7 +19,7 @@ template <const size_t SIZE>
 class IPv4Router : public NetworkLayer {
 public:
     /// @brief constructor
-    IPv4Router() : m_routingTable(route_sort), m_devMap(), m_protMap() {};
+    IPv4Router() : m_routingTable(route_sort) {};
 
     /// @brief add route to/from a device
     /// @param addr     the IPv4 address of the device
@@ -124,12 +124,12 @@ public:
         m_protMap.rm(protocol);
     }
 
-    /// @brief receive a packet
+    /// @brief receive a packet`
     /// @return
     RetType receive(Packet& packet, sockmsg_t& info, NetworkLayer* caller) {
         RESUME();
 
-        IPv4Header_t* hdr = packet.ptr<IPv4Header_t>();
+        IPv4Header_t* hdr = packet.read_ptr<IPv4Header_t>();
 
         if(hdr == NULL) {
             return RET_ERROR;
@@ -147,7 +147,7 @@ public:
             return RET_ERROR;
         }
 
-        uint8_t header_len = (hdr->version_ihl & (0b00001111));
+        uint8_t header_len = (hdr->version_ihl & (0b00001111)) * 4;
         // uint16_t total_len = ntoh16(hdr.total_len);
         // TODO anything with the len? pass it up to transport probably, in case we get extra data
 
@@ -179,7 +179,7 @@ public:
         hdr->checksum = 0;
 
         // check the checksum
-        if(check != checksum(packet.ptr<uint16_t>(), header_len / sizeof(uint16_t))) {
+        if(check != checksum(packet.read_ptr<uint16_t>(), header_len / sizeof(uint16_t))) {
             // invalid checksum
             return RET_ERROR;
         }
@@ -209,7 +209,7 @@ public:
         Route* route;
         bool found = false;
         while(route = *it) {
-            if(route->addr == ((info.addr.ipv4) & route->subnet)) {
+            if((route->addr & route->subnet) == (info.addr.ipv4 & route->subnet)) {
                 // this is a good match!
                 // since the queue is presorted by biggest subnet mask, we know
                 // this is the longest prefix match!
@@ -227,12 +227,11 @@ public:
             return RET_ERROR;
         }
 
-        // make room for the IPv4 header
-        if(RET_SUCCESS != packet.reverse(sizeof(IPv4Header_t))) {
+        IPv4Header_t* hdr = packet.allocate_header<IPv4Header_t>();
+        if(hdr == NULL) {
+            // no room for header
             return RET_ERROR;
         }
-
-        IPv4Header_t* hdr = packet.ptr<IPv4Header_t>();
 
         hdr->version_ihl = DEFAULT_VERSION_IHL;
         hdr->dscp_ecn = 0;
@@ -240,13 +239,13 @@ public:
         hdr->identification = 0;
         hdr->flags_frag = 0;
         hdr->ttl = DEFAULT_TTL;
-        hdr->protocol = 0; // TODO need to get passed a protocol somehows, or look it up based on the layer that called us
+        hdr->protocol = IPV4_PROTO[info.type];
         hdr->checksum = 0;
         hdr->dst = hton32(info.addr.ipv4);
         hdr->src = hton32(route->addr);
 
         // calculate checksum
-        hdr->checksum = checksum((uint16_t*)hdr, sizeof(IPv4Header_t) / sizeof(uint16_t));
+        hdr->checksum = hton16(checksum((uint16_t*)hdr, sizeof(IPv4Header_t) / sizeof(uint16_t)));
 
         RetType ret =  CALL(route->next->transmit(packet, info, this));
 
@@ -288,7 +287,7 @@ private:
     ///        assumes the subnet mask is valid
     /// @param subnet   the subnet mask
     /// @return the length
-    inline size_t subnet_len(IPv4Addr_t subnet) {
+    static inline size_t subnet_len(IPv4Addr_t subnet) {
         for(size_t i = 0; i < (sizeof(subnet) * 8); i++) {
             if(subnet & (1 << i)) {
                 return (sizeof(subnet) * 8) - i;
@@ -300,7 +299,7 @@ private:
     }
 
     /// @brief sorting function to store routes by largest subnet first
-    bool route_sort(Route& fst, Route& snd) {
+    static bool route_sort(Route& fst, Route& snd) {
         return subnet_len(fst.subnet) > subnet_len(snd.subnet);
     }
 

@@ -12,6 +12,7 @@ public:
 
     /// @brief transmit
     RetType transmit(Packet& packet, sockmsg_t& info, NetworkLayer* caller) {
+        packet.seek(true);
         return caller->receive(packet, info, this);
     }
 

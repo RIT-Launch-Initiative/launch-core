@@ -15,9 +15,12 @@ typedef union {
 } sockport_t;
 
 typedef enum {
-    IPV4_UDP_SOCK
+    IPV4_UDP_SOCK = 0,
+    NUM_SOCK_TYPES
 } socktype_t;
 
+// socket message
+// user should fill in all fields except 'type', which the Socket object fills in
 typedef struct {
     sockaddr_t addr;
     sockport_t port;
@@ -28,6 +31,8 @@ typedef struct {
 
 
 /// @brief network socket device
+/// @tparam TYPE type of the socket
+template <const socktype_t SOCK>
 class Socket {
 public:
     /// @brief constructor

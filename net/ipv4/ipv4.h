@@ -3,10 +3,25 @@
 
 #include <stdint.h>
 
+#include "net/socket/Socket.h"
+
 namespace ipv4 {
 
 static const int DEFAULT_VERSION_IHL = 0x45; // version 4, length 5 (4 * 5 = 20 bytes)
 static const int DEFAULT_TTL = 255;
+
+// protocol numbers
+static const uint8_t UDP_PROTO          = 0x11;
+static const uint8_t ICMP_PROTO         = 0x01;
+static const uint8_t IGMP_PROTO         = 0x02;
+static const uint8_t EXPERIMENT1_PROTO  = 0xFD;
+static const uint8_t EXPERIMENT2_PROTO  = 0xFE;
+
+// maps socket types to protocol numbers
+static const uint8_t IPV4_PROTO[NUM_SOCK_TYPES] =
+{
+    UDP_PROTO    // IPV4_UDP_SOCK
+};
 
 // IP Header struct
 typedef struct {
