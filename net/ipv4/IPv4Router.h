@@ -148,9 +148,16 @@ public:
         }
 
         uint8_t header_len = (hdr->version_ihl & (0b00001111)) * 4;
-        uint16_t total_len = ntoh16(hdr.total_len);
+        uint16_t total_len = ntoh16(hdr->total_len);
         uint16_t payload_len = total_len - header_len;
 
+        // read forward in the payload so it's at the payload
+        // we don't handle options for now
+        if(RET_SUCCESS != packet.skip_read(header_len)) {
+            return RET_ERROR;
+        }
+
+        // check we have enough data in the packet for what the payload should be
         if(packet.available() < payload_len) {
             // we don't have enough data
             return RET_ERROR;
@@ -186,19 +193,13 @@ public:
         hdr->checksum = 0;
 
         // check the checksum
-        if(check != checksum(packet.read_ptr<uint16_t>(), header_len / sizeof(uint16_t))) {
+        if(check != checksum((uint16_t*)hdr, header_len / sizeof(uint16_t))) {
             // invalid checksum
             return RET_ERROR;
         }
 
         // record the source address
         info.addr.ipv4 = ntoh32(hdr->src);
-
-        // read forward in the payload so it's at the payload
-        // we don't handle options for now
-        if(RET_SUCCESS != packet.skip_read(header_len)) {
-            return RET_ERROR;
-        }
 
         RetType ret = CALL(next->receive(packet, info, this));
 
@@ -242,7 +243,7 @@ public:
 
         hdr->version_ihl = DEFAULT_VERSION_IHL;
         hdr->dscp_ecn = 0;
-        hdr->total_len = info.payload_len;
+        hdr->total_len = hton16(info.payload_len + sizeof(IPv4Header_t));
         hdr->identification = 0;
         hdr->flags_frag = 0;
         hdr->ttl = DEFAULT_TTL;

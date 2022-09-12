@@ -13,7 +13,7 @@ public:
     /// @brief write data to the packet payload
     /// @return
     RetType push(uint8_t* buff, size_t len) {
-        if(len + m_wpos >= m_size) {
+        if(len + m_wpos > m_size) {
             // no room
             return RET_ERROR;
         }
@@ -100,7 +100,7 @@ public:
     /// @param len  the number of bytes to skip
     /// @return
     RetType skip_write(size_t len) {
-        if(len + m_wpos >= m_size) {
+        if(len + m_wpos > m_size) {
             return RET_ERROR;
         }
 
@@ -119,7 +119,7 @@ public:
         }
 
         // shrink by the difference b/w available and size
-        rpos -= (available() - size);
+        m_rpos -= (available() - size);
     }
 
     /// @brief allocate a header
