@@ -6,9 +6,12 @@ Things that still need doing:
  - add request functionality
  - allow tasks to block on waiting for an address to be populated (should have timeout too)
 
+• add ICMP layer
+
 • add simple networking stack
  - reference implementation (or usable in most cases)
  - socket router <--> UDP router <--> IPv4 router <--> Ethernet layer
+                             ICMP <--/
  - can add a device below the stack that handles layer 1
 
 • finish NIC driver
