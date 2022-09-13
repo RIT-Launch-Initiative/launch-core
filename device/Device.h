@@ -2,7 +2,7 @@
 *
 *  Name: Device.h
 *
-*  Purpose: Contains interface for a generic device
+*  Purpose: Contains interface for a generic device.
 *
 *  Author: Will Merges
 *

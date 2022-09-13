@@ -36,8 +36,14 @@ bool sleep_sort(task_t*& fst, task_t*& snd) {
 // sleep queue
 static alloc::SortedQueue<task_t*, MAX_NUM_TASKS> sleep_q{&sleep_sort};
 
+// dummy time function so we don't segfault if someone forgets to call 'sched_init'
+// always returns 0
+uint32_t dummy_time() {
+    return 0;
+}
+
 // function to call to get system time
-static time_func_t get_time = NULL;
+static time_func_t get_time = &dummy_time;
 
 /// @brief initialize the scheduler
 /// @return 'true' on success, 'false' on failure
@@ -48,6 +54,12 @@ bool sched_init(time_func_t func) {
 
     get_time = func;
     return true;
+}
+
+/// @brief get the system time used by the scheduler
+/// @return the system time, in units of the function passed to 'sched_init'
+inline uint32_t sched_time() {
+    return get_time();
 }
 
 /// @brief start a task on the scheduler
