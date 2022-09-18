@@ -9,8 +9,8 @@
 *  RIT Launch Initiative
 *
 *******************************************************************************/
-#ifndef I2C_DEVICE_H
-#define I2C_DEVICE_H
+#ifndef SPI_DEVICE_H
+#define SPI_DEVICE_H
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -22,7 +22,7 @@
 class SPIDevice : public Device {
 public:
     /// @brief constructor
-    I2CDevice(const char* name) : Device(name) {};
+    SPIDevice(const char* name) : Device(name) {};
 
     /// @brief write to the device
     /// @param buff     the buffer to write
