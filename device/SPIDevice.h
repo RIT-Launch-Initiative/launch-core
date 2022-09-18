@@ -1,6 +1,6 @@
 /*******************************************************************************
 *
-*  Name: RegisterDevice.h
+*  Name: SPIDevice.h
 *
 *  Purpose: Contains the interface for a SPI contoller device.
 *

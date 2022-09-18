@@ -1,6 +1,6 @@
 /*******************************************************************************
 *
-*  Name: RegisterDevice.h
+*  Name: I2CDevice.h
 *
 *  Purpose: Contains the interface for an I2C controller device.
 *
