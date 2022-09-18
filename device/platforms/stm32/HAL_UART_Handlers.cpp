@@ -3,7 +3,7 @@
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_uart.h"
 
-#include "device/platforms/stm32/HAL_handlers.h"
+#include "device/platforms/stm32/HAL_Handlers.h"
 #include "hashmap/hashmap.h"
 
 namespace HALHandlers {

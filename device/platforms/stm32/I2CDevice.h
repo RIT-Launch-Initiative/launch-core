@@ -4,12 +4,12 @@
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_i2c.h"
 
-#include "device/RegisterDevice.h"
-#include "device/platforms/stm32/HAL_handlers.h"
+#include "device/I2CDevice.h"
+#include "device/platforms/stm32/HAL_Handlers.h"
 #include "sched/macros.h"
 
 /// @brief I2C device controller
-class I2CDevice : public RegisterDevice<I2CAddr_t>, public CallbackDevice {
+class HALI2CDevice : public I2CDevice, public CallbackDevice {
 public:
     /// @brief constructor
     /// @param name     the name of this device
@@ -58,7 +58,7 @@ public:
     /// @param buff     the buffer to write
     /// @param len      the size of 'buff' in bytes
     /// @return
-    RetType write(I2CAddr_t addr, uint8_t* buff, size_t len) {
+    RetType write(I2CAddr_t& addr, uint8_t* buff, size_t len) {
         RESUME();
 
         // block and wait for the device to be available
@@ -91,7 +91,7 @@ public:
     /// @param buff     the buffer to read into
     /// @param len      the number of bytes to read
     /// @return
-    RetType read(I2CAddr_t addr, uint8_t* buff, size_t len) {
+    RetType read(I2CAddr_t& addr, uint8_t* buff, size_t len) {
         RESUME();
 
         // block and wait for the device to be available

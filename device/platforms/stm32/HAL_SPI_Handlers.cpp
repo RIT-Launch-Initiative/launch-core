@@ -4,7 +4,8 @@
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_spi.h"
 
-#include "device/platforms/stm32/HAL_handlers.h"
+#include "device/platforms/stm32/HAL_Handlers.h"
+#include "hashmap/hashmap.h"
 
 namespace HALHandlers {
 
@@ -22,7 +23,7 @@ RetType register_spi_tx(SPI_HandleTypeDef* hspi, CallbackDevice* dev, int num) {
         }
     }
 
-    dev_t* ptr = spi_tx_map.add(h12c);
+    dev_t* ptr = spi_tx_map.add(hspi);
     if(ptr == NULL) {
         // failed to add :(
         return RET_ERROR;

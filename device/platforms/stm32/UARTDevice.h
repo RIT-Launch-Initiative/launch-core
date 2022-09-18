@@ -4,7 +4,7 @@
 #include "stm32f4xx_hal_uart.h"
 
 #include "device/StreamDevice.h"
-#include "device/platforms/stm32/HAL_handlers.h"
+#include "device/platforms/stm32/HAL_Handlers.h"
 #include "sched/macros.h"
 #include "ringbuffer/RingBuffer.h"
 

@@ -5,8 +5,8 @@
 #include "stm32f4xx_hal_spi.h"
 #include "stm32f4xx_hal_gpio.h"
 
-#include "device/StreamDevice.h"
-#include "device/platforms/stm32/HAL_handlers.h"
+#include "device/SPIDevice.h"
+#include "device/platforms/stm32/HAL_Handlers.h"
 #include "sched/sched.h"
 
 // /// @brief defines which GPIO pin and state selects a chip
@@ -20,7 +20,7 @@
 // maybe just make the underlying device do this actually
 
 /// @brief SPI device controller
-class SPIDevice : public StreamDevice, public CallbackDevice {
+class HALSPIDevice : public SPIDevice, public CallbackDevice {
 public:
     /// @brief constructor
     /// @param name     the name of this device
@@ -122,25 +122,6 @@ public:
 
         // we can unblock someone else if they were waiting
         check_unblock();
-
-        RESET();
-        return ret;
-    }
-
-    /// @brief get if the device is currently available
-    /// @return 1 if it is free, 0 if it is in use
-    size_t available() {
-        return (m_blocked == -1);
-    }
-
-    /// @brief wait for the device to be free to use
-    ///        blocks the calling task until the device is free
-    /// @param size     ignored parameter
-    /// @return
-    RetType wait(size_t) {
-        RESUME();
-
-        RetType ret = CALL(check_block());
 
         RESET();
         return ret;

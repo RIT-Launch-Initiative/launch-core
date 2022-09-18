@@ -34,7 +34,7 @@ public:
     /// @brief constructor
     /// @param spi      SPI controller device
     // TODO pass in GPIO for CS
-    W5500(StreamDevice& spi) : m_spi(spi) {
+    W5500(SPIDevice& spi) : m_spi(spi) {
         for(size_t i = 0; i < static_cast<int>(W5500_NUM_SOCKETS); i++) {
             m_states[i] = {false, false};
             m_claimed[i] = false;

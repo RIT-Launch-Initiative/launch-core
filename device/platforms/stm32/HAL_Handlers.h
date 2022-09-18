@@ -36,6 +36,9 @@ static const size_t MAX_UART_DEVICES = 5;
 // maximum number of I2C devices supported
 static const size_t MAX_I2C_DEVICES = 3;
 
+// maximum number of SPI devices supported
+static const size_t MAX_SPI_DEVICES = 3;
+
 /// @brief register a device for UART transmit complete callback
 /// @param huart    the UART device to register the callback for
 /// @param dev      the device registering
