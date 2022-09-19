@@ -8,6 +8,7 @@
 
 typedef union {
     uint32_t ipv4;
+    uint8_t mac[6];
 } sockaddr_t;
 
 typedef union {
@@ -15,7 +16,8 @@ typedef union {
 } sockport_t;
 
 typedef enum {
-    IPV4_UDP_SOCK = 0,
+    IPV4_UDP_SOCK = 0,      // IPv4 and UDP
+    PACKET_SOCK,            // only adds link layer header
     NUM_SOCK_TYPES
 } socktype_t;
 

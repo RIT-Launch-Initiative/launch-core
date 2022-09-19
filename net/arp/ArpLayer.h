@@ -1,6 +1,7 @@
 #ifndef ARP_LAYER_H
 #define ARP_LAYER_H
 
+#include "net/common.h"
 #include "net/network_layer/NetworkLayer.h"
 #include "net/eth/eth.h"
 #include "net/ipv4/IPv4Router.h"
@@ -8,6 +9,8 @@
 
 using ipv4::IPv4Router;
 using ipv4::IPv4Addr_t;
+
+namespace arp {
 
 /// @brief implements the ARP layer
 ///        Requires an IPv4 router.
@@ -31,7 +34,10 @@ class ArpLayer : public NetworkLayer {
 public:
     /// @brief constructor
     /// @param router       the IPv4 router for the network stack
-    ArpLayer(IPv4Router& router) : m_router(router) {};
+    /// @param timeout      the amount of time to wait for a reply to a request
+    ///                     in units of system time
+    ArpLayer(IPv4Router& router, uint32_t timeout) : m_router(router),
+                                                     m_timeout(timeout) {};
 
 
     /// @brief add an Ethernet device to the ARP table
@@ -67,16 +73,103 @@ public:
     /// @param mac      where the MAC will be copied to
     /// @return
     /// NOTE: this function may block in order to query
-    RetType lookup(IPv4Addr_t& addr, uint8_t mac[6]) {
-        // TODO
+    RetType lookup(IPv4Addr_t addr, uint8_t mac[6]) {
+        RESUME();
 
-        return RET_ERROR;
+        mac_t* ptr = m_table[addr];
+
+        if(ptr == NULL) {
+            // uh oh, we don't have this address
+            // we need to send a request and wait for it :(
+            auto q_ptr = m_waiting[addr];
+            if(q_ptr == NULL) {
+                // we need to add this address
+                q_ptr = m_waiting.add(addr);
+            }
+
+            if(q_ptr == NULL) {
+                // no space
+                return RET_ERROR;
+            }
+
+            if(!q_ptr->push(sched_dispatched)) {
+                // couldn't add to queue
+                return RET_ERROR;
+            }
+
+            // at this point the current task's tid is on a queue waiting for
+            // the address to come in
+            // (it's important to note this creates a race condition for received replies)
+            // make sure to call receive outside of an ISR for this reason
+
+            // TODO
+            // send the ARP request for the address
+
+            // sleep the task
+            // NOTE: this relies on the fact that if we unblock something it is
+            //       if taken off the sleep queue and added to the ready queue
+            SLEEP(m_timeout);
+
+            // try and get the pointer again
+            // if we woke up without getting the address, ptr will be NULL
+            ptr = m_table[addr];
+
+            if(ptr == NULL) {
+                return RET_ERROR;
+            }
+        }
+
+        mac[0] = ptr->addr[0];
+        mac[1] = ptr->addr[1];
+        mac[2] = ptr->addr[2];
+        mac[3] = ptr->addr[3];
+        mac[4] = ptr->addr[4];
+        mac[5] = ptr->addr[5];
+
+        RESET();
+        return RET_SUCCESS;
     }
 
     /// @brief receive an ARP packet
     /// @return
     RetType receive(Packet& packet, sockmsg_t& info, NetworkLayer* caller) {
-        // TODO
+        ArpHeader_t* hdr = packet.read_ptr<ArpHeader_t>();
+
+        if(hdr == NULL) {
+            return RET_ERROR;
+        }
+
+        if(ntoh16(hdr->htype) != ETH_HTYPE) {
+            return RET_ERROR;
+        }
+
+        if(ntoh16(hdr->ptype) != IPV4_PTYPE) {
+            return RET_ERROR;
+        }
+
+        if(hdr->hlen != 6) {
+            return RET_ERROR;
+        }
+
+        if(hdr->plen != sizeof(IPv4Addr_t)) {
+            return RET_ERROR;
+        }
+
+        switch(ntoh16(hdr->oper)) {
+            case REQUEST_OPER:
+                // TODO
+                // check if the tpa is the address of the 'caller' device
+                // if it is send a reply through caller
+                // make sure to set the socket type to raw and fill in mac addr in sockaddr
+                break;
+            case REPLY_OPER:
+                // TODO
+                // add mapping to the table
+                // check if this maps any addresses we're waiting on and wake up those tasks
+                break;
+            default:
+                return RET_ERROR;
+        }
 
         return RET_ERROR;
     }
@@ -89,6 +182,7 @@ public:
 
 private:
     IPv4Router& m_router;
+    uint32_t m_timeout;
 
     typedef struct {
         uint8_t addr[6];
@@ -101,6 +195,12 @@ private:
     // TODO hardcoding size!
     // maps MAC addresses to devices
     alloc::Hashmap<mac_t, NetworkLayer*, 25, 25> m_devs;
+
+    // TODO hardcoding sizes!
+    // maps IPv4 addresses to tasks waiting for those addresses
+    alloc::Hashmap<IPv4Addr_t, alloc::Queue<tid_t, 10>, 25, 25> m_waiting;
 };
+
+} // namespace arp
 
 #endif
