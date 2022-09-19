@@ -13,9 +13,13 @@
 
 namespace ipv4 {
 
+// number if routes and devices that can be stored
+// TODO template with alloc::IPv4Router
+static const size_t SIZE = 25;
+
 /// @brief IPv4 router
-/// @tparam SIZE    the number of routes that can be stored
-template <const size_t SIZE>
+// /// @tparam SIZE    the number of routes that can be stored
+// template <const size_t SIZE>
 class IPv4Router : public NetworkLayer {
 public:
     /// @brief constructor
@@ -122,6 +126,19 @@ public:
     /// @return
     void remove_protocol(uint8_t protocol) {
         m_protMap.rm(protocol);
+    }
+
+    /// @brief lookup the next network layer for an IPv4 address
+    /// @param addr     the IPv4 address to lookup
+    /// @return the device, or NULL on error
+    NetworkLayer* device(IPv4Addr_t addr) {
+        NetworkLayer** ptr = m_devMap[addr];
+
+        if(ptr == NULL) {
+            return NULL;
+        }
+
+        return *ptr;
     }
 
     /// @brief receive a packet`

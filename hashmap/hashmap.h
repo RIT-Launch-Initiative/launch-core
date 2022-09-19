@@ -80,7 +80,7 @@ public:
 
     /// @brief get the value at a key
     /// @param key  the key of the value
-    /// @return a pointer to the value, or NULL on error
+    /// @return a pointer to the value, or NULL on error (including key does not exist)
     VALUE* get(KEY key) {
         size_t index = (m_hash.hash(key) % m_numBuckets) * m_bucketSize;
 

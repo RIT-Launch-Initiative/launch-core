@@ -37,7 +37,7 @@ public:
 };
 
 int main() {
-    ipv4::IPv4Router<10> ip;
+    ipv4::IPv4Router ip;
     Loopback lo;
     Blackhole b;
 
