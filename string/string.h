@@ -15,9 +15,6 @@ public:
     int strlen = 0;
     int size;
 
-    String(char *buffer) {
-    }
-
 
     /**************************************
      * Element Access
