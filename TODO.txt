@@ -43,6 +43,15 @@ Things that still need doing:
  - overloading operator= is a must (but still no dynamic memory! just truncate if the copied string is too large)
  - Aaron is working on this at the moment
 
+• clock synchronization
+ - we may need a way to synchronize the clocks on each module
+ - this clock should only really be used for logging and maybe controls, i.e. don't readjust the clock the scheduler uses
+ - perhaps just store an offset to the local system clock? and then calculate the "global time" with that?
+ - needs to be distributed and decentralized, we can't have a single time source server
+ - look into global average and local average algorithms
+ - probably can't (or shouldn't) ignore the latency between modules, especially with low power NICs and custom software
+ - if we ignore latency, we also make the system less modular since the speed of any given module effects the accuracy of this algorithm
+
 
 
 Things that needed doing but are now done:
