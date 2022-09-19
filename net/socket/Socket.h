@@ -17,6 +17,7 @@ typedef union {
 
 typedef enum {
     IPV4_UDP_SOCK = 0,      // IPv4 and UDP
+    RAW_IPV4_UDP_SOCK,      // user needs to provide UDP header, sent over IPv4 
     PACKET_SOCK,            // only adds link layer header
     NUM_SOCK_TYPES
 } socktype_t;
