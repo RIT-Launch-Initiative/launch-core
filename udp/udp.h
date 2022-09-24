@@ -12,10 +12,7 @@ class UDP {
 
     UDP(String src_addr) : src_addr(src_addr) {}
 
-    int checksum(byte[] byte_arr) {
 
-        return 0;
-    }
 
     int send(String dst, String message) {
 
@@ -25,6 +22,11 @@ class UDP {
 
 private:
     private String src_addr;
+
+    int checksum(byte[] byte_arr) {
+
+        return 0;
+    }
 
 };
 
