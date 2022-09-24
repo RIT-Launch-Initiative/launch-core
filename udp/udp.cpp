@@ -11,12 +11,12 @@
 
 
 class UDP {
-//    typedef struct {
-//        String src,
-//                String dst,
-//        uint8_t checksum;
-//        String data;
-//    } udp_packet_t;
+    typedef struct {
+        String src;
+        String dst;
+        uint8_t checksum;
+        String data;
+    } udp_packet_t;
 
 
     UDP(String src_addr) : src_addr(src_addr) {}
