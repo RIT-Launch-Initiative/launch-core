@@ -9,7 +9,7 @@
 #include "../string/string.h"
 
 class UDP {
-    typedef struct {
+    struct {
         String src,
         String dst,
         uint8_t checksum;
