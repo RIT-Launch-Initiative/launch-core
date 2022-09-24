@@ -5,10 +5,16 @@
 #ifndef LAUNCH_CORE_UDP_H
 #define LAUNCH_CORE_UDP_H
 
+#include <cstdint>
 #include "../string/string.h"
-#include ""
 
 class UDP {
+    typedef struct {
+        String src,
+        String dst,
+        uint8_t checksum;
+        String data;
+    } udp_packet_t;
 
     UDP(String src_addr) : src_addr(src_addr) {}
 
