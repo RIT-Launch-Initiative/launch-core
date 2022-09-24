@@ -23,7 +23,7 @@ class UDP {
 private:
     private String src_addr;
 
-    int checksum(byte[] byte_arr) {
+    int checksum(byte byte_arr[]) {
 
         return 0;
     }
