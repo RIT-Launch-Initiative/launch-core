@@ -6,6 +6,9 @@
 
 #ifndef STRING_H
 #define STRING_H
+#include <stdio.h>
+#include <string.h>
+
 
 
 class String {
