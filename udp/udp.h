@@ -10,10 +10,21 @@
 
 class UDP {
 
-    UDP(alloc::String<16> src_addr) : src_addr(src_addr) {}
+    UDP(String src_addr) : src_addr(src_addr) {}
+
+    int checksum(byte[] byte_arr) {
+
+        return 0;
+    }
+
+    int send(String dst, String message) {
+
+
+        return 0;
+    }
 
 private:
-    private alloc::String<16> src_addr;
+    private String src_addr;
 
 };
 
