@@ -17,7 +17,11 @@ public:
         const int header_size = 8;
         Packet packet = alloc::Packet<const_cast<int>(header_size), header_size>();
         packet.push(data);
+
+        return RET_SUCCESS;
     }
+
+
 };
 
 
