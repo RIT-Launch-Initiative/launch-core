@@ -11,12 +11,14 @@ public:
 
     }
 
-    RetType receive(Packet& packet, sockmsg_t& info, NetworkLayer* caller) {
+    RetType receive(Packet &packet, sockmsg_t &info, NetworkLayer *caller) {
 
+        return RET_SUCCESS;
     }
 
-    RetType transmit(Packet& packet, sockmsg_t& info, NetworkLayer* caller) {
+    RetType transmit(Packet &packet, sockmsg_t &info, NetworkLayer *caller) {
 
+        return RET_SUCCESS;
     }
 
 
