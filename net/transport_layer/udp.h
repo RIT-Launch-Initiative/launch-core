@@ -5,15 +5,24 @@
 #include "../packet/Packet.h"
 #include ""
 
+typedef struct {
+    sockaddr_t src,
+    sockaddr_t dst,
+    uint32_t length,
+    int checksum,
+    uint8_t *data_octets
+};
+UDP_HEADER_T;
+
 class UDP : public NetworkLayer {
 public:
+
+
     UDP(Socket socket) {
 
     }
 
-    int calc_checksum(uint8_t* payload) {
-        // CRC8 checksum
-
+    int calc_checksum(uint8_t *payload) {
         int checksum = 0;
         for (int i = 0; i < sizeof(payload); i++) {
             checksum += payload[i];
@@ -31,7 +40,6 @@ public:
 
     RetType transmit(Packet &packet, sockmsg_t &info, NetworkLayer *caller) {
         int checksum = calc_checksum(info.payload);
-
 
 
         return RET_SUCCESS;
