@@ -3,7 +3,7 @@
 
 #include "../socket/Socket.h"
 #include "../packet/Packet.h"
-#include ""
+#include "../network_layer/NetworkLayer.h"
 
 typedef struct {
     sockaddr_t src,
@@ -18,7 +18,6 @@ public:
 
 
     UDP(Socket socket) {
-
     }
 
     int calc_checksum(uint8_t *payload) {
@@ -32,6 +31,9 @@ public:
 
     RetType receive(Packet &packet, sockmsg_t &info, NetworkLayer *caller) {
         int checksum = calc_checksum(info.payload);
+        UDP_HEADER_T header = packet.allocate_header<UDP_HEADER_T>();
+
+
 
 
         return RET_SUCCESS;
@@ -39,6 +41,7 @@ public:
 
     RetType transmit(Packet &packet, sockmsg_t &info, NetworkLayer *caller) {
         int checksum = calc_checksum(info.payload);
+        UDP_HEADER_T header = packet.allocate_header<UDP_HEADER_T>();
 
 
         return RET_SUCCESS;
