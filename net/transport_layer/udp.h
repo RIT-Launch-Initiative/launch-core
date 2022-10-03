@@ -17,9 +17,13 @@ class UDP : public NetworkLayer {
 public:
 
 
-    UDP(Socket socket) {
-    }
+    virtual RetType create_receive_port() = 0;
 
+    virtual RetType receive(Packet &packet, sockmsg_t &info, NetworkLayer *caller) = 0;
+
+    virtual RetType transmit(Packet &packet, sockmsg_t &info, NetworkLayer *caller) = 0;
+
+private:
     int calc_checksum(uint8_t *payload) {
         int checksum = 0;
         for (int i = 0; i < sizeof(payload); i++) {
@@ -29,21 +33,14 @@ public:
         return checksum;
     }
 
-    RetType receive(Packet &packet, sockmsg_t &info, NetworkLayer *caller) {
-        int checksum = calc_checksum(info.payload);
-        UDP_HEADER_T header = packet.allocate_header<UDP_HEADER_T>();
+    bool verify_checksum(uint8_t *payload, int checksum) {
+        int result;
 
+        for (int i = 0; i < sizeof(payload); i++) {
+            result += payload[i];
+        }
 
-
-        return RET_SUCCESS;
-    }
-
-    RetType transmit(Packet &packet, sockmsg_t &info, NetworkLayer *caller) {
-        int checksum = calc_checksum(info.payload);
-        UDP_HEADER_T header = packet.allocate_header<UDP_HEADER_T>();
-
-
-        return RET_SUCCESS;
+        return checksum == result;
     }
 
 
