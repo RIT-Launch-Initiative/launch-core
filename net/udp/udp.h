@@ -4,12 +4,13 @@
 #include "net/socket/Socket.h"
 #include "net/packet/Packet.h"
 #include "net/network_layer/NetworkLayer.h"
+#include <stdint.h>
 
 typedef struct {
     uint8_t src,
     uint8_t dst,
+    uint8_t checksum,
     uint32_t length,
-    int checksum,
     uint8_t *data_octets
 } UDP_HEADER_T;
 
