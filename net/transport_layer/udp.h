@@ -17,7 +17,7 @@ class UDP : public NetworkLayer {
 public:
 
 
-    virtual RetType create_receive_port() = 0;
+    virtual RetType create_receive_port(uint8_t port_num) = 0;
 
     virtual RetType receive(Packet &packet, sockmsg_t &info, NetworkLayer *caller) = 0;
 
