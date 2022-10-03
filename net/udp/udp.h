@@ -14,7 +14,7 @@ typedef struct {
     uint8_t *data_octets
 } UDP_HEADER_T;
 
-class UDP : public NetworkLayer {
+class UDPLayer : public NetworkLayer {
 public:
 
 
