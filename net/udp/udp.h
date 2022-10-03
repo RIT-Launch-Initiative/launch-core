@@ -1,9 +1,9 @@
 #ifndef LAUNCH_CORE_UDP_H
 #define LAUNCH_CORE_UDP_H
 
-#include "../socket/Socket.h"
-#include "../packet/Packet.h"
-#include "../network_layer/NetworkLayer.h"
+#include "net/socket/Socket.h"
+#include "net/packet/Packet.h"
+#include "net/network_layer/NetworkLayer.h"
 
 typedef struct {
     sockaddr_t src,
