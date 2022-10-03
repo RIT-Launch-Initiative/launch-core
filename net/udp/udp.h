@@ -6,8 +6,8 @@
 #include "net/network_layer/NetworkLayer.h"
 
 typedef struct {
-    sockaddr_t src,
-    sockaddr_t dst,
+    uint8_t src,
+    uint8_t dst,
     uint32_t length,
     int checksum,
     uint8_t *data_octets
