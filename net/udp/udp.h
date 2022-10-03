@@ -25,7 +25,7 @@ public:
     virtual RetType transmit(Packet &packet, sockmsg_t &info, NetworkLayer *caller) = 0;
 
 private:
-    int calc_checksum(uint8_t *payload) {
+    uint32_t calc_checksum(uint8_t *payload) {
         int checksum = 0;
         for (int i = 0; i < sizeof(payload); i++) {
             checksum += payload[i];
