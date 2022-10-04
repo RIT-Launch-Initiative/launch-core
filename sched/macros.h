@@ -17,7 +17,11 @@
 // RESUME()
 //   Should be placed at the very beginning of a function. Sets up the function
 //   to be able to get blocked and return to execution at the line it was
-//   blocked at.
+//   blocked at. The execution location is stored per-task, not per-function
+//   so multiple tasks can call the same function and execute in different
+//   places. Variables are not saved between executions on the scheduler, so
+//   use statics if storing information before blocking. Be aware another task
+//   could modify this static.
 
 // RESET()
 //   Should be placed at the end of a function, before any return statements but
