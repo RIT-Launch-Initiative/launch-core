@@ -12,69 +12,61 @@
 #ifndef SCHED_MACROS_H
 #define SCHED_MACROS_H
 
-#include "sched/sched.h"
-#include "return.h"
-
 // ** macros for use in scheduler tasks ** //
 
-#define TOKENPASTE(x, y) x ## y
-#define TOKENPASTE2(x, y) TOKENPASTE(x, y)
+// RESUME()
+//   Should be placed at the very beginning of a function. Sets up the function
+//   to be able to get blocked and return to execution at the line it was
+//   blocked at.
 
-/// @brief resumes a task from where it last slept or blocked from
-///        should be at the top of the task function
-/// NOTE: this uses the fact that we can store the address of a label as a value
-///       that's not a C/C++ feature but is part of GCC, so we are dependent on
-///       using GCC/G++ for these macros to work
-#define RESUME()\
-            static void* _current = &&_start;\
-            goto *_current;\
-            _start:\
+// RESET()
+//   Should be placed at the end of a function, before any return statements but
+//   after any blocking calls, such as CALL, BLOCK, YIELD, SLEEP.
 
-#define SLEEP2(N, z)\
-            _current = TOKENPASTE2(&&_sleep, z);\
-            sched_sleep(sched_dispatched, N);\
-            return RET_SLEEP;\
-            TOKENPASTE2(_sleep, z):\
+// SLEEP(T)
+//   Sleep the current running task for 'T' ticks (in system clock time).
+//   Returns RET_SLEEP, all functions higher in the call stack should see this
+//   return result and get execution back to the scheduler ASAP.
 
-/// @brief sleep the currently running task for 'N' ticks
-#define SLEEP(N) SLEEP2(N, __COUNTER__)
+// BLOCK()
+//   Block the current running task indefinitely, only unblocked when WAKE is
+//   called on the blocked task's task ID. Returns RET_BLOCK, all functions
+//   higher in the call stack should see this return result and get execution
+//   back to the scheduler ASAP. When the task blocked is scheduled again,
+//   execution begins right after the macro.
 
-#define BLOCK2(z)\
-        _current = TOKENPASTE2(&&_block, z);\
-        sched_block(sched_dispatched);\
-        return RET_BLOCKED;\
-        TOKENPASTE2(_block, z):\
+// WAKE(TID)
+//   Wake the task with task ID 'TID', Puts that task back on the ready queue if
+//   it is currently blocked or sleeping.
 
-/// @brief block the currently running task
-#define BLOCK() BLOCK2(__COUNTER__)
+// YIELD()
+//   Yield the currently executing task's time back to the scheduler. Task stays
+//   in the ready queue but is done executing for now. Return RET_YIELD, all
+//   functions higher in the call stack should see this return result and get
+//   execution back to the scheduler ASAP. When task is scheduled again,
+//   execution begins right after the macro.
 
-/// @brief wake up a task with task ID 'TID'
-#define WAKE(TID) sched_wake(TID)
+// CALL(EXP)
+//   Execute the expression 'EXP' and handle the return. 'EXP' must return a
+//   RetType. Used to call functions that may sleep, block, or yield. If
+//   RET_BLOCKED, RET_SLEEP, or RET_YIELD are returned, the same return code is
+//   returned immediately in order to get execution back to the scheduler. If
+//   any of those return codes are returned, the next time the task is scheduled
+//   execution will begin before evaluating 'EXP' so it is evaluated again. If
+//   RET_SUCCESS or RET_ERROR are returned, the macros evaluates to that result.
 
-#define YIELD2(z)\
-        _current = TOKENPASTE2(&&_yield, z);\
-        return RET_SUCCESS;\
-        TOKENPASTE2(_yield, z):\
 
-/// @brief yield back to the scheduler
-#define YIELD() YIELD2(__COUNTER__)
+// see test/example.cpp for an example of how these macros should be used
 
-#define CALL2(F, RET, z)\
-    ({_current = TOKENPASTE2(&&_call, z); TOKENPASTE2(_call, z):; RetType RET = F; if(RET == RET_SLEEP || RET == RET_BLOCKED || RET == RET_YIELD){return RET;}; RET;})\
 
-/// @brief call a function 'F' and handle the return
-///        useful for calling in a task so you don't need to check for SLEEP, BLOCKED, or YIELD
-///        as the task should return if either of those errors are returned
-///        the task will return re-execute the line when it is scheduled again
-///        if SLEEP or BLOCKED or YIELD are returned
-#define CALL(F) CALL2(F, TOKENPASTE2(__ret, __COUNTER__), __COUNTER__)
+// includes for the macros //
 
-/// @brief reset a task to the top
-#define RESET() _current = &&_start;
-
-// #define SAVE2(RET, z) _current = TOKENPASTE2(&&_save, z); return RET; TOKENPASTE2(_save, z):
-//
-// /// @brief save location in a task
-// #define SAVE(RET) SAVE2(RET, __COUNTER__)
+#include "sched/macros/resume.h"
+#include "sched/macros/reset.h"
+#include "sched/macros/sleep.h"
+#include "sched/macros/block.h"
+#include "sched/macros/wake.h"
+#include "sched/macros/yield.h"
+#include "sched/macros/call.h"
 
 #endif
