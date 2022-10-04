@@ -10,7 +10,7 @@ typedef struct {
     uint8_t src,
     uint8_t dst,
     uint8_t checksum,
-    uint32_t length,
+    unsigned short length,
     uint8_t *data_octets
 } UDP_HEADER_T;
 
