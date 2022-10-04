@@ -4,7 +4,7 @@
 #include "net/common.h"
 #include "net/network_layer/NetworkLayer.h"
 #include "net/eth/eth.h"
-#include "net/ipv4/IPv4Router.h"
+#include "net/ipv4/ipv4.h"
 #include "sched/macros.h"
 
 using ipv4::IPv4Router;
@@ -12,8 +12,7 @@ using ipv4::IPv4Addr_t;
 
 namespace arp {
 
-/// @brief implements the ARP layer
-///        Requires an IPv4 router.
+/// @brief implements the ARP layer.
 ///
 ///      receiving:
 ///        Received ARP packets will be parsed and the IPv4 address will be
@@ -33,11 +32,9 @@ namespace arp {
 class ArpLayer : public NetworkLayer {
 public:
     /// @brief constructor
-    /// @param router       the IPv4 router for the network stack
     /// @param timeout      the amount of time to wait for a reply to a request
     ///                     in units of system time
-    ArpLayer(IPv4Router& router, uint32_t timeout) : m_router(router),
-                                                     m_timeout(timeout) {};
+    ArpLayer(uint32_t timeout) : m_timeout(timeout) {};
 
 
     /// @brief add an Ethernet device to the ARP table
@@ -133,6 +130,11 @@ public:
     /// @brief receive an ARP packet
     /// @return
     RetType receive(Packet& packet, sockmsg_t& info, NetworkLayer* caller) {
+        if(packet.available() < sizeof(ArpHeader_t)) {
+            // not enough ARP data
+            return RET_ERROR;
+        }
+
         ArpHeader_t* hdr = packet.read_ptr<ArpHeader_t>();
 
         if(hdr == NULL) {
@@ -161,6 +163,13 @@ public:
                 // check if the tpa is the address of the 'caller' device
                 // if it is send a reply through caller
                 // make sure to set the socket type to raw and fill in mac addr in sockaddr
+
+                // get the target IP of the request
+                IPv4Addr_t tip;
+                ipv4::IPv4Address(hdr->tpa[0], hdr->tpa[1],hdr->tpa[2], hdr->tpa[3], &tip);
+
+                // get the address of caller
+
                 break;
             case REPLY_OPER:
                 // TODO
@@ -171,7 +180,7 @@ public:
                 return RET_ERROR;
         }
 
-        return RET_ERROR;
+        return RET_SUCCESS;
     }
 
     /// @brief transmit
@@ -181,7 +190,6 @@ public:
     }
 
 private:
-    IPv4Router& m_router;
     uint32_t m_timeout;
 
     typedef struct {
@@ -194,6 +202,8 @@ private:
 
     // TODO hardcoding size!
     // maps MAC addresses to devices
+    // TODO should map device to MAC + IPv4
+    // use for requests + replies
     alloc::Hashmap<mac_t, NetworkLayer*, 25, 25> m_devs;
 
     // TODO hardcoding sizes!
