@@ -13,7 +13,7 @@
 #define TOKENPASTE2(x, y) TOKENPASTE(x, y)
 
 #define BLOCK2(z)\
-        _current = TOKENPASTE2(&&_block, z);\
+        _current[static_cast<int>(sched_dispatched)] = TOKENPASTE2(&&_block, z);\
         sched_block(sched_dispatched);\
         return RET_BLOCKED;\
         TOKENPASTE2(_block, z):\

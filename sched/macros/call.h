@@ -20,7 +20,7 @@
 
 
 #define CALL2(F, RET, z)\
-    ({_current = TOKENPASTE2(&&_call, z); TOKENPASTE2(_call, z):; RetType RET = F; if(RET == RET_SLEEP || RET == RET_BLOCKED || RET == RET_YIELD){return RET;}; RET;})\
+    ({_current[static_cast<int>(sched_dispatched)] = TOKENPASTE2(&&_call, z); TOKENPASTE2(_call, z):; RetType RET = F; if(RET == RET_SLEEP || RET == RET_BLOCKED || RET == RET_YIELD){return RET;}; RET;})\
 
 /// @brief call a function 'F' and handle the return
 ///        useful for calling in a task so you don't need to check for SLEEP, BLOCKED, or YIELD

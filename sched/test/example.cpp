@@ -7,10 +7,10 @@
 RetType func(int x) {
     // setup this function to be able to block and return execution where
     // it was blocked when it gets scheduled again
-    // NOTE: if a different task calls this function, it will start executing
-    //       in the last place the last task who called this function stopped at.
-    //       This is a problem since functions can only be called from one task
-    //       now, working on a solution for this (rather large) limitation.
+    // NOTE: execution points are tracked per task, but variables are not
+    //       e.g. if two tasks call 'func', their execution location is stored
+    //       separately, but if task 1 modifies a static variable it will be
+    //       modified for task 1 as well.
     RESUME();
     // --> execution begins here
 

@@ -2,6 +2,7 @@
 #define SCHED_MACROS_SLEEP_H
 
 #include "sched/sched.h"
+#include "return.h"
 
 /* The SLEEP macro.
 *  Called as SLEEP(T)
@@ -13,7 +14,7 @@
 
 
 #define SLEEP2(N, z)\
-            _current = TOKENPASTE2(&&_sleep, z);\
+            _current[static_cast<int>(sched_dispatched)] = TOKENPASTE2(&&_sleep, z);\
             sched_sleep(sched_dispatched, N);\
             return RET_SLEEP;\
             TOKENPASTE2(_sleep, z):\

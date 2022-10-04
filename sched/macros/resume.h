@@ -17,8 +17,8 @@
 ///       that's not a C/C++ feature but is part of GCC, so we are dependent on
 ///       using GCC/G++ for these macros to work
 #define RESUME()\
-            static void* _current = &&_start;\
-            goto *_current;\
+            static void* _current[static_cast<int>(MAX_NUM_TASKS)] = { &&_start };\
+            goto *(_current[static_cast<int>(sched_dispatched)]);\
             _start:\
 
 

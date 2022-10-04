@@ -15,7 +15,7 @@
 
 
 #define YIELD2(z)\
-        _current = TOKENPASTE2(&&_yield, z);\
+        _current[static_cast<int>(sched_dispatched)] = TOKENPASTE2(&&_yield, z);\
         return RET_YIELD;\
         TOKENPASTE2(_yield, z):\
 
