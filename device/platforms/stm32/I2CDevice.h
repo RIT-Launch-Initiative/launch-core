@@ -77,6 +77,11 @@ public:
         // block and wait for the transfer to complete
         m_blocked = sched_dispatched;
         BLOCK();
+        // TODO problem, what if another task calls 'write' after a different task
+        // has blocked!
+        // NOTE: this is fine if each task makes it's own object? that's not the best
+        // BUG: actually the above will not work, static variables are per class not per object!!!!!
+        // yikes
 
         // we can unblock someone else if they were waiting
         check_unblock();
