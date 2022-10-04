@@ -1,7 +1,7 @@
 // Example of how to use scheduler macros
 
 #include "sched/macros.h"
-
+#include "return.h"
 
 // some function that a task can call
 RetType func(int x) {
