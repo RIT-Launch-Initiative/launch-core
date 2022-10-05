@@ -1,14 +1,16 @@
 #ifndef LAUNCH_CORE_UDP_H
 #define LAUNCH_CORE_UDP_H
 
+#include <stdint.h>
+
 
 namespace udp {
     typedef struct {
-        uint8_t src,
-                uint8_t dst,
-        unsigned short checksum,
-        unsigned short length,
-                uint8_t *data_octets
+        uint16_t src,
+        uint16_t dst,
+        uint16_t checksum,
+        uint16_t length,
+        uint32_t *data_octets
     } UDP_HEADER_T;
 
     unsigned short calc_checksum(uint8_t *payload) {

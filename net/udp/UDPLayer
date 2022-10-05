@@ -1,5 +1,5 @@
-#ifndef LAUNCH_CORE_UDPROUTER_
-#define LAUNCH_CORE_UDPROUTER_
+#ifndef LAUNCH_CORE_UDPLAYER_
+#define LAUNCH_CORE_UDPLAYER_
 
 #include "../../n`et/socket/Socket.h"
 #include "../../net/packet/Packet.h"
@@ -9,6 +9,9 @@
 
 class UDPLayer : public NetworkLayer {
 public:
+    UDP() {
+
+    }
     virtual RetType create_receive_port(uint8_t port_num) = 0;
 
     RetType receive(Packet &packet, sockmsg_t &info, NetworkLayer *caller) {
@@ -31,4 +34,4 @@ private:
 };
 
 
-#endif //LAUNCH_CORE_UDPROUTER_
+#endif //LAUNCH_CORE_UDPLAYER_
