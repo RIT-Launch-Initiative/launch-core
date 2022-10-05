@@ -1,30 +1,16 @@
 #ifndef LAUNCH_CORE_UDP_H
 #define LAUNCH_CORE_UDP_H
 
-#include "net/socket/Socket.h"
-#include "net/packet/Packet.h"
-#include "net/network_layer/NetworkLayer.h"
-#include <stdint.h>
 
-typedef struct {
-    uint8_t src,
-    uint8_t dst,
-    unsigned short checksum,
-    unsigned short length,
-    uint8_t *data_octets
-} UDP_HEADER_T;
+namespace udp {
+    typedef struct {
+        uint8_t src,
+                uint8_t dst,
+        unsigned short checksum,
+        unsigned short length,
+                uint8_t *data_octets
+    } UDP_HEADER_T;
 
-class UDPLayer : public NetworkLayer {
-public:
-
-
-    virtual RetType create_receive_port(uint8_t port_num) = 0;
-
-    virtual RetType receive(Packet &packet, sockmsg_t &info, NetworkLayer *caller) = 0;
-
-    virtual RetType transmit(Packet &packet, sockmsg_t &info, NetworkLayer *caller) = 0;
-
-private:
     unsigned short calc_checksum(uint8_t *payload) {
         int checksum = 0;
         for (int i = 0; i < sizeof(payload); i++) {
@@ -43,9 +29,6 @@ private:
 
         return checksum == result;
     }
-
-
-};
-
+}
 
 #endif //LAUNCH_CORE_UDP_H

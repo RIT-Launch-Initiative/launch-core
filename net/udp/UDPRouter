@@ -1,0 +1,34 @@
+#ifndef LAUNCH_CORE_UDPROUTER_
+#define LAUNCH_CORE_UDPROUTER_
+
+#include "../../n`et/socket/Socket.h"
+#include "../../net/packet/Packet.h"
+#include "../../net/network_layer/NetworkLayer.h"
+#include <stdint.h>
+
+
+class UDPLayer : public NetworkLayer {
+public:
+    virtual RetType create_receive_port(uint8_t port_num) = 0;
+
+    RetType receive(Packet &packet, sockmsg_t &info, NetworkLayer *caller) {
+
+        return caller->receive(packet, info, this);
+
+    }
+
+    RetType transmit(Packet &packet, sockmsg_t &info, NetworkLayer *caller) {
+
+
+        return caller->transmit(packet, info, this);
+
+    }
+
+private:
+
+
+
+};
+
+
+#endif //LAUNCH_CORE_UDPROUTER_
