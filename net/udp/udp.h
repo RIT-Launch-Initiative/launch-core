@@ -13,7 +13,7 @@ namespace udp {
         uint32_t *data_octets
     } UDP_HEADER_T;
 
-    unsigned short calc_checksum(uint8_t *payload) {
+    uint16_t calc_checksum(uint8_t *payload) {
         int checksum = 0;
         for (int i = 0; i < sizeof(payload); i++) {
             checksum += payload[i];
@@ -22,7 +22,7 @@ namespace udp {
         return checksum;
     }
 
-    bool verify_checksum(uint8_t *payload, unsigned short checksum) {
+    bool verify_checksum(uint8_t *payload, uint16_t checksum) {
         int result;
 
         for (int i = 0; i < sizeof(payload); i++) {
