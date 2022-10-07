@@ -1,9 +1,10 @@
 #ifndef LAUNCH_CORE_UDPLAYER_
 #define LAUNCH_CORE_UDPLAYER_
 
-#include "../../n`et/socket/Socket.h"
+#include "../../net/socket/Socket.h"
 #include "../../net/packet/Packet.h"
 #include "../../net/network_layer/NetworkLayer.h"
+#include "../../vector/vector.h"
 #include <stdint.h>
 
 
@@ -12,11 +13,12 @@ public:
     UDP() {
 
     }
-    virtual RetType create_receive_port(uint8_t port_num) = 0;
+    RetType create_receive_port(uint16_t port_num) {
+        this->receive_ports.push_back(port_num);
+
+    };
 
     RetType receive(Packet &packet, sockmsg_t &info, NetworkLayer *caller) {
-
-
 
         return caller->receive(packet, info, this);
 
@@ -30,6 +32,7 @@ public:
     }
 
 private:
+    alloc::Vector<uint16_t, 16> receive_ports;
 
 
 
