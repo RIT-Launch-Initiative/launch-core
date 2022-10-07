@@ -10,21 +10,24 @@
 
 class UDPLayer : public NetworkLayer {
 public:
-    UDP() {
-
+    UDP() : src_port(port_num) {
     }
+
     RetType create_receive_port(uint16_t port_num) {
         this->receive_ports.push_back(port_num);
 
     };
 
     RetType receive(Packet &packet, sockmsg_t &info, NetworkLayer *caller) {
+        for (int i = 0; i < receive_ports.size(); i++) {
 
-        return caller->receive(packet, info, this);
-
+        }
     }
 
     RetType transmit(Packet &packet, sockmsg_t &info, NetworkLayer *caller) {
+        sockmsg_t sockmsg = {
+
+        }
 
 
         return caller->transmit(packet, info, this);
@@ -32,6 +35,7 @@ public:
     }
 
 private:
+    uint16_t src_port;
     alloc::Vector<uint16_t, 16> receive_ports;
 
 
