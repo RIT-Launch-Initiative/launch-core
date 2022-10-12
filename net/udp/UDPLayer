@@ -5,42 +5,58 @@
 #include "../../net/packet/Packet.h"
 #include "../../net/network_layer/NetworkLayer.h"
 #include "../../vector/vector.h"
+#include "udp.h"
 #include <stdint.h>
 
+namespace udp {
+    static const size_t SIZE = 25;
 
-class UDPLayer : public NetworkLayer {
-public:
-    UDP() : src_port(port_num) {
-    }
+    class UDPLayer : public NetworkLayer {
+    public:
+        UDP() : src_port(port_num) {
+        }
 
-    RetType create_receive_port(uint16_t port_num) {
-        this->receive_ports.push_back(port_num);
+        RetType create_receive_port(uint16_t port_num) {
+            this->receive_ports.push_back(port_num);
+
+            return RET_SUCCESS;
+        };
+
+        RetType receive(Packet &packet, sockmsg_t &info, NetworkLayer *caller) {
+            RESUME();
+
+            UDP_HEADER_T *header = packet.read_ptr<UDP_HEADER_T>();
+
+            if (!header) {
+                return RET_ERROR;
+            }
+
+            uint16_t src = ;
+            uint16_t dst = ;
+            uint16_t checksum = verify_checksum(info.payload, checksum);
+            uint16_t length = info.payload_len;
+            uint32_t *data_octets = info.;
+
+
+            for (int i = 0; i < receive_ports.size(); i++) {
+
+            }
+        }
+
+        RetType transmit(Packet &packet, sockmsg_t &info, NetworkLayer *caller) {
+            RESUME();
+
+
+            return caller->transmit(packet, info, this);
+
+        }
+
+    private:
+        uint16_t src_port;
+        alloc::Vector<uint16_t, SIZE> receive_ports;
+
 
     };
-
-    RetType receive(Packet &packet, sockmsg_t &info, NetworkLayer *caller) {
-        for (int i = 0; i < receive_ports.size(); i++) {
-
-        }
-    }
-
-    RetType transmit(Packet &packet, sockmsg_t &info, NetworkLayer *caller) {
-        sockmsg_t sockmsg = {
-
-        }
-
-
-        return caller->transmit(packet, info, this);
-
-    }
-
-private:
-    uint16_t src_port;
-    alloc::Vector<uint16_t, 16> receive_ports;
-
-
-
-};
-
+}
 
 #endif //LAUNCH_CORE_UDPLAYER_
