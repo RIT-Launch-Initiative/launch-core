@@ -46,15 +46,27 @@ namespace udp {
             RESET();
 
             return ret;
-
         }
 
         RetType transmit(Packet &packet, sockmsg_t &info, NetworkLayer *caller) {
             RESUME();
 
+            UDP_HEADER_T header = packet.allocate_header<UDP_HEADER_T>();
 
-            return caller->transmit(packet, info, this);
+            if (header) {
+                return RET_ERROR;
+            }
 
+            header.src = ;
+            header.dst = ;
+            header.checksum = ;
+            header.data_octets = ;
+            header.length = ;
+
+            RetType ret = CALL(route->next->transmit(packet, info, this));
+
+            RESET();
+            return ret;
         }
 
     private:
