@@ -31,9 +31,6 @@ namespace udp {
                 return RET_ERROR;
             }
 
-            memset(info.payload, packet.read_ptr<uint32_t>(), packet.size())
-            info.payload_len = packet.size();
-
             RetType ret = CALL(next->receive(packet, info, this))
 
             RESET();
