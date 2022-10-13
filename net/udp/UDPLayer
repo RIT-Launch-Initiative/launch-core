@@ -31,6 +31,15 @@ namespace udp {
                 return RET_ERROR;
             }
 
+
+            NetworkLayer** next_ptr = ;
+            if (!next_ptr) {
+                return RET_ERROR;
+            }
+
+            NetworkLayer next = *next_ptr;
+
+
             RetType ret = CALL(next->receive(packet, info, this))
 
             RESET();
