@@ -31,12 +31,6 @@ namespace udp {
                 return RET_ERROR;
             }
 
-            int checksum = 0; // TODO: Figure out how to pull checksum
-            if (verify_checksum(info.payload, checksum)) {
-                return RET_ERROR;
-            }
-
-
             for (int i = 0; i < receive_ports.size(); i++) {
 
             }
@@ -57,11 +51,11 @@ namespace udp {
                 return RET_ERROR;
             }
 
-            header.src = ;
-            header.dst = ;
-            header.checksum = ;
-            header.data_octets = ;
-            header.length = ;
+            header.src = 0;
+            header.dst = receive_ports;
+            header.checksum = 0;
+            header.data_octets = packet.read_ptr<uint32_t>();
+            header.length = info.payload_len;
 
             RetType ret = CALL(route->next->transmit(packet, info, this));
 
