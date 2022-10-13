@@ -31,9 +31,8 @@ namespace udp {
                 return RET_ERROR;
             }
 
-            for (int i = 0; i < receive_ports.size(); i++) {
-
-            }
+            memset(info.payload, packet.read_ptr<uint32_t>(), packet.size())
+            info.payload_len = packet.size();
 
             RetType ret = CALL(next->receive(packet, info, this))
 
@@ -52,7 +51,7 @@ namespace udp {
             }
 
             header.src = 0;
-            header.dst = receive_ports;
+            header.dst = info.port;
             header.checksum = 0;
             header.data_octets = packet.read_ptr<uint32_t>();
             header.length = info.payload_len;
