@@ -14,22 +14,14 @@ namespace udp {
     } UDP_HEADER_T;
 
     uint16_t calc_checksum(uint8_t *payload) {
-        int checksum = 0;
-        for (int i = 0; i < sizeof(payload); i++) {
-            checksum += payload[i];
-        }
+        // TODO: Psuedo header issues
 
-        return checksum;
+        return 0;
     }
 
     bool verify_checksum(uint8_t *payload, uint16_t checksum) {
-        int result;
-
-        for (int i = 0; i < sizeof(payload); i++) {
-            result += payload[i];
-        }
-
-        return checksum == result;
+        // TODO: Once we figure out pseudo header issue with net stack
+        return 0;
     }
 }
 
