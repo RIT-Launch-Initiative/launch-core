@@ -56,7 +56,7 @@ namespace udp {
                 return RET_ERROR;
             }
 
-            header.src = 0;
+            header.src = 0; // TODO: Could do a second pass to get src
             header.dst = info.port;
             header.checksum = 0;
             header.data_octets = packet.read_ptr<uint32_t>();
