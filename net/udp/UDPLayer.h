@@ -1,5 +1,5 @@
-#ifndef LAUNCH_CORE_UDPLAYER_
-#define LAUNCH_CORE_UDPLAYER_
+#ifndef LAUNCH_CORE_UDPLAYER_H
+#define LAUNCH_CORE_UDPLAYER_H
 
 #include "../../net/socket/Socket.h"
 #include "../../net/packet/Packet.h"
@@ -89,4 +89,4 @@ namespace udp {
     };
 }
 
-#endif //LAUNCH_CORE_UDPLAYER_
+#endif //LAUNCH_CORE_UDPLAYER_H
