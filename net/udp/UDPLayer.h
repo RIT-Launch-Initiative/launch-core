@@ -45,7 +45,7 @@ namespace udp {
             }
 
 
-            NetworkLayer** next_ptr = ;
+            NetworkLayer** next_ptr = port_map[info.port];
             if (!next_ptr) {
                 return RET_ERROR;
             }
