@@ -30,9 +30,9 @@ namespace udp {
         }
 
         RetType unsubscribePort(uint16_t port_num) {
-            port_map.rm(port_num)
+            bool success = port_map.rm(port_num)
 
-            return RET_SUCCESS;
+            return success ? RET_SUCCESS : RET_ERROR;
         }
 
         RetType receive(Packet &packet, sockmsg_t &info, NetworkLayer *caller) {
