@@ -5,6 +5,7 @@
 #include "../../net/packet/Packet.h"
 #include "../../net/network_layer/NetworkLayer.h"
 #include "../../vector/vector.h"
+#include "../../hashmap/hashmap.h"
 #include "udp.h"
 #include <stdint.h>
 
@@ -16,11 +17,23 @@ namespace udp {
         UDP() : src_port(port_num) {
         }
 
-        RetType create_receive_port(uint16_t port_num) {
-            this->receive_ports.push_back(port_num);
+        RetType subscribePort(NetworkLayer *subscriber, uint16_t port_num) {
+            NetworkLayer ret_loc = port_map.add(port_num);
+
+            if (!ret_loc) {
+                return RET_ERROR;
+            }
+
+            ret_loc = subscriber;
 
             return RET_SUCCESS;
-        };
+        }
+
+        RetType unsubscribePort(uint16_t port_num)
+            port_map.rm(port_num)
+
+            return RET_SUCCESS;
+        }
 
         RetType receive(Packet &packet, sockmsg_t &info, NetworkLayer *caller) {
             RESUME();
@@ -71,7 +84,7 @@ namespace udp {
     private:
         uint16_t src_port;
         alloc::Vector<uint16_t, SIZE> receive_ports;
-
+        alloc::Hashmap<uint16_t, NetworkLayer*, SIZE, SIZE> port_map;
 
     };
 }

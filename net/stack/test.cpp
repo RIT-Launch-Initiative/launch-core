@@ -1,7 +1,9 @@
 #include <stdio.h>
 
 #include "net/ipv4/IPv4Router.h"
+#include "net/udp/UDPLayer"
 #include "net/loopback/Loopback.h"
+
 
 // network layer that absorbs all packets and just prints them out
 class Blackhole : public NetworkLayer {
@@ -40,6 +42,7 @@ int main() {
     ipv4::IPv4Router ip;
     Loopback lo;
     Blackhole b;
+    udp::UDPLayer udp;
 
     ipv4::IPv4Addr_t addr1;
     ipv4::IPv4Address(10, 10, 10, 5, &addr1);
