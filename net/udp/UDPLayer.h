@@ -26,7 +26,7 @@ namespace udp {
                 return RET_ERROR;
             }
 
-            ret_loc = subscriber;
+            ret_loc = *subscriber;
 
             return RET_SUCCESS;
         }
