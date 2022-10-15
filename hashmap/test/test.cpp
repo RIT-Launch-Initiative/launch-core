@@ -24,7 +24,7 @@ bool basic() {
         return false;
     }
 
-    if(!hm.rm(1)) {
+    if(!hm.remove(1)) {
         printf("rm failed\n");
         return false;
     }

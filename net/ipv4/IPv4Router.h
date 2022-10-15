@@ -63,7 +63,7 @@ public:
         if(!m_routingTable.push(route)) {
             // no room
             // remove device from map
-            m_devMap.rm(addr);
+            m_devMap.remove(addr);
 
             return RET_ERROR;
         }
@@ -77,7 +77,7 @@ public:
     RetType remove_route(IPv4Addr_t addr) {
         // remove the device from the hashmap
         // we don't check the return because if the address doesn't exist it's already removed
-        m_devMap.rm(addr);
+        m_devMap.remove(addr);
 
         // search for the address in the routing table
         QueueIterator<Route> it = m_routingTable.iterator();
@@ -125,7 +125,7 @@ public:
     /// @param protocol     the protocol layer to remove
     /// @return
     void remove_protocol(uint8_t protocol) {
-        m_protMap.rm(protocol);
+        m_protMap.remove(protocol);
     }
 
     /// @brief lookup the next network layer for an IPv4 address
