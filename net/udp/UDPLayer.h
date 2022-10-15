@@ -28,7 +28,7 @@ namespace udp {
         UDPLayer(sockport_t port_num) : src_port(port_num) {
         }
 
-        RetType subscribePort(NetworkLayer *subscriber, uint16_t port_num) {
+        RetType subscribePort(NetworkLayer *subscriber, sockport_t port_num) {
             NetworkLayer** ret_loc = port_map.add(port_num);
 
             if (ret_loc != NULL) {
@@ -40,7 +40,7 @@ namespace udp {
             return RET_SUCCESS;
         }
 
-        RetType unsubscribePort(uint16_t port_num) {
+        RetType unsubscribePort(sockport_t port_num) {
             bool success = port_map.remove(port_num);
 
             return success ? RET_SUCCESS : RET_ERROR;
@@ -79,6 +79,7 @@ namespace udp {
             if (header != NULL) {
                 return RET_ERROR;
             }
+
             header->src = src_port; // TODO: Could do a second pass to get src
             header->dst = info.port;
             header->checksum = 0;
@@ -93,8 +94,7 @@ namespace udp {
 
     private:
         sockport_t src_port;
-        alloc::Vector<uint16_t, SIZE> receive_ports;
-        alloc::Hashmap<uint16_t, NetworkLayer*, SIZE, SIZE> port_map;
+        alloc::Hashmap<sockport_t, NetworkLayer*, SIZE, SIZE> port_map;
 
     };
 }
