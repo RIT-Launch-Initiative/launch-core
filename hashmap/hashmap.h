@@ -60,7 +60,7 @@ public:
     /// @brief remove a value at a key
     /// @param key    the key of the value to remove
     /// @return 'true' if key was deleted, 'false' on error
-    bool rm(KEY key) {
+    bool remove(KEY key) {
         size_t index = (m_hash.hash(key) % m_numBuckets) * m_bucketSize;
 
         // search this bucket for an entry with this key
