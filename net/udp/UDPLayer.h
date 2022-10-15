@@ -79,10 +79,19 @@ namespace udp {
             header->data_octets = packet.read_ptr<uint32_t>();
             header->length = info.payload_len;
 
-//            RetType ret = CALL(next->transmit(packet, info, this));
+            NetworkLayer **next_ptr = port_map[header->dst];
+
+            if (!next_ptr) {
+                return RET_ERROR;
+            }
+
+            NetworkLayer *next = *next_ptr;
+
+            RetType ret = CALL(next->transmit(packet, info, this));
+
 
             RESET();
-            return RET_SUCCESS;
+            return ret;
         }
 
     private:
