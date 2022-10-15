@@ -15,20 +15,14 @@ namespace udp {
     class UDPLayer : public NetworkLayer {
     public:
         UDPLayer() {
-            sockport_t sockport;
-            sockport.udp = 0;
-
+            src_port = 0;
         }
 
         UDPLayer(uint16_t port_num) {
-            sockport_t sockport;
-            sockport.udp = port_num;
+            src_port = port_num;
         }
 
-        UDPLayer(sockport_t port_num) : src_port(port_num) {
-        }
-
-        RetType subscribePort(NetworkLayer *subscriber, sockport_t port_num) {
+        RetType subscribePort(NetworkLayer *subscriber, uint16_t port_num) {
             NetworkLayer** ret_loc = port_map.add(port_num);
 
             if (ret_loc != NULL) {
@@ -40,7 +34,7 @@ namespace udp {
             return RET_SUCCESS;
         }
 
-        RetType unsubscribePort(sockport_t port_num) {
+        RetType unsubscribePort(uint16_t port_num) {
             bool success = port_map.remove(port_num);
 
             return success ? RET_SUCCESS : RET_ERROR;
@@ -55,14 +49,12 @@ namespace udp {
                 return RET_ERROR;
             }
 
-
             NetworkLayer** next_ptr = port_map[info.port];
             if (!next_ptr) {
                 return RET_ERROR;
             }
 
             NetworkLayer *next = *next_ptr;
-
 
             RetType ret = CALL(next->receive(packet, info, this));
 
@@ -93,8 +85,8 @@ namespace udp {
         }
 
     private:
-        sockport_t src_port;
-        alloc::Hashmap<sockport_t, NetworkLayer*, SIZE, SIZE> port_map;
+        uint16_t src_port;
+        alloc::Hashmap<uint16_t, NetworkLayer*, SIZE, SIZE> port_map;
 
     };
 }

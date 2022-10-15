@@ -9,8 +9,8 @@ namespace udp {
         uint32_t *data_octets;
         uint16_t length;
         uint16_t checksum;
-        sockport_t dst;
-        sockport_t src;
+        uint16_t dst;
+        uint16_t src;
     } UDP_HEADER_T;
 
     uint16_t calc_checksum(uint8_t *payload) {
