@@ -78,10 +78,10 @@ namespace udp {
             header->data_octets = packet.read_ptr<uint32_t>();
             header->length = info.payload_len;
 
-            RetType ret = CALL(route->next->transmit(packet, info, this));
+//            RetType ret = CALL(next->transmit(packet, info, this));
 
             RESET();
-            return ret;
+            return RET_SUCCESS;
         }
 
     private:
