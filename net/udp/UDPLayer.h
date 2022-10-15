@@ -26,13 +26,13 @@ namespace udp {
                 return RET_ERROR;
             }
 
-            ret_loc = *subscriber;
+            ret_loc = &subscriber;
 
             return RET_SUCCESS;
         }
 
         RetType unsubscribePort(uint16_t port_num) {
-            bool success = port_map.rm(port_num);
+            bool success = port_map.remove(port_num);
 
             return success ? RET_SUCCESS : RET_ERROR;
         }
