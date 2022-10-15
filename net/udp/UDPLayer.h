@@ -14,9 +14,18 @@ namespace udp {
 
     class UDPLayer : public NetworkLayer {
     public:
-        UDPLayer(): src_port(0) {}
+        UDPLayer() {
+            sockport_t sockport;
+            sockport.udp = 0;
 
-        UDPLayer(uint16_t port_num) : src_port(port_num) {
+        }
+
+        UDPLayer(uint16_t port_num) {
+            sockport_t sockport;
+            sockport.udp = port_num;
+        }
+
+        UDPLayer(sockport_t port_num) : src_port(port_num) {
         }
 
         RetType subscribePort(NetworkLayer *subscriber, uint16_t port_num) {
@@ -70,8 +79,7 @@ namespace udp {
             if (header != NULL) {
                 return RET_ERROR;
             }
-
-            header->src = 0; // TODO: Could do a second pass to get src
+            header->src = src_port; // TODO: Could do a second pass to get src
             header->dst = info.port;
             header->checksum = 0;
             header->data_octets = packet.read_ptr<uint32_t>();
@@ -84,7 +92,7 @@ namespace udp {
         }
 
     private:
-        uint16_t src_port;
+        sockport_t src_port;
         alloc::Vector<uint16_t, SIZE> receive_ports;
         alloc::Hashmap<uint16_t, NetworkLayer*, SIZE, SIZE> port_map;
 
