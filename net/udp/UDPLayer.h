@@ -14,7 +14,9 @@ namespace udp {
 
     class UDPLayer : public NetworkLayer {
     public:
-        UDP() : src_port(port_num) {
+        UDPLayer(): src_port(0) {}
+
+        UDPLayer(uint16_t port_num) : src_port(port_num) {
         }
 
         RetType subscribePort(NetworkLayer *subscriber, uint16_t port_num) {
@@ -63,17 +65,17 @@ namespace udp {
         RetType transmit(Packet &packet, sockmsg_t &info, NetworkLayer *caller) {
             RESUME();
 
-            UDP_HEADER_T header = packet.allocate_header<UDP_HEADER_T>();
+            UDP_HEADER_T *header = packet.allocate_header<UDP_HEADER_T>();
 
             if (header != NULL) {
                 return RET_ERROR;
             }
 
-            header.src = 0; // TODO: Could do a second pass to get src
-            header.dst = info.port;
-            header.checksum = 0;
-            header.data_octets = packet.read_ptr<uint32_t>();
-            header.length = info.payload_len;
+            header->src = 0; // TODO: Could do a second pass to get src
+            header->dst = info.port;
+            header->checksum = 0;
+            header->data_octets = packet.read_ptr<uint32_t>();
+            header->length = info.payload_len;
 
             RetType ret = CALL(route->next->transmit(packet, info, this));
 
