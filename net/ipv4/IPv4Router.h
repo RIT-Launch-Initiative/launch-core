@@ -77,7 +77,7 @@ public:
     RetType remove_route(IPv4Addr_t addr) {
         // remove the device from the hashmap
         // we don't check the return because if the address doesn't exist it's already removed
-        m_devMap.remove(addr);
+        m_devMap.rm(addr);
 
         // search for the address in the routing table
         QueueIterator<Route> it = m_routingTable.iterator();
@@ -86,7 +86,7 @@ public:
         while(curr = *it) {
             if(curr->addr == addr) {
                 // this is our guy
-                m_routingTable.remove(curr);
+                m_routingTable.rm(curr);
                 return RET_SUCCESS;
             }
 
