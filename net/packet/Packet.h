@@ -120,6 +120,8 @@ public:
 
         // shrink by the difference b/w available and size
         m_rpos -= (available() - size);
+
+        return RET_SUCCESS;
     }
 
     /// @brief allocate a header
