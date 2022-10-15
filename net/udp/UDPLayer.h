@@ -1,11 +1,11 @@
 #ifndef LAUNCH_CORE_UDPLAYER_H
 #define LAUNCH_CORE_UDPLAYER_H
 
-#include "../../net/socket/Socket.h"
-#include "../../net/packet/Packet.h"
-#include "../../net/network_layer/NetworkLayer.h"
-#include "../../vector/vector.h"
-#include "../../hashmap/hashmap.h"
+#include "net/socket/Socket.h"
+#include "net/packet/Packet.h"
+#include "net/network_layer/NetworkLayer.h"
+#include "vector/vector.h"
+#include "hashmap/hashmap.h"
 #include "udp.h"
 #include <stdint.h>
 
