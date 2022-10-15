@@ -30,7 +30,7 @@ namespace udp {
         }
 
         RetType unsubscribePort(uint16_t port_num) {
-            bool success = port_map.rm(port_num)
+            bool success = port_map.rm(port_num);
 
             return success ? RET_SUCCESS : RET_ERROR;
         }
