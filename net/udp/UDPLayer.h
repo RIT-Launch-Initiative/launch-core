@@ -73,7 +73,7 @@ namespace udp {
             }
 
             header->src = src_port; // TODO: Could do a second pass to get src
-            header->dst = info.port;
+            header->dst = info.port.udp;
             header->checksum = 0;
             header->data_octets = packet.read_ptr<uint32_t>();
             header->length = info.payload_len;
