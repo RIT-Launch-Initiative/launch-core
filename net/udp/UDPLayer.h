@@ -44,12 +44,13 @@ namespace udp {
             RESUME();
 
             UDP_HEADER_T *header = packet.read_ptr<UDP_HEADER_T>();
+            info.port = header->src;
 
             if (header != NULL) {
                 return RET_ERROR;
             }
 
-            NetworkLayer** next_ptr = port_map[info.port.udp];
+            NetworkLayer** next_ptr = port_map[header->dst];
             if (!next_ptr) {
                 return RET_ERROR;
             }
