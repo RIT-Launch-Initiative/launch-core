@@ -40,7 +40,7 @@ namespace udp {
 
             UDP_HEADER_T *header = packet.read_ptr<UDP_HEADER_T>();
 
-            if (!header) {
+            if (header != NULL) {
                 return RET_ERROR;
             }
 
@@ -50,7 +50,7 @@ namespace udp {
                 return RET_ERROR;
             }
 
-            NetworkLayer next = *next_ptr;
+            NetworkLayer *next = *next_ptr;
 
 
             RetType ret = CALL(next->receive(packet, info, this))
@@ -65,7 +65,7 @@ namespace udp {
 
             UDP_HEADER_T header = packet.allocate_header<UDP_HEADER_T>();
 
-            if (header) {
+            if (header != NULL) {
                 return RET_ERROR;
             }
 
