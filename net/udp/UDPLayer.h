@@ -55,7 +55,7 @@ namespace udp {
             NetworkLayer *next = *next_ptr;
 
 
-            RetType ret = CALL(next->receive(packet, info, this))
+            RetType ret = CALL(next->receive(packet, info, this));
 
             RESET();
 
