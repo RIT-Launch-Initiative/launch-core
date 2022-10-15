@@ -204,7 +204,11 @@ void sched_wake(tid_t tid) {
     }
 
     // take it off the sleep queue
-    sleep_q.remove(task->sleep_loc);
+    // BUG I think?, check NULL (maybe queue handles this)
+    if(task->sleep_loc) {
+        sleep_q.remove(task->sleep_loc);
+        task->sleep_loc = NULL;
+    }
 
     task->state = STATE_ACTIVE;
 

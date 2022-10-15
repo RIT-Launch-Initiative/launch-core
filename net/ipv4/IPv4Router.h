@@ -90,7 +90,7 @@ public:
                 return RET_SUCCESS;
             }
 
-            it++;
+            ++it;
         }
 
         // couldn't find the route, so it's technically removed
