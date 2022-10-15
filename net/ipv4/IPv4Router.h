@@ -86,7 +86,7 @@ public:
         while(curr = *it) {
             if(curr->addr == addr) {
                 // this is our guy
-                m_routingTable.rm(curr);
+                m_routingTable.remove(curr);
                 return RET_SUCCESS;
             }
 
