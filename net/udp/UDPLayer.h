@@ -1,6 +1,7 @@
 #ifndef LAUNCH_CORE_UDPLAYER_H
 #define LAUNCH_CORE_UDPLAYER_H
 
+#include "net/common.h"
 #include "net/socket/Socket.h"
 #include "net/packet/Packet.h"
 #include "net/network_layer/NetworkLayer.h"
@@ -85,7 +86,7 @@ namespace udp {
             }
 
             header->src = ; // TODO: Could do a second pass to get src Info
-            header->dst = info.port.udp; // TODO: endianess
+            header->dst = hton16(info.port.udp); // UDP is big endian
             header->checksum = 0;
             header->data_octets = packet.read_ptr<uint32_t>();
             header->length = info.payload_len;
