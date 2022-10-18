@@ -58,7 +58,8 @@ namespace udp {
             if (header != NULL) {
                 return RET_ERROR;
             }
-            // TODO: Skip
+
+            packet.skip_read(len(header));
 
             NetworkLayer** next_ptr = port_map[header->dst];
             if (!next_ptr) {
