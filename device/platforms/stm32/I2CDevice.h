@@ -68,6 +68,11 @@ public:
             return ret;
         }
 
+        // mark this task as blocked BEFORE we call the interrupt function
+        // we want to make sure there is no race condition b/w processing the ISR
+        // and blocking the task
+        m_blocked = sched_dispatched;
+
         // start the transfer
         if(HAL_OK != HAL_I2C_Mem_Write_IT(m_i2c, addr.dev_addr, addr.mem_addr,
                                                addr.mem_addr_size, buff, len)) {
@@ -75,7 +80,6 @@ public:
         }
 
         // block and wait for the transfer to complete
-        m_blocked = sched_dispatched;
         BLOCK();
 
         // we can unblock someone else if they were waiting
@@ -101,6 +105,11 @@ public:
             return ret;
         }
 
+        // mark this task as blocked BEFORE we call the interrupt function
+        // we want to make sure there is no race condition b/w processing the ISR
+        // and blocking the task
+        m_blocked = sched_dispatched;
+
         // start the transfer
         if(HAL_OK != HAL_I2C_Mem_Read_IT(m_i2c, addr.dev_addr, addr.mem_addr,
                                                addr.mem_addr_size, buff, len)) {
@@ -108,7 +117,6 @@ public:
         }
 
         // wait for the transfer to complete
-        m_blocked = sched_dispatched;
         BLOCK();
 
         // we can unblock someone else if they were waiting

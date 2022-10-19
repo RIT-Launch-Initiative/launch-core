@@ -76,13 +76,17 @@ public:
             return ret;
         }
 
+        // mark this task as blocked BEFORE we call the interrupt function
+        // we want to make sure there is no race condition b/w processing the ISR
+        // and blocking the task
+        m_blocked = sched_dispatched;
+
         // start the write
         if(HAL_OK != HAL_UART_Transmit_IT(m_uart, &m_byte, sizeof(uint8_t))) {
             return RET_ERROR;
         }
 
         // block and wait for our transmit to complete
-        m_blocked = sched_dispatched;
         BLOCK();
 
         // we can unblock someone else if they were waiting
@@ -142,8 +146,11 @@ public:
             return RET_SUCCESS;
         }
 
-        m_blocked = sched_dispatched;
+        // we need to update these at the same time
+        // otherwise we could process the ISR and wake up after the wrong amount
+        // of data
         m_waiting = len;
+        m_blocked = sched_dispatched;
 
         BLOCK();
 
