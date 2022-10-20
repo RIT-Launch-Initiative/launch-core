@@ -72,7 +72,7 @@ namespace udp {
 
             UDP_HEADER_T *header = packet.allocate_header<UDP_HEADER_T>();
 
-            if (header != NULL) {
+            if (header == NULL) {
                 return RET_ERROR;
             }
 
