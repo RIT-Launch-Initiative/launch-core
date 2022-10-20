@@ -81,8 +81,14 @@ int main() {
 
     sockmsg_t msg = {addr1, 8000, IPV4_UDP_SOCK, buff, 50};
 
-    if(RET_SUCCESS != ip.transmit(packet, msg, NULL)) {
-        printf("failed to transmit packet\n");
+    if (RET_SUCCESS != udp.transmit(packet, msg, NULL)) {
+        printf("failed to transmit UDP packet\n");
+        return -1;
+    }
+
+
+    if(RET_SUCCESS != ip.transmit(packet, msg, &udp)) {
+        printf("failed to transmit IP packet\n");
         return -1;
     }
 
