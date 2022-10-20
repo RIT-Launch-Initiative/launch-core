@@ -23,19 +23,8 @@ namespace udp {
             src_port = port_num;
         }
 
-        RetType bind(uint16_t port_num) {
-            Socket** ret_loc = bind_map.add(port_num)
-
-            return RET_SUCCESS;
-        }
-
-
-        RetType unbind() {
-
-            return RET_SUCCESS;
-        }
         RetType subscribePort(NetworkLayer *subscriber, uint16_t port_num) {
-            NetworkLayer** ret_loc = port_map.add(port_num);
+            NetworkLayer **ret_loc = port_map.add(port_num);
 
             if (ret_loc != NULL) {
                 return RET_ERROR;
@@ -64,7 +53,7 @@ namespace udp {
 
             packet.skip_read(header->length);
 
-            NetworkLayer** next_ptr = port_map[header->dst];
+            NetworkLayer **next_ptr = port_map[header->dst];
             if (!next_ptr) {
                 return RET_ERROR;
             }
@@ -110,9 +99,8 @@ namespace udp {
 
     private:
         uint16_t src_port;
-        alloc::Hashmap<uint16_t, NetworkLayer*, SIZE, SIZE> port_map;
-        alloc::Hashmap<uint16_t, Socket<IPV4_UDP_SOCK>*, SIZE, SIZE> bind_map;
-
+        alloc::Hashmap<uint16_t, NetworkLayer *, SIZE, SIZE> port_map;
+        bind_map;
 
 
     };
