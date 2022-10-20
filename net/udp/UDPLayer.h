@@ -26,7 +26,7 @@ namespace udp {
         RetType subscribePort(NetworkLayer *subscriber, uint16_t port_num) {
             NetworkLayer **ret_loc = port_map.add(port_num);
 
-            if (ret_loc != NULL) {
+            if (ret_loc == NULL) {
                 return RET_ERROR;
             }
 
