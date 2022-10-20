@@ -95,6 +95,9 @@ public:
         // block until the transmit is complete
         BLOCK();
 
+        // mark the device as unblocked
+        m_blocked = -1;
+
         // we can unblock someone else if they were waiting
         check_unblock();
 
@@ -129,6 +132,9 @@ public:
 
         // block waiting for our read to complete
         BLOCK();
+
+        // mark the device as unblocked
+        m_blocked = -1;
 
         // we can unblock someone else if they were waiting
         check_unblock();
@@ -173,9 +179,7 @@ private:
             }
 
             BLOCK();
-        }
-
-        BLOCK();
+        } // otherwise we can just return, the device is ours
 
         RESET();
         return RET_SUCCESS;

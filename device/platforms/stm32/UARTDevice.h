@@ -89,6 +89,9 @@ public:
         // block and wait for our transmit to complete
         BLOCK();
 
+        // mark the device as unblocked
+        m_blocked = -1;
+
         // we can unblock someone else if they were waiting
         check_unblock();
 
@@ -141,18 +144,37 @@ public:
     RetType wait(size_t len) {
         RESUME();
 
-        // no need to wait, we already have the data
-        if(m_buff.size() >= len) {
-            return RET_SUCCESS;
-        }
-
-        // we need to update these at the same time
-        // otherwise we could process the ISR and wake up after the wrong amount
-        // of data
         m_waiting = len;
         m_blocked = sched_dispatched;
 
-        BLOCK();
+        // block the task, even if it might not need to be blocked
+        // we want to avoid the case where we check the size and then block, but
+        // we get an interrupt in between the check and block, so our task may sleep forever
+        sched_block(sched_dispatched);
+
+        // check for one of two cases
+        //  1. We already had enough data buffered to read, there was no need to block at all
+        //  2. We got an interrupt after setting m_waiting or m_blocked that filled the buffer up, we don't need to block
+        // any other case means the buffer is too small and we should block
+        // we don't need to worry if we get an interrupt b/w when we check the size
+        // and when we yield back to the scheduler, our task is already recorded and
+        // the callback handler will wake us (or we may already be woken by the time the function exits)
+
+        if(m_buff.size() >= len) {
+            // either case 1 or 2 occured, so we can just wake our task and be done
+            sched_wake(sched_dispatched);
+
+            RESET();
+            return RET_SUCCESS;
+        }
+
+        // otherwise we currently do not have enough data
+        // we already blocked our task to avoid race conditions
+        // so we just need to give execution back to the scheduler at this point
+        YIELD();
+
+        // if we made it here, we got enough data and the callback woke us up
+        // oh yeah
 
         RESET();
         return RET_SUCCESS;
@@ -219,9 +241,7 @@ private:
             }
 
             BLOCK();
-        }
-
-        BLOCK();
+        } // otherwise we can just return, the device is ours
 
         RESET();
         return RET_SUCCESS;
