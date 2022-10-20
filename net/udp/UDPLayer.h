@@ -47,7 +47,7 @@ namespace udp {
             UDP_HEADER_T *header = packet.read_ptr<UDP_HEADER_T>();
             info.port.udp = header->src;
 
-            if (header != NULL) {
+            if (header == NULL) {
                 return RET_ERROR;
             }
 
