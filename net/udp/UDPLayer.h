@@ -100,7 +100,6 @@ namespace udp {
     private:
         uint16_t src_port;
         alloc::Hashmap<uint16_t, NetworkLayer *, SIZE, SIZE> port_map;
-        bind_map;
 
 
     };
