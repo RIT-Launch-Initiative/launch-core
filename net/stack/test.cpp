@@ -56,16 +56,16 @@ int main() {
         return -1;
     }
 
-    if (RET_SUCCESS != udp.subscribePort(&ip, 5000)) {
-        printf("failed to add subscribe to UDP port\n");
-        return -1;
-    }
 
     if(RET_SUCCESS != ip.add_protocol(ipv4::UDP_PROTO, b)) {
         printf("failed to add protocol\n");
         return -1;
     }
 
+    if (RET_SUCCESS != udp.subscribePort(&ip, 8000)) {
+        printf("failed to add subscribe to UDP port\n");
+        return -1;
+    }
 
     uint8_t buff[50];
     for(size_t i = 0; i < 50; i++) {
@@ -83,12 +83,6 @@ int main() {
 
     if (RET_SUCCESS != udp.transmit(packet, msg, NULL)) {
         printf("failed to transmit UDP packet\n");
-        return -1;
-    }
-
-
-    if(RET_SUCCESS != ip.transmit(packet, msg, &udp)) {
-        printf("failed to transmit IP packet\n");
         return -1;
     }
 
