@@ -23,14 +23,16 @@ namespace udp {
             src_port = port_num;
         }
 
-        RetType bind() {
+        RetType bind(uint16_t port_num) {
+            Socket** ret_loc = bind_map.add(port_num)
+
             return RET_SUCCESS;
         }
 
 
         RetType unbind() {
 
-            return RET_ERROR;
+            return RET_SUCCESS;
         }
         RetType subscribePort(NetworkLayer *subscriber, uint16_t port_num) {
             NetworkLayer** ret_loc = port_map.add(port_num);
@@ -60,7 +62,7 @@ namespace udp {
                 return RET_ERROR;
             }
 
-            packet.skip_read(len(header));
+            packet.skip_read(header->length);
 
             NetworkLayer** next_ptr = port_map[header->dst];
             if (!next_ptr) {
@@ -85,7 +87,7 @@ namespace udp {
                 return RET_ERROR;
             }
 
-            header->src = ; // TODO: Could do a second pass to get src Info
+            header->src = 0; // TODO: Could do a second pass to get src Info
             header->dst = hton16(info.port.udp); // UDP is big endian
             header->checksum = 0;
             header->data_octets = packet.read_ptr<uint32_t>();
@@ -109,7 +111,9 @@ namespace udp {
     private:
         uint16_t src_port;
         alloc::Hashmap<uint16_t, NetworkLayer*, SIZE, SIZE> port_map;
-        alloc::Hashmap<> bind_map;
+        alloc::Hashmap<uint16_t, Socket<IPV4_UDP_SOCK>*, SIZE, SIZE> bind_map;
+
+
 
     };
 }
