@@ -79,7 +79,6 @@ namespace udp {
             header->src = 0; // TODO: Could do a second pass to get src Info
             header->dst = info.port.udp; // UDP is big endian
             header->checksum = 0;
-            header->data_octets = packet.read_ptr<uint32_t>();
             header->length = info.payload_len;
 
             NetworkLayer **next_ptr = port_map[header->dst];

@@ -6,7 +6,6 @@
 
 namespace udp {
     typedef struct {
-        uint32_t *data_octets;
         uint16_t length;
         uint16_t checksum;
         uint16_t dst;
