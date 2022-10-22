@@ -272,6 +272,7 @@ public:
         // calculate checksum
         hdr->checksum = hton16(checksum((uint16_t*)hdr, sizeof(IPv4Header_t) / sizeof(uint16_t)));
 
+        printf("Transmitting from IPV4\n");
         RetType ret =  CALL(route->next->transmit(packet, info, this));
 
         RESET();

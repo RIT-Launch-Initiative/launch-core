@@ -23,8 +23,27 @@ namespace udp {
             src_port = port_num;
         }
 
+        RetType bind(NetworkLayer layer, uint16_t &port_num) {
+            uint16_t **ret_loc = device_map.add(layer);
+
+            if (ret_loc == NULL) {
+                return RET_ERROR;
+            }
+
+            *ret_loc = &port_num;
+
+            return RET_SUCCESS;
+        }
+
+        RetType unbind() {
+            bool success = protocol_map.remove(port_num);
+
+            return success ? RET_SUCCESS : RET_ERROR;
+        }
+
+
         RetType subscribePort(NetworkLayer &subscriber, uint16_t port_num) {
-            NetworkLayer **ret_loc = port_map.add(port_num);
+            NetworkLayer **ret_loc = protocol_map.add(port_num);
 
             if (ret_loc == NULL) {
                 return RET_ERROR;
@@ -36,7 +55,7 @@ namespace udp {
         }
 
         RetType unsubscribePort(uint16_t port_num) {
-            bool success = port_map.remove(port_num);
+            bool success = protocol_map.remove(port_num);
 
             return success ? RET_SUCCESS : RET_ERROR;
         }
@@ -53,7 +72,7 @@ namespace udp {
 
             packet.skip_read(header->length);
 
-            NetworkLayer **next_ptr = port_map[header->dst];
+            NetworkLayer **next_ptr = protocol_map[header->dst];
             if (next_ptr == NULL) {
                 return RET_ERROR;
             }
@@ -81,13 +100,14 @@ namespace udp {
             header->checksum = 0;
             header->length = info.payload_len;
 
-            NetworkLayer **next_ptr = port_map[header->dst];
+            NetworkLayer **next_ptr = protocol_map[header->dst];
 
             if (!next_ptr) {
                 return RET_ERROR;
             }
 
             NetworkLayer *next = *next_ptr;
+            printf("Transmitting from UDP\n");
 
             RetType ret = CALL(next->transmit(packet, info, this));
 
@@ -97,7 +117,9 @@ namespace udp {
 
     private:
         uint16_t src_port;
-        alloc::Hashmap<uint16_t, NetworkLayer *, SIZE, SIZE> port_map;
+        alloc::Hashmap<uint16_t, NetworkLayer *, SIZE, SIZE> protocol_map;
+        alloc::Hashmap<NetworkLayer *, uint8_t, SIZE, SIZE> device_map;
+
 
 
     };
