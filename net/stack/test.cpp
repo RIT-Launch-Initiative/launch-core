@@ -1,7 +1,7 @@
 #include <stdio.h>
 
 #include "net/ipv4/IPv4Router.h"
-#include "net/udp/UDPLayer.h"
+#include "net/udp/UDPRouter.h"
 #include "net/loopback/Loopback.h"
 
 // network layer that absorbs all packets and just prints them out
@@ -41,7 +41,7 @@ int main() {
     ipv4::IPv4Router ip;
     Loopback lo;
     Blackhole b;
-    udp::UDPLayer udp;
+    udp::UDPRouter udp;
 
     ipv4::IPv4Addr_t addr1;
     ipv4::IPv4Address(10, 10, 10, 5, &addr1);
