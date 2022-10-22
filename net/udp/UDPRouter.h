@@ -1,5 +1,5 @@
-#ifndef LAUNCH_CORE_UDPLAYER_H
-#define LAUNCH_CORE_UDPLAYER_H
+#ifndef LAUNCH_CORE_UDPROUTER_H
+#define LAUNCH_CORE_UDPROUTER_H
 
 #include "net/common.h"
 #include "net/socket/Socket.h"
@@ -13,13 +13,13 @@
 namespace udp {
     static const size_t SIZE = 25;
 
-    class UDPLayer : public NetworkLayer {
+    class UDPRouter : public NetworkLayer {
     public:
-        UDPLayer() {
+        UDPRouter() {
             src_port = 0;
         }
 
-        UDPLayer(uint16_t port_num) {
+        UDPRouter(uint16_t port_num) {
             src_port = port_num;
         }
 
@@ -103,4 +103,4 @@ namespace udp {
     };
 }
 
-#endif //LAUNCH_CORE_UDPLAYER_H
+#endif //LAUNCH_CORE_UDPROUTER_H
