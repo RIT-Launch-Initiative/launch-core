@@ -23,14 +23,14 @@ namespace udp {
             src_port = port_num;
         }
 
-        RetType subscribePort(NetworkLayer *subscriber, uint16_t port_num) {
+        RetType subscribePort(NetworkLayer &subscriber, uint16_t port_num) {
             NetworkLayer **ret_loc = port_map.add(port_num);
 
             if (ret_loc == NULL) {
                 return RET_ERROR;
             }
 
-            ret_loc = &subscriber;
+            *ret_loc = &subscriber;
 
             return RET_SUCCESS;
         }
@@ -90,7 +90,6 @@ namespace udp {
             NetworkLayer *next = *next_ptr;
 
             RetType ret = CALL(next->transmit(packet, info, this));
-
 
             RESET();
             return ret;

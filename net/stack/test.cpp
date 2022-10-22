@@ -4,7 +4,6 @@
 #include "net/udp/UDPLayer.h"
 #include "net/loopback/Loopback.h"
 
-
 // network layer that absorbs all packets and just prints them out
 class Blackhole : public NetworkLayer {
 public:
@@ -56,16 +55,16 @@ int main() {
         return -1;
     }
 
+    if (RET_SUCCESS != udp.subscribePort(b, 8000)) {
+        printf("failed to add subscribe to UDP port\n");
+        return -1;
+    }
 
-    if(RET_SUCCESS != ip.add_protocol(ipv4::UDP_PROTO, b)) {
+    if(RET_SUCCESS != ip.add_protocol(ipv4::UDP_PROTO, udp)) {
         printf("failed to add protocol\n");
         return -1;
     }
 
-    if (RET_SUCCESS != udp.subscribePort(&ip, 8000)) {
-        printf("failed to add subscribe to UDP port\n");
-        return -1;
-    }
 
     uint8_t buff[50];
     for(size_t i = 0; i < 50; i++) {
@@ -81,8 +80,8 @@ int main() {
 
     sockmsg_t msg = {addr1, 8000, IPV4_UDP_SOCK, buff, 50};
 
-    if (RET_SUCCESS != udp.transmit(packet, msg, NULL)) {
-        printf("failed to transmit UDP packet\n");
+    if(RET_SUCCESS != udp.transmit(packet, msg, NULL)) {
+        printf("failed to transmit packet\n");
         return -1;
     }
 
