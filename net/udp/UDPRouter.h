@@ -72,13 +72,13 @@ namespace udp {
 
             packet.skip_read(header->length);
 
-            NetworkLayer **next_ptr = protocol_map[header->dst];
+            NetworkLayer **next_ptr = device_map[header->dst];
             if (next_ptr == NULL) {
                 return RET_ERROR;
             }
 
             NetworkLayer *next = *next_ptr;
-
+            printf("Receiving from UDP\n");
             RetType ret = CALL(next->receive(packet, info, this));
 
             RESET();
@@ -100,7 +100,7 @@ namespace udp {
             header->checksum = 0;
             header->length = info.payload_len;
 
-            NetworkLayer **next_ptr = device_map[header->dst];
+            NetworkLayer **next_ptr = protocol_map[header->dst];
 
             if (!next_ptr) {
                 return RET_ERROR;

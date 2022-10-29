@@ -217,7 +217,7 @@ public:
 
         // record the source address
         info.addr.ipv4 = ntoh32(hdr->src);
-
+        printf("Receiving from IPV4\n");
         RetType ret = CALL(next->receive(packet, info, this));
 
         RESET();
