@@ -23,7 +23,7 @@ namespace udp {
             src_port = port_num;
         }
 
-        RetType bind(NetworkLayer &layer, uint16_t &port_num) {
+        RetType bind(NetworkLayer &layer, uint16_t port_num) {
             NetworkLayer **ret_loc = device_map.add(port_num);
 
             if (ret_loc == NULL) {
