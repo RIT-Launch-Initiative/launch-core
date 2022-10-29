@@ -55,17 +55,18 @@ int main() {
         return -1;
     }
 
+
     if (RET_SUCCESS != udp.subscribePort(ip, 8000)) {
-        printf("failed to add subscribe to UDP port\n");
+        printf("Failed to add subscribe to UDP port\n");
         return -1;
     }
 
-    if (RET_SUCCESS != udp.bind(b, 8000)) {
+    if (RET_SUCCESS != udp.bind(b, 2570)) { // TODO: Figuring out how 8000 becomes 2570 exactly
         printf("Failed to bind layer to UDP port");
         return -1;
     }
 
-    if(RET_SUCCESS != ip.add_protocol(ipv4::UDP_PROTO, b)) {
+    if(RET_SUCCESS != ip.add_protocol(ipv4::UDP_PROTO, udp)) {
         printf("failed to add protocol\n");
         return -1;
     }
