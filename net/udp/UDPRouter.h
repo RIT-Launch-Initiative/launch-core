@@ -24,19 +24,19 @@ namespace udp {
         }
 
         RetType bind(NetworkLayer &layer, uint16_t port_num) {
-            NetworkLayer **ret_loc = device_map.add(port_num);
+            uint16_t **ret_loc = device_map.add(&layer);
 
             if (ret_loc == NULL) {
                 return RET_ERROR;
             }
 
-            *ret_loc = &layer;
+            *ret_loc = &port_num;
 
             return RET_SUCCESS;
         }
 
-        RetType unbind(uint16_t port_num) {
-            bool success = protocol_map.remove(port_num);
+        RetType unbind(NetworkLayer &layer) {
+            bool success = device_map.remove(&layer);
 
             return success ? RET_SUCCESS : RET_ERROR;
         }
@@ -72,7 +72,7 @@ namespace udp {
 
             packet.skip_read(header->length);
 
-            NetworkLayer **next_ptr = device_map[header->dst];
+            NetworkLayer **next_ptr = protocol_map[header->dst];
             if (next_ptr == NULL) {
                 return RET_ERROR;
             }
@@ -118,7 +118,7 @@ namespace udp {
     private:
         uint16_t src_port;
         alloc::Hashmap<uint16_t, NetworkLayer *, SIZE, SIZE> protocol_map;
-        alloc::Hashmap<uint16_t, NetworkLayer *, SIZE, SIZE> device_map;
+        alloc::Hashmap<NetworkLayer *, uint16_t , SIZE, SIZE> device_map;
 
     };
 }
