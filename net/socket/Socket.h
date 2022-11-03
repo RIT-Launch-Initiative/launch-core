@@ -6,33 +6,34 @@
 
 #include "return.h"
 
-typedef union {
-    uint32_t ipv4;
+// all the possible addressing information for any kind of socket
+typedef struct {
+    // Ethernet info
     uint8_t mac[6];
+
+    // IPv4 info
+    uint32_t ipv4_addr;
+
+    // UDP info
+    uint16_t udp_port;
 } sockaddr_t;
 
-typedef union {
-    uint16_t udp;
-} sockport_t;
-
+// socket types
 typedef enum {
     IPV4_UDP_SOCK = 0,      // IPv4 and UDP
-    RAW_IPV4_UDP_SOCK,      // user needs to provide UDP header, sent over IPv4 
-    PACKET_SOCK,            // only adds link layer header
+    RAW_IPV4_UDP_SOCK,      // user needs to provide UDP header, sent over IPv4
+    PACKET_SOCK,            // only adds link layer header, dst address must be provided, src will be ignored if 0
     NUM_SOCK_TYPES
 } socktype_t;
 
-// socket message
-// user should fill in all fields except 'type', which the Socket object fills in
+    // describes a packet sent/received over a socket
 typedef struct {
-    sockaddr_t addr;
-    sockport_t port;
+    sockaddr_t src;
+    sockaddr_t dst;
     socktype_t type;
-    uint8_t* payload;    // payload
-    size_t payload_len;  // payload length
-} sockmsg_t;
+} sockinfo_t;
 
-
+/*
 /// @brief network socket device
 /// @tparam TYPE type of the socket
 template <const socktype_t SOCK>
@@ -52,7 +53,7 @@ public:
     ///             'payload' is a buffer holding the payload
     ///             'payload_len' is the length of the payload
     /// @return if all bytes were sent
-    virtual RetType sendmsg(sockmsg_t* msg) = 0;
+    virtual RetType sendmsg(sockinfo_t* msg) = 0;
 
     /// @brief received a message on the socket
     /// @param msg  the message to receive
@@ -62,7 +63,7 @@ public:
     ///             'payload_len' is the size of the buffer, up to this many bytes are copied
     ///                           this is set to the actual number of bytes copied
     /// @return
-    virtual RetType recvmsg(sockmsg_t* msg) = 0;
+    virtual RetType recvmsg(sockinfo_t* msg) = 0;
 
     /// @brief bind this socket to an address
     ///        the socket will send and receive from this address
@@ -88,5 +89,6 @@ public:
     /// @return the amount of data that can be read in bytes
     virtual size_t available() = 0;
 };
+*/
 
 #endif

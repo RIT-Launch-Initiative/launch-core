@@ -129,7 +129,7 @@ public:
 
     /// @brief receive an ARP packet
     /// @return
-    RetType receive(Packet& packet, sockmsg_t& info, NetworkLayer* caller) {
+    RetType receive(Packet& packet, sockinfo_t& info, NetworkLayer* caller) {
         if(packet.available() < sizeof(ArpHeader_t)) {
             // not enough ARP data
             return RET_ERROR;
@@ -185,7 +185,13 @@ public:
 
     /// @brief transmit
     /// @return error, always invalid
-    RetType transmit(Packet&, sockmsg_t&, NetworkLayer*) {
+    RetType transmit(Packet&, sockinfo_t&, NetworkLayer*) {
+        return RET_ERROR;
+    }
+
+    /// @brief transmit (second pass)
+    /// @return error, always invalid
+    RetType transmit2(Packet&, sockinfo_t&, NetworkLayer*) {
         return RET_ERROR;
     }
 
