@@ -61,6 +61,8 @@ int main() {
         return -1;
     }
 
+    udp.setTransmitLayer(ip);
+
     if (RET_SUCCESS != udp.bind(b, 2570)) { // TODO: Figuring out how 8000 becomes 2570 exactly
         printf("Failed to bind layer to UDP port");
         return -1;

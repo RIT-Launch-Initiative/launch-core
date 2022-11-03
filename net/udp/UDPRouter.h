@@ -16,11 +16,15 @@ namespace udp {
     class UDPRouter : public NetworkLayer {
     public:
         UDPRouter() {
-            src_port = 0;
+            this->transmitLayer = nullptr;
         }
 
-        UDPRouter(uint16_t port_num) {
-            src_port = port_num;
+        UDPRouter(NetworkLayer &networkLayer) {
+            this->transmitLayer = &networkLayer;
+        }
+
+        void setTransmitLayer(NetworkLayer &layer) {
+            this->transmitLayer = &layer;
         }
 
         RetType bind(NetworkLayer &layer, uint16_t port_num) {
@@ -89,6 +93,10 @@ namespace udp {
         RetType transmit(Packet &packet, sockmsg_t &info, NetworkLayer *caller) {
             RESUME();
 
+            if (this->transmitLayer == NULL) {
+                return RET_ERROR;
+            }
+
             UDP_HEADER_T *header = packet.allocate_header<UDP_HEADER_T>();
 
             if (header == NULL) {
@@ -109,17 +117,16 @@ namespace udp {
             NetworkLayer *next = *next_ptr;
             printf("Transmitting from UDP\n");
 
-            RetType ret = CALL(next->transmit(packet, info, this));
+            RetType ret = CALL(transmitLayer->transmit(packet, info, this));
 
             RESET();
             return ret;
         }
 
     private:
-        uint16_t src_port;
         alloc::Hashmap<uint16_t, NetworkLayer *, SIZE, SIZE> protocol_map;
-        alloc::Hashmap<NetworkLayer *, uint16_t , SIZE, SIZE> device_map;
-
+        alloc::Hashmap<NetworkLayer *, uint16_t, SIZE, SIZE> device_map;
+        NetworkLayer *transmitLayer;
     };
 }
 
