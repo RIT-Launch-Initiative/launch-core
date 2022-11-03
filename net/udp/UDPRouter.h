@@ -27,41 +27,29 @@ namespace udp {
             this->transmitLayer = &layer;
         }
 
-        RetType bind(NetworkLayer &layer, uint16_t port_num) {
-            uint16_t *ret_loc = device_map.add(&layer);
-
-            if (ret_loc == NULL) {
+        RetType subscribe_port(NetworkLayer &layer, uint16_t port_num) {
+            NetworkLayer **layer_loc = protocol_map.add(port_num);
+            if (!layer_loc) {
                 return RET_ERROR;
             }
 
-            ret_loc = &port_num;
-
-            return RET_SUCCESS;
-        }
-
-        RetType unbind(NetworkLayer &layer) {
-            bool success = device_map.remove(&layer);
-
-            return success ? RET_SUCCESS : RET_ERROR;
-        }
-
-
-        RetType subscribePort(NetworkLayer &subscriber, uint16_t port_num) {
-            NetworkLayer **ret_loc = protocol_map.add(port_num);
-
-            if (ret_loc == NULL) {
+            uint16_t *port_num_loc = device_map.add(&layer);
+            if (!port_num_loc) {
                 return RET_ERROR;
             }
 
-            *ret_loc = &subscriber;
+            *layer_loc = &layer;
+            port_num_loc = &port_num;
 
             return RET_SUCCESS;
         }
 
         RetType unsubscribePort(uint16_t port_num) {
-            bool success = protocol_map.remove(port_num);
+            NetworkLayer **layer = protocol_map[port_num];
+            bool device_success = device_map.remove(*layer);
+            bool protocol_success = protocol_map.remove(port_num);
 
-            return success ? RET_SUCCESS : RET_ERROR;
+            return device_success && protocol_success ? RET_SUCCESS : RET_ERROR;
         }
 
         RetType receive(Packet &packet, sockmsg_t &info, NetworkLayer *caller) {
@@ -108,13 +96,13 @@ namespace udp {
             header->checksum = 0;
             header->length = info.payload_len;
 
-            NetworkLayer **next_ptr = protocol_map[header->dst];
+            uint16_t *src_port_m = device_map[caller];
 
-            if (!next_ptr) {
+            if (!src_port_m) {
                 return RET_ERROR;
             }
 
-            NetworkLayer *next = *next_ptr;
+            uint16_t src_port = *src_port_m;
             printf("Transmitting from UDP\n");
 
             RetType ret = CALL(transmitLayer->transmit(packet, info, this));
