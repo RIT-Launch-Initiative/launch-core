@@ -55,12 +55,6 @@ int main() {
         return -1;
     }
 
-
-    if (RET_SUCCESS != udp.subscribe_port(ip, 8000)) {
-        printf("Failed to add subscribe to UDP port\n");
-        return -1;
-    }
-
     udp.setTransmitLayer(ip);
 
     if (RET_SUCCESS != udp.subscribe_port(b, 2570)) { // TODO: Figuring out how 8000 becomes 2570 exactly

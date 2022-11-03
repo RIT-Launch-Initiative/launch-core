@@ -91,7 +91,7 @@ namespace udp {
                 return RET_ERROR;
             }
 
-            header->src = 0; // TODO: Could do a second pass to get src Info
+            header->src = *device_map[caller];
             header->dst = info.port.udp; // UDP is big endian
             header->checksum = 0;
             header->length = info.payload_len;
@@ -112,7 +112,7 @@ namespace udp {
         }
 
     private:
-        alloc::Hashmap<uint16_t, NetworkLayer *, SIZE, SIZE> protocol_map;
+        alloc::Hashmap<uint16_t, NetworkLayer *, SIZE, SIZE> protocol_map; // TODO: Needs a name change
         alloc::Hashmap<NetworkLayer *, uint16_t, SIZE, SIZE> device_map;
         NetworkLayer *transmitLayer;
     };
