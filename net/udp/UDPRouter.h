@@ -62,7 +62,7 @@ namespace udp {
                 return RET_ERROR;
             }
 
-            packet.skip_read(header->length);
+            packet.skip_read(sizeof(UDP_HEADER_T));
 
             NetworkLayer **next_ptr = protocol_map[header->dst];
             if (next_ptr == NULL) {
