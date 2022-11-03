@@ -175,7 +175,7 @@ public:
     /// @brief get the how many bytes of header is being used
     /// @return how much header space is used
     size_t headerSize() {
-        return m_hpos;
+        return m_headerSize - m_hpos;
     }
 
     /// @brief get the total number of bytes that can be written to the packet payload

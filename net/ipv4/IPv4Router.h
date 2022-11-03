@@ -260,7 +260,7 @@ public:
 
         hdr->version_ihl = DEFAULT_VERSION_IHL;
         hdr->dscp_ecn = 0;
-        hdr->total_len = hton16(info.payload_len + sizeof(IPv4Header_t));
+        hdr->total_len = hton16(info.payload_len + packet.headerSize());
         hdr->identification = 0;
         hdr->flags_frag = 0;
         hdr->ttl = DEFAULT_TTL;
