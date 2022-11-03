@@ -28,12 +28,12 @@ namespace udp {
         }
 
         RetType subscribe_port(NetworkLayer &layer, uint16_t port_num) {
-            NetworkLayer **layer_loc = protocol_map.add(port_num);
+            NetworkLayer **layer_loc = port_bindings.add(port_num);
             if (!layer_loc) {
                 return RET_ERROR;
             }
 
-            uint16_t *port_num_loc = device_map.add(&layer);
+            uint16_t *port_num_loc = layer_bindings.add(&layer);
             if (!port_num_loc) {
                 return RET_ERROR;
             }
@@ -45,9 +45,9 @@ namespace udp {
         }
 
         RetType unsubscribePort(uint16_t port_num) {
-            NetworkLayer **layer = protocol_map[port_num];
-            bool device_success = device_map.remove(*layer);
-            bool protocol_success = protocol_map.remove(port_num);
+            NetworkLayer **layer = port_bindings[port_num];
+            bool device_success = layer_bindings.remove(*layer);
+            bool protocol_success = port_bindings.remove(port_num);
 
             return device_success && protocol_success ? RET_SUCCESS : RET_ERROR;
         }
@@ -64,12 +64,15 @@ namespace udp {
 
             packet.skip_read(sizeof(UDP_HEADER_T));
 
-            NetworkLayer **next_ptr = protocol_map[ntoh16(header->dst)];
+            NetworkLayer **next_ptr = port_bindings[ntoh16(header->dst)];
             if (next_ptr == NULL) {
                 return RET_ERROR;
             }
 
             NetworkLayer *next = *next_ptr; // TODO another null ptr check please
+            if (next == NULL) {
+                return RET_ERROR;
+            }
             RetType ret = CALL(next->receive(packet, info, this));
 
             RESET();
@@ -90,19 +93,15 @@ namespace udp {
                 return RET_ERROR;
             }
 
-            header->src = hton16(*device_map[caller]); // TODO make sure there is a device, this is a segfault otherwise
+            uint16_t *src_port = layer_bindings[caller];
+            if (src_port == NULL) {
+                return RET_ERROR;
+            }
+
+            header->src = hton16(*src_port);
             header->dst = hton16(info.port.udp); // UDP is big endian
             header->checksum = 0;
             header->length = info.payload_len + packet.headerSize() - sizeof(UDP_HEADER_T);
-
-            // uint16_t *src_port_m = device_map[caller];
-            //
-            // if (!src_port_m) {
-            //     return RET_ERROR;
-            // }
-            //
-            // uint16_t src_port = *src_port_m;
-            // printf("Transmitting from UDP\n");
 
             RetType ret = CALL(transmitLayer->transmit(packet, info, this));
 
@@ -111,8 +110,8 @@ namespace udp {
         }
 
     private:
-        alloc::Hashmap<uint16_t, NetworkLayer *, SIZE, SIZE> protocol_map; // TODO: Needs a name change
-        alloc::Hashmap<NetworkLayer *, uint16_t, SIZE, SIZE> device_map;
+        alloc::Hashmap<uint16_t, NetworkLayer *, SIZE, SIZE> port_bindings;
+        alloc::Hashmap<NetworkLayer *, uint16_t, SIZE, SIZE> layer_bindings;
         NetworkLayer *transmitLayer;
     };
 }
