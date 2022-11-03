@@ -57,7 +57,7 @@ int main() {
 
     udp.setTransmitLayer(ip);
 
-    if (RET_SUCCESS != udp.subscribe_port(b, 2570)) { // TODO: Figuring out how 8000 becomes 2570 exactly
+    if (RET_SUCCESS != udp.subscribe_port(b, 8080)) { // TODO: Figuring out how 8000 becomes 2570 exactly
         printf("Failed to bind layer to UDP port");
         return -1;
     }
@@ -80,7 +80,7 @@ int main() {
         return -1;
     }
 
-    sockmsg_t msg = {addr1, 8000, IPV4_UDP_SOCK, buff, 50};
+    sockmsg_t msg = {addr1, 8080, IPV4_UDP_SOCK, buff, 50};
 
     if(RET_SUCCESS != udp.transmit(packet, msg, &b)) {
         printf("failed to transmit packet\n");

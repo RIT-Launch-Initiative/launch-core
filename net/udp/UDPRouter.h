@@ -56,21 +56,20 @@ namespace udp {
             RESUME();
 
             UDP_HEADER_T *header = packet.read_ptr<UDP_HEADER_T>();
-            info.port.udp = header->src;
+            info.port.udp = ntoh16(header->src);
 
             if (header == NULL) {
                 return RET_ERROR;
             }
 
-            packet.skip_read(header->length);
+            packet.skip_read(sizeof(UDP_HEADER_T));
 
-            NetworkLayer **next_ptr = protocol_map[header->dst];
+            NetworkLayer **next_ptr = protocol_map[ntoh16(header->dst)];
             if (next_ptr == NULL) {
                 return RET_ERROR;
             }
 
-            NetworkLayer *next = *next_ptr;
-            printf("Receiving from UDP\n");
+            NetworkLayer *next = *next_ptr; // TODO another null ptr check please
             RetType ret = CALL(next->receive(packet, info, this));
 
             RESET();
@@ -91,19 +90,19 @@ namespace udp {
                 return RET_ERROR;
             }
 
-            header->src = *device_map[caller];
-            header->dst = info.port.udp; // UDP is big endian
+            header->src = hton16(*device_map[caller]); // TODO make sure there is a device, this is a segfault otherwise
+            header->dst = hton16(info.port.udp); // UDP is big endian
             header->checksum = 0;
-            header->length = info.payload_len;
+            header->length = info.payload_len + packet.headerSize() - sizeof(UDP_HEADER_T);
 
-            uint16_t *src_port_m = device_map[caller];
-
-            if (!src_port_m) {
-                return RET_ERROR;
-            }
-
-            uint16_t src_port = *src_port_m;
-            printf("Transmitting from UDP\n");
+            // uint16_t *src_port_m = device_map[caller];
+            //
+            // if (!src_port_m) {
+            //     return RET_ERROR;
+            // }
+            //
+            // uint16_t src_port = *src_port_m;
+            // printf("Transmitting from UDP\n");
 
             RetType ret = CALL(transmitLayer->transmit(packet, info, this));
 
