@@ -24,13 +24,13 @@ namespace udp {
         }
 
         RetType bind(NetworkLayer &layer, uint16_t port_num) {
-            uint16_t **ret_loc = device_map.add(&layer);
+            uint16_t *ret_loc = device_map.add(&layer);
 
             if (ret_loc == NULL) {
                 return RET_ERROR;
             }
 
-            *ret_loc = &port_num;
+            ret_loc = &port_num;
 
             return RET_SUCCESS;
         }
