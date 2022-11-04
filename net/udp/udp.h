@@ -34,9 +34,9 @@ namespace udp {
     }
 
 
-    bool verify_checksum(UDP_HEADER_T header, uint8_t *payload, uint16_t checksum) {
-        // TODO: Once we figure out pseudo header issue with net stack
-        return 0;
+    bool verify_checksum(UDP_HEADER_T header, uint16_t *payload, uint16_t actual_checksum) {
+        // TODO: Update size
+        return checksum(header, payload, sizeof(UDP_HEADER_T) + sizeof(*payload)) == actual_checksum;
     }
 }
 
