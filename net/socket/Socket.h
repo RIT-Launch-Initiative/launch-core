@@ -58,11 +58,11 @@ public:
 
     /// @brief send a packet over this socket
     /// @return
-    virtual send(uint8_t* buff, size_t len, ADDR& dst) = 0;
+    virtual RetType send(uint8_t* buff, size_t len, ADDR& dst) = 0;
 
     /// @brief receive a packet over this socket
     /// source address of the packet will be filled into 'src'
-    virtual recv(uint8_t* buff, size_t len, ADDR& src) = 0;
+    virtual RetType recv(uint8_t* buff, size_t len, ADDR& src) = 0;
 };
 
 #endif
