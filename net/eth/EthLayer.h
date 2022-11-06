@@ -12,7 +12,6 @@ public:
     /// @param mac      the MAC address of the device
     /// @param in       the network layer to forward received packets to
     /// @param out      the network layer to transmit packets to
-    // TODO also take in an ARP layer
     EthLayer(uint8_t mac[6], NetworkLayer& in, NetworkLayer& out) : m_in(in), m_out(out) {
         for(size_t i = 0; i < 6; i++) {
             m_mac[i] = mac[i];
@@ -22,7 +21,7 @@ public:
     /// @brief receive a packet
     ///        drops packet if dst is not this device's MAC or a broadcast/multicast
     /// @return
-    RetType receive(Packet& packet, msg_t& info, NetworkLayer*) {
+    RetType receive(Packet& packet, sockinfo_t& info, NetworkLayer*) {
         RESUME();
 
         EthHeader_t* hdr = packet.ptr<EthHeader_t>();
@@ -53,6 +52,11 @@ public:
         RetType ret = RET_ERROR;
 
         if(match | broadcast) {
+            // fill in src information for this packet
+            for(size_t i = 0; i < 6; i++) {
+                info.src.mac[i] = hdr->src[i];
+            }
+
             if(RET_SUCCESS == packet.skip_read(sizeof(EthHeader_t))) {
                 ret = CALL(m_in.receive(packet, info, this));
             }
@@ -64,7 +68,7 @@ public:
 
     /// @brief transmit a packet
     /// @return
-    RetType transmit(Packet& packet, msg_t& msg, NetworkLayer*) {
+    RetType transmit(Packet& packet, sockinfo_t& info, NetworkLayer*) {
         RESUME();
 
         EthHeader_t* hdr = packet.allocate_header<EthHeader_t>();
@@ -74,29 +78,24 @@ public:
 
         for(size_t i = 0; i < 6; i++) {
             hdr.src[i] = m_mac[i];
+            hdr.dst[i] = info.dst.mac[i];
         }
 
-        // TODO ARP lookup for dst
-        // for now zeroes field
-        for(size_t i = 0; i < 6; i++) {
-            hdr.dst[i] = 0x00;
-        }
+        hdr->ethertype = hton16(ETH_PROTO[info.type]);
 
-        hdr->ethertype = hton16(ETH_PROTO[msg.type]);
-
-        RetType ret = CALL(m_out.transmit(packet, msg, this));
+        RetType ret = CALL(m_out.transmit(packet, info, this));
 
         RESET();
         return ret;
     }
 
-    RetType transmit2(Packet& packet, msg_t& msg, NetworkLayer*) {
+    RetType transmit2(Packet& packet, sockinfo_t& info, NetworkLayer*) {
         RESUME();
         // give the packet to the device to transmit, we don't need to do anything else
 
         // TODO maybe calculate FCS actually? the device may handle this
 
-        RetType ret = CALL(m_out.transmit(packet, msg, this));
+        RetType ret = CALL(m_out.transmit(packet, info, this));
 
         RESET();
         return ret;
