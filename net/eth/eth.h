@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 #include "net/socket/Socket.h"
-#include "net/eth/crctable.h"
+#include "net/eth/crctable.c"
 
 namespace eth {
 
