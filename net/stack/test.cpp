@@ -2,7 +2,7 @@
 
 #include "net/ipv4/IPv4Router.h"
 #include "net/loopback/Loopback.h"
-#include "net/easy_arp/EasyArpLayer.h"
+#include "net/simple_arp/SimpleArpLayer.h"
 
 // network layer that absorbs all packets and just prints them out
 class Blackhole : public NetworkLayer {

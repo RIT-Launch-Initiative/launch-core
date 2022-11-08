@@ -1,6 +1,6 @@
 /*******************************************************************************
 *
-*  Name: EasyArpLayer.h
+*  Name: SimpleArpLayer.h
 *
 *  Purpose: Subsitutes the ARP protocol for static mapping of IPv4 addresses
 *           to MAC addresses. Rather than use ARP to query for a MAC address,
@@ -12,17 +12,17 @@
 *  RIT Launch Initiative
 *
 *******************************************************************************/
-#ifndef EASY_ARP_H
-#define EASY_ARP_H
+#ifndef SIMPLE_ARP_H
+#define SIMPLE_ARP_H
 
 #include "net/network_layer/NetworkLayer.h"
 #include "sched/macros.h"
 
-class EasyArpLayer : public NetworkLayer {
+class SimpleArpLayer : public NetworkLayer {
 public:
     /// @brief constructor
     /// @param out  the network layer to send packets to next
-    EasyArpLayer(NetworkLayer& out) : m_out(out) {};
+    SimpleArpLayer(NetworkLayer& out) : m_out(out) {};
 
     /// @brief receive
     /// @returns error all the time, cannot receive

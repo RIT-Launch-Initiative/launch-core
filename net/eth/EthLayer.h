@@ -12,7 +12,12 @@ public:
     /// @param mac      the MAC address of the device
     /// @param in       the network layer to forward received packets to
     /// @param out      the network layer to transmit packets to
-    EthLayer(uint8_t mac[6], NetworkLayer& in, NetworkLayer& out) : m_in(in), m_out(out) {
+    /// @param add_fcs  true if the FCS should be calculated and added to
+    ///                 outgoing packets
+    EthLayer(uint8_t mac[6],
+             NetworkLayer& in,
+             NetworkLayer& out,
+             bool add_fcs = false) : m_in(in), m_out(out), m_fcs(fcs) {
         for(size_t i = 0; i < 6; i++) {
             m_mac[i] = mac[i];
         }
@@ -91,10 +96,17 @@ public:
 
     RetType transmit2(Packet& packet, sockinfo_t& info, NetworkLayer*) {
         RESUME();
-        // give the packet to the device to transmit, we don't need to do anything else
 
-        // TODO maybe calculate FCS actually? the device may handle this
+        // calculate the FCS if configured to
+        if(m_fcs) {
+            uint32_t fcs = calculate_fcs(packet.raw(), packet.size() + packet.headerSize());
 
+            if(RET_SUCCESS != packet.push(fcs)) {
+                return RET_ERROR;
+            }
+        }
+
+        // pass the packet along
         RetType ret = CALL(m_out.transmit(packet, info, this));
 
         RESET();
@@ -106,6 +118,8 @@ private:
 
     NetworkLayer& m_in;
     NetworkLayer& m_out;
+
+    bool m_fcs;
 };
 
 #endif
