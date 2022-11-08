@@ -10,6 +10,11 @@
 #include "hashmap/hashmap.h"
 #include "queue/allocated_queue.h"
 #include "sched/macros.h"
+#include "config.h"
+
+#ifdef NET_STATISTICS
+#include "net/statistics/NetworkStatistics.h"
+#endif
 
 namespace ipv4 {
 
@@ -18,9 +23,11 @@ namespace ipv4 {
 static const size_t SIZE = 25;
 
 /// @brief IPv4 router
-// /// @tparam SIZE    the number of routes that can be stored
-// template <const size_t SIZE>
+#ifdef NET_STATISTICS
+class IPv4Router : public NetworkLayer, public NetworkStatistics {
+#else
 class IPv4Router : public NetworkLayer {
+#endif
 public:
     /// @brief constructor
     IPv4Router() : m_routingTable(route_sort) {};
@@ -149,18 +156,32 @@ public:
         IPv4Header_t* hdr = packet.read_ptr<IPv4Header_t>();
 
         if(hdr == NULL) {
+            #ifdef NET_STATISTICS
+            NetworkStatistics::DroppedIncomingPackets++;
+            #endif
+
             return RET_ERROR;
         }
 
         uint8_t version = (hdr->version_ihl & (0b11110000)) >> 4;
         if(version != 4) {
             // not IPv4
+
+            #ifdef NET_STATISTICS
+            NetworkStatistics::DroppedIncomingPackets++;
+            #endif
+
             return RET_ERROR;
         }
 
         if(hdr->flags_frag & 0b00111111) {
             // MF is set or there's a fragment offset
             // TODO we discard fragmented packets for now
+
+            #ifdef NET_STATISTICS
+            NetworkStatistics::DroppedIncomingPackets++;
+            #endif
+
             return RET_ERROR;
         }
 
@@ -171,12 +192,21 @@ public:
         // read forward in the payload so it's at the payload
         // we don't handle options for now
         if(RET_SUCCESS != packet.skip_read(header_len)) {
+            #ifdef NET_STATISTICS
+            NetworkStatistics::DroppedIncomingPackets++;
+            #endif
+
             return RET_ERROR;
         }
 
         // check we have enough data in the packet for what the payload should be
         if(packet.available() < payload_len) {
             // we don't have enough data
+
+            #ifdef NET_STATISTICS
+            NetworkStatistics::DroppedIncomingPackets++;
+            #endif
+
             return RET_ERROR;
         } else {
             packet.truncate(payload_len);
@@ -188,11 +218,21 @@ public:
         NetworkLayer** dev_ptr = m_devMap[addr];
         if(dev_ptr == NULL) {
             // no device with this IP
+
+            #ifdef NET_STATISTICS
+            NetworkStatistics::DroppedIncomingPackets++;
+            #endif
+
             return RET_ERROR;
         }
 
         if(*dev_ptr != caller) {
             // the address doesn't match the device it should have come in on
+
+            #ifdef NET_STATISTICS
+            NetworkStatistics::DroppedIncomingPackets++;
+            #endif
+
             return RET_ERROR;
         }
 
@@ -200,6 +240,11 @@ public:
         NetworkLayer** next_ptr = m_protMap[hdr->protocol];
         if(next_ptr == NULL) {
             // nowhere to send it to even if it is valid
+
+            #ifdef NET_STATISTICS
+            NetworkStatistics::DroppedIncomingPackets++;
+            #endif
+
             return RET_ERROR;
         }
 
@@ -212,12 +257,22 @@ public:
         // check the checksum
         if(check != checksum((uint16_t*)hdr, header_len / sizeof(uint16_t))) {
             // invalid checksum
+
+            #ifdef NET_STATISTICS
+            NetworkStatistics::DroppedIncomingPackets++;
+            #endif
+
             return RET_ERROR;
         }
 
         // record information about the packet
         info.src.ipv4_addr = ntoh32(hdr->src);
         info.dst.ipv4_addr = addr;
+
+
+        #ifdef NET_STATISTICS
+        NetworkStatistics::IncomingPackets++;
+        #endif
 
         RetType ret = CALL(next->receive(packet, info, this));
 
@@ -250,12 +305,22 @@ public:
             // we couldn't find a route
             // this shouldn't happen a lot b/c the user should generally add
             // some default route at 0.0.0.0/0
+
+            #ifdef NET_STATISTICS
+            NetworkStatistics::DroppedOutgoingPackets++;
+            #endif
+
             return RET_ERROR;
         }
 
         IPv4Header_t* hdr = packet.allocate_header<IPv4Header_t>();
         if(hdr == NULL) {
             // no room for header
+
+            #ifdef NET_STATISTICS
+            NetworkStatistics::DroppedOutgoingPackets++;
+            #endif
+
             return RET_ERROR;
         }
 
@@ -291,8 +356,16 @@ public:
         IPv4Header_t* hdr = packet.allocate_header<IPv4Header_t>();
         if(hdr == NULL) {
             // no room for header
+            #ifdef NET_STATISTICS
+            NetworkStatistics::DroppedOutgoingPackets++;
+            #endif
+
             return RET_ERROR;
         }
+
+        #ifdef NET_STATISTICS
+        NetworkStatistics::OutgoingPackets++;
+        #endif
 
         // pass it along
         RetType ret = CALL(m_route->next->transmit2(packet, info, this));
