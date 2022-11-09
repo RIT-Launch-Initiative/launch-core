@@ -51,11 +51,11 @@ namespace udp {
             return device_success && protocol_success ? RET_SUCCESS : RET_ERROR;
         }
 
-        RetType receive(Packet &packet, sockmsg_t &info, NetworkLayer *caller) {
+        RetType receive(Packet &packet, sockinfo_t &info, NetworkLayer *caller) {
             RESUME();
 
             UDP_HEADER_T *header = packet.read_ptr<UDP_HEADER_T>();
-            info.port.udp = ntoh16(header->src);
+            info.src.udp_port = ntoh16(header->src);
 
             if (header == NULL) {
                 return RET_ERROR;
@@ -79,7 +79,7 @@ namespace udp {
             return ret;
         }
 
-        RetType transmit(Packet &packet, sockmsg_t &info, NetworkLayer *caller) {
+        RetType transmit(Packet &packet, sockinfo_t &info, NetworkLayer *caller) {
             RESUME();
 
             if (this->transmitLayer == NULL) {
@@ -108,7 +108,7 @@ namespace udp {
             return ret;
         }
 
-        RetType transmit2(Packet &packet, sockmsg_t &info, NetworkLayer *caller) {
+        RetType transmit2(Packet &packet, sockinfo_t &info, NetworkLayer *caller) {
             RESUME();
 
             if (this->transmitLayer == NULL) {

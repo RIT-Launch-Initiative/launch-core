@@ -6,9 +6,16 @@
 
 #include "return.h"
 
-typedef union {
-    uint32_t ipv4;
+// all the possible addressing information for any kind of socket
+typedef struct {
+    // Ethernet info
     uint8_t mac[6];
+
+    // IPv4 info
+    uint32_t ipv4_addr;
+
+    // UDP info
+    uint16_t udp_port;
 } sockaddr_t;
 
 typedef union {
@@ -16,27 +23,25 @@ typedef union {
 } sockport_t;
 
 
+// socket types
 typedef enum {
     IPV4_UDP_SOCK = 0,      // IPv4 and UDP
-    RAW_IPV4_UDP_SOCK,      // user needs to provide UDP header, sent over IPv4 
-    PACKET_SOCK,            // only adds link layer header
+    RAW_IPV4_UDP_SOCK,      // user needs to provide UDP header, sent over IPv4
+    PACKET_SOCK,            // only adds link layer header, dst address must be provided, src will be ignored if 0
     NUM_SOCK_TYPES
 } socktype_t;
 
-// socket message
-// user should fill in all fields except 'type', which the Socket object fills in
+    // describes a packet sent/received over a socket
 typedef struct {
-    sockaddr_t addr;
-    sockport_t port;
+    sockaddr_t src;
+    sockaddr_t dst;
     socktype_t type;
-    uint8_t* payload;    // payload
-    size_t payload_len;  // payload length
-} sockmsg_t;
+} sockinfo_t;
 
 
-/// @brief network socket device
-/// @tparam TYPE type of the socket
-template <const socktype_t SOCK>
+/// @brief Socket interface
+/// @tparam ADDR    address type the socket uses
+template <typename ADDR>
 class Socket {
 public:
     /// @brief constructor
@@ -46,48 +51,23 @@ public:
     /// @return
     virtual RetType init() = 0;
 
-    /// @brief send a message from the socket
-    /// @param msg  the message to send
-    ///             'addr.addr' is the destination address
-    ///             'addr.port' is the destination port
-    ///             'payload' is a buffer holding the payload
-    ///             'payload_len' is the length of the payload
-    /// @return if all bytes were sent
-    virtual RetType sendmsg(sockmsg_t* msg) = 0;
+    /// @brief bind a socket to send/receive from an address
+    /// this may mean different things depending on the socket type
+    virtual RetType bind(ADDR& addr) = 0;
 
-    /// @brief received a message on the socket
-    /// @param msg  the message to receive
-    ///             'addr.addr' is the source address of the message, filled by function
-    ///             'addr.port' is the source port of the message, filled by function
-    ///             'payload' is the buffer to copy the payload to
-    ///             'payload_len' is the size of the buffer, up to this many bytes are copied
-    ///                           this is set to the actual number of bytes copied
-    /// @return
-    virtual RetType recvmsg(sockmsg_t* msg) = 0;
-
-    /// @brief bind this socket to an address
-    ///        the socket will send and receive from this address
-    /// NOTE: some platforms may treat the IP address differently,
-    ///       for devices where the IP cannot be reconfigured it is ignored
-    /// @param addr     the address to bind to
-    /// @return
-    virtual RetType bind(sockaddr_t* addr) = 0;
-
-    /// @brief subscribe to a multicast group address
-    ///        generally only the network address will be used
-    /// @param addr     the multicast group address to subscribe to
-    /// @return
-    virtual RetType subscribe(sockaddr_t* addr) = 0;
-
-    /// @brief close the socket
-    /// @return
-    virtual RetType close() = 0;
-
-    /// @brief get how much data can currently be read
-    /// NOTE: units are up to the device
-    ///       for datagrams it may be packets rather than bytes
-    /// @return the amount of data that can be read in bytes
+    /// @brief get how much data can be read without blocking
     virtual size_t available() = 0;
+
+    /// @brief get the Maximum Transmit Unit for this socket
+    virtual size_t mtu() = 0;
+
+    /// @brief send a packet over this socket
+    /// @return
+    virtual RetType send(uint8_t* buff, size_t len, ADDR& dst) = 0;
+
+    /// @brief receive a packet over this socket
+    /// source address of the packet will be filled into 'src'
+    virtual RetType recv(uint8_t* buff, size_t len, ADDR& src) = 0;
 };
 
 #endif

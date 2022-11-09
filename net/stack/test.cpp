@@ -3,6 +3,7 @@
 #include "net/ipv4/IPv4Router.h"
 #include "net/udp/UDPRouter.h"
 #include "net/loopback/Loopback.h"
+#include "net/simple_arp/SimpleArpLayer.h"
 
 // network layer that absorbs all packets and just prints them out
 class Blackhole : public NetworkLayer {
@@ -11,11 +12,18 @@ public:
     Blackhole() {};
 
     /// @brief transmit
-    RetType transmit(Packet& packet, sockmsg_t&, NetworkLayer*) {
+    RetType transmit(Packet &packet, sockinfo_t &, NetworkLayer *) {
+        // don't do anything
+
+        return RET_SUCCESS;
+    }
+
+    /// @brief transmit (second pass)
+    RetType transmit2(Packet &packet, sockinfo_t &, NetworkLayer *) {
         printf("transmitting payload: \n");
 
-        uint8_t* buff = packet.read_ptr<uint8_t>();
-        for(size_t i = 0; i < packet.size(); i++) {
+        uint8_t *buff = packet.read_ptr<uint8_t>();
+        for (size_t i = 0; i < packet.size(); i++) {
             printf("%02x ", buff[i]);
         }
         printf("\n\n");
@@ -24,11 +32,11 @@ public:
     }
 
     /// @brief receive
-    RetType receive(Packet& packet, sockmsg_t&, NetworkLayer*) {
+    RetType receive(Packet &packet, sockinfo_t &, NetworkLayer *) {
         printf("received payload: \n");
 
-        uint8_t* buff = packet.read_ptr<uint8_t>();
-        for(size_t i = 0; i < packet.size(); i++) {
+        uint8_t *buff = packet.read_ptr<uint8_t>();
+        for (size_t i = 0; i < packet.size(); i++) {
             printf("%02x ", buff[i]);
         }
         printf("\n\n");
@@ -50,40 +58,58 @@ int main() {
     ipv4::IPv4Addr_t subnet1;
     ipv4::IPv4Address(255, 255, 255, 0, &subnet1);
 
-    if(RET_SUCCESS != ip.add_route(addr1, subnet1, lo)) {
+    if (RET_SUCCESS != ip.add_route(addr1, subnet1, lo)) {
         printf("failed to add loopback route\n");
         return -1;
     }
 
     udp.setTransmitLayer(ip);
 
-    if (RET_SUCCESS != udp.subscribe_port(b, 8080)) { // TODO: Figuring out how 8000 becomes 2570 exactly
+    if (RET_SUCCESS != udp.subscribe_port(b, 8080)) {
         printf("Failed to bind layer to UDP port");
         return -1;
     }
 
-    if(RET_SUCCESS != ip.add_protocol(ipv4::UDP_PROTO, udp)) {
+    if (RET_SUCCESS != ip.add_protocol(ipv4::UDP_PROTO, udp)) {
         printf("failed to add protocol\n");
         return -1;
     }
 
 
     uint8_t buff[50];
-    for(size_t i = 0; i < 50; i++) {
+    for (size_t i = 0; i < 50; i++) {
         buff[i] = i;
     }
 
     alloc::Packet<50, 100> packet;
 
-    if(RET_SUCCESS != packet.push(buff, 50)) {
+    if (RET_SUCCESS != packet.push(buff, 50)) {
         printf("failed to push to packet\n");
         return -1;
     }
 
-    sockmsg_t msg = {addr1, 8080, IPV4_UDP_SOCK, buff, 50};
+    // TODO: Merged from main
+    sockaddr_t dst;
+    dst.ipv4_addr = addr1;
+    dst.udp_port = 8000;
 
-    if(RET_SUCCESS != udp.transmit(packet, msg, &b)) {
+    sockinfo_t msg;
+    msg.dst = dst;
+    msg.type = IPV4_UDP_SOCK;
+    if (RET_SUCCESS != udp.transmit(packet, msg, &b)) {
         printf("failed to transmit packet\n");
+    }
+
+    if (RET_SUCCESS != ip.transmit(packet, msg, NULL)) {
+        printf("failed to transmit packet (first pass)\n");
+        return -1;
+    }
+
+    // the stack is responsible for resetting the headers
+    packet.seek_header();
+
+    if (RET_SUCCESS != ip.transmit2(packet, msg, NULL)) {
+        printf("failed to transmit packet (second pass)\n");
         return -1;
     }
 
