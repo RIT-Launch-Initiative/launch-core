@@ -80,14 +80,23 @@ public:
             return ret;
         }
 
+        // mark this task as blocked BEFORE we call the interrupt function
+        // we want to make sure there is no race condition b/w processing the ISR
+        // and blocking the task
+        m_blocked = sched_dispatched;
+
         // do our transmit
         if(HAL_OK != HAL_SPI_Transmit_IT(m_spi, buff, len)) {
             return RET_ERROR;
         }
 
+        // TODO race condition
+
         // block until the transmit is complete
-        m_blocked = sched_dispatched;
         BLOCK();
+
+        // mark the device as unblocked
+        m_blocked = -1;
 
         // we can unblock someone else if they were waiting
         check_unblock();
@@ -111,14 +120,21 @@ public:
             return ret;
         }
 
+        // mark this task as blocked BEFORE we call the interrupt function
+        // we want to make sure there is no race condition b/w processing the ISR
+        // and blocking the task
+        m_blocked = sched_dispatched;
+
         // start the transfer
         if(HAL_OK != HAL_SPI_Receive_IT(m_spi, buff, len)) {
             return RET_ERROR;
         }
 
         // block waiting for our read to complete
-        m_blocked = sched_dispatched;
         BLOCK();
+
+        // mark the device as unblocked
+        m_blocked = -1;
 
         // we can unblock someone else if they were waiting
         check_unblock();
@@ -163,9 +179,7 @@ private:
             }
 
             BLOCK();
-        }
-
-        BLOCK();
+        } // otherwise we can just return, the device is ours
 
         RESET();
         return RET_SUCCESS;

@@ -141,7 +141,7 @@ public:
         return *ptr;
     }
 
-    /// @brief receive a packet`
+    /// @brief receive a packet
     /// @return
     RetType receive(Packet& packet, sockmsg_t& info, NetworkLayer* caller) {
         RESUME();

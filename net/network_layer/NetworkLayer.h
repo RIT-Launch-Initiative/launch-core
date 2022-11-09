@@ -30,6 +30,9 @@ public:
     ///       this also means this function must be called in a task
     /// @return
     virtual RetType transmit(Packet& packet, sockmsg_t& info, NetworkLayer* caller) = 0;
+
+    /// @brief second pass for transmitting a packet
+    virtual RetType transmit2(Packet& packet, sockmsg_t& info, NetworkLayer* caller) = 0;
 };
 
 #endif
