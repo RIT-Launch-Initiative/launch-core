@@ -131,7 +131,7 @@ namespace udp {
 //            header->checksum = checksum(packet);
             header->length = sizeof(info) + packet.headerSize() - sizeof(UDP_HEADER_T);
 
-            RetType ret = CALL(transmitLayer->transmit(packet, info, this));
+            RetType ret = CALL(transmitLayer->transmit2(packet, info, this));
 
             RESET();
             return ret;
