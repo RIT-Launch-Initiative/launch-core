@@ -98,9 +98,9 @@ namespace udp {
             }
 
             header->src = hton16(*src_port);
-            header->dst = hton16(info.port.udp); // UDP is big endian
+            header->dst = hton16(info.dst.udp_port); // UDP is big endian
             header->checksum = 0;
-            header->length = info.payload_len + packet.headerSize() - sizeof(UDP_HEADER_T);
+            header->length = sizeof(info)  + packet.headerSize() - sizeof(UDP_HEADER_T);
 
             RetType ret = CALL(transmitLayer->transmit(packet, info, this));
 
@@ -127,9 +127,9 @@ namespace udp {
             }
 
             header->src = hton16(*src_port);
-            header->dst = hton16(info.port.udp); // UDP is big endian
+            header->dst = hton16(info.dst.udp_port); // UDP is big endian
 //            header->checksum = checksum(packet);
-            header->length = info.payload_len + packet.headerSize() - sizeof(UDP_HEADER_T);
+            header->length = sizeof(info) + packet.headerSize() - sizeof(UDP_HEADER_T);
 
             RetType ret = CALL(transmitLayer->transmit(packet, info, this));
 
