@@ -96,11 +96,8 @@ int main() {
     sockinfo_t msg;
     msg.dst = dst;
     msg.type = IPV4_UDP_SOCK;
-    if (RET_SUCCESS != udp.transmit(packet, msg, &b)) {
-        printf("failed to transmit packet\n");
-    }
 
-    if (RET_SUCCESS != ip.transmit(packet, msg, NULL)) {
+    if (RET_SUCCESS != udp.transmit(packet, msg, NULL)) {
         printf("failed to transmit packet (first pass)\n");
         return -1;
     }
@@ -108,7 +105,7 @@ int main() {
     // the stack is responsible for resetting the headers
     packet.seek_header();
 
-    if (RET_SUCCESS != ip.transmit2(packet, msg, NULL)) {
+    if (RET_SUCCESS != udp.transmit2(packet, msg, NULL)) {
         printf("failed to transmit packet (second pass)\n");
         return -1;
     }
