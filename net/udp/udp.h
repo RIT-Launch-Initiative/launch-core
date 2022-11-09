@@ -13,19 +13,49 @@ namespace udp {
         uint16_t src;
     } UDP_HEADER_T;
 
-    uint16_t checksum(ipv4::IPv4Addr_t src, ipv4::IPv4Addr_t dst, const uint16_t *data, uint16_t len) {
-        uint16_t sum = 0;
+    typedef struct {
+        uint32_t src_addr;
+        uint32_t dst_addr;
+        uint8_t zero;
+        uint8_t protocol;
+        uint16_t length;
+    } PSEUDO_HEADER_T;
 
-        sum += src;
-        sum += dst;
-        sum += static_cast<uint8_t>(0x11);
-        sum += len;
+    uint16_t checksum(UDP_HEADER_T *header, size_t len, uint16_t src_addr, uint16_t dst_addr) {
+        const uint16_t *buf = reinterpret_cast<const uint16_t *>(header);
+        uint16_t *ip_src = &src_addr;
+        uint16_t *ip_dst = &dst_addr;
+        uint32_t sum;
+        size_t length = len;
 
-        for (int i = 0; i < len; i++) {
-            sum += data[i];
+        sum = 0;
+        while (len > 1) {
+            sum += *buf++;
+            if (sum & 0x80000000) {
+                sum = (sum & 0xFFFF) + (sum >> 16);
+            }
+            len -= 2;
         }
 
-        return ~sum;
+        if (len & 1) {
+            sum += *((uint8_t *) buf);
+        }
+
+        sum += *(ip_src++);
+        sum += *ip_src;
+
+        sum += *(ip_dst++);
+        sum += *ip_dst;
+
+        sum += hton16(17); // 17 is IPPROTO_UDP in Linux
+        sum += hton16(length);
+
+        while (sum >> 16) {
+            sum = (sum & 0xFFFF) + (sum >> 16);
+        }
+
+        return (uint16_t)
+        ~sum;
     }
 }
 

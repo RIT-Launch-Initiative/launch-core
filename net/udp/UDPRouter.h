@@ -108,6 +108,35 @@ namespace udp {
             return ret;
         }
 
+        RetType transmit2(Packet &packet, sockmsg_t &info, NetworkLayer *caller) {
+            RESUME();
+
+            if (this->transmitLayer == NULL) {
+                return RET_ERROR;
+            }
+
+            UDP_HEADER_T *header = packet.allocate_header<UDP_HEADER_T>();
+
+            if (header == NULL) {
+                return RET_ERROR;
+            }
+
+            uint16_t *src_port = layer_bindings[caller];
+            if (src_port == NULL) {
+                return RET_ERROR;
+            }
+
+            header->src = hton16(*src_port);
+            header->dst = hton16(info.port.udp); // UDP is big endian
+//            header->checksum = checksum(packet);
+            header->length = info.payload_len + packet.headerSize() - sizeof(UDP_HEADER_T);
+
+            RetType ret = CALL(transmitLayer->transmit(packet, info, this));
+
+            RESET();
+            return ret;
+        }
+
     private:
         alloc::Hashmap<uint16_t, NetworkLayer *, SIZE, SIZE> port_bindings;
         alloc::Hashmap<NetworkLayer *, uint16_t, SIZE, SIZE> layer_bindings;
