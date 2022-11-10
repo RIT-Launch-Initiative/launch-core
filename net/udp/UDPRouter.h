@@ -64,7 +64,11 @@ namespace udp {
             packet.skip_read(sizeof(UDP_HEADER_T));
 
             PSEUDO_HEADER_T pseudo = {
-
+                    info.src.ipv4_addr,
+                    info.dst.ipv4_addr,
+                    0,
+                    17,
+                    header->length
             };
 
             if (header->checksum != checksum(&pseudo)) {
@@ -112,7 +116,6 @@ namespace udp {
             header->checksum = 0;
             header->length = sizeof(info)  + packet.headerSize() - sizeof(UDP_HEADER_T);
 
-            printf("UDP transmit 1");
             RetType ret = CALL(transmitLayer->transmit(packet, info, this));
 
             RESET();
@@ -140,13 +143,17 @@ namespace udp {
             header->src = hton16(*src_port);
             header->dst = hton16(info.dst.udp_port); // UDP is big endian
             PSEUDO_HEADER_T pseudo = {
-
+                    info.src.ipv4_addr,
+                    info.dst.ipv4_addr,
+                    0,
+                    17,
+                    header->length
             };
 
             header->checksum = checksum(&pseudo);
             header->length = sizeof(info) + packet.headerSize() - sizeof(UDP_HEADER_T);
 
-            printf("UDP transmit 2");
+            printf("UDP transmit 2\n");
 
             RetType ret = CALL(transmitLayer->transmit2(packet, info, this));
 

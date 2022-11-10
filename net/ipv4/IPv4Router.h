@@ -342,7 +342,6 @@ public:
         info.dst.ipv4_addr = hdr->dst;
         info.src.ipv4_addr = hdr->src;
 
-        printf("IP transmit 1");
 
         RetType ret = CALL(m_route->next->transmit(packet, info, this));
 
@@ -370,7 +369,6 @@ public:
         #endif
 
         // pass it along
-        printf("IP transmit 2");
 
         RetType ret = CALL(m_route->next->transmit2(packet, info, this));
 
