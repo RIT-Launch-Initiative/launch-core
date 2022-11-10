@@ -23,10 +23,10 @@ namespace udp {
 
     uint16_t checksum(PSEUDO_HEADER_T *header) {
         const uint16_t *buf = reinterpret_cast<const uint16_t *>(header);
-        uint32_t ip_src = header->src_addr;
-        uint32_t ip_dst = header->dst_addr;
+        uint32_t ip_src = hton32(header->src_addr);
+        uint32_t ip_dst = hton32(header->dst_addr);
         uint32_t sum;
-        size_t len = header->length;
+        size_t len = hton16(header->length);
 
         sum = 0;
         while (len > 1) {
