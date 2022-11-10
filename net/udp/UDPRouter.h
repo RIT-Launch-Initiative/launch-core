@@ -63,6 +63,16 @@ namespace udp {
 
             packet.skip_read(sizeof(UDP_HEADER_T));
 
+            PSEUDO_HEADER_T pseudo = {
+
+            };
+
+            if (header->checksum != checksum(&pseudo)) {
+                printf("Invalid checksum");
+
+                return RET_ERROR;
+            }
+
             NetworkLayer **next_ptr = port_bindings[ntoh16(header->dst)];
             if (next_ptr == NULL) {
                 return RET_ERROR;
@@ -102,6 +112,7 @@ namespace udp {
             header->checksum = 0;
             header->length = sizeof(info)  + packet.headerSize() - sizeof(UDP_HEADER_T);
 
+            printf("UDP transmit 1");
             RetType ret = CALL(transmitLayer->transmit(packet, info, this));
 
             RESET();
@@ -128,8 +139,14 @@ namespace udp {
 
             header->src = hton16(*src_port);
             header->dst = hton16(info.dst.udp_port); // UDP is big endian
-//            header->checksum = checksum(packet);
+            PSEUDO_HEADER_T pseudo = {
+
+            };
+
+            header->checksum = checksum(&pseudo);
             header->length = sizeof(info) + packet.headerSize() - sizeof(UDP_HEADER_T);
+
+            printf("UDP transmit 2");
 
             RetType ret = CALL(transmitLayer->transmit2(packet, info, this));
 

@@ -65,7 +65,7 @@ int main() {
 
     udp.setTransmitLayer(ip);
 
-    if (RET_SUCCESS != udp.subscribe_port(b, 8080)) {
+    if (RET_SUCCESS != udp.subscribe_port(b, 8000)) {
         printf("Failed to bind layer to UDP port");
         return -1;
     }
@@ -88,7 +88,6 @@ int main() {
         return -1;
     }
 
-    // TODO: Merged from main
     sockaddr_t dst;
     dst.ipv4_addr = addr1;
     dst.udp_port = 8000;
@@ -97,7 +96,7 @@ int main() {
     msg.dst = dst;
     msg.type = IPV4_UDP_SOCK;
 
-    if (RET_SUCCESS != udp.transmit(packet, msg, NULL)) {
+    if (RET_SUCCESS != udp.transmit(packet, msg, &b)) {
         printf("failed to transmit packet (first pass)\n");
         return -1;
     }
@@ -105,7 +104,7 @@ int main() {
     // the stack is responsible for resetting the headers
     packet.seek_header();
 
-    if (RET_SUCCESS != udp.transmit2(packet, msg, NULL)) {
+    if (RET_SUCCESS != udp.transmit2(packet, msg, &b)) {
         printf("failed to transmit packet (second pass)\n");
         return -1;
     }
