@@ -64,8 +64,8 @@ namespace udp {
             packet.skip_read(sizeof(UDP_HEADER_T));
 
             PSEUDO_HEADER_T pseudo = {
-                    info.src.ipv4_addr,
-                    info.dst.ipv4_addr,
+                    ntoh32(info.src.ipv4_addr),
+                    ntoh32(info.dst.ipv4_addr),
                     0,
                     17,
                     header->length
@@ -82,7 +82,7 @@ namespace udp {
                 return RET_ERROR;
             }
 
-            NetworkLayer *next = *next_ptr; // TODO another null ptr check please
+            NetworkLayer *next = *next_ptr;
             if (next == NULL) {
                 return RET_ERROR;
             }
