@@ -21,14 +21,13 @@ namespace udp {
         uint16_t length;
     } PSEUDO_HEADER_T;
 
-    uint16_t checksum(PSEUDO_HEADER_T *header) {
-        const uint16_t *buf = reinterpret_cast<const uint16_t *>(header);
-        uint32_t ip_src = hton32(header->src_addr);
-        uint32_t ip_dst = hton32(header->dst_addr);
-        uint32_t sum;
-        size_t len = hton16(header->length);
+    uint16_t checksum(PSEUDO_HEADER_T *psuedo_header, UDP_HEADER_T *udp_header) {
+        const uint16_t *buf = reinterpret_cast<const uint16_t *>(udp_header);
+        uint32_t ip_src = hton32(psuedo_header->src_addr);
+        uint32_t ip_dst = hton32(psuedo_header->dst_addr);
+        uint32_t sum = 0;
+        size_t len = hton16(psuedo_header->length);
 
-        sum = 0;
         while (len > 1) {
             sum += *buf++;
             if (sum & 0x80000000) {
@@ -47,8 +46,9 @@ namespace udp {
         sum += ip_dst++;
         sum += ip_dst;
 
-        sum += hton16(header->protocol); // 17 is IPPROTO_UDP in Linux
-        sum += hton16(header->length);
+
+        sum += hton16(psuedo_header->protocol); // 17 is IPPROTO_UDP in Linux
+        sum += hton16(psuedo_header->length);
 
         while (sum >> 16) {
             sum = (sum & 0xFFFF) + (sum >> 16);

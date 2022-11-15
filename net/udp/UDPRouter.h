@@ -71,7 +71,7 @@ namespace udp {
                     header->length
             };
 
-            if (header->checksum != checksum(&pseudo)) {
+            if (header->checksum != checksum(&pseudo, header)) {
                 printf("Invalid checksum");
 
                 return RET_ERROR;
@@ -150,7 +150,7 @@ namespace udp {
                     header->length
             };
 
-            header->checksum = checksum(&pseudo);
+            header->checksum = checksum(&pseudo, header);
             header->length = sizeof(info) + packet.headerSize() - sizeof(UDP_HEADER_T);
 
             printf("UDP transmit 2\n");
