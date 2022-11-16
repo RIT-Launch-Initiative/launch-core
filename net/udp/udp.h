@@ -22,6 +22,7 @@ namespace udp {
     } PSEUDO_HEADER_T;
 
     uint16_t checksum(PSEUDO_HEADER_T *psuedo_header, UDP_HEADER_T *udp_header) {
+        udp_header->checksum = 0;
         const uint16_t *buf = reinterpret_cast<const uint16_t *>(udp_header);
         uint32_t ip_src = hton32(psuedo_header->src_addr);
         uint32_t ip_dst = hton32(psuedo_header->dst_addr);

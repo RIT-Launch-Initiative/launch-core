@@ -153,8 +153,6 @@ namespace udp {
             header->checksum = checksum(&pseudo, header);
             header->length = sizeof(info) + packet.headerSize() - sizeof(UDP_HEADER_T);
 
-            printf("UDP transmit 2\n");
-
             RetType ret = CALL(transmitLayer->transmit2(packet, info, this));
 
             RESET();
