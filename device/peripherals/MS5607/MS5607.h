@@ -14,18 +14,16 @@
 #include "return.h"
 
 
-
-
-class MS5607{
+class MS5607 {
 public:
     // constructor method, here send a reset command to the chip, must happen once after power on
-        // constructor must also read PROM and the stores the different 1-6 cofficients
-    MS5607(I2CDevice& i2c) : m_i2c (i2c) {
+    // constructor must also read PROM and the stores the different 1-6 cofficients
+    MS5607(I2CDevice &i2c) : m_i2c(i2c) {
         // RESET command sent to the device
         CALL(m_i2c.write(i2cWriteAddr, REST, 1)); // addr, 0xE1, 1 byte (8 bits)
 
         // The buffer to write variables into
-        uint8_t* buff;
+        uint8_t *buff;
 
         // reading PROM coffients and storing them
         CALL(m_i2c.write(i2cWriteAddr, c1, 1)); // reading c1
@@ -53,8 +51,8 @@ public:
      * @breif a function to return the calculated pressure from offset and D1
      */
 
-    RetType pressure(){
-        uint8_t* pressureBuffer;
+    RetType pressure() {
+        uint8_t *pressureBuffer;
         RetType pressureValue = read_pressure(i2cWriteAddr, i2cReadAddr, pressureBuffer);
         return pressureValue;
     }
@@ -62,7 +60,7 @@ public:
 
 private:
 
-    StreamDevice& m_i2c;
+    StreamDevice &m_i2c;
 
     // Don't understand what it means by CSB value form datasheet, therefore leaving these variables undefined for now.
     uint16_t i2cReadAddr;
@@ -101,8 +99,7 @@ private:
      * @param buff, the buffer to write to
      * @return the final pressure
      */
-
-    RetType read_pressure (uint8_t WriteAddr, uint8_t ReadAddr, uint8_t* buff){
+    RetType read_pressure(uint8_t WriteAddr, uint8_t ReadAddr, uint8_t *buff) {
         RetType ret;
         RetType finalPressure;
 
@@ -115,7 +112,7 @@ private:
         // Reading the values from the sensor
         ret = CALL(m_i2c.read(ReadAddr, buff, 4));
 
-        uint8_t* dTBuffer;
+        uint8_t *dTBuffer;
         // Getting the temp difference
         RetType dT = computeTempDT(WriteAddr, ReadAddr, dTBuffer);
 
@@ -129,7 +126,7 @@ private:
 
     }
 
-    RetType computeTempDT (uint8_t WriteAddr, uint8_t ReadAddr, uint8_t* buff) {
+    RetType computeTempDT(uint8_t WriteAddr, uint8_t ReadAddr, uint8_t *buff) {
         RetType ret;
         RetType dT;
 
@@ -158,4 +155,5 @@ private:
 
 
 };
+
 #endif //MS5607_H
