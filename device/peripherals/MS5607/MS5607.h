@@ -114,10 +114,10 @@ private:
 
         uint8_t *dTBuffer;
         // Getting the temp difference
-        RetType dT = computeTempDT(WriteAddr, ReadAddr, dTBuffer);
+        int dT = computeTempDT(WriteAddr, ReadAddr, dTBuffer);
 
         // Math to convert the digital value into an actual pressure
-        RetType SEN = SENS_T1 * TCS * dT;
+        int SEN = SENS_T1 * TCS * dT;
         finalPressure = D1 * SENS - OFF;
 
         // Return the value
@@ -126,9 +126,9 @@ private:
 
     }
 
-    RetType computeTempDT(uint8_t WriteAddr, uint8_t ReadAddr, uint8_t *buff) {
+    int computeTempDT(uint8_t WriteAddr, uint8_t ReadAddr, uint8_t *buff) {
         RetType ret;
-        RetType dT;
+        int dT;
 
         // starting D2 conversion
         CALL(m_i2c.write(WriteAddr, D2, 1));
