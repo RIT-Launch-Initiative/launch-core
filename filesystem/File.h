@@ -8,8 +8,25 @@
 #define LAUNCH_CORE_FILE_H
 
 namespace filesystem {
-    class File {
+    typedef enum {
+        READ_WRITE,
+        READ,
+        WRITE,
+    } FILE_STATUS_T;
 
+    class File {
+    public:
+        File() {
+            this->permissions = READ_WRITE;
+        }
+
+        void changePermissions(FILE_STATUS_T status) {
+            this->permissions = status;
+        }
+
+
+    private:
+        FILE_STATUS_T permissions;
     };
 }
 

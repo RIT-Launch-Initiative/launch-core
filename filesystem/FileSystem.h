@@ -7,10 +7,24 @@
 #ifndef LAUNCH_CORE_FILESYSTEM_H
 #define LAUNCH_CORE_FILESYSTEM_H
 
-namespace filesystem {
-    class Filesystem() {
+#include "return.h"
+#include "File.h"
 
-    }
+namespace filesystem {
+    class FileSystem {
+        FileSystem() {}
+
+        RetType readFile() {
+
+            return RET_SUCCESS;
+        }
+
+        RetType writeFile() {
+
+            return RET_SUCCESS;
+        }
+
+    };
 }
 
 #endif //LAUNCH_CORE_FILESYSTEM_H

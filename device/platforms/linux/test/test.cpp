@@ -305,7 +305,7 @@ int main() {
 
     printf("dispatching scheduler...\r\n");
 
-    // main loop
+    // main.cpp loop
     while(1) {
         sched_dispatch();
         map.poll();
