@@ -196,46 +196,94 @@ RetType slow_timer() {
 }
 
 // task that waits to receive packets on the network
-RetType echo_net() {
+// RetType echo_net() {
+//     RESUME();
+//
+//     printf("network echo task started\r\n");
+//
+//     Device* dev = map.get("socket_pool");
+//     if(dev == NULL) {
+//         printf("failed to get socket pool device\r\n");
+//         // returning error removes the task from the scheduler
+//         return RET_ERROR;
+//     }
+//
+//     SocketPool* pool = reinterpret_cast<SocketPool*>(dev);
+//
+//     static Socket* sock = pool->alloc();
+//     if(NULL == sock) {
+//         printf("failed to allocate socket from socket pool\r\n");
+//         return RET_ERROR;
+//     }
+//
+//     sockaddr_t addr;
+//     addr.port = 8000;
+//     addr.addr = 0; // listen to any interface
+//
+//     if(RET_SUCCESS != sock->bind(&addr)) {
+//         printf("failed to bind socket to addr\r\n");
+//         return RET_ERROR;
+//     }
+//
+//     while(1) {
+//         if(sock->available()) {
+//             printf("UDP packet received!\r\n");
+//
+//             // get off the scheduler
+//             printf("exiting network echo task\r\n");
+//             return RET_ERROR;
+//         }
+//
+//         YIELD();
+//     }
+// }
+
+RetType block_write() {
     RESUME();
 
-    printf("network echo task started\r\n");
+    printf("started block write task\n");
 
-    Device* dev = map.get("socket_pool");
+    Device* dev = map.get("block");
     if(dev == NULL) {
-        printf("failed to get socket pool device\r\n");
+        printf("failed to get block device\r\n");
         // returning error removes the task from the scheduler
         return RET_ERROR;
     }
 
-    SocketPool* pool = reinterpret_cast<SocketPool*>(dev);
+    static BlockDevice* block_dev = reinterpret_cast<BlockDevice*>(dev);
 
-    static Socket* sock = pool->alloc();
-    if(NULL == sock) {
-        printf("failed to allocate socket from socket pool\r\n");
+
+    // initialize a buffer
+    static uint8_t* buff = (uint8_t*)malloc(block_dev->getBlockSize());
+    if(!buff) {
+        printf("failed to allocate buffer\n");
         return RET_ERROR;
     }
 
-    sockaddr_t addr;
-    addr.port = 8000;
-    addr.addr = 0; // listen to any interface
-
-    if(RET_SUCCESS != sock->bind(&addr)) {
-        printf("failed to bind socket to addr\r\n");
-        return RET_ERROR;
+    for(size_t i = 0; i < block_dev->getBlockSize(); i++) {
+        buff[i] = (uint8_t)i;
     }
 
+    // write to each block every 100ms
+    static size_t block = 0;
     while(1) {
-        if(sock->available()) {
-            printf("UDP packet received!\r\n");
+        RetType ret = CALL(block_dev->write(block, buff));
 
-            // get off the scheduler
-            printf("exiting network echo task\r\n");
+        if(ret != RET_SUCCESS) {
+            printf("failed to write block\n");
             return RET_ERROR;
         }
 
-        YIELD();
+        block++;
+        block %= block_dev->getBlockSize();
+
+        // TODO scheduler bug somewhere
+        // when task is woken and sleeping at same time something bad happens
+        // SLEEP(100);
     }
+
+    RESET();
+    return RET_ERROR;
 }
 
 uint32_t tick = 0;
@@ -259,47 +307,52 @@ int main() {
     map.print();
     #endif
 
-    if(NULL == map.get("console")) {
-        printf("failed to lookup device 'console'\r\n");
-        return -1;
-    } else {
-        printf("looked up device 'console' successfully\r\n");
-    }
-
-    if(NULL == map.get("debug")) {
-        printf("failed to lookup device 'debug'\r\n");
-        return -1;
-    } else {
-        printf("looked up device 'debug' successfully\r\n");
-    }
+    // if(NULL == map.get("console")) {
+    //     printf("failed to lookup device 'console'\r\n");
+    //     return -1;
+    // } else {
+    //     printf("looked up device 'console' successfully\r\n");
+    // }
+    //
+    // if(NULL == map.get("debug")) {
+    //     printf("failed to lookup device 'debug'\r\n");
+    //     return -1;
+    // } else {
+    //     printf("looked up device 'debug' successfully\r\n");
+    // }
 
     if(!sched_init(&systime)) {
         printf("failed to initialize scheduler\r\n");
         return -1;
     }
 
-    if(-1 == sched_start(&echo)) {
-        printf("failed to start echo task\r\n");
-        return -1;
-    }
+    // if(-1 == sched_start(&echo)) {
+    //     printf("failed to start echo task\r\n");
+    //     return -1;
+    // }
 
-    if(-1 == sched_start(&timer)) {
-        printf("failed to start timer task\r\n");
-        return -1;
-    }
+    // if(-1 == sched_start(&timer)) {
+    //     printf("failed to start timer task\r\n");
+    //     return -1;
+    // }
 
-    if(-1 == sched_start(&timer2)) {
-        printf("failed to start timer2 task\r\n");
-        return -1;
-    }
+    // if(-1 == sched_start(&timer2)) {
+    //     printf("failed to start timer2 task\r\n");
+    //     return -1;
+    // }
 
-    if(-1 == sched_start(&slow_timer)) {
-        printf("failed to start slow_timer task\r\n");
-        return -1;
-    }
+    // if(-1 == sched_start(&slow_timer)) {
+    //     printf("failed to start slow_timer task\r\n");
+    //     return -1;
+    // }
 
-    if(-1 == sched_start(&echo_net)) {
-        printf("failed to start network echo task\r\n");
+    // if(-1 == sched_start(&echo_net)) {
+    //     printf("failed to start network echo task\r\n");
+    //     return -1;
+    // }
+
+    if(-1 == sched_start(&block_write)) {
+        printf("failed to start block write task\r\n");
         return -1;
     }
 

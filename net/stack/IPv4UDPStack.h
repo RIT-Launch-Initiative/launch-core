@@ -17,6 +17,33 @@
 #include "net/socket/socket.h"
 #include "net/ipv4/IPv4Router.h"
 
+class IPv4UDPStack;
+
+/// @brief IPv4/UDP address
+typedef struct {
+    uint32_t addr;  // IPv4 address
+    uint16_t port;  // UDP port
+} sockaddr_t;
+
+/// @brief socket class
+class StackSocket : public Socket<sockaddr_t> {
+public:
+    /// @brief constructor
+    /// @param associated network stack
+    StackSocket(IPv4UDPStack& stack) {};
+
+    /// @brief initialize
+    /// @return
+    RetType init() {
+        return RET_SUCCESS;
+    }
+
+    /// @brief bind this socket
+
+private:
+    //
+};
+
 class IPv4UDPStack {
 public:
     /// @brief constructor
