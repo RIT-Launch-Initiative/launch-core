@@ -13,7 +13,7 @@
 #include "queue/allocated_queue.h"
 
 // global TID for currently dispatched thread
-tid_t sched_dispatched;
+tid_t sched_dispatched = -1;
 
 // preallocated task structures
 static task_t tasks[MAX_NUM_TASKS];
@@ -108,6 +108,7 @@ void _sched_wakeup_tasks() {
             // set active
             task->state = STATE_ACTIVE;
             task->queued = true;
+            task->sleep_loc = NULL;
 
             // enqueue
             // we can do this because a task is never on both the

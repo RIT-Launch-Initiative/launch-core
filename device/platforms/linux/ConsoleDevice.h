@@ -6,10 +6,6 @@
 #include <sys/select.h>
 #include <sys/time.h>
 
-#ifdef DEBUG
-#include <stdio.h>
-#endif
-
 #include "sched/macros.h"
 #include "device/Device.h"
 #include "device/StreamDevice.h"
