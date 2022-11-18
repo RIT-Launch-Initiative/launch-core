@@ -13,6 +13,7 @@
 #include "device/platforms/linux/LinuxBlockDevice.h"
 
 #include "stdlib.h"
+#include <stdint.h>
 //#include "File.h"
 
 namespace filesystem {
@@ -25,8 +26,7 @@ namespace filesystem {
             return RET_SUCCESS;
         }
 
-        RetType writeFile(const char* buffer, size_t bufferSize) {
-
+        RetType writeFile(int block_size, uint8_t* buffer, size_t bufferSize) {
             return RET_SUCCESS;
         }
 
