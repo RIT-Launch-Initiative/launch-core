@@ -19,7 +19,10 @@
 namespace filesystem {
     class FileSystem {
     public:
-        FileSystem(LinuxBlockDevice device) : device(device) {}
+        FileSystem(LinuxBlockDevice device) : device(device) {
+            this->deviceBlockSize = device.getBlockSize();
+            this->deviceNumBlocks = device.getNumBlocks();
+        }
 
         RetType readFile(int fileDescriptor, char* buffer, size_t bufferSize) {
 
@@ -34,15 +37,24 @@ namespace filesystem {
             return RET_SUCCESS;
         }
 
-        int create(const char* filename) {
+        int create() {
+            uint8_t * buffer = {};
+            int i = 0;
+            while (this->device.read(i++, buffer) != NULL) {
+                printf("NULL\n");
+            }
 
-            return 0; // TODO: File Descriptor most likely
+            uint8_t data = -1;
+            this->device.write(i, &data);
+
+
+            return i;
         }
 
         int open(const char* filename) {
             int file_descriptor = -1;
             if (file_descriptor > -1) { // TODO: If FNF
-                file_descriptor = create(filename);
+//                file_descriptor = create(filename);
             }
 
 
@@ -51,6 +63,9 @@ namespace filesystem {
 
     private:
         LinuxBlockDevice device;
+        size_t deviceBlockSize;
+        size_t deviceNumBlocks;
+        size_t keyCount = 0;
     };
 }
 
