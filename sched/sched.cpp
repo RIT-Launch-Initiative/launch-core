@@ -13,7 +13,7 @@
 #include "queue/allocated_queue.h"
 
 // global TID for currently dispatched thread
-tid_t sched_dispatched;
+tid_t sched_dispatched = -1;
 
 // preallocated task structures
 static task_t tasks[MAX_NUM_TASKS];

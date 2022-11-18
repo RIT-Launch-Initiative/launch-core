@@ -342,7 +342,7 @@ int main() {
     if(-1 == sched_start(&slow_timer)) {
         printf("failed to start slow_timer task\r\n");
         return -1;
-    // }
+    }
 
     // if(-1 == sched_start(&echo_net)) {
     //     printf("failed to start network echo task\r\n");

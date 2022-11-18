@@ -17,9 +17,17 @@
 ///       that's not a C/C++ feature but is part of GCC, so we are dependent on
 ///       using GCC/G++ for these macros to work
 #define RESUME()\
-            static void* _current[static_cast<int>(MAX_NUM_TASKS)] = { &&_start };\
+            static bool _init = false;\
+            static void* _current[static_cast<int>(MAX_NUM_TASKS)];\
+            if(!_init) {\
+                for(int i = 0; i < static_cast<int>(MAX_NUM_TASKS); i++) {\
+                    _current[i] = &&_start;\
+                }\
+                _init = true;\
+            }\
             goto *(_current[static_cast<int>(sched_dispatched)]);\
             _start:\
 
+// TODO checking init feels a bit slow, not sure how else to initialize _current though
 
 #endif
