@@ -108,6 +108,7 @@ void _sched_wakeup_tasks() {
             // set active
             task->state = STATE_ACTIVE;
             task->queued = true;
+            task->sleep_loc = NULL;
 
             // enqueue
             // we can do this because a task is never on both the

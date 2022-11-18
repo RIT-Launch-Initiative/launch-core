@@ -37,7 +37,7 @@ public:
     /// @brief initialize the device
     RetType init() {
         // create a file to store our "blocks" in
-        FILE* f = fopen(m_file, "r+");
+        FILE* f = fopen(m_file, "w+");
         if(f == NULL) {
             return RET_ERROR;
         }

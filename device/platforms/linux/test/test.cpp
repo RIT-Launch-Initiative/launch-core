@@ -277,9 +277,7 @@ RetType block_write() {
         block++;
         block %= block_dev->getBlockSize();
 
-        // TODO scheduler bug somewhere
-        // when task is woken and sleeping at same time something bad happens
-        // SLEEP(100);
+        SLEEP(1000);
     }
 
     RESET();
