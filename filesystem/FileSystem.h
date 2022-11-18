@@ -8,12 +8,17 @@
 #define LAUNCH_CORE_FILESYSTEM_H
 
 #include "return.h"
+#include "macros.h"
+#include "device/BlockDevice.h"
+#include "device/platforms/linux/LinuxBlockDevice.h"
+
 #include "stdlib.h"
 //#include "File.h"
 
 namespace filesystem {
     class FileSystem {
-        FileSystem() {}
+    public:
+        FileSystem(LinuxBlockDevice device) : device(device) {}
 
         RetType readFile(int fileDescriptor, char* buffer, size_t bufferSize) {
 
@@ -44,6 +49,8 @@ namespace filesystem {
             return file_descriptor; // TODO: File Descriptor most likely
         }
 
+    private:
+        LinuxBlockDevice device;
     };
 }
 

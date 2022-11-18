@@ -3,6 +3,11 @@
 
 
 int main() {
+    LinuxBlockDevice device = LinuxBlockDevice("file.txt", 512, 32);
+    filesystem::FileSystem fs = filesystem::FileSystem(device);
+
+
+
 
     return 0;
 }
