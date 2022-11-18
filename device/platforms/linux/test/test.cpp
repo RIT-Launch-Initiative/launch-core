@@ -324,24 +324,24 @@ int main() {
         return -1;
     }
 
-    // if(-1 == sched_start(&echo)) {
-    //     printf("failed to start echo task\r\n");
-    //     return -1;
-    // }
+    if(-1 == sched_start(&echo)) {
+        printf("failed to start echo task\r\n");
+        return -1;
+    }
 
-    // if(-1 == sched_start(&timer)) {
-    //     printf("failed to start timer task\r\n");
-    //     return -1;
-    // }
+    if(-1 == sched_start(&timer)) {
+        printf("failed to start timer task\r\n");
+        return -1;
+    }
 
-    // if(-1 == sched_start(&timer2)) {
-    //     printf("failed to start timer2 task\r\n");
-    //     return -1;
-    // }
+    if(-1 == sched_start(&timer2)) {
+        printf("failed to start timer2 task\r\n");
+        return -1;
+    }
 
-    // if(-1 == sched_start(&slow_timer)) {
-    //     printf("failed to start slow_timer task\r\n");
-    //     return -1;
+    if(-1 == sched_start(&slow_timer)) {
+        printf("failed to start slow_timer task\r\n");
+        return -1;
     // }
 
     // if(-1 == sched_start(&echo_net)) {
