@@ -8,20 +8,40 @@
 #define LAUNCH_CORE_FILESYSTEM_H
 
 #include "return.h"
-#include "File.h"
+#include "stdlib.h"
+//#include "File.h"
 
 namespace filesystem {
     class FileSystem {
         FileSystem() {}
 
-        RetType readFile() {
+        RetType readFile(int fileDescriptor, char* buffer, size_t bufferSize) {
 
             return RET_SUCCESS;
         }
 
-        RetType writeFile() {
+        RetType writeFile(const char* buffer, size_t bufferSize) {
 
             return RET_SUCCESS;
+        }
+
+        RetType erase(int fileDescriptor) {
+            return RET_SUCCESS;
+        }
+
+        int create(const char* filename) {
+
+            return 0; // TODO: File Descriptor most likely
+        }
+
+        int open(const char* filename) {
+            int file_descriptor = -1;
+            if (file_descriptor > -1) { // TODO: If FNF
+                file_descriptor = create(filename);
+            }
+
+
+            return file_descriptor; // TODO: File Descriptor most likely
         }
 
     };

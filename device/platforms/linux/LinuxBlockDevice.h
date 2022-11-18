@@ -22,6 +22,7 @@
 #include "return.h"
 #include "sched/macros.h"
 #include "queue/allocated_queue.h"
+#include <unistd.h>
 
 
 class LinuxBlockDevice : public BlockDevice {
