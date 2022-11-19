@@ -18,10 +18,12 @@ public:
     ///       layers are allowed to block
     ///       this also means this function must be called in a task
     /// @return
-    virtual RetType receive(Packet& packet, sockmsg_t& info, NetworkLayer* caller) = 0;
+    virtual RetType receive(Packet& packet, sockinfo_t& info, NetworkLayer* caller) = 0;
 
     /// @brief send a packet through the stack
     ///        pushes the packet down the stack
+    ///        The header position of 'packet' should be at the last allocated header
+    ///        The write position should be at the end of the payload
     /// @param packet   the packet to transmit
     /// @param info     information about the packet
     /// @param caller   the layer that called this function one layer before
@@ -29,7 +31,12 @@ public:
     ///       layers are allowed to block
     ///       this also means this function must be called in a task
     /// @return
-    virtual RetType transmit(Packet& packet, sockmsg_t& info, NetworkLayer* caller) = 0;
+    virtual RetType transmit(Packet& packet, sockinfo_t& info, NetworkLayer* caller) = 0;
+
+    /// @brief second pass for transmitting a packet
+    ///        The header position of 'packet' should be at the last allocated header
+    ///        The write position should be at the end of the payload
+    virtual RetType transmit2(Packet& packet, sockinfo_t& info, NetworkLayer* caller) = 0;
 };
 
 #endif

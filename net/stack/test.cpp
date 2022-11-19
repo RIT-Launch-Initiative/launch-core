@@ -10,7 +10,14 @@ public:
     Blackhole() {};
 
     /// @brief transmit
-    RetType transmit(Packet& packet, sockmsg_t&, NetworkLayer*) {
+    RetType transmit(Packet& packet, sockinfo_t&, NetworkLayer*) {
+        // don't do anything
+
+        return RET_SUCCESS;
+    }
+
+    /// @brief transmit (second pass)
+    RetType transmit2(Packet& packet, sockinfo_t&, NetworkLayer*) {
         printf("transmitting payload: \n");
 
         uint8_t* buff = packet.read_ptr<uint8_t>();
@@ -23,7 +30,7 @@ public:
     }
 
     /// @brief receive
-    RetType receive(Packet& packet, sockmsg_t&, NetworkLayer*) {
+    RetType receive(Packet& packet, sockinfo_t&, NetworkLayer*) {
         printf("received payload: \n");
 
         uint8_t* buff = packet.read_ptr<uint8_t>();
@@ -70,10 +77,24 @@ int main() {
         return -1;
     }
 
-    sockmsg_t msg = {addr1, 8000, IPV4_UDP_SOCK, buff, 50};
+    sockaddr_t dst;
+    dst.ipv4_addr = addr1;
+    dst.udp_port = 8000;
+
+    sockinfo_t msg;
+    msg.dst = dst;
+    msg.type = IPV4_UDP_SOCK;
 
     if(RET_SUCCESS != ip.transmit(packet, msg, NULL)) {
-        printf("failed to transmit packet\n");
+        printf("failed to transmit packet (first pass)\n");
+        return -1;
+    }
+
+    // the stack is responsible for resetting the headers
+    packet.seek_header();
+
+    if(RET_SUCCESS != ip.transmit2(packet, msg, NULL)) {
+        printf("failed to transmit packet (second pass)\n");
         return -1;
     }
 

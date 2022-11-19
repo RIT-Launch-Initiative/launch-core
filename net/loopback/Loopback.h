@@ -10,15 +10,23 @@ public:
     /// @brief constructor
     Loopback() {};
 
-    /// @brief transmit
-    RetType transmit(Packet& packet, sockmsg_t& info, NetworkLayer* caller) {
-        packet.seek(true);
+    RetType transmit(Packet& packet, sockinfo_t& info, NetworkLayer* caller) {
+        // don't do anything
+        // but this has to be the bottom of the stack
+
+        return RET_SUCCESS;
+    }
+
+    /// @brief transmit (second pass)
+    /// bounce the packet back to the caller
+    RetType transmit2(Packet& packet, sockinfo_t& info, NetworkLayer* caller) {
+        packet.seek_read(true);
         return caller->receive(packet, info, this);
     }
 
     /// @brief receive
     /// @return always error, loopback cannot receive
-    RetType receive(Packet&, sockmsg_t&, NetworkLayer*) {
+    RetType receive(Packet&, sockinfo_t&, NetworkLayer*) {
         return RET_ERROR;
     }
 };

@@ -90,6 +90,18 @@ public:
         return ret;
     }
 
+    RetType transmit2(Packet& packet, msg_t& msg, NetworkLayer*) {
+        RESUME();
+        // give the packet to the device to transmit, we don't need to do anything else
+
+        // TODO maybe calculate FCS actually? the device may handle this
+
+        RetType ret = CALL(m_out.transmit(packet, msg, this));
+
+        RESET();
+        return ret;
+    }
+
 private:
     uint8_t m_mac[6];
 

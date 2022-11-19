@@ -145,12 +145,22 @@ public:
     /// @brief reset the reading position to the beginning of the packet
     /// @param includeHeaders   true if the read position should start at the first header
     ///                         false if the read position should start at the payload
-    void seek(bool includeHeaders = false) {
+    void seek_read(bool includeHeaders = false) {
         if(includeHeaders) {
             m_rpos = m_hpos;
         } else {
             m_rpos = m_headerSize;
         }
+    }
+
+    /// @brief reset the header position to the start of the payload
+    void seek_header() {
+        m_hpos = m_headerSize;
+    }
+
+    /// @brief reset the writing position to the start of the payload
+    void seek_write() {
+        m_wpos = m_headerSize;
     }
 
     /// @brief clear the packet
@@ -175,7 +185,7 @@ public:
     /// @brief get the how many bytes of header is being used
     /// @return how much header space is used
     size_t headerSize() {
-        return m_hpos;
+        return m_headerSize - m_hpos;
     }
 
     /// @brief get the total number of bytes that can be written to the packet payload

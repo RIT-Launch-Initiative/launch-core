@@ -14,21 +14,26 @@
 class NetworkLayer {
 public:
     
+    // ICMP header for packets
+    typedef struct {
+        // TODO define constants for packets
+    } icmphead_t
 
-    virtual RetType recieve(Packet& packet, sockmsg_t& info, NetworkLayer* caller) {
-        // Process echo request
-        
+    virtual RetType recieve(Packet& packet, sockinfo_t& info, NetworkLayer* caller) {
+        icmphead_t rec = packet read  // Do something like this that actually works
+                                      // Check if the packet address matches the destination
+                                      // if so, send packet to caller
+                                      // if not, packet is junk
     }
 
-    virtual RetType transmit(Packet& packet, sockmsg_t& info, NetworkLayer* caller) {
+    virtual RetType transmit(Packet& packet, sockinfo_t& info, NetworkLayer* caller) {
+        return(RET_ERROR);     
+    }
+
+    virtual RetType transmit2(Packet& packet, sockinfo_t& info, NetworkLayer* caller) {
         return(RET_ERROR);
-        
     }
-
-    // function to allow caller to be associated with an ip
-    virtual sockaddr_t ipconvert(NetworkLayer *caller) {
         
-    }
 };
 
 

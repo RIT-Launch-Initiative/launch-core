@@ -103,7 +103,7 @@ public:
     }
 
     /// @brief send a message
-    RetType sendmsg(sockmsg_t* msg) {
+    RetType sendmsg(sockinfo_t* msg) {
         struct sockaddr_in addr;
         addr.sin_family = AF_INET;
         addr.sin_addr.s_addr = htonl(msg->addr.addr);
@@ -120,7 +120,7 @@ public:
 
     /// @brief receive a message
     /// only non-blocking for now
-    RetType recvmsg(sockmsg_t* msg) {
+    RetType recvmsg(sockinfo_t* msg) {
         Packet* packet = m_queue.peek();
         m_queue.pop();
 

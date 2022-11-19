@@ -141,9 +141,9 @@ public:
         return *ptr;
     }
 
-    /// @brief receive a packet`
+    /// @brief receive a packet
     /// @return
-    RetType receive(Packet& packet, sockmsg_t& info, NetworkLayer* caller) {
+    RetType receive(Packet& packet, sockinfo_t& info, NetworkLayer* caller) {
         RESUME();
 
         IPv4Header_t* hdr = packet.read_ptr<IPv4Header_t>();
@@ -215,8 +215,9 @@ public:
             return RET_ERROR;
         }
 
-        // record the source address
-        info.addr.ipv4 = ntoh32(hdr->src);
+        // record information about the packet
+        info.src.ipv4_addr = ntoh32(hdr->src);
+        info.dst.ipv4_addr = addr;
 
         RetType ret = CALL(next->receive(packet, info, this));
 
@@ -226,15 +227,15 @@ public:
 
     /// @brief transmit a packet
     /// @return
-    RetType transmit(Packet& packet, sockmsg_t& info, NetworkLayer*) {
+    RetType transmit(Packet& packet, sockinfo_t& info, NetworkLayer*) {
         RESUME();
 
         // first find the route to send this packet over
+        // best route is found by doing longest prefix match of IPv4 CIDR addresses
         QueueIterator<Route> it = m_routingTable.iterator();
-        Route* route;
         bool found = false;
-        while(route = *it) {
-            if((route->addr & route->subnet) == (info.addr.ipv4 & route->subnet)) {
+        while(m_route = *it) {
+            if((m_route->addr & m_route->subnet) == (info.dst.ipv4_addr & m_route->subnet)) {
                 // this is a good match!
                 // since the queue is presorted by biggest subnet mask, we know
                 // this is the longest prefix match!
@@ -260,19 +261,41 @@ public:
 
         hdr->version_ihl = DEFAULT_VERSION_IHL;
         hdr->dscp_ecn = 0;
-        hdr->total_len = hton16(info.payload_len + sizeof(IPv4Header_t));
+        hdr->total_len = hton16(packet.size() + packet.headerSize());
         hdr->identification = 0;
         hdr->flags_frag = 0;
         hdr->ttl = DEFAULT_TTL;
         hdr->protocol = IPV4_PROTO[info.type];
         hdr->checksum = 0;
-        hdr->dst = hton32(info.addr.ipv4);
-        hdr->src = hton32(route->addr);
+        hdr->dst = hton32(info.dst.ipv4_addr);
+        hdr->src = hton32(m_route->addr);
 
         // calculate checksum
         hdr->checksum = hton16(checksum((uint16_t*)hdr, sizeof(IPv4Header_t) / sizeof(uint16_t)));
 
-        RetType ret =  CALL(route->next->transmit(packet, info, this));
+        // record information about the packet for lower layers to use
+        info.dst.ipv4_addr = hdr->dst;
+        info.src.ipv4_addr = hdr->src;
+
+        RetType ret = CALL(m_route->next->transmit(packet, info, this));
+
+        RESET();
+        return ret;
+    }
+
+    /// @brief second pass of transmitting a packet
+    RetType transmit2(Packet& packet, sockinfo_t& info, NetworkLayer* caller) {
+        RESUME();
+
+        // don't do anything on the second pass, just move the header and pass it along
+        IPv4Header_t* hdr = packet.allocate_header<IPv4Header_t>();
+        if(hdr == NULL) {
+            // no room for header
+            return RET_ERROR;
+        }
+
+        // pass it along
+        RetType ret = CALL(m_route->next->transmit2(packet, info, this));
 
         RESET();
         return ret;
@@ -337,6 +360,10 @@ private:
 
     // maps device protocol to a next layer
     alloc::Hashmap<uint8_t, NetworkLayer*, SIZE, SIZE> m_protMap;
+
+    // the found route for a packet
+    // stores information b/w transmit1 and transmit2
+    Route* m_route;
 };
 
 } // namespace ipv4
