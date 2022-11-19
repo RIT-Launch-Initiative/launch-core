@@ -46,6 +46,7 @@ typedef struct {
     uint32_t used;          // number of blocks used for file data
     uint32_t offset;        // number of bytes written in the last block
     uint32_t id;            // unique file id
+    uint32_t segment;       // segment number of this file
 } data_descriptor_t;
 
 /// @brief free desciptor

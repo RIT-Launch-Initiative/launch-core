@@ -24,6 +24,7 @@ namespace chainfs {
 
 static const size_t MAX_BLOCK_SIZE = 2048;
 
+
 class ChainFS : public FileSystem {
 public:
     /// @brief constructor
@@ -37,6 +38,10 @@ public:
     /// @brief initialize
     RetType init() {
         RESUME();
+
+        if(m_blockSize < sizeof(descriptor_t)) {
+            return RET_ERROR;
+        }
 
         RetType ret;
 
@@ -164,7 +169,7 @@ private:
 
         if(free_block == 0xFFFFFFFF) {
             // there are no free blocks on the system
-
+            return RET_ERROR;
         }
 
         while(1) {
