@@ -18,6 +18,7 @@
 #include "device/BlockDevice.h"
 #include "filesystem/ChainFS/descriptors.h"
 #include "sched/macros.h"
+#include "hashmap/hashmap.h"
 
 namespace chainfs {
 
@@ -78,7 +79,27 @@ public:
     /// @param new_file     set to true if a new file was created, false otherwise
     /// @return file descriptor, or -1 on error
     int open(const char* filename, bool* new_file = NULL) {
-        // TODO
+        *new_file = false;
+
+        if (m_filenameMap.get(filename) == NULL) {
+
+            free_descriptor_t *fileDesc = m_filenameMap.add(filename);
+            if (fileDesc == NULL) {
+                return RET_ERROR;
+            }
+
+            *fileDesc = this->free_desc;
+
+            m_fileDescMap.add(*fileDesc);
+
+
+
+
+
+            *new_file = true;
+        }
+
+
 
         return RET_SUCCESS;
     }
@@ -155,6 +176,10 @@ private:
     // location and copy of currently known free descriptor in the chain
     uint32_t free_block;
     free_descriptor_t free_desc;
+
+    alloc::Hashmap<free_descriptor_t, uint8_t, MAX_BLOCK_SIZE, MAX_BLOCK_SIZE> m_fileDescMap;
+    alloc::Hashmap<const char*, free_descriptor_t, MAX_BLOCK_SIZE, MAX_BLOCK_SIZE> m_filenameMap;
+
 
     /// @brief helper function to locate free blocks
     RetType get_free_blocks(uint32_t num, uint32_t* start) {
