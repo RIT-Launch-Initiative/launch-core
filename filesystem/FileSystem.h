@@ -40,14 +40,13 @@ namespace filesystem {
         int create() {
             uint8_t * buffer = {};
             int i = 0;
-            while (this->device.read(i++, buffer) != NULL) {
+            while (buffer != NULL) {
+                this->device.read(i++, buffer);
                 printf("NULL\n");
             }
 
             uint8_t data = -1;
             this->device.write(i, &data);
-
-
             return i;
         }
 
