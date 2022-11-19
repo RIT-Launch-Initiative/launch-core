@@ -15,6 +15,27 @@
 
 namespace littlefs {
     static const size_t MAX_BLOCK_SIZE = 2048;
+    static const MAX_NAME_SIZE = 255;
+    static const MAX_FILE_SIZE = 2147483647; // TODO: Determine file size or make it configurable
+    static const MAX_ATTRIBUTES = 1022;
+
+    typedef enum {
+        LFS_RET_OK          = 0,    // No error
+        LFS_RET_IO          = -5,   // Error during device operation
+        LFS_RET_CORRUPT     = -84,  // Corrupted
+        LFS_RET_NOENT       = -2,   // No directory entry
+        LFS_RET_EXIST       = -17,  // Entry already exists
+        LFS_RET_NOTDIR      = -20,  // Entry is not a dir
+        LFS_RET_ISDIR       = -21,  // Entry is a dir
+        LFS_RET_NOTEMPTY    = -39,  // Dir is not empty
+        LFS_RET_BADF        = -9,   // Bad file number
+        LFS_RET_FBIG        = -27,  // File too large
+        LFS_RET_INVAL       = -22,  // Invalid parameter
+        LFS_RET_NOSPC       = -28,  // No space left on device
+        LFS_RET_NOMEM       = -12,  // No more memory available
+        LFS_RET_NOATTR      = -61,  // No data/attr available
+        LFS_RET_NAMETOOLONG = -36,  // File name too long
+    } LFS_RET;
 
     class LittleFS : public FileSystem {
     public:
