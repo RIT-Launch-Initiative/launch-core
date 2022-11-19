@@ -1,71 +1,60 @@
-/**
- * Name: Filesystem.h
- * Purpose: Provide an interface managing how files are stored and retrieved
- * Author: Aaron Chan
- */
+/*******************************************************************************
+*
+*  Name: FileSystem.h
+*
+*  Purpose: Interface for a file system.
+*
+*  Author: Will Merges
+*
+*  RIT Launch Initiative
+*
+*******************************************************************************/
+#ifndef FILESYSTEM_H
+#define FILESYSTEM_H
 
-#ifndef LAUNCH_CORE_FILESYSTEM_H
-#define LAUNCH_CORE_FILESYSTEM_H
+#include <stdint.h>
+#include <stdlib.h>
 
 #include "return.h"
-#include "macros.h"
-#include "device/BlockDevice.h"
-#include "device/platforms/linux/LinuxBlockDevice.h"
 
-#include "stdlib.h"
-#include <stdint.h>
-//#include "File.h"
+/// @brief interface for a file system
+class FileSystem {
+public:
+    /// @brief constructor
+    FileSystem() {};
 
-namespace filesystem {
-    class FileSystem {
-    public:
-        FileSystem(LinuxBlockDevice device) : device(device) {
-            this->deviceBlockSize = device.getBlockSize();
-            this->deviceNumBlocks = device.getNumBlocks();
-        }
+    /// @brief initialize
+    virtual RetType init() = 0;
 
-        RetType readFile(int fileDescriptor, char* buffer, size_t bufferSize) {
+    /// @brief open a file
+    ///        Creates a new file if there isn't one already
+    /// @param filename     the name of the file
+    /// @param new_file     set to true if a new file was created, false otherwise
+    /// @return file descriptor, or -1 on error
+    virtual int open(const char* filename, bool* new_file = NULL) = 0;
 
-            return RET_SUCCESS;
-        }
+    /// @brief write to a file
+    /// @param fd       descriptor to file to write to
+    /// @param buff     data to write
+    /// @param len      number of bytes to write
+    /// @return
+    virtual RetType write(int fd, uint8_t* buff, size_t len) = 0;
 
-        RetType writeFile(int block_size, uint8_t* buffer, size_t bufferSize) {
-            return RET_SUCCESS;
-        }
+    /// @brief read from a file
+    /// @param fd       descriptor to file to read from
+    /// @param buff     buffer to read data into
+    /// @param len      number of bytes to read
+    /// @return
+    virtual RetType read(int fd, uint8_t* buff, size_t len) = 0;
 
-        RetType erase(int fileDescriptor) {
-            return RET_SUCCESS;
-        }
+    /// @brief flush a file to persistent storage
+    /// @param fd   descriptor to file to flush
+    virtual RetType flush(int fd) = 0;
 
-        int create() {
-            uint8_t * buffer = {};
-            int i = 0;
-            while (buffer != NULL) {
-                this->device.read(i++, buffer);
-                printf("NULL\n");
-            }
+    /// @brief format the underlying device for this filesystem
+    ///        NOTE: destructive operation!!!
+    /// @return
+    virtual RetType format() = 0;
+};
 
-            uint8_t data = -1;
-            this->device.write(i, &data);
-            return i;
-        }
-
-        int open(const char* filename) {
-            int file_descriptor = -1;
-            if (file_descriptor > -1) { // TODO: If FNF
-//                file_descriptor = create(filename);
-            }
-
-
-            return file_descriptor; // TODO: File Descriptor most likely
-        }
-
-    private:
-        LinuxBlockDevice device;
-        size_t deviceBlockSize;
-        size_t deviceNumBlocks;
-        size_t keyCount = 0;
-    };
-}
-
-#endif //LAUNCH_CORE_FILESYSTEM_H
+#endif
