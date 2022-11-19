@@ -9,17 +9,17 @@
 
 #include "filesystem/FileSystem.h"
 #include "device/BlockDevice.h"
-#include "filesystem/FatFS/descriptors.h"
+#include "filesystem/LittleFS/descriptors.h"
 #include "sched/macros.h"
 #include "hashmap/hashmap.h"
 
-namespace fatfs {
+namespace littlefs {
     static const size_t MAX_BLOCK_SIZE = 2048;
 
-    class FatFS : public FileSystem {
+    class LittleFS : public FileSystem {
     public:
         /// @brief constructor
-        FatFS(BlockDevice& dev) : m_dev(dev),
+        LittleFS(BlockDevice& dev) : m_dev(dev),
                                     last_block(0xFFFFFFFF),
                                     free_block(0xFFFFFFFF) {
             m_blockSize = dev.getBlockSize();
