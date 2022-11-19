@@ -29,37 +29,10 @@ namespace fatfs {
         /// @brief initialize
         RetType init() {
             RESUME();
+            // TODO
 
             RetType ret;
 
-            static descriptor_t* desc;
-            static uint32_t block;
-            static uint32_t prev_block;
-            block = 0;
-            prev_block = 0;
-
-            while(block != 0xFFFFFFFF) {
-                ret = CALL(m_dev.read(block, m_block));
-
-                if(ret != RET_SUCCESS) {
-                    return ret;
-                }
-
-                desc = (descriptor_t*)m_block;
-                prev_block = block;
-
-                block = ((free_descriptor_t*)desc)->header.next_block;
-
-                // store the last free block we see
-                if(((free_descriptor_t*)desc)->header.type == FREE_DESCRIPTOR) {
-                    free_block = prev_block;
-                    free_desc = *((free_descriptor_t*)desc);
-                }
-
-            }
-
-            last_block = prev_block;
-            last_desc = *desc;
 
             return RET_SUCCESS;
         }
@@ -70,21 +43,7 @@ namespace fatfs {
         /// @param new_file     set to true if a new file was created, false otherwise
         /// @return file descriptor, or -1 on error
         int open(const char* filename, bool* new_file = NULL) {
-            *new_file = false;
-
-            if (m_filenameMap.get(filename) == NULL) {
-                free_descriptor_t *fileDesc = m_filenameMap.add(filename);
-                if (fileDesc == NULL) {
-                    return RET_ERROR;
-                }
-
-                *fileDesc = this->free_desc;
-
-                uint32_t* blockLocation = m_fileDescMap.add(*fileDesc);
-                *blockLocation = this->free_block;
-
-                *new_file = true;
-            }
+            // TODO:
 
 
 
@@ -125,8 +84,8 @@ namespace fatfs {
         ///        NOTE: destructive operation!!!
         /// @return
         RetType format() {
+            // TODO
             return RET_SUCCESS;
-
         }
 
     private:

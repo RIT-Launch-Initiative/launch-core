@@ -1,5 +1,5 @@
 /**
- * Purpose: FAT Based File System
+ * Purpose: Little File System
  * Author: Aaron Chan
  */
 #ifndef LAUNCH_CORE_FATFS_H
@@ -29,37 +29,8 @@ namespace littlefs {
         /// @brief initialize
         RetType init() {
             RESUME();
-
+            // TODO
             RetType ret;
-
-            static descriptor_t* desc;
-            static uint32_t block;
-            static uint32_t prev_block;
-            block = 0;
-            prev_block = 0;
-
-            while(block != 0xFFFFFFFF) {
-                ret = CALL(m_dev.read(block, m_block));
-
-                if(ret != RET_SUCCESS) {
-                    return ret;
-                }
-
-                desc = (descriptor_t*)m_block;
-                prev_block = block;
-
-                block = ((free_descriptor_t*)desc)->header.next_block;
-
-                // store the last free block we see
-                if(((free_descriptor_t*)desc)->header.type == FREE_DESCRIPTOR) {
-                    free_block = prev_block;
-                    free_desc = *((free_descriptor_t*)desc);
-                }
-
-            }
-
-            last_block = prev_block;
-            last_desc = *desc;
 
             return RET_SUCCESS;
         }
@@ -70,22 +41,7 @@ namespace littlefs {
         /// @param new_file     set to true if a new file was created, false otherwise
         /// @return file descriptor, or -1 on error
         int open(const char* filename, bool* new_file = NULL) {
-            *new_file = false;
-
-            if (m_filenameMap.get(filename) == NULL) {
-                free_descriptor_t *fileDesc = m_filenameMap.add(filename);
-                if (fileDesc == NULL) {
-                    return RET_ERROR;
-                }
-
-                *fileDesc = this->free_desc;
-
-                uint32_t* blockLocation = m_fileDescMap.add(*fileDesc);
-                *blockLocation = this->free_block;
-
-                *new_file = true;
-            }
-
+            // TODO
 
 
             return RET_SUCCESS;
@@ -136,25 +92,10 @@ namespace littlefs {
         size_t m_blockSize;
         size_t m_numBlocks;
 
-        // location and copy of last descriptor in the chain
-        uint32_t last_block;
-        descriptor_t last_desc;
 
-        // location and copy of currently known free descriptor in the chain
-        uint32_t free_block;
-        free_descriptor_t free_desc;
-
-        alloc::Hashmap<free_descriptor_t, uint8_t, MAX_BLOCK_SIZE, MAX_BLOCK_SIZE> m_fileDescMap;
-        alloc::Hashmap<const char*, free_descriptor_t, MAX_BLOCK_SIZE, MAX_BLOCK_SIZE> m_filenameMap;
-
-
-        /// @brief helper function to locate free blocks
-        RetType get_free_blocks(uint32_t num, uint32_t* start) {
-
-        }
     };
 
 
-} // namespace chainfs
+} // namespace littlefs
 
-#endif //LAUNCH_CORE_FATFS_H
+#endif //LAUNCH_CORE_LittleFS_H

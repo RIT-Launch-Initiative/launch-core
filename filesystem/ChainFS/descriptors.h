@@ -56,7 +56,7 @@ typedef struct {
 } free_descriptor_t;
 
 typedef union {
-    name_descriptor_t name_desc;
+    name_descriptor_t name_desc
     data_descriptor_t data_desc;
     free_descriptor_t free_desc;
 } descriptor_t;

@@ -5,7 +5,7 @@
 #include "filesystem/FatFS/FatFS.h"
 #include "device/platforms/linux/LinuxBlockDevice.h"
 
-using namespace chainfs;
+using namespace fatfs;
 
 LinuxBlockDevice block{"fake_fs", 512, 10};
 FatFS fs{block};
