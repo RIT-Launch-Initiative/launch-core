@@ -13,7 +13,8 @@
 #include "queue/allocated_queue.h"
 
 // global TID for currently dispatched thread
-tid_t sched_dispatched = -1;
+// a TID equal to the max num tasks represents "system" execution
+tid_t sched_dispatched = MAX_NUM_TASKS;
 
 // preallocated task structures
 static task_t tasks[MAX_NUM_TASKS];
@@ -73,7 +74,7 @@ tid_t sched_start(task_func_t func) {
             tasks[i].state = STATE_ACTIVE;              // set active
             tasks[i].stack.curr = tasks[i].stack.block; // reset stack
             tasks[i].func = func;
-            tasks[i].tid = i;
+            tasks[i].tid = i + 1;
             tasks[i].queued = true;
 
             // put it on the ready queue
@@ -177,7 +178,7 @@ void sched_dispatch() {
         break;
     }
 
-    sched_dispatched = -1;
+    sched_dispatched = MAX_NUM_TASKS;
 }
 
 /// @brief sleep a task

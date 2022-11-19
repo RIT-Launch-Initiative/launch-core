@@ -18,9 +18,9 @@
 ///       using GCC/G++ for these macros to work
 #define RESUME()\
             static bool _init = false;\
-            static void* _current[static_cast<int>(MAX_NUM_TASKS)];\
+            static void* _current[static_cast<int>(MAX_NUM_TASKS) + 1];\
             if(!_init) {\
-                for(int i = 0; i < static_cast<int>(MAX_NUM_TASKS); i++) {\
+                for(int i = 0; i < static_cast<int>(MAX_NUM_TASKS) + 1; i++) {\
                     _current[i] = &&_start;\
                 }\
                 _init = true;\

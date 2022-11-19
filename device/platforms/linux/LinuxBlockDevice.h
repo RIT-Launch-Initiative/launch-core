@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <sys/mman.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "device/BlockDevice.h"
 #include "return.h"
@@ -37,7 +38,7 @@ public:
     /// @brief initialize the device
     RetType init() {
         // create a file to store our "blocks" in
-        FILE* f = fopen(m_file, "w+");
+        FILE* f = fopen(m_file, "a+");
         if(f == NULL) {
             return RET_ERROR;
         }

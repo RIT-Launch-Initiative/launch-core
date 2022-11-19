@@ -13,6 +13,7 @@
 #define FILESYSTEM_H
 
 #include <stdint.h>
+#include <stdlib.h>
 
 #include "return.h"
 
