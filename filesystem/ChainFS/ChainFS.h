@@ -82,7 +82,6 @@ public:
         *new_file = false;
 
         if (m_filenameMap.get(filename) == NULL) {
-
             free_descriptor_t *fileDesc = m_filenameMap.add(filename);
             if (fileDesc == NULL) {
                 return RET_ERROR;
@@ -91,10 +90,6 @@ public:
             *fileDesc = this->free_desc;
 
             m_fileDescMap.add(*fileDesc);
-
-
-
-
 
             *new_file = true;
         }

@@ -47,6 +47,22 @@ RetType task() {
     return ret;
 }
 
+RetType open() {
+    RESUME();
+
+    bool newFileCreated = false;
+
+    int fd = fs.open("test", &newFileCreated);
+
+    if (newFileCreated) {
+        printf("New file created successfully");
+    } else {
+        printf("No file created");
+    }
+
+    return RET_SUCCESS;
+}
+
 int main() {
     if(RET_SUCCESS != block.init()) {
         printf("Could not init block device\n");
@@ -60,6 +76,11 @@ int main() {
 
     if(-1 == sched_start(&task)) {
         printf("failed to start task\r\n");
+        return -1;
+    }
+
+    if (RET_SUCCESS != open()) {
+        printf("Failed to open file");
         return -1;
     }
 
