@@ -9,7 +9,7 @@
 
 #include "filesystem/FileSystem.h"
 #include "device/BlockDevice.h"
-#include "filesystem/LittleFS/descriptors.h"
+#include "filesystem/LittleFS/declarations.h"
 #include "sched/macros.h"
 #include "hashmap/hashmap.h"
 
@@ -91,6 +91,14 @@ namespace littlefs {
         uint8_t m_block[MAX_BLOCK_SIZE];
         size_t m_blockSize;
         size_t m_numBlocks;
+
+        LFS_CACHE_T rCache;
+        LFS_CACHE_T pCache;
+        LFS_BLOCK_T root[2];
+
+
+
+
 
         uint32_t checksum(uint32_t crc, const void *buffer, size_t size) {
             static const uint32_t table[16] = {
