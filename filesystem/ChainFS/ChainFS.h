@@ -42,14 +42,13 @@ public:
 
     /// information kept on an opened file
     typedef struct {
-        uint8_t rdata[MAX_BLOCK_SIZE];       // temporary buffer for reading
-        uint8_t wdata[MAX_BLOCK_SIZE];       // temporary buffer for writing
+        bool open;                           // if this file is open or not
+        uint8_t rdata[MAX_BLOCK_SIZE];       // temporary buffer for reading data blocks
+        uint8_t wdata[MAX_BLOCK_SIZE];       // temporary buffer for writing data blocks
         uint8_t rdesc[MAX_BLOCK_SIZE];       // temporary buffer for descriptor block of current segment being read
-        data_descriptor_t* rdesc;            // pointer in 'rdesc' to data descriptor
         uint8_t wdesc[MAX_BLOCK_SIZE];       // temporary buffer for descriptor block of current segment being written
         uint32_t rdesc_block;                // block number buffered in 'rdesc'
         uint32_t wdesc_block;                // block number buffered in 'wdesc'
-        data_descriptor_t* wdesc;            // pointer in 'rdesc' to data descriptor
         uint32_t read_block;                 // current block being read
         uint32_t read_offset;                // offset in current 'read_block'
         uint32_t write_block;                // next block to write to
@@ -61,15 +60,35 @@ public:
     RetType init() {
         RESUME();
 
+        // each descriptor needs to fit on page
+        // if we can't do that, we can't support the underlying device
         if(m_blockSize < sizeof(descriptor_t)) {
             return RET_ERROR;
         }
+
+        // push file descriptor numbers onto queue
+        for(int i = 0; i < MAX_OPEN_FILES; i++) {
+            if(!m_queue.push(i)) {
+                return RET_ERROR;
+            }
+
+            // zero file descriptor
+            FileDescriptor_t* desc = &(m_fds[i]);
+            memset(desc, 0, sizeof(FileDescriptor_t));
+
+            // set as not open (just in case)
+            desc->open = false;
+        }
+
+        // read through the linked list of descriptors
+        // record the last descriptor on the last and the last free descriptor seen
 
         RetType ret;
 
         static descriptor_t* desc;
         static uint32_t block;
         static uint32_t prev_block;
+
         block = 0;
         prev_block = 0;
 
@@ -77,6 +96,7 @@ public:
             ret = CALL(m_dev.read(block, m_block));
 
             if(ret != RET_SUCCESS) {
+                RESET();
                 return ret;
             }
 
@@ -88,13 +108,11 @@ public:
             // store the last free block we see
             if(((free_descriptor_t*)desc)->header.type == FREE_DESCRIPTOR) {
                 free_block = prev_block;
-                free_desc = *((free_descriptor_t*)desc);
             }
 
         }
 
         last_block = prev_block;
-        last_desc = *desc;
 
         return RET_SUCCESS;
     }
@@ -102,12 +120,164 @@ public:
     /// @brief open a file
     ///        Creates a new file if there isn't one already
     /// @param filename     the name of the file
+    /// @param fd           set to the file descriptor of the opened file
     /// @param new_file     set to true if a new file was created, false otherwise
     /// @return file descriptor, or -1 on error
-    int open(const char* filename, bool* new_file = NULL) {
-        // TODO
+    RetType open(const char* filename, int* fd, bool* new_file = NULL) {
+        RESUME();
 
-        return RET_SUCCESS;
+        RetType ret = RET_SUCCESS;
+
+        // strlen does not include NULL byte, so check if >= max string we can store
+        if(strlen(filename) >= MAX_FILENAME_SIZE) {
+            return RET_ERROR;
+        }
+
+        // allocate a file descriptor for this file
+        static int* fd_ptr;
+        fd_ptr = m_queue.peek();
+
+        if(NULL == fd_ptr) {
+            // too many open files already
+            return RET_ERROR;
+        }
+
+        m_queue.pop();
+
+        static name_descriptor_t* desc;
+        static bool found;
+        static uint32_t block;
+
+        found = false;
+        block = 0;
+
+        // search through the entire linked list of descriptors looking for this filename
+        while(block != 0xFFFFFFFF) {
+            ret = CALL(m_dev.read(block, m_block));
+
+            if(ret != RET_SUCCESS) {
+                goto out;
+            }
+
+            desc = (name_descriptor_t*)m_block;
+            if(desc->header.type == NAME_DESCRIPTOR) {
+                if(0 == strncmp(filename, desc->name, MAX_FILENAME_SIZE)) {
+                    // this is our file
+                    found = true;
+                    break;
+                }
+            }
+
+            // check the next descriptor
+            block = desc->header.next_block;
+        }
+
+        if(!found) {
+            // make a new name descriptor for this file
+
+            ret = CALL(get_free_blocks(1, &block));
+
+            if(ret != RET_SUCCESS) {
+                goto out;
+            }
+
+            desc = (name_descriptor_t*)m_block;
+            desc->data = 0xFFFFFFFF; // no data blocks allocated yet
+            strncpy(desc->name, filename, MAX_FILENAME_SIZE); // copy filename
+
+            static descriptor_t new_desc;
+            new_desc = *((descriptor_t*)desc);
+
+            ret = CALL(add_descriptor(&new_desc, block, NAME_DESCRIPTOR, sizeof(name_descriptor_t)));
+
+            if(ret != RET_SUCCESS) {
+                goto out;
+            }
+
+            // mark that we created a new file
+            if(new_file != NULL) {
+                *new_file = true;
+            }
+        } // otherwise this is a pre-existing file
+
+        // initialize parameters in file descriptor block
+        static FileDescriptor_t* file;
+        file = &(m_fds[*fd_ptr]);
+
+        file->name_block = block;
+        file->read_offset = 0;
+        file->write_offset = 0;
+
+        ret = CALL(m_dev.read(block, m_block));
+
+        if(ret != RET_SUCCESS) {
+            goto out;
+        }
+
+        // desc now points to name descriptor for this file
+
+        // look for the read and write descriptors
+        file->rdesc_block = desc->data;
+        if(file->rdesc_block != 0xFFFFFFFF) {
+            // buffer in read descriptor as first data descriptor
+            ret = CALL(m_dev.read(file->rdesc_block, file->rdesc));
+
+            if(ret != RET_SUCCESS) {
+                goto out;
+            }
+
+            // buffer in the first data block to read
+            data_descriptor_t* data_desc = (data_descriptor_t*)file->rdesc;
+            file->read_block = data_desc->start;
+
+            ret = CALL(m_dev.read(file->read_block, file->rdata));
+
+            if(ret != RET_SUCCESS) {
+                goto out;
+            }
+
+            // woohoo, we're setup for reading
+
+            // look for the last data descriptor in the chain, this will be the current write descriptor
+            file->wdesc_block = file->rdesc_block;
+            while(file->wdesc_block != 0xFFFFFFFF) {
+                ret = CALL(m_dev.read(file->write_block, file->wdesc));
+
+                if(ret != RET_SUCCESS) {
+                    goto out;
+                }
+
+                data_desc = (data_descriptor_t*)file->wdesc;
+                file->wdesc_block = data_desc->next_block;
+            }
+
+            // now writing is set up
+        } else {
+            // there's no data descriptors for this file yet
+            file->read_block = 0xFFFFFFFF;
+            file->wdesc_block = 0xFFFFFFFF;
+            file->write_block = 0xFFFFFFFF;
+        }
+
+        // at this point our file is all setup
+        // all fields are set
+        // if there are no data blocks yet, all 'block' fields are set to 0xFFFFFFFF
+
+out:
+        // put this file descriptor back on the queue if we failed to open
+        if(ret != RET_SUCCESS) {
+            m_queue.push(*fd);
+        } else {
+            // mark the file as successfully opened!
+            file->open = true;
+        }
+
+        // TODO unlock FS
+
+        *fd = *fd_ptr;
+
+        RESET();
+        return ret;
     }
 
     /// @brief write to a file
@@ -155,12 +325,10 @@ public:
         }
 
         // we just write a free descriptor to the first page
-        free_descriptor_t desc;
-        desc.header = {FREE_DESCRIPTOR, 0xFFFFFFFF};
-        desc.start = 1;
-        desc.len = m_numBlocks - 1;
-
-        memcpy(m_block, (void*)&desc, sizeof(free_descriptor_t));
+        free_descriptor_t* desc = (free_descriptor_t*)m_block;
+        desc->header = {FREE_DESCRIPTOR, 0xFFFFFFFF};
+        desc->start = 1;
+        desc->len = m_numBlocks - 1;
 
         RetType ret = CALL(m_dev.write(0, m_block));
 
@@ -183,79 +351,126 @@ private:
 
     // location and copy of last descriptor read in the chain
     uint32_t last_block;
-    descriptor_t last_desc;
 
     // location and copy of currently known free descriptor in the chain
     uint32_t free_block;
-    free_descriptor_t free_desc;
+
+    // queue of file descriptor integers
+    alloc::Queue<int, MAX_OPEN_FILES> m_queue;
+
+    // maps integers to File Descriptors
+    FileDescriptor_t m_fds[MAX_OPEN_FILES];
+
 
     /// @brief helper function to locate free blocks
     RetType get_free_blocks(uint32_t num, uint32_t* start) {
         RESUME();
 
+        // TODO lock this function so only one task can call it at a time
+        // maybe just put locks in higher level funcs
+
         RetType ret;
+        free_descriptor_t* free_desc;
 
         if(free_block == 0xFFFFFFFF) {
             // there are no free blocks on the system
             return RET_ERROR;
         }
 
+        // start looking for a free block big enough
+        // start at the free descriptor at 'free_block'
+        static free_descriptor_t* desc;
+        static uint32_t block;
+        block = free_block;
+
         while(1) {
-            // start at the last free block, if it has enough we're good to go
-            if(free_desc.len >= num) {
-                // steal blocks from this free chunk
-                *start = free_desc.start;
-                free_desc.start += num;
-                free_desc.len -= num;
+            ret = CALL(m_dev.read(block, m_block));
 
-                // update the block containing the free descriptor
-                memcpy(m_block, (void*)&free_desc, sizeof(free_desc));
-
-                ret = CALL(m_dev.write(free_block, m_block));
-
-                if(ret != RET_SUCCESS) {
-                    return ret;
-                }
-
-                break;
+            if(ret != RET_SUCCESS) {
+                return ret;
             }
 
-            // otherwise we need to look for a new free block that's big enough
-            // start looking from the beginning of the list
-            static free_descriptor_t* desc;
-            static uint32_t block;
-            block = 0;
-
-            while(block != 0xFFFFFFFF) {
-                ret = CALL(m_dev.read(block, m_block));
-
-                if(ret != RET_SUCCESS) {
-                    return ret;
+            desc = (free_descriptor_t*)m_block;
+            if(desc->header.type == FREE_DESCRIPTOR) {
+                if(desc->len >= num) {
+                    // we found one!
+                    break;
                 }
-
-                desc = (free_descriptor_t*)m_block;
-                if(desc->header.type == FREE_DESCRIPTOR) {
-                    if(desc->len >= num) {
-                        free_desc = *desc;
-                        free_block = block;
-                        block = 0;
-                        break;
-                    }
-                }
-
-                // keep looking
-                block = desc->header.next_block;
             }
 
-            if(block = 0xFFFFFFFF) {
-                // we've looked everywhere and we don't have a chunk big enough :(
-                ret = RET_ERROR;
+            // keep looking
+            block = desc->header.next_block;
+
+            if(block == 0xFFFFFFFF) {
+                // wrap around
+                block = 0;
+            }
+
+            if(block == free_block) {
+                // we're back to where we started and didn't find anything
+                block = 0xFFFFFFFF;
                 break;
             }
         }
 
+        if(block == 0xFFFFFFFF) {
+            // we've looked everywhere and we don't have a chunk big enough :(
+            RESET();
+            return RET_ERROR;
+        }
+
+        // update the free descriptor we found
+        // steal 'num' blocks
+        *start = desc->start;
+        desc->start += num;
+        desc->len -= num;
+
+        ret = CALL(m_dev.write(free_block, m_block));
+
         RESET();
         return ret;
+    }
+
+    /// @brief helper function to add a descriptor to the chain
+    /// NOTE: 'desc' can not point to any memory in 'm_block' as it will be ovewritten
+    RetType add_descriptor(descriptor_t* desc, uint32_t block, uint32_t type, size_t size) {
+        RESUME();
+
+        RetType ret;
+
+        ret = CALL(m_dev.read(last_block, m_block));
+
+        if(ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
+
+        descriptor_t* last = (descriptor_t*)m_block;
+        last->header_only.next_block = block;
+
+        ret = CALL(m_dev.write(last_block, m_block));
+
+        if(ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
+
+        desc->header_only.type = type;
+        desc->header_only.next_block = 0xFFFFFFFF;
+        memcpy(m_block, (void*)desc, size);
+
+        ret = CALL(m_dev.write(block, m_block));
+
+        if(ret != RET_SUCCESS) {
+            // NOTE: the last descriptor is still messed up! the 'next_block' link points to a bad block
+            RESET();
+            return ret;
+        }
+
+        last_block = block;
+
+        RESET();
+        return RET_SUCCESS;
     }
 };
 
