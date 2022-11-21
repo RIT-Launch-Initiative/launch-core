@@ -18,11 +18,16 @@
 #include "device/BlockDevice.h"
 #include "filesystem/ChainFS/descriptors.h"
 #include "sched/macros.h"
+#include "pool/pool.h"
+
 
 namespace chainfs {
 
-
+// maximum block size supported
 static const size_t MAX_BLOCK_SIZE = 2048;
+
+// maximum number of files open at once supported
+static const size_t MAX_OPEN_FILES = 16;
 
 
 class ChainFS : public FileSystem {
@@ -34,6 +39,23 @@ public:
         m_blockSize = dev.getBlockSize();
         m_numBlocks = dev.getNumBlocks();
     }
+
+    /// information kept on an opened file
+    typedef struct {
+        uint8_t rdata[MAX_BLOCK_SIZE];       // temporary buffer for reading
+        uint8_t wdata[MAX_BLOCK_SIZE];       // temporary buffer for writing
+        uint8_t rdesc[MAX_BLOCK_SIZE];       // temporary buffer for descriptor block of current segment being read
+        data_descriptor_t* rdesc;            // pointer in 'rdesc' to data descriptor
+        uint8_t wdesc[MAX_BLOCK_SIZE];       // temporary buffer for descriptor block of current segment being written
+        uint32_t rdesc_block;                // block number buffered in 'rdesc'
+        uint32_t wdesc_block;                // block number buffered in 'wdesc'
+        data_descriptor_t* wdesc;            // pointer in 'rdesc' to data descriptor
+        uint32_t read_block;                 // current block being read
+        uint32_t read_offset;                // offset in current 'read_block'
+        uint32_t write_block;                // next block to write to
+        uint32_t write_offset;               // next byte to write in 'write_block'
+        uint32_t name_block;                 // block that contains name descriptor for this file
+    } FileDescriptor_t;
 
     /// @brief initialize
     RetType init() {
@@ -147,13 +169,19 @@ public:
     }
 
 private:
+    // reference to underlying block device
     BlockDevice& m_dev;
 
+    // temporary buffer used for buffering blocks
     uint8_t m_block[MAX_BLOCK_SIZE];
+
+    // size of blocks in underlying device (in bytes)
     size_t m_blockSize;
+
+    // number of blocks available
     size_t m_numBlocks;
 
-    // location and copy of last descriptor in the chain
+    // location and copy of last descriptor read in the chain
     uint32_t last_block;
     descriptor_t last_desc;
 
