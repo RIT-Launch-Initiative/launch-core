@@ -54,7 +54,7 @@ public:
         uint32_t write_block;                // next block to write to
         uint32_t write_offset;               // next byte to write in 'write_block'
         uint32_t name_block;                 // block that contains name descriptor for this file
-    } FileDescriptor_t;
+    } File_t;
 
     /// @brief initialize
     RetType init() {
@@ -73,8 +73,8 @@ public:
             }
 
             // zero file descriptor
-            FileDescriptor_t* desc = &(m_fds[i]);
-            memset(desc, 0, sizeof(FileDescriptor_t));
+            File_t* desc = &(m_files[i]);
+            memset(desc, 0, sizeof(File_t));
 
             // set as not open (just in case)
             desc->open = false;
@@ -231,8 +231,8 @@ public:
         } // otherwise this is a pre-existing file
 
         // initialize parameters in file descriptor block
-        static FileDescriptor_t* file;
-        file = &(m_fds[*fd_ptr]);
+        static File_t* file;
+        file = &(m_files[*fd_ptr]);
 
         file->name_block = block;
         file->read_offset = 0;
@@ -330,7 +330,7 @@ out:
         RESUME();
 
         // look up the file descriptor
-        FileDescriptor_t* file = &(m_fds[fd]);
+        File_t* file = &(m_files[fd]);
 
         if(!file->open) {
             return RET_ERROR;
@@ -403,7 +403,7 @@ private:
     alloc::Queue<int, MAX_OPEN_FILES> m_queue;
 
     // maps integers to File Descriptors
-    FileDescriptor_t m_fds[MAX_OPEN_FILES];
+    File_t m_files[MAX_OPEN_FILES];
 
 
     /// @brief helper function to locate free blocks
