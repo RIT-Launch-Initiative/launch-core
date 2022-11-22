@@ -144,24 +144,24 @@ public:
 
         m_queue.pop();
 
-        static name_descriptor_t* desc;
+        static name_descriptor_t* name_desc;
         static bool found;
-        static uint32_t block;
+        static uint32_t name_block;
 
         found = false;
-        block = 0;
+        name_block = 0;
 
         // search through the entire linked list of descriptors looking for this filename
-        while(block != 0xFFFFFFFF) {
-            ret = CALL(m_dev.read(block, m_block));
+        while(name_block != 0xFFFFFFFF) {
+            ret = CALL(m_dev.read(name_block, m_block));
 
             if(ret != RET_SUCCESS) {
                 goto out;
             }
 
-            desc = (name_descriptor_t*)m_block;
+            name_desc = (name_descriptor_t*)m_block;
             if(desc->header.type == NAME_DESCRIPTOR) {
-                if(0 == strncmp(filename, desc->name, MAX_FILENAME_SIZE)) {
+                if(0 == strncmp(filename, name_desc->name, MAX_FILENAME_SIZE)) {
                     // this is our file
                     found = true;
                     break;
@@ -169,30 +169,60 @@ public:
             }
 
             // check the next descriptor
-            block = desc->header.next_block;
+            name_block = desc->header.next_block;
         }
 
         if(!found) {
             // make a new name descriptor for this file
 
-            ret = CALL(get_free_blocks(1, &block));
+            ret = CALL(get_free_blocks(1, &name_block));
 
             if(ret != RET_SUCCESS) {
                 goto out;
             }
 
-            desc = (name_descriptor_t*)m_block;
-            desc->data = 0xFFFFFFFF; // no data blocks allocated yet
+            name_desc = (name_descriptor_t*)m_block;
+            name_desc->data = 0xFFFFFFFF; // no data blocks allocated yet // TODO allocate data block first then this
             strncpy(desc->name, filename, MAX_FILENAME_SIZE); // copy filename
 
             static descriptor_t new_desc;
-            new_desc = *((descriptor_t*)desc);
+            new_desc = *((descriptor_t*)name_desc);
 
-            ret = CALL(add_descriptor(&new_desc, block, NAME_DESCRIPTOR, sizeof(name_descriptor_t)));
+            ret = CALL(add_descriptor(&new_desc, name_block, NAME_DESCRIPTOR, sizeof(name_descriptor_t)));
 
             if(ret != RET_SUCCESS) {
                 goto out;
             }
+
+            // at this point we've added a name descriptor for this file
+            // we need to add one data descriptor
+
+            static uint32_t data_block;
+            ret = CALL(get_free_blocks(1, &data_block));
+
+            if(ret != RET_SUCCESS) {
+                goto out;
+            }
+
+            // buffer in the data descriptor we just allocated
+            ret = CALL(m_dev.read(data_block, m_block));
+
+            if(ret != RET_SUCCESS) {
+                goto out;
+            }
+
+            data_descriptor_t* data_desc = (data_descriptor_t*)m_block;
+
+            // TODO setup this data descriptor
+
+            new_desc = *((descriptor_t*)data_desc);
+            ret = CALL(add_descriptor(&new_desc, data_block, DATA_DESCRIPTOR, sizeof(data_descriptor_t)));
+
+            if(ret != RET_SUCCESS) {
+                goto out;
+            }
+
+            // TODO write out to the name descriptor that
 
             // mark that we created a new file
             if(new_file != NULL) {
@@ -217,7 +247,7 @@ public:
         // desc now points to name descriptor for this file
 
         // look for the read and write descriptors
-        file->rdesc_block = desc->data;
+        file->rdesc_block = name_desc->data;
         if(file->rdesc_block != 0xFFFFFFFF) {
             // buffer in read descriptor as first data descriptor
             ret = CALL(m_dev.read(file->rdesc_block, file->rdesc));
@@ -297,8 +327,22 @@ out:
     /// @param len      number of bytes to read
     /// @return
     RetType read(int fd, uint8_t* buff, size_t len) {
-        // TODO
+        RESUME();
 
+        // look up the file descriptor
+        FileDescriptor_t* file = &(m_fds[fd]);
+
+        if(!file->open) {
+            return RET_ERROR;
+        }
+
+        // TODO read what we can from file->rdata
+        //      update offset
+        //      if we need to read more, buffer in a new block
+        //      to do that we read file->rdesc to see where the next block is
+        //      if we have no more blocks, error
+
+        RESET();
         return RET_SUCCESS;
     }
 
