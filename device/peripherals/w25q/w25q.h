@@ -37,9 +37,15 @@ public:
     }
 
 
-    RetType readData(uint32_t address) {
-        const uint8_t READ_COMMAND = 0x03;
+    RetType readData(READ_COMMAND_T readCommand, uint32_t address) {
+        uint8_t addrOne = address >> 24;
+        uint8_t addrTwo = address >> 16;
+        uint8_t addrThree = address >> 8;
+        uint8_t addrFour = address;
 
+        uint8_t buff[6] = {readCommand, addrOne, addrTwo, addrThree, addrFour};
+
+        spiDevice.read(buff, sizeof(buff));
 
 
         return RET_SUCCESS;
