@@ -222,7 +222,7 @@ public:
                 goto out;
             }
 
-            // TODO write out to the name descriptor that
+            // TODO write this data descriptor out to the name descriptor
 
             // mark that we created a new file
             if(new_file != NULL) {
@@ -282,7 +282,7 @@ public:
             }
 
             // now writing is set up
-        } else {
+        } else { // TODO remove this case
             // there's no data descriptors for this file yet
             file->read_block = 0xFFFFFFFF;
             file->wdesc_block = 0xFFFFFFFF;
@@ -323,7 +323,7 @@ out:
 
     /// @brief read from a file
     /// @param fd       descriptor to file to read from
-    /// @param buff     buffer to read data into
+    /// @param buff     b1uffer to read data into
     /// @param len      number of bytes to read
     /// @return
     RetType read(int fd, uint8_t* buff, size_t len) {
