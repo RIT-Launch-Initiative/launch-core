@@ -11,6 +11,12 @@
 #include "device/SPIDevice.h"
 #include "device/GPIODevice.h"
 
+#define WQ25Q_CMD(command) { \
+    chipSelectPin.set(0); \
+    command; \
+    chipSelectPin.set(1); \
+}
+
 
 class W25Q {
 public:
@@ -74,10 +80,12 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType readRegister(READ_STATUS_REGISTER_T reg) {
+    RetType readRegister(READ_STATUS_REGISTER_T reg, uint32_t *data) {
         chipSelectPin.set(0);
         dataInPin.set(reg);
         chipSelectPin.set(1);
+
+        dataOutPin.get(data);
 
         return RET_SUCCESS;
     }
@@ -86,14 +94,14 @@ public:
         toggleWrite(isVolatile ? WRITE_SET_ENABLE_VOLATILE : WRITE_SET_ENABLE);
 
         chipSelectPin.set(0);
-        spiDevice.write(data);
+        dataInPin.set(data);
         chipSelectPin.set(1);
 
         return RET_SUCCESS;
     }
 
 
-    RetType readData(READ_COMMAND_T readCommand, uint32_t address, uint8_t *buff) {
+    RetType readData(READ_COMMAND_T readCommand, uint32_t address, uint8_t *buff, uint32_t *receivedData) {
         // TODO: Validate this. Address is a 24 bit
         uint8_t addrOne = address >> 24;
         uint8_t addrTwo = address >> 16;
@@ -128,7 +136,7 @@ public:
         }
 
 
-        RetType ret = spiDevice.read(buff, buffSize);
+        RetType ret = dataOutPin.get(receivedData);
 
         chipSelectPin.set(1);
 
