@@ -38,6 +38,13 @@ public:
         WRITE_SET_DISABLE = 0x04,
     } WRITE_SET_T;
 
+    typedef enum {
+        REGISTER_ONE_STATUS = 0x05;
+        REGISTER_TWO_STATUS = 0x35;
+        REGISTER_THREE_STATUS = 0x15;
+
+    } READ_STATUS_REGISTER_T;
+
 
     W25Q(SPIDevice &spiDevice, GPIODevice &csPin, GPIODevice &clkPin, GPIODevice &diPin, GPIODevice &dOutPin) :
             spiDevice(spiDevice), chipSelectPin(csPin), clockPin(clkPin), dataInPin(diPin), dataOutPin(dOutPin) {}
@@ -51,6 +58,14 @@ public:
 
         chipSelectPin.set(0);
         dataInPin.set(command);
+        chipSelectPin.set(1);
+
+        return RET_SUCCESS;
+    }
+
+    RetType readRegister(READ_STATUS_REGISTER_T reg) {
+        chipSelectPin.set(0);
+        dataInPin.set(reg);
         chipSelectPin.set(1);
 
         return RET_SUCCESS;
