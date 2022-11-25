@@ -17,6 +17,12 @@
     chipSelectPin.set(1); \
 }
 
+// TODO: Might be a better and the actually correct way of doing 32 bit addresses?
+#define ADDR_CMD(address) { \
+    dataInPin.set((address & 0xFF000000) >> 16); \
+    dataInPin.set((address & 0xFF00) >> 8); \
+    dataInPin.set((address & 0xFF)); \
+}
 
 class W25Q {
 public:
