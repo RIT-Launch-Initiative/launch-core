@@ -80,7 +80,7 @@ public:
     }
 
 
-    RetType readData(READ_COMMAND_T readCommand, uint32_t address) {
+    RetType readData(READ_COMMAND_T readCommand, uint32_t address, uint8_t *buff) {
         // TODO: Validate this. Address is a 24 bit
         uint8_t addrOne = address >> 24;
         uint8_t addrTwo = address >> 16;
@@ -89,7 +89,6 @@ public:
 
         chipSelectPin.set(0);
         uint8_t buffSize = 5;
-        uint8_t* buff;
 
 
         switch (readCommand) {
