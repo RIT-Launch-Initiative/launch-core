@@ -41,9 +41,9 @@ public:
     } WRITE_SET_T;
 
     typedef enum {
-        REGISTER_ONE_STATUS = 0x05;
-        REGISTER_TWO_STATUS = 0x35;
-        REGISTER_THREE_STATUS = 0x15;
+        REGISTER_ONE_STATUS = 0x05,
+        REGISTER_TWO_STATUS = 0x35,
+        REGISTER_THREE_STATUS = 0x15,
 
     } READ_STATUS_REGISTER_T;
 
@@ -76,24 +76,51 @@ public:
     RetType writeRegister() {
         // TODO: Need a enum
         // TODO: this lmao
-        return RET_SUCESS;
+        return RET_SUCCESS;
     }
 
 
     RetType readData(READ_COMMAND_T readCommand, uint32_t address) {
+        // TODO: Validate this. Address is a 24 bit
         uint8_t addrOne = address >> 24;
         uint8_t addrTwo = address >> 16;
         uint8_t addrThree = address >> 8;
         uint8_t addrFour = address;
 
         chipSelectPin.set(0);
+        uint8_t buffArr[] = {readCommand, addrOne, addrTwo, addrThree};
+        uint8_t buffSize = 5;
+        uint8_t *buff = buffArr;
 
-        uint8_t buff[6] = {readCommand, addrOne, addrTwo, addrThree, addrFour};
+        /** TODO: Figure this mess out :P Its illegal
+        switch (readCommand) {
+            case READ_DATA:
+                buff_size = 6;
+                buff = {readCommand, addrOne, addrTwo, addrThree, addrFour};
+                break;
 
-        spiDevice.read(buff, sizeof(buff));
+            case FAST_READ:
+                buff_size = 14;
+                buff = {readCommand, addrOne, addrTwo, addrThree, addrFour};
+                for (uint8_t i = 5; i < 14; i++) {
+                    buff[i] = DUMMY_BYTE;
+                }
+                buff[i] = '\0';
+
+                break;
+
+            default:
+                return RET_ERROR;
+        }
+         */
 
 
-        return RET_SUCCESS;
+
+        RetType ret = spiDevice.read(buff, buffSize);
+
+        chipSelectPin.set(1);
+
+        return ret;
     }
 
     RetType write(WRITE_COMMAND_T writeCommand, uint32_t address) {
