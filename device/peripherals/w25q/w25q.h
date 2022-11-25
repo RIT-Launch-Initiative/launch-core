@@ -49,7 +49,9 @@ public:
     RetType toggleWrite(bool toggled) {
         uint8_t command = toggled ? WRITE_SET_ENABLE : WRITE_SET_DISABLE;
 
-
+        chipSelectPin.set(0);
+        dataInPin.set(command);
+        chipSelectPin.set(1);
 
         return RET_SUCCESS;
     }
