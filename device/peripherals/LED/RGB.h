@@ -12,7 +12,10 @@
 namespace LED {
     class RGB {
     public:
-        RGB(GPIODevice& redPin, GPIODevice& bluePin, GPIODevice greenPin) : redPin(redPin), bluePin(bluePin), greenPin(greenPin) {}
+        RGB(GPIODevice& redPin, GPIODevice& bluePin, GPIODevice& greenPin) : redPin(redPin), bluePin(bluePin), greenPin(greenPin) {}
+        RGB(GPIODevice& redPin, GPIODevice& bluePin, GPIODevice& greenPin, uint8_t redVal, uint8_t blueVal, uint8_t greenVal) :
+        redPin(redPin), bluePin(bluePin), greenPin(greenPin), redVal(redVal), blueVal(blueVal), greenVal(greenVal) {}
+
 
 
 
@@ -21,6 +24,11 @@ namespace LED {
         GPIODevice& redPin;
         GPIODevice& bluePin;
         GPIODevice& greenPin;
+
+        uint8_t redVal = 255;
+        uint8_t blueVal = 255;
+        uint8_t greenVal = 255;
+
     };
 }
 
