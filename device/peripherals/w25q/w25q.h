@@ -35,6 +35,16 @@ public:
     } WRITE_COMMAND_T;
 
     typedef enum {
+        SECTOR_ERASE = 0x20,
+        BLOCK_32_ERASE = 0x52,
+        BLOCK_64_ERASE = 0xD8,
+
+        CHIP_ERASE = 0xC7, // Can also be 0x60
+        SUSPEND_ERASE = 0x75,
+        RESUME_ERASE = 0x7A,
+    } ERASE_COMMAND_T;
+
+    typedef enum {
         WRITE_SET_ENABLE = 0x06,
         WRITE_SET_ENABLE_VOLATILE = 0x50,
         WRITE_SET_DISABLE = 0x04,
@@ -85,7 +95,6 @@ public:
         uint8_t addrOne = address >> 24;
         uint8_t addrTwo = address >> 16;
         uint8_t addrThree = address >> 8;
-        uint8_t addrFour = address;
 
         chipSelectPin.set(0);
         uint8_t buffSize = 5;
@@ -104,8 +113,7 @@ public:
                 buffSize = 14;
                 uint8_t buffArr[] = {readCommand, addrOne, addrTwo, addrThree,
                                      DUMMY_BYTE, DUMMY_BYTE, DUMMY_BYTE, DUMMY_BYTE,
-                        DUMMY_BYTE, DUMMY_BYTE, DUMMY_BYTE, DUMMY_BYTE};
-
+                                     DUMMY_BYTE, DUMMY_BYTE, DUMMY_BYTE, DUMMY_BYTE};
 
                 buff = buffArr;
                 break;
@@ -116,12 +124,26 @@ public:
         }
 
 
-
         RetType ret = spiDevice.read(buff, buffSize);
 
         chipSelectPin.set(1);
 
         return ret;
+    }
+
+    RetType eraseData(ERASE_COMMAND_T eraseCommand, uint32_t address) {
+        toggleWrite(true);
+
+        // TODO: Figure out this 24 bit address thing
+        uint8_t addrOne = address >> 24;
+        uint8_t addrTwo = address >> 16;
+        uint8_t addrThree = address >> 8;
+        uint8_t buff[3] = {eraseCommand, addrOne, addrTwo, addrThree};
+
+        chipSelectPin.set(0);
+        spiDevice.write(buff, 3); // TODO: Address needs to be changed
+
+        return RET_SUCCESS;
     }
 
     RetType write(WRITE_COMMAND_T writeCommand, uint32_t address) {
