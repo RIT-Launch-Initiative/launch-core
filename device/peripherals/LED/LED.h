@@ -27,6 +27,10 @@ public:
         return ret;
     }
 
+    RetType toggle() {
+        return ledState == LED_OFF ? setState(LED_ON) : setState(LED_OFF);
+    }
+
     RetType setState(LED_STATE_T state) {
         RESUME();
 
