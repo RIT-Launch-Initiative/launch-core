@@ -14,6 +14,8 @@
 
 class W25Q {
 public:
+    const uint8_t DUMMY_BYTE = 0xA5;
+
     typedef enum {
         READ_DATA = 0x03,
         FAST_READ = 0x00,
@@ -69,6 +71,12 @@ public:
         chipSelectPin.set(1);
 
         return RET_SUCCESS;
+    }
+
+    RetType writeRegister() {
+        // TODO: Need a enum
+        // TODO: this lmao
+        return RET_SUCESS;
     }
 
 
