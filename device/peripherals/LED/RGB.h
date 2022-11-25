@@ -37,17 +37,24 @@ namespace LED {
             redPin.get(&result);
             if (result != 0) return turnOff();
 
+            greenPin.get(&result);
+            if (result != 0) return turnOff();
+
             bluePin.get(&result);
             if (result != 0) return turnOff();
 
-            greenPin.get(&result);
-            if (result != 0) return turnOff();
 
             return setColors();
         }
 
-        RetType setColor(uint8_t red, uint8_t blue, uint8_t green) {
+        RetType setColor(uint8_t red, uint8_t green, uint8_t blue) {
+            this->redVal = red;
+            this->greenVal = green;
+            this->blueVal = blue;
 
+            RetType ret = setColors();
+
+            return ret;
         }
 
         RetType setColor(RGB_COLOR_T color) {
@@ -58,13 +65,13 @@ namespace LED {
 
     private:
         GPIODevice &redPin;
-        GPIODevice &bluePin;
         GPIODevice &greenPin;
+        GPIODevice &bluePin;
 
         // TODO: Worth storing this just for an LED?
         uint8_t redVal = 255;
-        uint8_t blueVal = 255;
         uint8_t greenVal = 255;
+        uint8_t blueVal = 255;
 
         RetType turnOff() {
             RESUME();
