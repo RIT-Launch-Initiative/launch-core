@@ -54,16 +54,11 @@ public:
         REGISTER_ONE_STATUS = 0x05,
         REGISTER_TWO_STATUS = 0x35,
         REGISTER_THREE_STATUS = 0x15,
-
     } READ_STATUS_REGISTER_T;
 
 
     W25Q(SPIDevice &spiDevice, GPIODevice &csPin, GPIODevice &clkPin, GPIODevice &diPin, GPIODevice &dOutPin) :
             spiDevice(spiDevice), chipSelectPin(csPin), clockPin(clkPin), dataInPin(diPin), dataOutPin(dOutPin) {}
-
-    RetType read(uint8_t *buff, size_t len) {
-        return spiDevice.read(buff, len);
-    }
 
     RetType toggleWrite(bool toggled) {
         uint8_t command = toggled ? WRITE_SET_ENABLE : WRITE_SET_DISABLE;
@@ -142,14 +137,10 @@ public:
 
         chipSelectPin.set(0);
         spiDevice.write(buff, 3); // TODO: Address needs to be changed
+        chipSelectPin.set(1);
 
         return RET_SUCCESS;
     }
-
-    RetType write(WRITE_COMMAND_T writeCommand, uint32_t address) {
-        return RET_SUCCESS;
-    }
-
 private:
     SPIDevice &spiDevice;
     GPIODevice &chipSelectPin;
