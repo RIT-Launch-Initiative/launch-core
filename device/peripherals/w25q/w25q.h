@@ -51,18 +51,22 @@ public:
     } WRITE_SET_T;
 
     typedef enum {
-        REGISTER_ONE_STATUS = 0x05,
-        REGISTER_TWO_STATUS = 0x35,
-        REGISTER_THREE_STATUS = 0x15,
+        REGISTER_ONE_READ = 0x05,
+        REGISTER_TWO_READ = 0x35,
+        REGISTER_THREE_READ = 0x15,
     } READ_STATUS_REGISTER_T;
+
+    typedef enum {
+        REGISTER_ONE_WRITE = 0x01,
+        REGISTER_TWO_WRITE = 0x31,
+        REGISTER_THREE_WRITE = 0x11,
+    } WRITE_STATUS_REGISTER_T;
 
 
     W25Q(SPIDevice &spiDevice, GPIODevice &csPin, GPIODevice &clkPin, GPIODevice &diPin, GPIODevice &dOutPin) :
             spiDevice(spiDevice), chipSelectPin(csPin), clockPin(clkPin), dataInPin(diPin), dataOutPin(dOutPin) {}
 
-    RetType toggleWrite(bool toggled) {
-        uint8_t command = toggled ? WRITE_SET_ENABLE : WRITE_SET_DISABLE;
-
+    RetType toggleWrite(WRITE_SET_T command) {
         chipSelectPin.set(0);
         dataInPin.set(command);
         chipSelectPin.set(1);
@@ -78,9 +82,13 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType writeRegister() {
-        // TODO: Need a enum
-        // TODO: this lmao
+    RetType writeRegister(WRITE_STATUS_REGISTER_T reg, uint8_t data, bool isVolatile = false) {
+        toggleWrite(isVolatile ? WRITE_SET_ENABLE_VOLATILE : WRITE_SET_ENABLE);
+
+        chipSelectPin.set(0);
+        spiDevice.write(data);
+        chipSelectPin.set(1);
+
         return RET_SUCCESS;
     }
 
@@ -113,6 +121,7 @@ public:
                 buff = buffArr;
                 break;
             }
+            // TODO: Add more
             default: {
                 return RET_ERROR;
             }
@@ -127,13 +136,13 @@ public:
     }
 
     RetType eraseData(ERASE_COMMAND_T eraseCommand, uint32_t address) {
-        toggleWrite(true);
+        toggleWrite(WRITE_SET_ENABLE);
 
         // TODO: Figure out this 24 bit address thing
         uint8_t addrOne = address >> 24;
         uint8_t addrTwo = address >> 16;
         uint8_t addrThree = address >> 8;
-        uint8_t buff[3] = {eraseCommand, addrOne, addrTwo, addrThree};
+        uint8_t buff[4] = {eraseCommand, addrOne, addrTwo, addrThree};
 
         chipSelectPin.set(0);
         spiDevice.write(buff, 3); // TODO: Address needs to be changed
