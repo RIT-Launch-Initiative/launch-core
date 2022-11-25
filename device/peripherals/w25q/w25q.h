@@ -88,31 +88,33 @@ public:
         uint8_t addrFour = address;
 
         chipSelectPin.set(0);
-        uint8_t buffArr[] = {readCommand, addrOne, addrTwo, addrThree};
         uint8_t buffSize = 5;
-        uint8_t *buff = buffArr;
+        uint8_t* buff;
 
-        /** TODO: Figure this mess out :P Its illegal
+
         switch (readCommand) {
-            case READ_DATA:
-                buff_size = 6;
-                buff = {readCommand, addrOne, addrTwo, addrThree, addrFour};
+            case READ_DATA: {
+                buffSize = 6;
+                uint8_t buffArr[] = {readCommand, addrOne, addrTwo, addrThree};
+
+                buff = buffArr;
                 break;
+            }
 
-            case FAST_READ:
-                buff_size = 14;
-                buff = {readCommand, addrOne, addrTwo, addrThree, addrFour};
-                for (uint8_t i = 5; i < 14; i++) {
-                    buff[i] = DUMMY_BYTE;
-                }
-                buff[i] = '\0';
+            case FAST_READ: {
+                buffSize = 14;
+                uint8_t buffArr[] = {readCommand, addrOne, addrTwo, addrThree,
+                                     DUMMY_BYTE, DUMMY_BYTE, DUMMY_BYTE, DUMMY_BYTE,
+                        DUMMY_BYTE, DUMMY_BYTE, DUMMY_BYTE, DUMMY_BYTE};
 
+
+                buff = buffArr;
                 break;
-
-            default:
+            }
+            default: {
                 return RET_ERROR;
+            }
         }
-         */
 
 
 
