@@ -19,7 +19,10 @@ namespace LED {
             GREEN,
             BLUE,
             INDIGO,
-            VIOLET
+            VIOLET,
+
+            WHITE,
+            BLACK
         } RGB_COLOR_T;
 
     public:
@@ -44,7 +47,7 @@ namespace LED {
             if (result != 0) return turnOff();
 
 
-            return setColors();
+            return displayColor();
         }
 
         RetType setColor(uint8_t red, uint8_t green, uint8_t blue) {
@@ -52,14 +55,32 @@ namespace LED {
             this->greenVal = green;
             this->blueVal = blue;
 
-            RetType ret = setColors();
+            RetType ret = displayColor();
 
             return ret;
         }
 
         RetType setColor(RGB_COLOR_T color) {
-
-
+            switch (color) {
+                case RED:
+                    return setColor(255, 0, 0);
+                case ORANGE:
+                    return setColor(255, 127, 0);
+                case YELLOW:
+                    return setColor(255, 255, 0);
+                case GREEN:
+                    return setColor(0, 255, 0);
+                case BLUE:
+                    return setColor(0, 0, 255);
+                case INDIGO:
+                    return setColor(75, 0, 130);
+                case VIOLET:
+                    return setColor(148, 0, 211);
+                case BLACK:
+                    return setColor(0, 0, 0);
+                default:
+                    return setColor(255, 255, 255);
+            }
         }
 
 
@@ -85,7 +106,7 @@ namespace LED {
         }
 
 
-        RetType setColors() {
+        RetType displayColor() {
             RESUME();
 
             CALL(redPin.set(redVal));
