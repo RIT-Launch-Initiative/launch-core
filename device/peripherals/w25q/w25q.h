@@ -37,8 +37,9 @@ public:
     } READ_COMMAND_T;
 
     typedef enum {
-
-    } WRITE_COMMAND_T;
+        PAGE_PROGRAM = 0x02,
+        QUAD_PAGE_PROGRAM = 0x32
+    } PROGRAM_COMMAND_T;
 
     typedef enum {
         SECTOR_ERASE = 0x20,
@@ -143,6 +144,33 @@ public:
         return ret;
     }
 
+    RetType writeData(PROGRAM_COMMAND_T programCommand, uint32_t address, uint8_t *page, uint8_t pageSize) {
+        // TODO: Maybe return an error if writing is disabled. Should probably do the same for others
+        uint8_t addrOne = address >> 24;
+        uint8_t addrTwo = address >> 16;
+        uint8_t addrThree = address >> 8;
+        uint8_t buff[4] = {programCommand, addrOne, addrTwo, addrThree};
+
+        chipSelectPin.set(0);
+        dataInPin.set(programCommand);
+        dataInPin.set(addrOne);
+        dataInPin.set(addrTwo);
+        dataInPin.set(addrThree);
+
+        uint8_t i = 0;
+
+        for (int i = 0; i < 256; i++) {
+            dataInPin.set(page[i]);
+        }
+
+        dataInPin.set(0);
+
+
+        chipSelectPin.set(1);
+
+        return RET_SUCCESS;
+    }
+
     RetType eraseData(ERASE_COMMAND_T eraseCommand, uint32_t address) {
         toggleWrite(WRITE_SET_ENABLE);
 
@@ -153,12 +181,16 @@ public:
         uint8_t buff[4] = {eraseCommand, addrOne, addrTwo, addrThree};
 
         chipSelectPin.set(0);
-        spiDevice.write(buff, 3); // TODO: Address needs to be changed
+        dataInPin.set(eraseCommand);
+        dataInPin.set(addrOne);
+        dataInPin.set(addrTwo);
+        dataInPin.set(addrThree);
         chipSelectPin.set(1);
 
         return RET_SUCCESS;
     }
 private:
+    // TODO: Just realized a SPI device might not be needed if we just have all the pins below :P
     SPIDevice &spiDevice;
     GPIODevice &chipSelectPin;
     GPIODevice &clockPin;
