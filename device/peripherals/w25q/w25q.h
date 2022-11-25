@@ -9,6 +9,7 @@
 
 #include "device/I2CDevice.h"
 #include "device/SPIDevice.h"
+#include "device/GPIODevice.h"
 
 
 class W25Q {
@@ -27,13 +28,16 @@ public:
         OCTAL_WORD_READ_QUAD_IO = 0xE3,
     } READ_COMMAND_T;
 
-    W25Q(SPIDevice& spiDevice) : spiDevice(spiDevice) {}
+    typedef enum {
 
-    RetType read() {
-        const uint8_t READ_COMMAND = 0x03;
+    } WRITE_COMMAND_T;
 
 
-        return RET_SUCCESS;
+    W25Q(SPIDevice &spiDevice, GPIODevice &csPin, GPIODevice &clkPin, GPIODevice &diPin, GPIODevice &dOutPin) :
+            spiDevice(spiDevice), chipSelectPin(csPin), clockPin(clkPin), dataInPin(diPin), dataOutPin(dOutPin) {}
+
+    RetType read(uint8_t *buff, size_t len) {
+        return spiDevice.read(buff, len);
     }
 
 
@@ -43,6 +47,8 @@ public:
         uint8_t addrThree = address >> 8;
         uint8_t addrFour = address;
 
+        chipSelectPin.set(0);
+
         uint8_t buff[6] = {readCommand, addrOne, addrTwo, addrThree, addrFour};
 
         spiDevice.read(buff, sizeof(buff));
@@ -51,12 +57,16 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType write() {
+    RetType write(WRITE_COMMAND_T writeCommand, uint32_t address) {
         return RET_SUCCESS;
     }
 
 private:
-    SPIDevice& spiDevice;
+    SPIDevice &spiDevice;
+    GPIODevice &chipSelectPin;
+    GPIODevice &clockPin;
+    GPIODevice &dataOutPin;
+    GPIODevice &dataInPin;
 
 };
 

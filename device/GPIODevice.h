@@ -20,6 +20,7 @@
 
 /// @brief GPIO device, owns a single pin
 class GPIODevice : public Device {
+public:
     /// @brief constructor
     GPIODevice(const char* name) : Device(name) {};
 
@@ -38,3 +39,5 @@ class GPIODevice : public Device {
     /// @param val      where to store the current value of the pin
     virtual RetType get(uint32_t* val) = 0;
 };
+
+#endif
