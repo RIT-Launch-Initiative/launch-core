@@ -32,12 +32,26 @@ public:
 
     } WRITE_COMMAND_T;
 
+    typedef enum {
+        WRITE_SET_ENABLE = 0x06,
+        WRITE_SET_ENABLE_VOLATILE = 0x50,
+        WRITE_SET_DISABLE = 0x04,
+    } WRITE_SET_T;
+
 
     W25Q(SPIDevice &spiDevice, GPIODevice &csPin, GPIODevice &clkPin, GPIODevice &diPin, GPIODevice &dOutPin) :
             spiDevice(spiDevice), chipSelectPin(csPin), clockPin(clkPin), dataInPin(diPin), dataOutPin(dOutPin) {}
 
     RetType read(uint8_t *buff, size_t len) {
         return spiDevice.read(buff, len);
+    }
+
+    RetType toggleWrite(bool toggled) {
+        uint8_t command = toggled ? WRITE_SET_ENABLE : WRITE_SET_DISABLE;
+
+
+
+        return RET_SUCCESS;
     }
 
 
@@ -67,7 +81,6 @@ private:
     GPIODevice &clockPin;
     GPIODevice &dataOutPin;
     GPIODevice &dataInPin;
-
 };
 
 #endif //LAUNCH_CORE_W25Q_H
