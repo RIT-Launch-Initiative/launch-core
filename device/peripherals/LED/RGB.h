@@ -34,6 +34,17 @@ public:
             redPin(redPin), greenPin(greenPin), bluePin(bluePin), redVal(redVal), greenVal(greenVal),
             blueVal(blueVal) {}
 
+    RetType init() {
+        RESUME();
+
+        RetType ret = CALL(setColor(redVal, greenVal, blueVal));
+        if (ret != RET_SUCCESS) return ret;
+
+        RESET();
+        return ret;
+
+    }
+
     RetType toggle() {
         RESUME();
         uint32_t result = 0;

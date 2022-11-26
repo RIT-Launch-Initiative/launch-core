@@ -39,6 +39,8 @@ private:
 };
 
 int main(int argc, char **argv) {
+    printf("BEGINNING BASIC LED TESTS\n");
+    printf("-----------------------------\n");
     LED_GPIO plainLED = LED_GPIO("plain");
     LED led = LED(plainLED);
     printf("Initializing LED. Should be set to 1\n");
@@ -55,6 +57,16 @@ int main(int argc, char **argv) {
 
     printf("Setting LED to 1 (ON)\n");
     led.setState(LED_ON);
+
+    printf("\nBEGINNING RGB LED TESTS\n");
+    printf("-----------------------------\n");
+    LED_GPIO redPin = LED_GPIO("red");
+    LED_GPIO greenPin = LED_GPIO("green");
+    LED_GPIO bluePin = LED_GPIO("blue");
+
+
+
+
 
     return 0;
 }
