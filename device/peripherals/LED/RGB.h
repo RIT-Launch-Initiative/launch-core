@@ -10,6 +10,8 @@
 #ifndef LAUNCH_CORE_RGB_H
 #define LAUNCH_CORE_RGB_H
 
+#define COLOR_SET(r, g, b) {ret = setColor(r, g, b); break;}
+
 namespace LED {
     class RGB {
         typedef enum {
@@ -75,42 +77,15 @@ namespace LED {
             RetType ret = RET_ERROR;
 
             switch (color) {
-                case RED: {
-                    ret = setColor(255, 0, 0);
-                    break;
-                }
-                case ORANGE: {
-                    ret = setColor(255, 127, 0);
-                    break;
-                }
-                case YELLOW: {
-                    ret = setColor(255, 255, 0);
-                    break;
-                }
-                case GREEN: {
-                    ret = setColor(0, 255, 0);
-                    break;
-                }
-                case BLUE: {
-                    ret = setColor(0, 0, 255);
-                    break;
-                }
-                case INDIGO: {
-                    ret = setColor(75, 0, 130);
-                    break;
-                }
-                case VIOLET: {
-                    ret = setColor(148, 0, 211);
-                    break;
-                }
-                case BLACK: {
-                    ret = setColor(0, 0, 0);
-                    break;
-                }
-                default: {
-                    ret = setColor(255, 255, 255);
-                    break;
-                }
+                case RED: COLOR_SET(255, 0, 0)
+                case ORANGE: COLOR_SET(255, 0, 0)
+                case YELLOW: COLOR_SET(255, 255, 0)
+                case GREEN: COLOR_SET(0, 255, 0)
+                case BLUE: COLOR_SET(0, 0, 255)
+                case INDIGO: COLOR_SET(75, 0, 130)
+                case VIOLET: COLOR_SET(148, 0, 211)
+                case BLACK: COLOR_SET(0, 0, 0)
+                default: COLOR_SET(255, 255, 255)
             }
 
             if (ret != RET_SUCCESS) return RET_ERROR;
