@@ -15,7 +15,7 @@ public:
     RetType set(uint32_t val) {
         this->value = val;
 
-        printf("Set to %d\n", val);
+        printf("\tSet to %d\n", val);
 
         return RET_SUCCESS;
     }
@@ -26,10 +26,13 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType init() {return RET_SUCCESS;}
-    RetType obtain() {return RET_SUCCESS;}
-    RetType release() {return RET_SUCCESS;}
-    RetType poll() {return RET_SUCCESS;}
+    RetType init() { return RET_SUCCESS; }
+
+    RetType obtain() { return RET_SUCCESS; }
+
+    RetType release() { return RET_SUCCESS; }
+
+    RetType poll() { return RET_SUCCESS; }
 
 private:
     uint32_t value;
@@ -38,8 +41,14 @@ private:
 int main(int argc, char **argv) {
     LED_GPIO plainLED = LED_GPIO("plain");
     LED led = LED(plainLED);
+    printf("Initializing LED. Should be set to 1\n");
     led.init();
 
+    printf("Toggling LED. Should be set to 0\n");
+    led.toggle();
+
+    printf("Toggling LED. Should be set to 1\n");
+    led.toggle();
 
 
     return 0;

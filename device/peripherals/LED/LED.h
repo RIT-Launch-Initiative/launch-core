@@ -44,7 +44,9 @@ public:
     RetType setState(LED_STATE_T state) {
         RESUME();
 
-        RetType ret = CALL(ledPin.set(state));
+        this->ledState = state;
+
+        RetType ret = CALL(ledPin.set(this->ledState));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
