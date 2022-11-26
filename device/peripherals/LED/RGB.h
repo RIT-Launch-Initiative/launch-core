@@ -117,7 +117,6 @@ namespace LED {
             ret = CALL(greenPin.set(0));
             if (ret != RET_SUCCESS) return ret;
 
-
             RESET();
             return ret;
         }
