@@ -69,7 +69,7 @@ protected:
     const char* m_name;
 
 private:
-    static uint16_t uid_counter; // should initialize to 0
+    inline static uint16_t uid_counter; // should initialize to 0
 };
 
 #endif
