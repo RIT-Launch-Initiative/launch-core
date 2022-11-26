@@ -50,6 +50,11 @@ int main(int argc, char **argv) {
     printf("Toggling LED. Should be set to 1\n");
     led.toggle();
 
+    printf("Setting LED to 0 (OFF)\n");
+    led.setState(LED_OFF);
+
+    printf("Setting LED to 1 (ON)\n");
+    led.setState(LED_ON);
 
     return 0;
 }
