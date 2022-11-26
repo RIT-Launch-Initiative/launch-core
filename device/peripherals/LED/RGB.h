@@ -10,20 +10,21 @@
 #ifndef LAUNCH_CORE_RGB_H
 #define LAUNCH_CORE_RGB_H
 
-#define COLOR_SET(r, g, b) {ret = setColor(r, g, b); break;}
+#define COLOR_SET(r, g, b) {ret = setValues(r, g, b); break;}
+
+typedef enum {
+    RED,
+    ORANGE,
+    YELLOW,
+    GREEN,
+    BLUE,
+    INDIGO,
+    VIOLET,
+    WHITE,
+    BLACK
+} RGB_COLOR_T;
 
 class RGB {
-    typedef enum {
-        RED,
-        ORANGE,
-        YELLOW,
-        GREEN,
-        BLUE,
-        INDIGO,
-        VIOLET,
-        WHITE,
-        BLACK
-    } RGB_COLOR_T;
 
 public:
     RGB(GPIODevice &redPin, GPIODevice &greenPin, GPIODevice &bluePin) : redPin(redPin), greenPin(greenPin),
@@ -37,7 +38,7 @@ public:
     RetType init() {
         RESUME();
 
-        RetType ret = CALL(setColor(redVal, greenVal, blueVal));
+        RetType ret = CALL(setValues(redVal, greenVal, blueVal));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
@@ -68,7 +69,7 @@ public:
         return ret;
     }
 
-    RetType setColor(uint8_t red, uint8_t green, uint8_t blue) {
+    RetType setValues(uint8_t red, uint8_t green, uint8_t blue) {
         RESUME();
 
         this->redVal = red;
@@ -138,12 +139,11 @@ private:
         RetType ret = CALL(redPin.set(redVal));
         if (ret != RET_SUCCESS) return ret;
 
-        ret = CALL(bluePin.set(blueVal));
-        if (ret != RET_SUCCESS) return ret;
-
         ret = CALL(greenPin.set(greenVal));
         if (ret != RET_SUCCESS) return ret;
 
+        ret = CALL(bluePin.set(blueVal));
+        if (ret != RET_SUCCESS) return ret;
 
         RESET();
         return ret;

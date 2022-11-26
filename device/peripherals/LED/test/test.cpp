@@ -43,6 +43,7 @@ int main(int argc, char **argv) {
     printf("-----------------------------\n");
     LED_GPIO plainLED = LED_GPIO("plain");
     LED led = LED(plainLED);
+
     printf("Initializing LED. Should be set to 1\n");
     led.init();
 
@@ -65,6 +66,7 @@ int main(int argc, char **argv) {
     LED_GPIO bluePin = LED_GPIO("blue");
 
     RGB rgb = RGB(redPin, greenPin, bluePin);
+
     printf("Initializing LED. Should be set to (255, 255, 255)\n");
     rgb.init();
 
@@ -73,7 +75,20 @@ int main(int argc, char **argv) {
     printf("Toggling LED. Should be set to (255, 255, 255)\n");
     rgb.toggle();
 
+    printf("Setting LED values. Should be set to (0, 128, 255)\n");
+    rgb.setValues(0, 128, 255);
 
+    printf("Setting LED to red. (255, 0, 0)\n");
+    rgb.setColor(RED);
+
+    printf("Setting LED to green. (0, 255, 0)\n");
+    rgb.setColor(GREEN);
+
+    printf("Setting LED to blue. (0, 0, 255)\n");
+    rgb.setColor(BLUE);
+
+    printf("Setting LED to white. (255, 255, 255)\n");
+    rgb.setColor(WHITE);
 
     return 0;
 }
