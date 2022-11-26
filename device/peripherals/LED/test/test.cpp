@@ -38,6 +38,8 @@ private:
 int main(int argc, char **argv) {
     LED_GPIO plainLED = LED_GPIO("plain");
     LED led = LED(plainLED);
+    led.init();
+
 
 
     return 0;
