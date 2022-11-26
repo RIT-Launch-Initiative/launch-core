@@ -8,6 +8,8 @@
 #define LAUNCH_CORE_MS5607_H
 
 #include "device/GPIODevice.h"
+#include "sched/macros.h"
+#include "return.h"
 
 typedef enum {
     I2C_PROTOCOL = 1,
@@ -21,9 +23,27 @@ public:
             protocolSelectPin(psPin), dataInPin(diPin), dataOutPin(doPin), chipSelectPin(csPin), serialDataPin(sdaPin)
     {}
 
-    setProtocol(MS5607_SERIAL_PROTOCOL_T protocol) {
-        this->selectedProtocol = protocol;
+    RetType init(MS5607_SERIAL_PROTOCOL_T protocol) {
+        RESUME();
+
+        RetType ret = CALL(setProtocol(protocol));
+
+        RESET();
+        return ret;
     }
+
+
+
+    RetType setProtocol(MS5607_SERIAL_PROTOCOL_T protocol) {
+        RESUME();
+
+        this->selectedProtocol = protocol;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+
 
 private:
     MS5607_SERIAL_PROTOCOL_T selectedProtocol;
