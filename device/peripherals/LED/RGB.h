@@ -72,27 +72,51 @@ namespace LED {
 
         RetType setColor(RGB_COLOR_T color) {
             RESUME();
+            RetType ret = RET_ERROR;
 
             switch (color) {
-                case RED:
-                    return setColor(255, 0, 0);
-                case ORANGE:
-                    return setColor(255, 127, 0);
-                case YELLOW:
-                    return setColor(255, 255, 0);
-                case GREEN:
-                    return setColor(0, 255, 0);
-                case BLUE:
-                    return setColor(0, 0, 255);
-                case INDIGO:
-                    return setColor(75, 0, 130);
-                case VIOLET:
-                    return setColor(148, 0, 211);
-                case BLACK:
-                    return setColor(0, 0, 0);
-                default:
-                    return setColor(255, 255, 255);
+                case RED: {
+                    ret = setColor(255, 0, 0);
+                    break;
+                }
+                case ORANGE: {
+                    ret = setColor(255, 127, 0);
+                    break;
+                }
+                case YELLOW: {
+                    ret = setColor(255, 255, 0);
+                    break;
+                }
+                case GREEN: {
+                    ret = setColor(0, 255, 0);
+                    break;
+                }
+                case BLUE: {
+                    ret = setColor(0, 0, 255);
+                    break;
+                }
+                case INDIGO: {
+                    ret = setColor(75, 0, 130);
+                    break;
+                }
+                case VIOLET: {
+                    ret = setColor(148, 0, 211);
+                    break;
+                }
+                case BLACK: {
+                    ret = setColor(0, 0, 0);
+                    break;
+                }
+                default: {
+                    ret = setColor(255, 255, 255);
+                    break;
+                }
             }
+
+            if (ret != RET_SUCCESS) return RET_ERROR;
+
+            RESET();
+            return ret;
         }
 
 
@@ -109,24 +133,36 @@ namespace LED {
         RetType turnOff() {
             RESUME();
 
-            CALL(redPin.set(0));
-            CALL(bluePin.set(0));
-            CALL(greenPin.set(0));
+            RetType ret = CALL(redPin.set(0));
+            if (ret != RET_SUCCESS) return ret;
+
+            ret = CALL(bluePin.set(0));
+            if (ret != RET_SUCCESS) return ret;
+
+            ret = CALL(greenPin.set(0));
+            if (ret != RET_SUCCESS) return ret;
+
 
             RESET();
-            return RET_SUCCESS;
+            return ret;
         }
 
 
         RetType updateColors() {
             RESUME();
 
-            CALL(redPin.set(redVal));
-            CALL(bluePin.set(blueVal));
-            CALL(greenPin.set(greenVal));
+            RetType ret = CALL(redPin.set(redVal));
+            if (ret != RET_SUCCESS) return ret;
+
+            ret = CALL(bluePin.set(blueVal));
+            if (ret != RET_SUCCESS) return ret;
+
+            ret = CALL(greenPin.set(greenVal));
+            if (ret != RET_SUCCESS) return ret;
+
 
             RESET();
-            return RET_SUCCESS;
+            return ret;
         }
 
     };
