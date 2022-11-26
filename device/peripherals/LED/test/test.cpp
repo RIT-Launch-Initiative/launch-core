@@ -64,7 +64,14 @@ int main(int argc, char **argv) {
     LED_GPIO greenPin = LED_GPIO("green");
     LED_GPIO bluePin = LED_GPIO("blue");
 
+    RGB rgb = RGB(redPin, greenPin, bluePin);
+    printf("Initializing LED. Should be set to (255, 255, 255)\n");
+    rgb.init();
 
+    printf("Toggling LED. Should be set to (0, 0, 0)\n");
+    rgb.toggle();
+    printf("Toggling LED. Should be set to (255, 255, 255)\n");
+    rgb.toggle();
 
 
 
