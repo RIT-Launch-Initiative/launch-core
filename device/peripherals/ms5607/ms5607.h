@@ -21,6 +21,10 @@ public:
             protocolSelectPin(psPin), dataInPin(diPin), dataOutPin(doPin), chipSelectPin(csPin), serialDataPin(sdaPin)
     {}
 
+    setProtocol(MS5607_SERIAL_PROTOCOL_T protocol) {
+        this->selectedProtocol = protocol;
+    }
+
 private:
     MS5607_SERIAL_PROTOCOL_T selectedProtocol;
     GPIODevice &protocolSelectPin;
