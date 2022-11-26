@@ -43,6 +43,26 @@ public:
         return RET_SUCCESS;
     }
 
+    RetType reset() {
+
+    }
+
+    RetType readProm() {
+
+    }
+
+    RetType d1Conversion() {
+
+    }
+
+    RetType d2Conversion() {
+
+    }
+
+    RetType readADC() {
+
+    }
+
 
 
 private:
