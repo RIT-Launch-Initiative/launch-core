@@ -28,19 +28,27 @@ namespace LED {
             RESUME();
 
             RetType ret = CALL(ledPin.set(ledState));
+            if (ret != RET_SUCCESS) return ret;
 
             RESET();
             return ret;
         }
 
         RetType toggle() {
-            return ledState == LED_OFF ? setState(LED_ON) : setState(LED_OFF);
+            RESUME();
+
+            RetType ret = ledState == LED_OFF ? CALL(setState(LED_ON)) : CALL(setState(LED_OFF));
+            if (ret != RET_SUCCESS) return ret;
+
+            RESET();
+            return ret;
         }
 
         RetType setState(LED_STATE_T state) {
             RESUME();
 
             RetType ret = CALL(ledPin.set(state));
+            if (ret != RET_SUCCESS) return ret;
 
             RESET();
             return ret;
