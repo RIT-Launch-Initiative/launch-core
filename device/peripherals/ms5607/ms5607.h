@@ -11,6 +11,8 @@
 #include "sched/macros.h"
 #include "return.h"
 
+#define CHECK_RET {if (ret != RET_SUCCESS) {RESET(); return ret;}}
+
 typedef enum {
     I2C_PROTOCOL = 1,
     SPI_PROTOCOL = 0
@@ -27,6 +29,24 @@ typedef enum {
     SERIAL_CRC_ADDR = 7,
 } PROM_ADDR_T;
 
+typedef enum {
+    SPI_RESET_COMMAND = 0x1E,
+    SPI_CONVERT_D1_256 = 0x40,
+    SPI_CONVERT_D1_512 = 0x42,
+    SPI_CONVERT_D1_1024 = 0x44,
+    SPI_CONVERT_D1_2048 = 0x46,
+    SPI_CONVERT_D1_4096 = 0x48,
+
+    SPI_CONVERT_D2_256 = 0x50,
+    SPI_CONVERT_D2_512 = 0x52,
+    SPI_CONVERT_D2_1024 = 0x54,
+    SPI_CONVERT_D2_2048 = 0x56,
+    SPI_CONVERT_D2_4096 = 0x58,
+
+    SPI_ADC_READ = 0x00,
+    SPI_PROM_READ = 0xA0, // TODO: Goes to 0xAE based on b4-6 Ad2, Ad1, Ad0.
+} SPI_COMMAND_T;
+
 
 class MS5607 {
 public:
@@ -38,6 +58,8 @@ public:
         RESUME();
 
         RetType ret = CALL(setProtocol(protocol));
+
+        // TODO: Set T1 and S1
 
         RESET();
         return ret;
@@ -53,9 +75,7 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType reset() {
 
-    }
 
 
     RetType d1Conversion() {
@@ -110,6 +130,10 @@ public:
         return RET_SUCCESS;
     }
 
+    RetType calcTempCompensation(int32_t temperature) {
+        return RET_SUCCESS;
+    }
+
 
 private:
     MS5607_SERIAL_PROTOCOL_T selectedProtocol;
@@ -125,6 +149,24 @@ private:
     int64_t sensitivityT1;
 
     RetType readProm(PROM_ADDR_T address) {
+
+    }
+
+    RetType reset() {
+        RESUME();
+        if (selectedProtocol == SPI_PROTOCOL) {
+            RetType ret = CALL(chipSelectPin.set(0));
+            CHECK_RET
+
+            ret = CALL(dataOutPin.set(SPI_RESET_COMMAND));
+            CHECK_RET
+
+            ret = CALL(chipSelectPin.set(1));
+
+            RESET();
+            return ret;
+        }
+
 
     }
 };
