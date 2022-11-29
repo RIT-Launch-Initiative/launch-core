@@ -7,15 +7,18 @@
 #ifndef LAUNCH_CORE_W25Q_H
 #define LAUNCH_CORE_W25Q_H
 
-#include "device/I2CDevice.h"
 #include "device/SPIDevice.h"
 #include "device/GPIODevice.h"
+#include "sched/macros.h"
+
 
 #define WQ25Q_CMD(command) { \
     chipSelectPin.set(0); \
     command; \
     chipSelectPin.set(1); \
 }
+
+#define RET_CHECK(ret) {if (ret != RET_SUCCESS) RESET(); return ret;}
 
 // TODO: Might be a better and the actually correct way of doing 32 bit addresses?
 #define ADDR_CMD(address) { \
@@ -77,46 +80,55 @@ public:
 
 
     W25Q(SPIDevice &spiDevice, GPIODevice &csPin, GPIODevice &clkPin, GPIODevice &diPin, GPIODevice &dOutPin) :
-            spiDevice(spiDevice), chipSelectPin(csPin), clockPin(clkPin), dataInPin(diPin), dataOutPin(dOutPin) {}
+            spiDevice(spiDevice), chipSelectPin(csPin), clockPin(clkPin) {}
 
     RetType toggleWrite(WRITE_SET_T command) {
+        RESUME();
         chipSelectPin.set(0);
-        dataInPin.set(command);
+        uint8_t cmd = static_cast<uint8_t>(command);
+        spiDevice.write(&cmd, 1);
         chipSelectPin.set(1);
 
+        RESET();
         return RET_SUCCESS;
     }
 
-    RetType readRegister(READ_STATUS_REGISTER_T reg, uint32_t *data) {
+    RetType readRegister(READ_STATUS_REGISTER_T reg, uint8_t *receiveBuff, size_t receiveSize) {
+        RESUME();
+
         chipSelectPin.set(0);
-        dataInPin.set(reg);
+        uint8_t uint_reg = static_cast<uint8_t>(reg);
+        spiDevice.write(&uint_reg, 1);
         chipSelectPin.set(1);
 
-        dataOutPin.get(data);
+        spiDevice.read(receiveBuff, receiveSize);
 
         return RET_SUCCESS;
     }
 
     RetType writeRegister(WRITE_STATUS_REGISTER_T reg, uint8_t data, bool isVolatile = false) {
-        toggleWrite(isVolatile ? WRITE_SET_ENABLE_VOLATILE : WRITE_SET_ENABLE);
+        RESUME();
+
+        this->toggleWrite(isVolatile ? WRITE_SET_ENABLE_VOLATILE : WRITE_SET_ENABLE);
 
         chipSelectPin.set(0);
-        dataInPin.set(data);
+        spiDevice.write(&data, 1);
         chipSelectPin.set(1);
 
+        RESET();
         return RET_SUCCESS;
     }
 
 
-    RetType readData(READ_COMMAND_T readCommand, uint32_t address, uint8_t *buff, uint32_t *receivedData) {
-        // TODO: Validate this. Address is a 24 bit
-        uint8_t addrOne = address >> 24;
-        uint8_t addrTwo = address >> 16;
-        uint8_t addrThree = address >> 8;
+    RetType readData(READ_COMMAND_T readCommand, uint32_t address, uint8_t *buff, uint8_t *receivedData, size_t receivedSize) {
+        RESUME();
+
+        uint8_t addrOne = (address & 0xFF000000) >> 16;
+        uint8_t addrTwo = (address & 0xFF000000) >> 8;
+        uint8_t addrThree = (address & 0xFF000000);
 
         chipSelectPin.set(0);
-        uint8_t buffSize = 5;
-
+        uint8_t buffSize = 6;
 
         switch (readCommand) {
             case READ_DATA: {
@@ -136,72 +148,76 @@ public:
                 buff = buffArr;
                 break;
             }
-            // TODO: Add more
             default: {
                 return RET_ERROR;
             }
         }
 
-
-        RetType ret = dataOutPin.get(receivedData);
+        RetType ret = CALL(spiDevice.write(buff, buffSize));
+        ret = CALL(spiDevice.read(receivedData, receivedSize));
 
         chipSelectPin.set(1);
 
+        RESET();
         return ret;
     }
 
     RetType writeData(PROGRAM_COMMAND_T programCommand, uint32_t address, uint8_t *page, uint8_t pageSize) {
+        RESUME();
+
         // TODO: Maybe return an error if writing is disabled. Should probably do the same for others
         uint8_t addrOne = address >> 24;
         uint8_t addrTwo = address >> 16;
         uint8_t addrThree = address >> 8;
-        uint8_t buff[4] = {programCommand, addrOne, addrTwo, addrThree};
+        uint8_t buff[5] = {programCommand, addrOne, addrTwo, addrThree};
 
         chipSelectPin.set(0);
-        dataInPin.set(programCommand);
-        dataInPin.set(addrOne);
-        dataInPin.set(addrTwo);
-        dataInPin.set(addrThree);
+        spiDevice.write(buff, 5);
 
         uint8_t i = 0;
 
         for (int i = 0; i < 256; i++) {
-            dataInPin.set(page[i]);
+//            dataInPin.set(page[i]);
         }
 
-        dataInPin.set(0);
+//        dataInPin.set(0);
 
 
         chipSelectPin.set(1);
 
+        RESET();
         return RET_SUCCESS;
     }
 
     RetType eraseData(ERASE_COMMAND_T eraseCommand, uint32_t address) {
-        toggleWrite(WRITE_SET_ENABLE);
+        RESUME();
+
+        this->toggleWrite(WRITE_SET_ENABLE);
 
         // TODO: Figure out this 24 bit address thing
         uint8_t addrOne = address >> 24;
         uint8_t addrTwo = address >> 16;
         uint8_t addrThree = address >> 8;
-        uint8_t buff[4] = {eraseCommand, addrOne, addrTwo, addrThree};
+        uint8_t buff[5] = {eraseCommand, addrOne, addrTwo, addrThree};
 
-        chipSelectPin.set(0);
-        dataInPin.set(eraseCommand);
-        dataInPin.set(addrOne);
-        dataInPin.set(addrTwo);
-        dataInPin.set(addrThree);
-        chipSelectPin.set(1);
+        RetType ret = CALL(chipSelectPin.set(0));
+        RET_CHECK(ret);
 
+        ret = CALL(spiDevice.write(buff, 5));
+        RET_CHECK(ret);
+
+        ret = CALL(chipSelectPin.set(1));
+        RET_CHECK(ret);
+
+
+        RESET();
         return RET_SUCCESS;
     }
 private:
     // TODO: Just realized a SPI device might not be needed if we just have all the pins below :P
-    SPIDevice &spiDevice;
     GPIODevice &chipSelectPin;
     GPIODevice &clockPin;
-    GPIODevice &dataOutPin;
-    GPIODevice &dataInPin;
+    SPIDevice &spiDevice;
 };
 
 #endif //LAUNCH_CORE_W25Q_H
