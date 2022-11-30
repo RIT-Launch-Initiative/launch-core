@@ -26,15 +26,18 @@ public:
     /// @return
     RetType release() {
         m_lock.acquire();
-        if(m_count > 0) {
-            m_count--;
+
+        m_count++;
+
+        // unblock the next task waiting, if there is one
+        tid_t* waiting = m_queue.peek();
+        if(waiting) {
+            // someone is waiting, let's wake them up
+            m_queue.pop();
+            WAKE(*waiting);
         }
 
-        // wake someone up from the queue if we can
-        // TODO
-
         m_lock.release();
-
 
         return RET_SUCCESS;
     }
@@ -42,13 +45,41 @@ public:
     /// @brief acquire
     /// @return
     RetType acquire() {
-        // TODO check m_count
-        // if it's zero, add ourselves to the queue
+        RESUME();
+
+        while(1) {
+            m_lock.acquire();
+
+            if(m_count == 0) {
+                // add the calling task to the wait queue
+                if(!m_queue.push(sched_dispatched)) {
+                    // no room on queue, uh oh
+                    return RET_ERROR;
+                }
+
+                m_lock.release();
+                BLOCK(sched_dispatched);
+            } else {
+                // we can obtain now
+                m_count--;
+
+                m_lock.release();
+                break;
+            }
+        }
+
+        RESET();
+        return RET_SUCCESS;
     }
 
 private:
+    // guarantees atomic access to m_count and m_queue
     Semaphore m_lock;
+
+    // count of the semaphore
     int m_count;
+
+    // queue of waiting tasks
     alloc::Queue<tid_t, MAX_NUM_TASKS> m_queue;
 };
 
