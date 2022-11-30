@@ -7,7 +7,7 @@
 #ifndef LAUNCH_CORE_BMP390_H
 #define LAUNCH_CORE_BMP390_H
 
-#include "bmp390_def.h"
+#include "bmp3_defs.h"
 
 class BMP390 {
 public:
