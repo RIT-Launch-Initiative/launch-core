@@ -176,7 +176,7 @@ public:
     }
 
     // Make sure end of page is 0
-    RetType writeData(PROGRAM_COMMAND_T programCommand, uint32_t address, uint8_t *page, uint8_t pageSize) {
+    RetType writeData(PROGRAM_COMMAND_T programCommand, uint32_t address, uint8_t *page, size_t pageSize) {
         RESUME();
 
         // TODO: Maybe return an error if writing is disabled. Should probably do the same for others
