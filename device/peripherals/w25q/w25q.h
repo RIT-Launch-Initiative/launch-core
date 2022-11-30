@@ -149,6 +149,7 @@ public:
                 break;
             }
             default: {
+                RESET();
                 return RET_ERROR;
             }
         }
