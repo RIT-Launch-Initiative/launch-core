@@ -58,7 +58,7 @@ public:
                 }
 
                 m_lock.release();
-                BLOCK(sched_dispatched);
+                BLOCK();
             } else {
                 // we can obtain now
                 m_count--;

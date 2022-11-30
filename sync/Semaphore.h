@@ -35,7 +35,8 @@ public:
 
         while(1) {
             if(expected) {
-                if(__atomic_compare_exchange_n(&m_val, &expected, expected - 1, false, memorder, memorder)) {
+                // TODO the memory orders here may be able to be relaxed a little bit
+                if(__atomic_compare_exchange_n(&m_val, &expected, expected - 1, false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)) {
                     break;
                 } // otherwise m_val changed since we cached it in 'expected', try again
             } else {
