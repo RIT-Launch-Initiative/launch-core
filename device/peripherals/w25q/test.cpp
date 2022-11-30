@@ -110,9 +110,13 @@ int main() {
     w25q.writeRegister(REGISTER_ONE_WRITE, registerVal);
 
     printf("Testing read data\n");
-    w25q.readData(READ_DATA, 0b00000000, buff, buff, 256);
-//    w25q.writeData();
-//    w25q.eraseData();
+    w25q.readData(READ_DATA, 0b000000, buff, buff, 256); // 3 0 0 0
+
+    printf("Testing write data\n");
+    w25q.writeData(PAGE_PROGRAM, 0b000000, buff, 128);
+
+    printf("Testing erase data\n");
+    w25q.eraseData(SECTOR_ERASE, 0b000000);
 
     return 0;
 
