@@ -38,3 +38,5 @@ class GPIODevice : public Device {
     /// @param val      where to store the current value of the pin
     virtual RetType get(uint32_t* val) = 0;
 };
+
+#endif
