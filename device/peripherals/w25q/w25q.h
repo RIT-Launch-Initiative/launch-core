@@ -18,7 +18,7 @@
     chipSelectPin.set(1); \
 }
 
-#define RET_CHECK(ret) {if (ret != RET_SUCCESS) RESET(); return ret;}
+#define RET_CHECK(ret) {if (ret != RET_SUCCESS) {RESET(); return ret;}}
 
 // TODO: Might be a better and the actually correct way of doing 32 bit addresses?
 #define ADDR_CMD(address) { \
@@ -162,6 +162,7 @@ public:
         return ret;
     }
 
+    // Make sure end of page is 0
     RetType writeData(PROGRAM_COMMAND_T programCommand, uint32_t address, uint8_t *page, uint8_t pageSize) {
         RESUME();
 
@@ -172,16 +173,8 @@ public:
         uint8_t buff[5] = {programCommand, addrOne, addrTwo, addrThree};
 
         chipSelectPin.set(0);
-        spiDevice.write(buff, 5);
-
-        uint8_t i = 0;
-
-        for (int i = 0; i < 256; i++) {
-//            dataInPin.set(page[i]);
-        }
-
-//        dataInPin.set(0);
-
+        RetType ret = CALL(spiDevice.write(buff, 5));
+        ret = CALL(spiDevice.write(page, pageSize));
 
         chipSelectPin.set(1);
 
@@ -208,7 +201,6 @@ public:
 
         ret = CALL(chipSelectPin.set(1));
         RET_CHECK(ret);
-
 
         RESET();
         return RET_SUCCESS;
