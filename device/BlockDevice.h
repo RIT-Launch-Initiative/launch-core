@@ -42,6 +42,10 @@ public:
     /// @brief get the block size of the device
     /// @return the block size of the device
     virtual size_t getBlockSize() = 0;
+
+    /// @brief get the number of blocks in the device
+    /// @return the number of blocks
+    virtual size_t getNumBlocks() = 0;
 };
 
 #endif

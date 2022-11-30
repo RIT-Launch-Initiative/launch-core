@@ -9,7 +9,8 @@
 #include "sched/macros.h"
 #include "device/platforms/linux/ConsoleDevice.h"
 #include "device/platforms/linux/DebugDevice.h"
-#include "device/platforms/linux/LinuxUdpSocketPool.h"
+// #include "device/platforms/linux/LinuxUdpSocketPool.h"
+#include "device/platforms/linux/LinuxBlockDevice.h"
 
 
 static const size_t MAP_SIZE = 10;
@@ -19,7 +20,8 @@ public:
     /// @brief constructor
     LinuxDeviceMap() : m_console(),
                        m_debug(),
-                       m_sockets("Linux Socket Pool"),
+                       // m_sockets("Linux Socket Pool"),
+                       m_block("block_dev", 512, 1024),
                        alloc::DeviceMap<MAP_SIZE>("Linux Test Device Map") {};
 
     /// @brief initialize the Linux platform specific map
@@ -31,7 +33,8 @@ public:
         // just make MAP_SIZE bigger if we need more
         add("console", &m_console);
         add("debug", &m_debug);
-        add("socket_pool", &m_sockets);
+        // add("socket_pool", &m_sockets);
+        add("block", &m_block);
 
         return alloc::DeviceMap<MAP_SIZE>::init();
     }
@@ -44,7 +47,10 @@ private:
     LinuxDebugDevice m_debug;
 
     // socket pool
-    LinuxUdpSocketPool<10> m_sockets;
+    // LinuxUdpSocketPool<10> m_sockets;
+
+    // block device
+    LinuxBlockDevice m_block;
 };
 
 #endif

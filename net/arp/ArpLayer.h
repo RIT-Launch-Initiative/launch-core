@@ -12,6 +12,8 @@ using ipv4::IPv4Addr_t;
 
 namespace arp {
 
+// TODO don't like this implementation very much
+
 /// @brief implements the ARP layer.
 ///
 ///      receiving:

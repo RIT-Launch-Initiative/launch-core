@@ -22,6 +22,7 @@
 //   places. Variables are not saved between executions on the scheduler, so
 //   use statics if storing information before blocking. Be aware another task
 //   could modify this static.
+//   NOTE: a function using resume can NOT be recursive!!!
 
 // RESET()
 //   Should be placed at the end of a function, before any return statements but
