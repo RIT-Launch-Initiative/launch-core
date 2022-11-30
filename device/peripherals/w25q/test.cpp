@@ -112,9 +112,6 @@ int main() {
 
     printf("Testing write data\n");
     uint8_t newBuff[256];
-    for (int i = 255; i > -1; i--) {
-        newBuff[i] = i;
-    }
 
     w25q.writeData(PAGE_PROGRAM, 0b000000, newBuff, 256);
 
