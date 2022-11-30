@@ -100,7 +100,7 @@ public:
     RetType readRegister(READ_STATUS_REGISTER_T reg, uint8_t *receiveBuff, size_t receiveSize) {
         RESUME();
 
-        RetType retchipSelectPin.set(0);
+        RetType ret = chipSelectPin.set(0);
         RET_CHECK(ret);
 
         uint8_t uint_reg = static_cast<uint8_t>(reg);

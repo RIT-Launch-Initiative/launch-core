@@ -12,22 +12,27 @@ public:
     }
 
     RetType write(uint8_t *data, size_t size) {
+        RESUME();
+
         printf("Data:\n\t");
         for (int i = 0; i < size; i++) {
             printf("%d ", *(data + i));
         }
         printf("\n");
 
+        RESET();
         return RET_SUCCESS;
     }
 
     RetType read(uint8_t *data, size_t size) {
+        RESUME();
         uint8_t *start = data;
         for (int i = 0; i < size; i++) {
             *data++ = i;
         }
         *data = *start;
 
+        RESET();
         return RET_SUCCESS;
     }
 
@@ -54,8 +59,10 @@ public:
     /// @param val      the value to set the pin to
     /// @return
     RetType set(uint32_t val) {
+        RESUME();
         printf("Set to %d\n", val);
 
+        RESET();
         return RET_SUCCESS;
     }
 
@@ -64,8 +71,10 @@ public:
     ///        on output pins this may not work
     /// @param val      where to store the current value of the pin
     RetType get(uint32_t *val) {
+        RESUME();
         *val = 0;
 
+        RESET();
         return RET_SUCCESS;
     }
 
