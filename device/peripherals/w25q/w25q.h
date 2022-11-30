@@ -27,60 +27,64 @@
     dataInPin.set((address & 0xFF)); \
 }
 
+typedef enum {
+    READ_DATA = 0x03,
+    FAST_READ = 0x00,
+
+    FAST_READ_DUAL = 0x03,
+    FAST_READ_QUAD = 0x06,
+
+    FAST_READ_DUAL_IO = 0x0B,
+    FAST_READ_QUAD_IO = 0x0E,
+
+    WORD_READ_QUAD_IO = 0xE7,
+    OCTAL_WORD_READ_QUAD_IO = 0xE3,
+} READ_COMMAND_T;
+
+typedef enum {
+    PAGE_PROGRAM = 0x02,
+    QUAD_PAGE_PROGRAM = 0x32
+} PROGRAM_COMMAND_T;
+
+typedef enum {
+    SECTOR_ERASE = 0x20,
+    BLOCK_32_ERASE = 0x52,
+    BLOCK_64_ERASE = 0xD8,
+
+    CHIP_ERASE = 0xC7, // Can also be 0x60
+    SUSPEND_ERASE = 0x75,
+    RESUME_ERASE = 0x7A,
+} ERASE_COMMAND_T;
+
+typedef enum {
+    WRITE_SET_ENABLE = 0x06,
+    WRITE_SET_ENABLE_VOLATILE = 0x50,
+    WRITE_SET_DISABLE = 0x04,
+} WRITE_SET_T;
+
+typedef enum {
+    REGISTER_ONE_READ = 0x05,
+    REGISTER_TWO_READ = 0x35,
+    REGISTER_THREE_READ = 0x15,
+} READ_STATUS_REGISTER_T;
+
+typedef enum {
+    REGISTER_ONE_WRITE = 0x01,
+    REGISTER_TWO_WRITE = 0x31,
+    REGISTER_THREE_WRITE = 0x11,
+} WRITE_STATUS_REGISTER_T;
+
 class W25Q {
 public:
     const uint8_t DUMMY_BYTE = 0xA5;
 
-    typedef enum {
-        READ_DATA = 0x03,
-        FAST_READ = 0x00,
-
-        FAST_READ_DUAL = 0x03,
-        FAST_READ_QUAD = 0x06,
-
-        FAST_READ_DUAL_IO = 0x0B,
-        FAST_READ_QUAD_IO = 0x0E,
-
-        WORD_READ_QUAD_IO = 0xE7,
-        OCTAL_WORD_READ_QUAD_IO = 0xE3,
-    } READ_COMMAND_T;
-
-    typedef enum {
-        PAGE_PROGRAM = 0x02,
-        QUAD_PAGE_PROGRAM = 0x32
-    } PROGRAM_COMMAND_T;
-
-    typedef enum {
-        SECTOR_ERASE = 0x20,
-        BLOCK_32_ERASE = 0x52,
-        BLOCK_64_ERASE = 0xD8,
-
-        CHIP_ERASE = 0xC7, // Can also be 0x60
-        SUSPEND_ERASE = 0x75,
-        RESUME_ERASE = 0x7A,
-    } ERASE_COMMAND_T;
-
-    typedef enum {
-        WRITE_SET_ENABLE = 0x06,
-        WRITE_SET_ENABLE_VOLATILE = 0x50,
-        WRITE_SET_DISABLE = 0x04,
-    } WRITE_SET_T;
-
-    typedef enum {
-        REGISTER_ONE_READ = 0x05,
-        REGISTER_TWO_READ = 0x35,
-        REGISTER_THREE_READ = 0x15,
-    } READ_STATUS_REGISTER_T;
-
-    typedef enum {
-        REGISTER_ONE_WRITE = 0x01,
-        REGISTER_TWO_WRITE = 0x31,
-        REGISTER_THREE_WRITE = 0x11,
-    } WRITE_STATUS_REGISTER_T;
-
-
-    W25Q(SPIDevice &spiDevice, GPIODevice &csPin, GPIODevice &clkPin, GPIODevice &diPin, GPIODevice &dOutPin) :
+    W25Q(SPIDevice &spiDevice, GPIODevice &csPin, GPIODevice &clkPin) :
             spiDevice(spiDevice), chipSelectPin(csPin), clockPin(clkPin) {}
+
+
+    RetType init() {
+        return RET_SUCCESS;
+    }
 
     RetType toggleWrite(WRITE_SET_T command) {
         RESUME();
@@ -98,25 +102,30 @@ public:
 
         chipSelectPin.set(0);
         uint8_t uint_reg = static_cast<uint8_t>(reg);
-        spiDevice.write(&uint_reg, 1);
-        chipSelectPin.set(1);
 
-        spiDevice.read(receiveBuff, receiveSize);
+        RetType ret = spiDevice.write(&uint_reg, 1);
+        RET_CHECK(ret);
 
-        return RET_SUCCESS;
+        ret = chipSelectPin.set(1);
+        RET_CHECK(ret);
+
+        ret = CALL(spiDevice.read(receiveBuff, receiveSize));
+        RET_CHECK(ret);
+
+        RESET();
+        return ret;
     }
 
     RetType writeRegister(WRITE_STATUS_REGISTER_T reg, uint8_t data, bool isVolatile = false) {
         RESUME();
 
-        this->toggleWrite(isVolatile ? WRITE_SET_ENABLE_VOLATILE : WRITE_SET_ENABLE);
-
+        RetType ret = CALL(toggleWrite(isVolatile ? WRITE_SET_ENABLE_VOLATILE : WRITE_SET_ENABLE));
         chipSelectPin.set(0);
         spiDevice.write(&data, 1);
         chipSelectPin.set(1);
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
 
@@ -206,6 +215,7 @@ public:
         RESET();
         return RET_SUCCESS;
     }
+
 private:
     // TODO: Just realized a SPI device might not be needed if we just have all the pins below :P
     GPIODevice &chipSelectPin;
