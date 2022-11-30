@@ -99,15 +99,18 @@ int main() {
     printf("Testing toggle write\n");
     w25q.toggleWrite(WRITE_SET_ENABLE);
 
-    uint8_t buff[256];
+    uint8_t buff[256] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
     uint8_t registerVal = 0;
 
-    printf("Testing read register\n");
-    w25q.readRegister(REGISTER_ONE_READ, &registerVal, 256);
+    // TODO: Causes segfault since CS Pin dies
+//    printf("Testing read register\n");
+//    w25q.readRegister(REGISTER_ONE_READ, &registerVal, 256);
 
     printf("Testing write register\n");
     w25q.writeRegister(REGISTER_ONE_WRITE, registerVal);
-//    w25q.readData();
+
+    printf("Testing read data\n");
+    w25q.readData(READ_DATA, 0b00000000, buff, buff, 256);
 //    w25q.writeData();
 //    w25q.eraseData();
 

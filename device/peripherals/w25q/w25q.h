@@ -111,6 +111,7 @@ public:
         ret = chipSelectPin.set(1);
         RET_CHECK(ret);
 
+        // TODO: Figure out why this causes chipSelectPin memory to be borked
         ret = CALL(spiDevice.read(receiveBuff, receiveSize));
         RET_CHECK(ret);
 
@@ -143,7 +144,7 @@ public:
 
         switch (readCommand) {
             case READ_DATA: {
-                buffSize = 6;
+                buffSize = 4;
                 uint8_t buffArr[] = {readCommand, addrOne, addrTwo, addrThree};
 
                 buff = buffArr;
