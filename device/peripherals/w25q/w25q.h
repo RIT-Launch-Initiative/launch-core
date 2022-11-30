@@ -145,7 +145,7 @@ public:
         switch (readCommand) {
             case READ_DATA: {
                 buffSize = 4;
-                uint8_t buffArr[] = {readCommand, addrOne, addrTwo, addrThree};
+                uint8_t buffArr[] = {static_cast<uint8_t>(readCommand), addrOne, addrTwo, addrThree};
 
                 buff = buffArr;
                 break;
@@ -153,7 +153,7 @@ public:
 
             case FAST_READ: {
                 buffSize = 14;
-                uint8_t buffArr[] = {readCommand, addrOne, addrTwo, addrThree,
+                uint8_t buffArr[] = {static_cast<uint8_t>(readCommand), addrOne, addrTwo, addrThree,
                                      DUMMY_BYTE, DUMMY_BYTE, DUMMY_BYTE, DUMMY_BYTE,
                                      DUMMY_BYTE, DUMMY_BYTE, DUMMY_BYTE, DUMMY_BYTE};
 
@@ -183,7 +183,7 @@ public:
         uint8_t addrOne = address >> 24;
         uint8_t addrTwo = address >> 16;
         uint8_t addrThree = address >> 8;
-        uint8_t buff[5] = {programCommand, addrOne, addrTwo, addrThree};
+        uint8_t buff[5] = {static_cast<uint8_t>(programCommand), addrOne, addrTwo, addrThree};
 
         chipSelectPin.set(0);
         RetType ret = CALL(spiDevice.write(buff, 5));
@@ -204,7 +204,7 @@ public:
         uint8_t addrOne = address >> 24;
         uint8_t addrTwo = address >> 16;
         uint8_t addrThree = address >> 8;
-        uint8_t buff[5] = {eraseCommand, addrOne, addrTwo, addrThree};
+        uint8_t buff[5] = {static_cast<uint8_t>(eraseCommand), addrOne, addrTwo, addrThree};
 
         RetType ret = CALL(chipSelectPin.set(0));
         RET_CHECK(ret);
