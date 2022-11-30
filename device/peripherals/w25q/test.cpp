@@ -11,7 +11,7 @@ public:
 
     }
 
-    RetType write(uint8_t *data, size_t size) {
+    RetType read(uint8_t *data, size_t size) {
         RESUME();
 
         printf("Data:\n\t");
@@ -24,7 +24,8 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType read(uint8_t *data, size_t size) {
+    // Causes chipSelect to go out of scope
+    RetType write(uint8_t *data, size_t size) {
         RESUME();
         uint8_t *start = data;
         for (int i = 0; i < size; i++) {
@@ -103,8 +104,8 @@ int main() {
     uint8_t registerVal = 0;
 
     // TODO: Causes segfault since CS Pin dies
-//    printf("Testing read register\n");
-//    w25q.readRegister(REGISTER_ONE_READ, &registerVal, 256);
+    printf("Testing read register\n");
+    w25q.readRegister(REGISTER_ONE_READ, &registerVal, 256);
 
     printf("Testing write register\n");
     w25q.writeRegister(REGISTER_ONE_WRITE, registerVal);
@@ -119,6 +120,4 @@ int main() {
     w25q.eraseData(SECTOR_ERASE, 0b000000);
 
     return 0;
-
-
 }
