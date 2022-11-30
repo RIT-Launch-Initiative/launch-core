@@ -100,10 +100,12 @@ public:
     RetType readRegister(READ_STATUS_REGISTER_T reg, uint8_t *receiveBuff, size_t receiveSize) {
         RESUME();
 
-        chipSelectPin.set(0);
+        RetType retchipSelectPin.set(0);
+        RET_CHECK(ret);
+
         uint8_t uint_reg = static_cast<uint8_t>(reg);
 
-        RetType ret = spiDevice.write(&uint_reg, 1);
+        ret = spiDevice.write(&uint_reg, 1);
         RET_CHECK(ret);
 
         ret = chipSelectPin.set(1);
