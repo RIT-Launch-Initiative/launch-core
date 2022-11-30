@@ -559,8 +559,7 @@ typedef void (*bmp3_delay_us_fptr_t)(uint32_t period, void *intf_ptr);
 /*!
  * @brief Register Trim Variables
  */
-struct bmp3_reg_calib_data
-{
+struct bmp3_reg_calib_data {
     /*! Trim Variables */
 
     uint16_t par_t1;
@@ -583,8 +582,7 @@ struct bmp3_reg_calib_data
 /*!
  * @brief bmp3 advance settings
  */
-struct bmp3_adv_settings
-{
+struct bmp3_adv_settings {
     /*! I2C watchdog enable */
     uint8_t i2c_wdt_en;
 
@@ -595,8 +593,7 @@ struct bmp3_adv_settings
 /*!
  * @brief bmp3 odr and filter settings
  */
-struct bmp3_odr_filter_settings
-{
+struct bmp3_odr_filter_settings {
     /*! Pressure oversampling */
     uint8_t press_os;
 
@@ -613,8 +610,7 @@ struct bmp3_odr_filter_settings
 /*!
  * @brief bmp3 sensor status flags
  */
-struct bmp3_sens_status
-{
+struct bmp3_sens_status {
     /*! Command ready status */
     uint8_t cmd_rdy;
 
@@ -628,8 +624,7 @@ struct bmp3_sens_status
 /*!
  * @brief bmp3 interrupt status flags
  */
-struct bmp3_int_status
-{
+struct bmp3_int_status {
     /*! Fifo watermark interrupt */
     uint8_t fifo_wm;
 
@@ -643,8 +638,7 @@ struct bmp3_int_status
 /*!
  * @brief bmp3 error status flags
  */
-struct bmp3_err_status
-{
+struct bmp3_err_status {
     /*! Fatal error */
     uint8_t fatal;
 
@@ -658,8 +652,7 @@ struct bmp3_err_status
 /*!
  * @brief bmp3 status flags
  */
-struct bmp3_status
-{
+struct bmp3_status {
     /*! Interrupt status */
     struct bmp3_int_status intr;
 
@@ -676,8 +669,7 @@ struct bmp3_status
 /*!
  * @brief bmp3 interrupt pin settings
  */
-struct bmp3_int_ctrl_settings
-{
+struct bmp3_int_ctrl_settings {
     /*! Output mode */
     uint8_t output_mode;
 
@@ -694,8 +686,7 @@ struct bmp3_int_ctrl_settings
 /*!
  * @brief bmp3 device settings
  */
-struct bmp3_settings
-{
+struct bmp3_settings {
     /*! Power mode which user wants to set */
     uint8_t op_mode;
 
@@ -718,8 +709,7 @@ struct bmp3_settings
 /*!
  * @brief bmp3 fifo frame
  */
-struct bmp3_fifo_data
-{
+struct bmp3_fifo_data {
     /*! Data buffer of user defined length is to be mapped here
      * 512 + 4 */
     uint8_t *buffer;
@@ -752,8 +742,7 @@ struct bmp3_fifo_data
 /*!
  * @brief bmp3 fifo configuration
  */
-struct bmp3_fifo_settings
-{
+struct bmp3_fifo_settings {
     /*! enable/disable */
     uint8_t mode;
 
@@ -787,8 +776,7 @@ struct bmp3_fifo_settings
 /*!
  * @brief Quantized Trim Variables
  */
-struct bmp3_quantized_calib_data
-{
+struct bmp3_quantized_calib_data {
     /*! Quantized Trim Variables */
 
     double par_t1;
@@ -811,8 +799,7 @@ struct bmp3_quantized_calib_data
 /*!
  * @brief Calibration data
  */
-struct bmp3_calib_data
-{
+struct bmp3_calib_data {
     /*! Quantized data */
     struct bmp3_quantized_calib_data quantized_calib_data;
 
@@ -824,8 +811,7 @@ struct bmp3_calib_data
  * @brief bmp3 sensor structure which comprises of temperature and pressure
  * data.
  */
-struct bmp3_data
-{
+struct bmp3_data {
     /*! Compensated temperature */
     double temperature;
 
@@ -863,8 +849,7 @@ struct bmp3_calib_data
  * @brief bmp3 sensor structure which comprises of un-compensated temperature
  * and pressure data.
  */
-struct bmp3_uncomp_data
-{
+struct bmp3_uncomp_data {
     /*! un-compensated pressure */
     uint64_t pressure;
 
@@ -875,8 +860,7 @@ struct bmp3_uncomp_data
 /*!
  * @brief bmp3 device structure
  */
-struct bmp3_dev
-{
+struct bmp3_dev {
     /*! Chip Id */
     uint8_t chip_id;
 
