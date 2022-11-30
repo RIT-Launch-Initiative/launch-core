@@ -97,7 +97,7 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType readRegister(READ_STATUS_REGISTER_T reg, uint8_t *receiveBuff, size_t receiveSize) {
+    RetType readRegister(READ_STATUS_REGISTER_T reg, uint8_t *receiveBuff) {
         RESUME();
 
         RetType ret = chipSelectPin.set(0);
@@ -112,7 +112,7 @@ public:
         RET_CHECK(ret);
 
         // TODO: Figure out why this causes chipSelectPin memory to be borked
-        ret = CALL(spiDevice.read(receiveBuff, receiveSize));
+        ret = CALL(spiDevice.read(receiveBuff, 1));
         RET_CHECK(ret);
 
         RESET();

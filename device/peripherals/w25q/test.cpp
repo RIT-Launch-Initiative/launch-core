@@ -103,9 +103,8 @@ int main() {
     uint8_t buff[256] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
     uint8_t registerVal = 0;
 
-    // TODO: Causes segfault since CS Pin dies
     printf("Testing read register\n");
-    w25q.readRegister(REGISTER_ONE_READ, &registerVal, 256);
+    w25q.readRegister(REGISTER_ONE_READ, &registerVal);
 
     printf("Testing write register\n");
     w25q.writeRegister(REGISTER_ONE_WRITE, registerVal);
