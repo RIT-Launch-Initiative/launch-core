@@ -139,7 +139,7 @@ namespace udp {
                     info.src.ipv4_addr,
                     info.dst.ipv4_addr,
                     0,
-                    UDP_PROTO,
+                    ipv4::UDP_PROTO,
                     header->length
             };
 

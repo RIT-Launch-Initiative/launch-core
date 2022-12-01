@@ -4,15 +4,14 @@
 #include <stdint.h>
 #include "net/socket/Socket.h"
 #include "net/ipv4/ipv4.h"
+#include "net/common.h"
 
 namespace udp {
-    static const uint8_t UDP_PROTO = 0x11;
-
     typedef struct {
-        uint16_t length;
-        uint16_t checksum;
-        uint16_t dst;
         uint16_t src;
+        uint16_t dst;
+        uint16_t checksum;
+        uint16_t length;
     } UDP_HEADER_T;
 
     typedef struct {
@@ -36,7 +35,7 @@ namespace udp {
             if (sum & 0x80000000) {
                 sum = (sum & 0xFFFF) + (sum >> 16);
             }
-            len -= 2;
+            len -= sizeof(uint16_t);
         }
 
         if (len & 1) {
