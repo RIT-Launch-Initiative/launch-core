@@ -140,7 +140,8 @@ public:
     }
 
 
-    RetType readData(READ_COMMAND_T readCommand, uint32_t address, uint8_t *buff, uint8_t *receivedData, size_t receivedSize) {
+    RetType
+    readData(READ_COMMAND_T readCommand, uint32_t address, uint8_t *buff, uint8_t *receivedData, size_t receivedSize) {
         RESUME();
 
         uint8_t addrOne = (address & 0xFF000000) >> 16;
@@ -194,10 +195,8 @@ public:
         RESUME();
 
         // TODO: Maybe return an error if writing is disabled. Should probably do the same for others
-        uint8_t addrOne = address >> 24;
-        uint8_t addrTwo = address >> 16;
-        uint8_t addrThree = address >> 8;
-        uint8_t buff[5] = {static_cast<uint8_t>(programCommand), addrOne, addrTwo, addrThree};
+        uint8_t buff[5] = {static_cast<uint8_t>(programCommand), static_cast<uint8_t>(address >> 24),
+                           static_cast<uint8_t>(address >> 16), static_cast<uint8_t>(address >> 8)};
 
         RetType ret = chipSelectPin.set(0);
         ret = CALL(spiDevice.write(buff, 5));
