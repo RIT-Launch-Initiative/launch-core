@@ -8,7 +8,6 @@
 #define STRING_H
 
 
-
 class String {
 public:
     char *string = {};

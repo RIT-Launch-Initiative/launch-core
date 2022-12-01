@@ -18,11 +18,6 @@ typedef struct {
     uint16_t udp_port;
 } sockaddr_t;
 
-typedef union {
-    uint16_t udp;
-} sockport_t;
-
-
 // socket types
 typedef enum {
     IPV4_UDP_SOCK = 0,      // IPv4 and UDP
