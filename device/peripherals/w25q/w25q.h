@@ -141,8 +141,7 @@ public:
     }
 
 
-    RetType
-    readData(READ_COMMAND_T readCommand, uint32_t address, uint8_t *buff, uint8_t *receivedData, size_t receivedSize) {
+    RetType readData(READ_COMMAND_T readCommand, uint32_t address, uint8_t *buff, uint8_t *receivedData, size_t receivedSize) {
         RESUME();
 
         RetType ret = CALL(chipSelectPin.set(0));
@@ -250,6 +249,7 @@ public:
     size_t getNumBlocks() override {
         return 65536;
     }
+
 private:
     // TODO: Just realized a SPI device might not be needed if we just have all the pins below :P
     GPIODevice &chipSelectPin;
