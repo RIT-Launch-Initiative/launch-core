@@ -195,10 +195,14 @@ public:
         RESUME();
 
         // TODO: Maybe return an error if writing is disabled. Should probably do the same for others
-        uint8_t buff[5] = {static_cast<uint8_t>(programCommand), static_cast<uint8_t>(address >> 24),
-                           static_cast<uint8_t>(address >> 16), static_cast<uint8_t>(address >> 8)};
-
+        static uint8_t *buff;
         RetType ret = chipSelectPin.set(0);
+        RET_CHECK(ret);
+
+        uint8_t buffer[5] = {static_cast<uint8_t>(programCommand), static_cast<uint8_t>(address >> 24),
+                static_cast<uint8_t>(address >> 16), static_cast<uint8_t>(address >> 8)};
+        buff = buffer;
+
         ret = CALL(spiDevice.write(buff, 5));
         RET_CHECK(ret)
 
