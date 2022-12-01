@@ -118,7 +118,7 @@ extern "C" {
 #endif
 
 /**
- * The last error code from read/write interface is stored in the device structure as intf_rslt.
+ * The last error code from read/write interface is stored in the device structure as interfaceResult.
  */
 #ifndef BMP3_INTF_RET_SUCCESS
 #define BMP3_INTF_RET_SUCCESS                   INT8_C(0)

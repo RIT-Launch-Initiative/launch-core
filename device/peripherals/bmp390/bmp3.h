@@ -30,875 +30,523 @@
 * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 * POSSIBILITY OF SUCH DAMAGE.
 *
-* @file       bmp3_defs.h
+* @file       bmp3.h
 * @date       2022-04-01
 * @version    v2.0.6
 *
 */
 
-/*! @file bmp3_defs.h
- * @brief Sensor driver for BMP3 sensor */
+/*!
+ * @defgroup bmp3 BMP3
+ */
 
-#ifndef BMP3_DEFS_H_
-#define BMP3_DEFS_H_
+#ifndef _BMP3_H
+#define _BMP3_H
+
+/* Header includes */
+#include "bmp3_defs.h"
 
 /*! CPP guard */
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/********************************************************/
-/* header includes */
-#ifdef __KERNEL__
-#include <linux/types.h>
-#include <linux/kernel.h>
-#else
-#include <stdint.h>
-#include <stddef.h>
-#endif
+/**
+ * \ingroup bmp3
+ * \defgroup bmp3ApiInit Initialization
+ * @brief Initialize the sensor and device structure
+ */
 
-/*************************** Common macros   *****************************/
-
-#if !defined(UINT8_C) && !defined(INT8_C)
-#define INT8_C(x)    S8_C(x)
-#define UINT8_C(x)   U8_C(x)
-#endif
-
-#if !defined(UINT16_C) && !defined(INT16_C)
-#define INT16_C(x)   S16_C(x)
-#define UINT16_C(x)  U16_C(x)
-#endif
-
-#if !defined(INT32_C) && !defined(UINT32_C)
-#define INT32_C(x)   S32_C(x)
-#define UINT32_C(x)  U32_C(x)
-#endif
-
-#if !defined(INT64_C) && !defined(UINT64_C)
-#define INT64_C(x)   S64_C(x)
-#define UINT64_C(x)  U64_C(x)
-#endif
-
-/**@}*/
-/**\name C standard macros */
-#ifndef NULL
-#ifdef __cplusplus
-#define NULL         0
-#else
-#define NULL         ((void *) 0)
-#endif
-#endif
-
-#ifndef TRUE
-#define TRUE         UINT8_C(1)
-#endif
-
-#ifndef FALSE
-#define FALSE        UINT8_C(0)
-#endif
-
-/********************************************************/
-/**\name Compiler switch macros */
-
-#ifndef BMP3_64BIT_COMPENSATION /*< Check if 64bit (using BMP3_64BIT_COMPENSATION) is enabled */
-#ifndef BMP3_FLOAT_COMPENSATION /*< If 64 bit integer data type is not enabled then enable
-                                            * BMP3_FLOAT_COMPENSATION */
-#define BMP3_FLOAT_COMPENSATION
-#endif
-#endif
-
-/********************************************************/
-/**\name Macro definitions */
+/*!
+ * \ingroup bmp3ApiInit
+ * \page bmp3_api_bmp3_init bmp3_init
+ * \code
+ * int8_t bmp3_init(struct bmp3_dev *dev);
+ * \endcode
+ * @details This API is the entry point.
+ * Performs the selection of I2C/SPI read mechanism according to the
+ * selected interface and reads the chip-id and calibration data of the sensor.
+ *
+ *  @param[in,out] dev : Structure instance of bmp3_dev
+ *
+ * @return Result of API execution status
+ * @retval 0  -> Success
+ * @retval >0 -> Warning
+ * @retval <0 -> Error
+ */
+int8_t bmp3_init(struct bmp3_dev *dev);
 
 /**
- * BMP3_INTF_RET_TYPE is the read/write interface return type which can be overwritten by the build system.
+ * \ingroup bmp3
+ * \defgroup bmp3ApiSoftReset Soft reset
+ * @brief Perform soft reset of the sensor
  */
-#ifndef BMP3_INTF_RET_TYPE
-#define BMP3_INTF_RET_TYPE                      int8_t
-#endif
+
+/*!
+ * \ingroup bmp3ApiSoftReset
+ * \page bmp3_api_bmp3_soft_reset bmp3_soft_reset
+ * \code
+ * int8_t bmp3_soft_reset(const struct bmp3_dev *dev);
+ * \endcode
+ * @details This API performs the soft reset of the sensor.
+ *
+ * @param[in] dev : Structure instance of bmp3_dev.
+ *
+ * @return Result of API execution status
+ * @retval 0  -> Success
+ * @retval >0 -> Warning
+ * @retval <0 -> Error
+ */
+int8_t bmp3_soft_reset(struct bmp3_dev *dev);
 
 /**
- * The last error code from read/write interface is stored in the device structure as intf_rslt.
- */
-#ifndef BMP3_INTF_RET_SUCCESS
-#define BMP3_INTF_RET_SUCCESS                   INT8_C(0)
-#endif
-
-/**\name I2C addresses */
-#define BMP3_ADDR_I2C_PRIM                      UINT8_C(0x76)
-#define BMP3_ADDR_I2C_SEC                       UINT8_C(0x77)
-
-/**\name BMP3 chip identifier */
-#define BMP3_CHIP_ID                            UINT8_C(0x50)
-#define BMP390_CHIP_ID                          UINT8_C(0x60)
-
-/**\name BMP3 pressure settling time (micro secs)*/
-#define BMP3_SETTLE_TIME_PRESS                  UINT16_C(392)
-
-/**\name BMP3 temperature settling time (micro secs) */
-#define BMP3_SETTLE_TIME_TEMP                   UINT16_C(313)
-
-/**\name BMP3 adc conversion time (micro secs) */
-#define BMP3_ADC_CONV_TIME                      UINT16_C(2000)
-
-/**\name Register Address */
-#define BMP3_REG_CHIP_ID                        UINT8_C(0x00)
-#define BMP3_REG_ERR                            UINT8_C(0x02)
-#define BMP3_REG_SENS_STATUS                    UINT8_C(0x03)
-#define BMP3_REG_DATA                           UINT8_C(0x04)
-#define BMP3_REG_EVENT                          UINT8_C(0x10)
-#define BMP3_REG_INT_STATUS                     UINT8_C(0x11)
-#define BMP3_REG_FIFO_LENGTH                    UINT8_C(0x12)
-#define BMP3_REG_FIFO_DATA                      UINT8_C(0x14)
-#define BMP3_REG_FIFO_WM                        UINT8_C(0x15)
-#define BMP3_REG_FIFO_CONFIG_1                  UINT8_C(0x17)
-#define BMP3_REG_FIFO_CONFIG_2                  UINT8_C(0x18)
-#define BMP3_REG_INT_CTRL                       UINT8_C(0x19)
-#define BMP3_REG_IF_CONF                        UINT8_C(0x1A)
-#define BMP3_REG_PWR_CTRL                       UINT8_C(0x1B)
-#define BMP3_REG_OSR                            UINT8_C(0X1C)
-#define BMP3_REG_ODR                            UINT8_C(0x1D)
-#define BMP3_REG_CONFIG                         UINT8_C(0x1F)
-#define BMP3_REG_CALIB_DATA                     UINT8_C(0x31)
-#define BMP3_REG_CMD                            UINT8_C(0x7E)
-
-/**\name Error status macros */
-#define BMP3_ERR_FATAL                          UINT8_C(0x01)
-#define BMP3_ERR_CMD                            UINT8_C(0x02)
-#define BMP3_ERR_CONF                           UINT8_C(0x04)
-
-/**\name Status macros */
-#define BMP3_CMD_RDY                            UINT8_C(0x10)
-#define BMP3_DRDY_PRESS                         UINT8_C(0x20)
-#define BMP3_DRDY_TEMP                          UINT8_C(0x40)
-
-/**\name Power mode macros */
-#define BMP3_MODE_SLEEP                         UINT8_C(0x00)
-#define BMP3_MODE_FORCED                        UINT8_C(0x01)
-#define BMP3_MODE_NORMAL                        UINT8_C(0x03)
-
-/**\name FIFO related macros */
-/**\name FIFO enable  */
-#define BMP3_ENABLE                             UINT8_C(0x01)
-#define BMP3_DISABLE                            UINT8_C(0x00)
-
-/**\name Interrupt pin configuration macros */
-/**\name Open drain */
-#define BMP3_INT_PIN_OPEN_DRAIN                 UINT8_C(0x01)
-#define BMP3_INT_PIN_PUSH_PULL                  UINT8_C(0x00)
-
-/**\name Level */
-#define BMP3_INT_PIN_ACTIVE_HIGH                UINT8_C(0x01)
-#define BMP3_INT_PIN_ACTIVE_LOW                 UINT8_C(0x00)
-
-/**\name Latch */
-#define BMP3_INT_PIN_LATCH                      UINT8_C(0x01)
-#define BMP3_INT_PIN_NON_LATCH                  UINT8_C(0x00)
-
-/**\name Advance settings  */
-/**\name I2c watch dog timer period selection */
-#define BMP3_I2C_WDT_SHORT_1_25_MS              UINT8_C(0x00)
-#define BMP3_I2C_WDT_LONG_40_MS                 UINT8_C(0x01)
-
-/**\name FIFO Sub-sampling macros */
-#define BMP3_FIFO_NO_SUBSAMPLING                UINT8_C(0x00)
-#define BMP3_FIFO_SUBSAMPLING_2X                UINT8_C(0x01)
-#define BMP3_FIFO_SUBSAMPLING_4X                UINT8_C(0x02)
-#define BMP3_FIFO_SUBSAMPLING_8X                UINT8_C(0x03)
-#define BMP3_FIFO_SUBSAMPLING_16X               UINT8_C(0x04)
-#define BMP3_FIFO_SUBSAMPLING_32X               UINT8_C(0x05)
-#define BMP3_FIFO_SUBSAMPLING_64X               UINT8_C(0x06)
-#define BMP3_FIFO_SUBSAMPLING_128X              UINT8_C(0x07)
-
-/**\name Over sampling macros */
-#define BMP3_NO_OVERSAMPLING                    UINT8_C(0x00)
-#define BMP3_OVERSAMPLING_2X                    UINT8_C(0x01)
-#define BMP3_OVERSAMPLING_4X                    UINT8_C(0x02)
-#define BMP3_OVERSAMPLING_8X                    UINT8_C(0x03)
-#define BMP3_OVERSAMPLING_16X                   UINT8_C(0x04)
-#define BMP3_OVERSAMPLING_32X                   UINT8_C(0x05)
-
-/**\name Filter setting macros */
-#define BMP3_IIR_FILTER_DISABLE                 UINT8_C(0x00)
-#define BMP3_IIR_FILTER_COEFF_1                 UINT8_C(0x01)
-#define BMP3_IIR_FILTER_COEFF_3                 UINT8_C(0x02)
-#define BMP3_IIR_FILTER_COEFF_7                 UINT8_C(0x03)
-#define BMP3_IIR_FILTER_COEFF_15                UINT8_C(0x04)
-#define BMP3_IIR_FILTER_COEFF_31                UINT8_C(0x05)
-#define BMP3_IIR_FILTER_COEFF_63                UINT8_C(0x06)
-#define BMP3_IIR_FILTER_COEFF_127               UINT8_C(0x07)
-
-/**\name Odr setting macros */
-#define BMP3_ODR_200_HZ                         UINT8_C(0x00)
-#define BMP3_ODR_100_HZ                         UINT8_C(0x01)
-#define BMP3_ODR_50_HZ                          UINT8_C(0x02)
-#define BMP3_ODR_25_HZ                          UINT8_C(0x03)
-#define BMP3_ODR_12_5_HZ                        UINT8_C(0x04)
-#define BMP3_ODR_6_25_HZ                        UINT8_C(0x05)
-#define BMP3_ODR_3_1_HZ                         UINT8_C(0x06)
-#define BMP3_ODR_1_5_HZ                         UINT8_C(0x07)
-#define BMP3_ODR_0_78_HZ                        UINT8_C(0x08)
-#define BMP3_ODR_0_39_HZ                        UINT8_C(0x09)
-#define BMP3_ODR_0_2_HZ                         UINT8_C(0x0A)
-#define BMP3_ODR_0_1_HZ                         UINT8_C(0x0B)
-#define BMP3_ODR_0_05_HZ                        UINT8_C(0x0C)
-#define BMP3_ODR_0_02_HZ                        UINT8_C(0x0D)
-#define BMP3_ODR_0_01_HZ                        UINT8_C(0x0E)
-#define BMP3_ODR_0_006_HZ                       UINT8_C(0x0F)
-#define BMP3_ODR_0_003_HZ                       UINT8_C(0x10)
-#define BMP3_ODR_0_001_HZ                       UINT8_C(0x11)
-
-/**\name Soft reset command */
-#define BMP3_SOFT_RESET                         UINT8_C(0xB6)
-
-/**\name FIFO flush command */
-#define BMP3_FIFO_FLUSH                         UINT8_C(0xB0)
-
-/**\name API success code */
-#define BMP3_OK                                 INT8_C(0)
-
-/**\name API error codes */
-#define BMP3_E_NULL_PTR                         INT8_C(-1)
-#define BMP3_E_COMM_FAIL                        INT8_C(-2)
-#define BMP3_E_INVALID_ODR_OSR_SETTINGS         INT8_C(-3)
-#define BMP3_E_CMD_EXEC_FAILED                  INT8_C(-4)
-#define BMP3_E_CONFIGURATION_ERR                INT8_C(-5)
-#define BMP3_E_INVALID_LEN                      INT8_C(-6)
-#define BMP3_E_DEV_NOT_FOUND                    INT8_C(-7)
-#define BMP3_E_FIFO_WATERMARK_NOT_REACHED       INT8_C(-8)
-
-/**\name API warning codes */
-#define BMP3_W_SENSOR_NOT_ENABLED               INT8_C(1)
-#define BMP3_W_INVALID_FIFO_REQ_FRAME_CNT       INT8_C(2)
-#define BMP3_W_MIN_TEMP                         INT8_C(3)
-#define BMP3_W_MAX_TEMP                         INT8_C(4)
-#define BMP3_W_MIN_PRES                         INT8_C(5)
-#define BMP3_W_MAX_PRES                         INT8_C(6)
-
-/**\name Macros to select the which sensor settings are to be set by the user.
- * These values are internal for API implementation. Don't relate this to
- * data sheet. */
-#define BMP3_SEL_PRESS_EN                       UINT16_C(1 << 1)
-#define BMP3_SEL_TEMP_EN                        UINT16_C(1 << 2)
-#define BMP3_SEL_DRDY_EN                        UINT16_C(1 << 3)
-#define BMP3_SEL_PRESS_OS                       UINT16_C(1 << 4)
-#define BMP3_SEL_TEMP_OS                        UINT16_C(1 << 5)
-#define BMP3_SEL_IIR_FILTER                     UINT16_C(1 << 6)
-#define BMP3_SEL_ODR                            UINT16_C(1 << 7)
-#define BMP3_SEL_OUTPUT_MODE                    UINT16_C(1 << 8)
-#define BMP3_SEL_LEVEL                          UINT16_C(1 << 9)
-#define BMP3_SEL_LATCH                          UINT16_C(1 << 10)
-#define BMP3_SEL_I2C_WDT_EN                     UINT16_C(1 << 11)
-#define BMP3_SEL_I2C_WDT                        UINT16_C(1 << 12)
-#define BMP3_SEL_ALL                            UINT16_C(0x7FF)
-
-/**\name Macros to select the which FIFO settings are to be set by the user
- * These values are internal for API implementation. Don't relate this to
- * data sheet.*/
-#define BMP3_SEL_FIFO_MODE                      UINT16_C(1 << 1)
-#define BMP3_SEL_FIFO_STOP_ON_FULL_EN           UINT16_C(1 << 2)
-#define BMP3_SEL_FIFO_TIME_EN                   UINT16_C(1 << 3)
-#define BMP3_SEL_FIFO_PRESS_EN                  UINT16_C(1 << 4)
-#define BMP3_SEL_FIFO_TEMP_EN                   UINT16_C(1 << 5)
-#define BMP3_SEL_FIFO_DOWN_SAMPLING             UINT16_C(1 << 6)
-#define BMP3_SEL_FIFO_FILTER_EN                 UINT16_C(1 << 7)
-#define BMP3_SEL_FIFO_FWTM_EN                   UINT16_C(1 << 8)
-#define BMP3_SEL_FIFO_FULL_EN                   UINT16_C(1 << 9)
-
-/**\name Sensor component selection macros
- * These values are internal for API implementation. Don't relate this to
- * data sheet.*/
-#define BMP3_PRESS                              UINT8_C(1)
-#define BMP3_TEMP                               UINT8_C(2)
-#define BMP3_PRESS_TEMP                         UINT8_C(3)
-
-/**\name Temperature range values in integer and float */
-#define BMP3_MIN_TEMP_INT                       INT64_C(-4000)
-#define BMP3_MAX_TEMP_INT                       INT64_C(8500)
-#define BMP3_MIN_TEMP_DOUBLE                    -40.0f
-#define BMP3_MAX_TEMP_DOUBLE                    85.0f
-
-/**\name Pressure range values in integer and float */
-#define BMP3_MIN_PRES_INT                       UINT64_C(3000000)
-#define BMP3_MAX_PRES_INT                       UINT64_C(12500000)
-#define BMP3_MIN_PRES_DOUBLE                    30000.0f
-#define BMP3_MAX_PRES_DOUBLE                    125000.0f
-
-/**\name Macros for bit masking */
-#define BMP3_ERR_FATAL_MSK                      UINT8_C(0x01)
-
-#define BMP3_ERR_CMD_MSK                        UINT8_C(0x02)
-#define BMP3_ERR_CMD_POS                        UINT8_C(0x01)
-
-#define BMP3_ERR_CONF_MSK                       UINT8_C(0x04)
-#define BMP3_ERR_CONF_POS                       UINT8_C(0x02)
-
-#define BMP3_STATUS_CMD_RDY_MSK                 UINT8_C(0x10)
-#define BMP3_STATUS_CMD_RDY_POS                 UINT8_C(0x04)
-
-#define BMP3_STATUS_DRDY_PRESS_MSK              UINT8_C(0x20)
-#define BMP3_STATUS_DRDY_PRESS_POS              UINT8_C(0x05)
-
-#define BMP3_STATUS_DRDY_TEMP_MSK               UINT8_C(0x40)
-#define BMP3_STATUS_DRDY_TEMP_POS               UINT8_C(0x06)
-
-#define BMP3_OP_MODE_MSK                        UINT8_C(0x30)
-#define BMP3_OP_MODE_POS                        UINT8_C(0x04)
-
-#define BMP3_PRESS_EN_MSK                       UINT8_C(0x01)
-
-#define BMP3_TEMP_EN_MSK                        UINT8_C(0x02)
-#define BMP3_TEMP_EN_POS                        UINT8_C(0x01)
-
-#define BMP3_IIR_FILTER_MSK                     UINT8_C(0x0E)
-#define BMP3_IIR_FILTER_POS                     UINT8_C(0x01)
-
-#define BMP3_ODR_MSK                            UINT8_C(0x1F)
-
-#define BMP3_PRESS_OS_MSK                       UINT8_C(0x07)
-
-#define BMP3_TEMP_OS_MSK                        UINT8_C(0x38)
-#define BMP3_TEMP_OS_POS                        UINT8_C(0x03)
-
-#define BMP3_FIFO_MODE_MSK                      UINT8_C(0x01)
-
-#define BMP3_FIFO_STOP_ON_FULL_MSK              UINT8_C(0x02)
-#define BMP3_FIFO_STOP_ON_FULL_POS              UINT8_C(0x01)
-
-#define BMP3_FIFO_TIME_EN_MSK                   UINT8_C(0x04)
-#define BMP3_FIFO_TIME_EN_POS                   UINT8_C(0x02)
-
-#define BMP3_FIFO_PRESS_EN_MSK                  UINT8_C(0x08)
-#define BMP3_FIFO_PRESS_EN_POS                  UINT8_C(0x03)
-
-#define BMP3_FIFO_TEMP_EN_MSK                   UINT8_C(0x10)
-#define BMP3_FIFO_TEMP_EN_POS                   UINT8_C(0x04)
-
-#define BMP3_FIFO_FILTER_EN_MSK                 UINT8_C(0x18)
-#define BMP3_FIFO_FILTER_EN_POS                 UINT8_C(0x03)
-
-#define BMP3_FIFO_DOWN_SAMPLING_MSK             UINT8_C(0x07)
-
-#define BMP3_FIFO_FWTM_EN_MSK                   UINT8_C(0x08)
-#define BMP3_FIFO_FWTM_EN_POS                   UINT8_C(0x03)
-
-#define BMP3_FIFO_FULL_EN_MSK                   UINT8_C(0x10)
-#define BMP3_FIFO_FULL_EN_POS                   UINT8_C(0x04)
-
-#define BMP3_INT_OUTPUT_MODE_MSK                UINT8_C(0x01)
-
-#define BMP3_INT_LEVEL_MSK                      UINT8_C(0x02)
-#define BMP3_INT_LEVEL_POS                      UINT8_C(0x01)
-
-#define BMP3_INT_LATCH_MSK                      UINT8_C(0x04)
-#define BMP3_INT_LATCH_POS                      UINT8_C(0x02)
-
-#define BMP3_INT_DRDY_EN_MSK                    UINT8_C(0x40)
-#define BMP3_INT_DRDY_EN_POS                    UINT8_C(0x06)
-
-#define BMP3_I2C_WDT_EN_MSK                     UINT8_C(0x02)
-#define BMP3_I2C_WDT_EN_POS                     UINT8_C(0x01)
-
-#define BMP3_I2C_WDT_SEL_MSK                    UINT8_C(0x04)
-#define BMP3_I2C_WDT_SEL_POS                    UINT8_C(0x02)
-
-#define BMP3_INT_STATUS_FWTM_MSK                UINT8_C(0x01)
-
-#define BMP3_INT_STATUS_FFULL_MSK               UINT8_C(0x02)
-#define BMP3_INT_STATUS_FFULL_POS               UINT8_C(0x01)
-
-#define BMP3_INT_STATUS_DRDY_MSK                UINT8_C(0x08)
-#define BMP3_INT_STATUS_DRDY_POS                UINT8_C(0x03)
-
-/**\name    UTILITY MACROS  */
-#define BMP3_SET_LOW_BYTE                       UINT16_C(0x00FF)
-#define BMP3_SET_HIGH_BYTE                      UINT16_C(0xFF00)
-
-/**\name Macro to combine two 8 bit data's to form a 16 bit data */
-#define BMP3_CONCAT_BYTES(msb, lsb)             (((uint16_t)msb << 8) | (uint16_t)lsb)
-
-#define BMP3_SET_BITS(reg_data, bitname, data) \
-    ((reg_data & ~(bitname##_MSK)) | \
-     ((data << bitname##_POS) & bitname##_MSK))
-
-/* Macro variant to handle the bitname position if it is zero */
-#define BMP3_SET_BITS_POS_0(reg_data, bitname, data) \
-    ((reg_data & ~(bitname##_MSK)) | \
-     (data & bitname##_MSK))
-
-#define BMP3_GET_BITS(reg_data, bitname)        ((reg_data & (bitname##_MSK)) >> \
-                                                 (bitname##_POS))
-
-/* Macro variant to handle the bitname position if it is zero */
-#define BMP3_GET_BITS_POS_0(reg_data, bitname)  (reg_data & (bitname##_MSK))
-
-#define BMP3_GET_LSB(var)                       (uint8_t)(var & BMP3_SET_LOW_BYTE)
-#define BMP3_GET_MSB(var)                       (uint8_t)((var & BMP3_SET_HIGH_BYTE) >> 8)
-
-/**\name Macros related to size */
-#define BMP3_LEN_CALIB_DATA                     UINT8_C(21)
-#define BMP3_LEN_P_AND_T_HEADER_DATA            UINT8_C(7)
-#define BMP3_LEN_P_OR_T_HEADER_DATA             UINT8_C(4)
-#define BMP3_LEN_P_T_DATA                       UINT8_C(6)
-#define BMP3_LEN_GEN_SETT                       UINT8_C(7)
-#define BMP3_LEN_P_DATA                         UINT8_C(3)
-#define BMP3_LEN_T_DATA                         UINT8_C(3)
-#define BMP3_LEN_SENSOR_TIME                    UINT8_C(3)
-#define BMP3_FIFO_MAX_FRAMES                    UINT8_C(73)
-
-/*! Power control settings */
-#define BMP3_POWER_CNTL                         UINT16_C(0x0006)
-
-/*! Odr and filter settings */
-#define BMP3_ODR_FILTER                         UINT16_C(0x00F0)
-
-/*! Interrupt control settings */
-#define BMP3_INT_CTRL                           UINT16_C(0x0708)
-
-/*! Advance settings */
-#define BMP3_ADV_SETT                           UINT16_C(0x1800)
-
-/*! FIFO settings */
-
-/*! Mask for fifo_mode, fifo_stop_on_full, fifo_time_en, fifo_press_en and
- * fifo_temp_en settings */
-#define BMP3_FIFO_CONFIG_1                      UINT16_C(0x003E)
-
-/*! Mask for fifo_sub_sampling and data_select settings */
-#define BMP3_FIFO_CONFIG_2                      UINT16_C(0x00C0)
-
-/*! Mask for fwtm_en and ffull_en settings */
-#define BMP3_FIFO_INT_CTRL                      UINT16_C(0x0300)
-
-/*! FIFO Header */
-/*! FIFO temperature pressure header frame */
-#define BMP3_FIFO_TEMP_PRESS_FRAME              UINT8_C(0x94)
-
-/*! FIFO temperature header frame */
-#define BMP3_FIFO_TEMP_FRAME                    UINT8_C(0x90)
-
-/*! FIFO pressure header frame */
-#define BMP3_FIFO_PRESS_FRAME                   UINT8_C(0x84)
-
-/*! FIFO time header frame */
-#define BMP3_FIFO_TIME_FRAME                    UINT8_C(0xA0)
-
-/*! FIFO error header frame */
-#define BMP3_FIFO_ERROR_FRAME                   UINT8_C(0x44)
-
-/*! FIFO configuration change header frame */
-#define BMP3_FIFO_CONFIG_CHANGE                 UINT8_C(0x48)
-
-/*! FIFO empty frame */
-#define BMP3_FIFO_EMPTY_FRAME                   UINT8_C(0x80)
-
-/*! FIFO sensortime overhead byte count */
-#define BMP3_SENSORTIME_OVERHEAD_BYTES          UINT8_C(20)
-
-/********************************************************/
-
-/*!
- * @brief Interface selection Enums
- */
-enum bmp3_intf {
-    /*! SPI interface */
-    BMP3_SPI_INTF,
-    /*! I2C interface */
-    BMP3_I2C_INTF
-};
-
-/********************************************************/
-
-/*!
- * @brief Type definitions
+ * \ingroup bmp3
+ * \defgroup bmp3ApiSensorS Sensor settings
+ * @brief Get / Set sensor settings
  */
 
 /*!
- * @brief Bus communication function pointer which should be mapped to
- * the platform specific read functions of the user
+ * \ingroup bmp3ApiSensorS
+ * \page bmp3_api_bmp3_set_sensor_settings bmp3_set_sensor_settings
+ * \code
+ * int8_t bmp3_set_sensor_settings(uint32_t desired_settings, struct bmp3_settings *settings, struct bmp3_dev *dev);
+ * \endcode
+ * @details This API sets the power control(pressure enable and
+ * temperature enable), over sampling, odr and filter
+ * settings in the sensor.
  *
- * @param[in]     reg_addr : 8bit register address of the sensor
- * @param[out]    reg_data : Data from the specified address
- * @param[in]     length   : Length of the reg_data array
- * @param[in,out] intf_ptr : Void pointer that can enable the linking of descriptors
- *                           for interface related callbacks
- * @retval 0 for Success
- * @retval Non-zero for Failure
- */
-typedef BMP3_INTF_RET_TYPE (*bmp3_read_fptr_t)(uint8_t reg_addr, uint8_t *read_data, uint32_t len, void *intf_ptr);
-
-/*!
- * @brief Bus communication function pointer which should be mapped to
- * the platform specific write functions of the user
+ * @param[in] desired_settings : Variable used to select the settings which
+ *                               are to be set in the sensor.
+ * @param[in] settings         : Structure instance of bmp3_settings
+ * @param[in] dev              : Structure instance of bmp3_dev.
  *
- * @param[in]     reg_addr : 8bit register address of the sensor
- * @param[out]    reg_data : Data to the specified address
- * @param[in]     length   : Length of the reg_data array
- * @param[in,out] intf_ptr : Void pointer that can enable the linking of descriptors
- *                           for interface related callbacks
- * @retval 0 for Success
- * @retval Non-zero for Failure
+ * @note : Below are the macros to be used by the user for selecting the
+ * desired settings. User can do OR operation of these macros for configuring
+ * multiple settings.
  *
- */
-typedef BMP3_INTF_RET_TYPE (*bmp3_write_fptr_t)(uint8_t reg_addr, const uint8_t *read_data, uint32_t len,
-                                                void *intf_ptr);
-
-/*!
- * @brief Delay function pointer which should be mapped to
- * delay function of the user
+ *@verbatim
+ * ---------------------|----------------------------------------------
+ * desired_settings     |   Functionality
+ * ---------------------|----------------------------------------------
+ * BMP3_SEL_PRESS_EN    |   Enable/Disable pressure.
+ * BMP3_SEL_TEMP_EN     |   Enable/Disable temperature.
+ * BMP3_SEL_PRESS_OS    |   Set pressure oversampling.
+ * BMP3_SEL_TEMP_OS     |   Set temperature oversampling.
+ * BMP3_SEL_IIR_FILTER  |   Set IIR filter.
+ * BMP3_SEL_ODR         |   Set ODR.
+ * BMP3_SEL_OUTPUT_MODE |   Set either open drain or push pull
+ * BMP3_SEL_LEVEL       |   Set interrupt pad to be active high or low
+ * BMP3_SEL_LATCH       |   Set interrupt pad to be latched or nonlatched.
+ * BMP3_SEL_DRDY_EN     |   Map/Unmap the drdy interrupt to interrupt pad.
+ * BMP3_SEL_I2C_WDT_EN  |   Enable/Disable I2C internal watch dog.
+ * BMP3_SEL_I2C_WDT     |   Set I2C watch dog timeout delay.
+ * ---------------------|----------------------------------------------
+ *@endverbatim
  *
- * @param[in] period              : Delay in microseconds.
- * @param[in, out] intf_ptr       : Void pointer that can enable the linking of descriptors
- *                                  for interface related call backs
+ * @return Result of API execution status
+ * @retval 0  -> Success
+ * @retval >0 -> Warning
+ * @retval <0 -> Error
+ */
+int8_t bmp3_set_sensor_settings(uint32_t desired_settings, struct bmp3_settings *settings, struct bmp3_dev *dev);
+
+/*!
+ * \ingroup bmp3ApiSensorS
+ * \page bmp3_api_bmp3_get_sensor_settings bmp3_get_sensor_settings
+ * \code
+ * int8_t bmp3_get_sensor_settings(struct bmp3_settings *settings, struct bmp3_dev *dev);
+ * \endcode
+ * @details This API gets the power control(power mode, pressure enable and
+ * temperature enable), over sampling, odr, filter, interrupt control and
+ * advance settings from the sensor.
  *
+ * @param[out] settings       : Structure instance of bmp3_settings
+ * @param[in] dev             : Structure instance of bmp3_dev.
+ *
+ * @return Result of API execution status
+ * @retval 0  -> Success
+ * @retval >0 -> Warning
+ * @retval <0 -> Error
  */
-typedef void (*bmp3_delay_us_fptr_t)(uint32_t period, void *intf_ptr);
+int8_t bmp3_get_sensor_settings(struct bmp3_settings *settings, struct bmp3_dev *dev);
 
-/********************************************************/
+/**
+ * \ingroup bmp3
+ * \defgroup bmp3ApiPowermode Power mode
+ * @brief Set / Get power mode of the sensor
+ */
 
 /*!
- * @brief Register Trim Variables
+ * \ingroup bmp3ApiPowermode
+ * \page bmp3_api_bmp3_set_op_mode bmp3_set_op_mode
+ * \code
+ * int8_t bmp3_set_op_mode(struct bmp3_settings *settings, struct bmp3_dev *dev);
+ * \endcode
+ * @details This API sets the power mode of the sensor.
+ *
+ * @param[in] settings       : Structure instance of bmp3_settings
+ * @param[in] dev            : Structure instance of bmp3_dev.
+ *
+ *@verbatim
+ * ----------------------|-------------------
+ * dev->settings.op_mode |   Macros
+ * ----------------------|-------------------
+ *     0                 | BMP3_MODE_SLEEP
+ *     1                 | BMP3_MODE_FORCED
+ *     3                 | BMP3_MODE_NORMAL
+ * ----------------------|-------------------
+ *@endverbatim
+ *
+ * @note : Before setting normal mode, valid odr and osr settings should be set
+ * in the sensor by using 'bmp3_set_sensor_settings' function.
+ *
+ * @return Result of API execution status
+ * @retval 0  -> Success
+ * @retval >0 -> Warning
+ * @retval <0 -> Error
  */
-struct bmp3_reg_calib_data {
-    /*! Trim Variables */
-
-    uint16_t par_t1;
-    uint16_t par_t2;
-    int8_t par_t3;
-    int16_t par_p1;
-    int16_t par_p2;
-    int8_t par_p3;
-    int8_t par_p4;
-    uint16_t par_p5;
-    uint16_t par_p6;
-    int8_t par_p7;
-    int8_t par_p8;
-    int16_t par_p9;
-    int8_t par_p10;
-    int8_t par_p11;
-    int64_t t_lin;
-};
+int8_t bmp3_set_op_mode(struct bmp3_settings *settings, struct bmp3_dev *dev);
 
 /*!
- * @brief bmp3 advance settings
+ * \ingroup bmp3ApiPowermode
+ * \page bmp3_api_bmp3_get_op_mode bmp3_get_op_mode
+ * \code
+ * int8_t bmp3_get_op_mode(uint8_t *op_mode, const struct bmp3_dev *dev);
+ * \endcode
+ * @details This API gets the power mode of the sensor.
+ *
+ * @param[in] dev      : Structure instance of bmp3_dev.
+ * @param[out] op_mode : Pointer variable to store the op-mode.
+ *
+ *@verbatim
+ * ------------------------------------------
+ *   op_mode             |   Macros
+ * ----------------------|-------------------
+ *     0                 | BMP3_MODE_SLEEP
+ *     1                 | BMP3_MODE_FORCED
+ *     3                 | BMP3_MODE_NORMAL
+ * ------------------------------------------
+ *@endverbatim
+ *
+ * @return Result of API execution status
+ * @retval 0  -> Success
+ * @retval >0 -> Warning
+ * @retval <0 -> Error
  */
-struct bmp3_adv_settings {
-    /*! I2C watchdog enable */
-    uint8_t i2c_wdt_en;
+int8_t bmp3_get_op_mode(uint8_t *op_mode, struct bmp3_dev *dev);
 
-    /*! I2C watchdog select */
-    uint8_t i2c_wdt_sel;
-};
+/**
+ * \ingroup bmp3
+ * \defgroup bmp3ApiData Sensor Data
+ * @brief Get Sensor data
+ */
 
 /*!
- * @brief bmp3 odr and filter settings
+ * \ingroup bmp3ApiData
+ * \page bmp3_api_bmp3_get_sensor_data bmp3_get_sensor_data
+ * \code
+ * int8_t bmp3_get_sensor_data(uint8_t sensor_comp, struct bmp3_data *data, struct bmp3_dev *dev);
+ * \endcode
+ * @details This API reads the pressure, temperature or both data from the
+ * sensor, compensates the data and store it in the bmp3_data structure
+ * instance passed by the user.
+ *
+ * @param[in] sensor_comp : Variable which selects which data to be read from
+ * the sensor.
+ *
+ *@verbatim
+ * sensor_comp |   Macros
+ * ------------|-------------------
+ *     1       | BMP3_PRESS
+ *     2       | BMP3_TEMP
+ *     3       | BMP3_ALL
+ *@endverbatim
+ *
+ * @param[out] data : Structure instance of bmp3_data.
+ * @param[in] dev   : Structure instance of bmp3_dev.
+ *
+ * @note : For fixed point the compensated temperature and pressure has a multiplication factor of 100.
+ *         Units are degree celsius and Pascal respectively.
+ *         ie. If temperature is 2426 then temperature is 24.26 deg C
+ *         If press is 9528709, then pressure is 95287.09 Pascal.
+ *
+ * @return Result of API execution status
+ * @retval 0  -> Success
+ * @retval >0 -> Warning
+ * @retval <0 -> Error
  */
-struct bmp3_odr_filter_settings {
-    /*! Pressure oversampling */
-    uint8_t press_os;
+int8_t bmp3_get_sensor_data(uint8_t sensor_comp, struct bmp3_data *data, struct bmp3_dev *dev);
 
-    /*! Temperature oversampling */
-    uint8_t temp_os;
-
-    /*! IIR filter */
-    uint8_t iir_filter;
-
-    /*! Output data rate */
-    uint8_t odr;
-};
+/**
+ * \ingroup bmp3
+ * \defgroup bmp3ApiRegs Registers
+ * @brief Read / Write data to the given register address
+ */
 
 /*!
- * @brief bmp3 sensor status flags
+ * \ingroup bmp3ApiRegs
+ * \page bmp3_api_bmp3_set_regs bmp3_set_regs
+ * \code
+ * int8_t bmp3_set_regs(uint8_t *reg_addr, const uint8_t *reg_data, uint8_t len, const struct bmp3_dev *dev);
+ * \endcode
+ * @details This API writes the given data to the register address
+ * of the sensor.
+ *
+ *  @param[in] reg_addr  : Register address to where the data to be written.
+ *  @param[in] reg_data  : Pointer to data buffer which is to be written
+ *                         in the sensor.
+ *  @param[in] len       : No. of bytes of data to write.
+ *  @param[in] dev       : Structure instance of bmp3_dev.
+ *
+ * @return Result of API execution status
+ * @retval 0  -> Success
+ * @retval >0 -> Warning
+ * @retval <0 -> Error
  */
-struct bmp3_sens_status {
-    /*! Command ready status */
-    uint8_t cmd_rdy;
-
-    /*! Data ready for pressure */
-    uint8_t drdy_press;
-
-    /*! Data ready for temperature */
-    uint8_t drdy_temp;
-};
+int8_t bmp3_set_regs(uint8_t *reg_addr, const uint8_t *reg_data, uint32_t len, struct bmp3_dev *dev);
 
 /*!
- * @brief bmp3 interrupt status flags
+ * \ingroup bmp3ApiRegs
+ * \page bmp3_api_bmp3_get_regs bmp3_get_regs
+ * \code
+ * int8_t bmp3_get_regs(uint8_t reg_addr, uint8_t *reg_data, uint16_t length, const struct bmp3_dev *dev);
+ * \endcode
+ * @details This API reads the data from the given register address of the sensor.
+ *
+ *  @param[in] reg_addr  : Register address from where the data to be read
+ *  @param[out] reg_data : Pointer to data buffer to store the read data.
+ *  @param[in] len       : No. of bytes of data to be read.
+ *  @param[in] dev       : Structure instance of bmp3_dev.
+ *
+ * @return Result of API execution status
+ * @retval 0  -> Success
+ * @retval >0 -> Warning
+ * @retval <0 -> Error
  */
-struct bmp3_int_status {
-    /*! Fifo watermark interrupt */
-    uint8_t fifo_wm;
+int8_t bmp3_get_regs(uint8_t reg_addr, uint8_t *reg_data, uint32_t len, struct bmp3_dev *dev);
 
-    /*! Fifo full interrupt */
-    uint8_t fifo_full;
-
-    /*! Data ready interrupt */
-    uint8_t drdy;
-};
+/**
+ * \ingroup bmp3
+ * \defgroup bmp3ApiFIFO FIFO
+ * @brief FIFO operations of the sensor
+ */
 
 /*!
- * @brief bmp3 error status flags
+ * \ingroup bmp3ApiFIFO
+ * \page bmp3_api_bmp3_set_fifo_settings bmp3_set_fifo_settings
+ * \code
+ * int8_t bmp3_set_fifo_settings(uint16_t desired_settings, struct bmp3_fifo_settings *fifo_settings,
+ *                             struct bmp3_dev *dev);
+ * \endcode
+ * @details This API sets the fifo_config_1(fifo_mode,
+ * fifo_stop_on_full, fifo_time_en, fifo_press_en, fifo_temp_en),
+ * fifo_config_2(fifo_subsampling, data_select) and int_ctrl(fwtm_en, ffull_en)
+ * settings in the sensor.
+ *
+ * @param[in] desired_settings : Variable used to select the FIFO settings which
+ *                               are to be set in the sensor.
+ *
+ * @note : Below are the macros to be used by the user for selecting the
+ * desired settings. User can do OR operation of these macros for configuring
+ * multiple settings.
+ *
+ *@verbatim
+ * --------------------------------|---------------------------------------------
+ *      desired_settings           |  Functionality
+ * --------------------------------|---------------------------------------------
+ * BMP3_SEL_FIFO_MODE              |  Enable/Disable FIFO
+ * BMP3_SEL_FIFO_STOP_ON_FULL_EN   |  Set FIFO stop on full interrupt
+ * BMP3_SEL_FIFO_TIME_EN           |  Enable/Disable FIFO time
+ * BMP3_SEL_FIFO_PRESS_EN          |  Enable/Disable pressure
+ * BMP3_SEL_FIFO_TEMP_EN           |  Enable/Disable temperature
+ * BMP3_SEL_FIFO_DOWN_SAMPLING     |  Set FIFO downsampling
+ * BMP3_SEL_FIFO_FILTER_EN         |  Enable/Disable FIFO filter
+ * BMP3_SEL_FIFO_FWTM_EN           |  Enable/Disable FIFO watermark interrupt
+ * BMP3_SEL_FIFO_FFULL_EN          |  Enable/Disable FIFO full interrupt
+ * --------------------------------|---------------------------------------------
+ *@endverbatim
+ *
+ * @param[in] fifo_settings : Structure instance of bmp3_fifo_settings
+ * @param[in] dev           : Structure instance of bmp3_dev.
+ *
+ * @return Result of API execution status
+ * @retval 0  -> Success
+ * @retval >0 -> Warning
+ * @retval <0 -> Error
  */
-struct bmp3_err_status {
-    /*! Fatal error */
-    uint8_t fatal;
-
-    /*! Command error */
-    uint8_t cmd;
-
-    /*! Configuration error */
-    uint8_t conf;
-};
+int8_t bmp3_set_fifo_settings(uint16_t desired_settings,
+                              const struct bmp3_fifo_settings *fifo_settings,
+                              struct bmp3_dev *dev);
 
 /*!
- * @brief bmp3 status flags
+ * \ingroup bmp3ApiFIFO
+ * \page bmp3_api_bmp3_get_fifo_settings bmp3_get_fifo_settings
+ * \code
+ * int8_t bmp3_get_fifo_settings(struct bmp3_fifo_settings *fifo_settings, struct bmp3_dev *dev);
+ * \endcode
+ * @details This API gets the fifo_config_1(fifo_mode,
+ * fifo_stop_on_full, fifo_time_en, fifo_press_en, fifo_temp_en),
+ * fifo_config_2(fifo_subsampling, data_select) and int_ctrl(fwtm_en, ffull_en)
+ * settings from the sensor.
+ *
+ * @param[in] fifo_settings : Structure instance of bmp3_fifo_settings
+ * @param[in] dev           : Structure instance of bmp3_dev.
+ *
+ * @return Result of API execution status
+ * @retval 0  -> Success
+ * @retval >0 -> Warning
+ * @retval <0 -> Error
  */
-struct bmp3_status {
-    /*! Interrupt status */
-    struct bmp3_int_status intr;
-
-    /*! Sensor status */
-    struct bmp3_sens_status sensor;
-
-    /*! Error status */
-    struct bmp3_err_status err;
-
-    /*! Power on reset status */
-    uint8_t pwr_on_rst;
-};
+int8_t bmp3_get_fifo_settings(struct bmp3_fifo_settings *fifo_settings, struct bmp3_dev *dev);
 
 /*!
- * @brief bmp3 interrupt pin settings
+ * \ingroup bmp3ApiFIFO
+ * \page bmp3_api_bmp3_get_fifo_data bmp3_get_fifo_data
+ * \code
+ * int8_t bmp3_get_fifo_data(struct bmp3_fifo_data *fifo,
+ *                         const struct bmp3_fifo_settings *fifo_settings,
+ *                         struct bmp3_dev *dev);
+ * \endcode
+ * @details This API gets the fifo data from the sensor.
+ *
+ * @param[in,out] fifo      : Structure instance of bmp3_fifo_data
+ * @param[in] fifo_settings : Structure instance of bmp3_fifo_settings
+ * @param[in] dev           : Structure instance of bmp3_dev
+ *
+ * @return Result of API execution status.
+ * @retval 0  -> Success
+ * @retval >0 -> Warning
+ * @retval <0 -> Error
  */
-struct bmp3_int_ctrl_settings {
-    /*! Output mode */
-    uint8_t output_mode;
-
-    /*! Active high/low */
-    uint8_t level;
-
-    /*! Latched or Non-latched */
-    uint8_t latch;
-
-    /*! Data ready interrupt */
-    uint8_t drdy_en;
-};
+int8_t bmp3_get_fifo_data(struct bmp3_fifo_data *fifo,
+                          const struct bmp3_fifo_settings *fifo_settings,
+                          struct bmp3_dev *dev);
 
 /*!
- * @brief bmp3 device settings
+ * \ingroup bmp3ApiFIFO
+ * \page bmp3_api_bmp3_get_fifo_length bmp3_get_fifo_length
+ * \code
+ * int8_t bmp3_get_fifo_length(uint16_t *fifo_length, struct bmp3_dev *dev);
+ * \endcode
+ * @details This API gets the fifo length from the sensor.
+ *
+ * @param[out] fifo_length : Variable used to store the fifo length.
+ * @param[in] dev          : Structure instance of bmp3_dev.
+ *
+ * @return Result of API execution status.
+ * @retval 0  -> Success
+ * @retval >0 -> Warning
+ * @retval <0 -> Error
  */
-struct bmp3_settings {
-    /*! Power mode which user wants to set */
-    uint8_t op_mode;
-
-    /*! Enable/Disable pressure sensor */
-    uint8_t press_en;
-
-    /*! Enable/Disable temperature sensor */
-    uint8_t temp_en;
-
-    /*! ODR and filter configuration */
-    struct bmp3_odr_filter_settings odr_filter;
-
-    /*! Interrupt configuration */
-    struct bmp3_int_ctrl_settings int_settings;
-
-    /*! Advance settings */
-    struct bmp3_adv_settings adv_settings;
-};
+int8_t bmp3_get_fifo_length(uint16_t *fifo_length, struct bmp3_dev *dev);
 
 /*!
- * @brief bmp3 fifo frame
+ * \ingroup bmp3ApiFIFO
+ * \page bmp3_api_bmp3_extract_fifo_data bmp3_extract_fifo_data
+ * \code
+ * int8_t bmp3_extract_fifo_data(struct bmp3_data *data, struct bmp3_fifo_data *fifo, struct bmp3_dev *dev);
+ * \endcode
+ * @details This API extracts the temperature and/or pressure data from the FIFO
+ * data which is already read from the fifo.
+ *
+ * @param[out] data : Array of bmp3_data structures where the temperature
+ *                    and pressure frames will be stored.
+ * @param[in] fifo  : Structure instance of bmp3_fifo_data
+ * @param[in] dev   : Structure instance of bmp3_dev
+ *
+ * @return Result of API execution status.
+ * @retval 0  -> Success
+ * @retval <0 -> Error
  */
-struct bmp3_fifo_data {
-    /*! Data buffer of user defined length is to be mapped here
-     * 512 + 4 */
-    uint8_t *buffer;
-
-    /*! Number of bytes of data read from the fifo */
-    uint16_t byte_count;
-
-    /*! Number of frames to be read as specified by the user */
-    uint8_t req_frames;
-
-    /*! Will be equal to length when no more frames are there to parse */
-    uint16_t start_idx;
-
-    /*! Will contain the no of parsed data frames from fifo */
-    uint8_t parsed_frames;
-
-    /*! Configuration error */
-    uint8_t config_err;
-
-    /*! Sensor time */
-    uint32_t sensor_time;
-
-    /*! FIFO input configuration change */
-    uint8_t config_change;
-
-    /*! All available frames are parsed */
-    uint8_t frame_not_available;
-};
+int8_t bmp3_extract_fifo_data(struct bmp3_data *data, struct bmp3_fifo_data *fifo, struct bmp3_dev *dev);
 
 /*!
- * @brief bmp3 fifo configuration
+ * \ingroup bmp3ApiFIFO
+ * \page bmp3_api_bmp3_set_fifo_watermark bmp3_set_fifo_watermark
+ * \code
+ * int8_t bmp3_set_fifo_watermark(const struct bmp3_fifo_data *fifo,
+ *                              const struct bmp3_fifo_settings *fifo_settings,
+ *                              struct bmp3_dev *dev);
+ * \endcode
+ * @details This API sets the fifo watermark length according to the frames count
+ * set by the user in the device structure. Refer below for usage.
+ *
+ * @note: fifo.req_frames = 50;
+ *
+ * @param[in] fifo          : Structure instance of bmp3_fifo_data
+ * @param[in] fifo_settings : Structure instance of bmp3_fifo_settings
+ * @param[in] dev           : Structure instance of bmp3_dev
+ *
+ * @return Result of API execution status.
+ * @retval 0  -> Success
+ * @retval <0 -> Error
  */
-struct bmp3_fifo_settings {
-    /*! enable/disable */
-    uint8_t mode;
-
-    /*! stop on full enable/disable */
-    uint8_t stop_on_full_en;
-
-    /*! time enable/disable */
-    uint8_t time_en;
-
-    /*! pressure enable/disable */
-    uint8_t press_en;
-
-    /*! temperature enable/disable */
-    uint8_t temp_en;
-
-    /*! down sampling rate */
-    uint8_t down_sampling;
-
-    /*! filter enable/disable */
-    uint8_t filter_en;
-
-    /*! FIFO watermark enable/disable */
-    uint8_t fwtm_en;
-
-    /*! FIFO full enable/disable */
-    uint8_t ffull_en;
-};
-
-#ifdef BMP3_FLOAT_COMPENSATION
+int8_t bmp3_set_fifo_watermark(const struct bmp3_fifo_data *fifo,
+                               const struct bmp3_fifo_settings *fifo_settings,
+                               struct bmp3_dev *dev);
 
 /*!
- * @brief Quantized Trim Variables
+ * \ingroup bmp3ApiFIFO
+ * \page bmp3_api_bmp3_get_fifo_watermark bmp3_get_fifo_watermark
+ * \code
+ * int8_t bmp3_get_fifo_watermark(uint16_t *watermark_len, struct bmp3_dev *dev);
+ * \endcode
+ * @details This API gets the fifo watermark length according to the frames count
+ * set by the user in the device structure
+ *
+ * @param[in] watermark_len : Watermark level value
+ * @param[in] dev           : Structure instance of bmp3_dev
+ *
+ * @return Result of API execution status.
+ * @retval 0  -> Success
+ * @retval <0 -> Error
  */
-struct bmp3_quantized_calib_data {
-    /*! Quantized Trim Variables */
-
-    double par_t1;
-    double par_t2;
-    double par_t3;
-    double par_p1;
-    double par_p2;
-    double par_p3;
-    double par_p4;
-    double par_p5;
-    double par_p6;
-    double par_p7;
-    double par_p8;
-    double par_p9;
-    double par_p10;
-    double par_p11;
-    double t_lin;
-};
+int8_t bmp3_get_fifo_watermark(uint16_t *watermark_len, struct bmp3_dev *dev);
 
 /*!
- * @brief Calibration data
+ * \ingroup bmp3ApiFIFO
+ * \page bmp3_api_bmp3_fifo_flush bmp3_fifo_flush
+ * \code
+ * int8_t bmp3_fifo_flush(const struct bmp3_dev *dev);
+ * \endcode
+ * @details This API performs fifo flush
+ *
+ * @param[in] dev : Structure instance of bmp3_dev.
+ *
+ * @return Result of API execution status
+ * @retval 0  -> Success
+ * @retval >0 -> Warning
+ * @retval <0 -> Error
  */
-struct bmp3_calib_data {
-    /*! Quantized data */
-    struct bmp3_quantized_calib_data quantized_calib_data;
+int8_t bmp3_fifo_flush(struct bmp3_dev *dev);
 
-    /*! Register data */
-    struct bmp3_reg_calib_data reg_calib_data;
-};
+/**
+ * \ingroup bmp3
+ * \defgroup bmp3ApiStatus Sensor Status
+ * @brief Read status of the sensor
+ */
 
 /*!
- * @brief bmp3 sensor structure which comprises of temperature and pressure
- * data.
+ * \ingroup bmp3ApiStatus
+ * \page bmp3_api_bmp3_get_status bmp3_get_status
+ * \code
+ * int8_t bmp3_get_status(struct bmp3_status *status, struct bmp3_dev *dev);
+ * \endcode
+ * @details This API gets the command ready, data ready for pressure and
+ * temperature and interrupt (fifo watermark, fifo full, data ready) and
+ * error status from the sensor.
+ *
+ * @param[out] status : Structure instance of bmp3_status
+ * @param[in] dev     : Structure instance of bmp3_dev
+ *
+ * @return Result of API execution status.
+ * @retval 0  -> Success
+ * @retval <0 -> Error
  */
-struct bmp3_data {
-    /*! Compensated temperature */
-    double temperature;
-
-    /*! Compensated pressure */
-    double pressure;
-};
-
-#else
-
-/*!
- * @brief bmp3 sensor structure which comprises of temperature and pressure
- * data.
- */
-struct bmp3_data
-{
-    /*! Compensated temperature */
-    int64_t temperature;
-
-    /*! Compensated pressure */
-    uint64_t pressure;
-};
-
-/*!
- * @brief Calibration data
- */
-struct bmp3_calib_data
-{
-    /*! Register data */
-    struct bmp3_reg_calib_data reg_calib_data;
-};
-
-#endif /* BMP3_FLOAT_COMPENSATION */
-
-/*!
- * @brief bmp3 sensor structure which comprises of un-compensated temperature
- * and pressure data.
- */
-struct bmp3_uncomp_data {
-    /*! un-compensated pressure */
-    uint64_t pressure;
-
-    /*! un-compensated temperature */
-    int64_t temperature;
-};
-
-/*!
- * @brief bmp3 device structure
- */
-struct bmp3_dev {
-    /*! Chip Id */
-    uint8_t chip_id;
-
-    /*!
-     * The interface pointer is used to enable the user
-     * to link their interface descriptors for reference during the
-     * implementation of the read and write interfaces to the
-     * hardware.
-     */
-    void *intf_ptr;
-
-    /*! Interface Selection
-     * For SPI, interface = BMP3_SPI_INTF
-     * For I2C, interface = BMP3_I2C_INTF
-     **/
-    enum bmp3_intf intf;
-
-    /*! To store interface pointer error */
-    BMP3_INTF_RET_TYPE intf_rslt;
-
-    /*! Decide SPI or I2C read mechanism */
-    uint8_t dummy_byte;
-
-    /*! Read function pointer */
-    bmp3_read_fptr_t read;
-
-    /*! Write function pointer */
-    bmp3_write_fptr_t write;
-
-    /*! Delay function pointer */
-    bmp3_delay_us_fptr_t delay_us;
-
-    /*! Trim data */
-    struct bmp3_calib_data calib_data;
-};
+int8_t bmp3_get_status(struct bmp3_status *status, struct bmp3_dev *dev);
 
 #ifdef __cplusplus
 }
 #endif /* End of CPP guard */
 
-#endif /* BMP3_DEFS_H_ */
+#endif /* _BMP3_H */

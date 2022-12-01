@@ -31,9 +31,9 @@ private:
 
     void *intf_ptr;
 
-    enum bmp3_intf intf;
+    enum bmp3_intf commInterface;
 
-    BMP3_INTF_RET_TYPE intf_rslt;
+    BMP3_INTF_RET_TYPE interfaceResult;
 };
 
 #endif //LAUNCH_CORE_BMP390_H
