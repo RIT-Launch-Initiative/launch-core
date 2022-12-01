@@ -17,10 +17,6 @@ namespace udp {
     public:
         explicit UDPRouter(NetworkLayer &networkLayer) : transmitLayer(&networkLayer) {}
 
-        void setTransmitLayer(NetworkLayer &layer) {
-            this->transmitLayer = &layer;
-        }
-
         RetType subscribe_port(NetworkLayer &layer, uint16_t port_num) {
             NetworkLayer **layer_loc = port_bindings.add(port_num);
             if (!layer_loc) {
@@ -46,13 +42,13 @@ namespace udp {
             return device_success && protocol_success ? RET_SUCCESS : RET_ERROR;
         }
 
-        RetType receive(Packet &packet, sockinfo_t &info, NetworkLayer *caller) {
+        RetType receive(Packet &packet, sockinfo_t &info, NetworkLayer *caller) override {
             RESUME();
 
             UDP_HEADER_T *header = packet.read_ptr<UDP_HEADER_T>();
             info.src.udp_port = ntoh16(header->src);
 
-            if (header == NULL) {
+            if (header == nullptr) {
                 return RET_ERROR;
             }
 
@@ -71,41 +67,36 @@ namespace udp {
             }
 
             NetworkLayer **next_ptr = port_bindings[ntoh16(header->dst)];
-            if (next_ptr == NULL) {
+            if (next_ptr == nullptr) {
                 return RET_ERROR;
             }
 
             NetworkLayer *next = *next_ptr;
-            if (next == NULL) {
+            if (next == nullptr) {
                 return RET_ERROR;
             }
             RetType ret = CALL(next->receive(packet, info, this));
 
             RESET();
-
             return ret;
         }
 
-        RetType transmit(Packet &packet, sockinfo_t &info, NetworkLayer *caller) {
+        RetType transmit(Packet &packet, sockinfo_t &info, NetworkLayer *caller) override {
             RESUME();
-
-            if (this->transmitLayer == NULL) {
-                return RET_ERROR;
-            }
 
             UDP_HEADER_T *header = packet.allocate_header<UDP_HEADER_T>();
 
-            if (header == NULL) {
+            if (header == nullptr) {
                 return RET_ERROR;
             }
 
             uint16_t *src_port = layer_bindings[caller];
-            if (src_port == NULL) {
+            if (src_port == nullptr) {
                 return RET_ERROR;
             }
 
             header->src = hton16(*src_port);
-            header->dst = hton16(info.dst.udp_port); // UDP is big endian
+            header->dst = hton16(info.dst.udp_port);
             header->checksum = 0;
             header->length = sizeof(info)  + packet.headerSize() - sizeof(UDP_HEADER_T);
 
@@ -115,21 +106,18 @@ namespace udp {
             return ret;
         }
 
-        RetType transmit2(Packet &packet, sockinfo_t &info, NetworkLayer *caller) {
+        RetType transmit2(Packet &packet, sockinfo_t &info, NetworkLayer *caller) override {
             RESUME();
 
-            if (this->transmitLayer == NULL) {
-                return RET_ERROR;
-            }
-
+            // TODO: Figure this out
             UDP_HEADER_T *header = packet.allocate_header<UDP_HEADER_T>();
 
-            if (header == NULL) {
+            if (header == nullptr) {
                 return RET_ERROR;
             }
 
             uint16_t *src_port = layer_bindings[caller];
-            if (src_port == NULL) {
+            if (src_port == nullptr) {
                 return RET_ERROR;
             }
 

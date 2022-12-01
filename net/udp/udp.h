@@ -56,7 +56,7 @@ namespace udp {
             sum = (sum & 0xFFFF) + (sum >> 16);
         }
 
-        return (uint16_t) ~sum;
+        return static_cast<uint16_t>(~sum);
     }
 }
 

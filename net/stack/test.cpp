@@ -49,7 +49,6 @@ int main() {
     ipv4::IPv4Router ip;
     Loopback lo;
     Blackhole b;
-    udp::UDPRouter udp;
 
     ipv4::IPv4Addr_t addr1;
     ipv4::IPv4Address(10, 10, 10, 5, &addr1);
@@ -63,7 +62,7 @@ int main() {
         return -1;
     }
 
-    udp.setTransmitLayer(ip);
+    auto udp = udp::UDPRouter(ip);
 
     if (RET_SUCCESS != udp.subscribe_port(b, 8000)) {
         printf("Failed to bind layer to UDP port");
