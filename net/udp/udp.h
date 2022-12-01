@@ -6,6 +6,8 @@
 #include "net/ipv4/ipv4.h"
 
 namespace udp {
+    static const uint8_t UDP_PROTO = 0x11;
+
     typedef struct {
         uint16_t length;
         uint16_t checksum;

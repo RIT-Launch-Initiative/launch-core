@@ -7,6 +7,7 @@
 #include "net/network_layer/NetworkLayer.h"
 #include "hashmap/hashmap.h"
 #include "udp.h"
+#include "sched/macros.h"
 #include <stdint.h>
 
 namespace udp {
@@ -14,13 +15,7 @@ namespace udp {
 
     class UDPRouter : public NetworkLayer {
     public:
-        UDPRouter() {
-            this->transmitLayer = nullptr;
-        }
-
-        UDPRouter(NetworkLayer &networkLayer) {
-            this->transmitLayer = &networkLayer;
-        }
+        explicit UDPRouter(NetworkLayer &networkLayer) : transmitLayer(&networkLayer) {}
 
         void setTransmitLayer(NetworkLayer &layer) {
             this->transmitLayer = &layer;
@@ -72,8 +67,6 @@ namespace udp {
             };
 
             if (header->checksum != checksum(&pseudo, header)) {
-                printf("Invalid checksum");
-
                 return RET_ERROR;
             }
 
@@ -146,7 +139,7 @@ namespace udp {
                     info.src.ipv4_addr,
                     info.dst.ipv4_addr,
                     0,
-                    17,
+                    UDP_PROTO,
                     header->length
             };
 
