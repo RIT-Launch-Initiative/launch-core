@@ -20,6 +20,7 @@
 
 /// @brief GPIO device, owns a single pin
 class GPIODevice : public Device {
+public:
     /// @brief constructor
     GPIODevice(const char* name) : Device(name) {};
 
