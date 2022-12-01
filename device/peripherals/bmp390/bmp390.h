@@ -18,9 +18,7 @@ public:
     BMP390() {}
 
     RetType init() {
-        bmp3_init(this->device);
-
-        return
+        int8_t result = bmp3_init(this->device);
     }
 
 
@@ -34,6 +32,10 @@ private:
     enum bmp3_intf commInterface;
 
     BMP3_INTF_RET_TYPE interfaceResult;
+
+    RetType bmpResultConvert(int8_t result) {
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
 };
 
 #endif //LAUNCH_CORE_BMP390_H

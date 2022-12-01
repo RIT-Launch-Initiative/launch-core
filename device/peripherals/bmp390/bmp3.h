@@ -45,6 +45,7 @@
 
 /* Header includes */
 #include "bmp3_defs.h"
+#include <stdint.h>
 
 /*! CPP guard */
 #ifdef __cplusplus
