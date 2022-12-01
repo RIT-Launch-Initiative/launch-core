@@ -144,10 +144,6 @@ public:
     readData(READ_COMMAND_T readCommand, uint32_t address, uint8_t *buff, uint8_t *receivedData, size_t receivedSize) {
         RESUME();
 
-        uint8_t addrOne = (address & 0xFF000000) >> 16;
-        uint8_t addrTwo = (address & 0xFF000000) >> 8;
-        uint8_t addrThree = (address & 0xFF000000);
-
         RetType ret = CALL(chipSelectPin.set(0));
         RET_CHECK(ret);
 
@@ -156,7 +152,10 @@ public:
         switch (readCommand) {
             case READ_DATA: {
                 buffSize = 4;
-                uint8_t buffArr[] = {static_cast<uint8_t>(readCommand), addrOne, addrTwo, addrThree};
+                uint8_t buffArr[] = {static_cast<uint8_t>(readCommand),
+                                     static_cast<uint8_t>((address & 0xFF000000) >> 16),
+                                     static_cast<uint8_t>((address & 0xFF000000) >> 8),
+                                     static_cast<uint8_t>((address & 0xFF000000))};
 
                 buff = buffArr;
                 break;
@@ -164,7 +163,10 @@ public:
 
             case FAST_READ: {
                 buffSize = 14;
-                uint8_t buffArr[] = {static_cast<uint8_t>(readCommand), addrOne, addrTwo, addrThree,
+                uint8_t buffArr[] = {static_cast<uint8_t>(readCommand),
+                                     static_cast<uint8_t>((address & 0xFF000000) >> 16),
+                                     static_cast<uint8_t>((address & 0xFF000000) >> 8),
+                                     static_cast<uint8_t>((address & 0xFF000000)),
                                      DUMMY_BYTE, DUMMY_BYTE, DUMMY_BYTE, DUMMY_BYTE,
                                      DUMMY_BYTE, DUMMY_BYTE, DUMMY_BYTE, DUMMY_BYTE};
 
@@ -200,7 +202,7 @@ public:
         RET_CHECK(ret);
 
         uint8_t buffer[5] = {static_cast<uint8_t>(programCommand), static_cast<uint8_t>(address >> 24),
-                static_cast<uint8_t>(address >> 16), static_cast<uint8_t>(address >> 8)};
+                             static_cast<uint8_t>(address >> 16), static_cast<uint8_t>(address >> 8)};
         buff = buffer;
 
         ret = CALL(spiDevice.write(buff, 5));
