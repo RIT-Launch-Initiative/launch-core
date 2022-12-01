@@ -88,32 +88,34 @@ public:
 
     RetType toggleWrite(WRITE_SET_T command) {
         RESUME();
-        chipSelectPin.set(0);
-        uint8_t cmd = static_cast<uint8_t>(command);
-        spiDevice.write(&cmd, 1);
-        chipSelectPin.set(1);
+        RetType ret = CALL(chipSelectPin.set(0));
+        RET_CHECK(ret)
+
+        ret = CALL(spiDevice.write(reinterpret_cast<uint8_t *>(&command), 1));
+        RET_CHECK(ret)
+
+        ret = CALL(chipSelectPin.set(1));
+        RET_CHECK(ret)
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     RetType readRegister(READ_STATUS_REGISTER_T reg, uint8_t *receiveBuff) {
         RESUME();
 
-        RetType ret = chipSelectPin.set(0);
-        RET_CHECK(ret);
+        RetType ret = CALL(chipSelectPin.set(0));
+        RET_CHECK(ret)
 
-        uint8_t uint_reg = static_cast<uint8_t>(reg);
-
-        ret = spiDevice.write(&uint_reg, 1);
-        RET_CHECK(ret);
+        ret = spiDevice.write(reinterpret_cast<uint8_t *>(&reg), 1);
+        RET_CHECK(ret)
 
         ret = chipSelectPin.set(1);
-        RET_CHECK(ret);
+        RET_CHECK(ret)
 
         // TODO: Figure out why this causes chipSelectPin memory to be borked
         ret = CALL(spiDevice.read(receiveBuff, 1));
-        RET_CHECK(ret);
+        RET_CHECK(ret)
 
         RESET();
         return ret;
@@ -123,9 +125,15 @@ public:
         RESUME();
 
         RetType ret = CALL(toggleWrite(isVolatile ? WRITE_SET_ENABLE_VOLATILE : WRITE_SET_ENABLE));
-        chipSelectPin.set(0);
-        spiDevice.write(&data, 1);
-        chipSelectPin.set(1);
+        RET_CHECK(ret)
+        ret = CALL(chipSelectPin.set(0));
+        RET_CHECK(ret)
+
+        ret = CALL(spiDevice.write(&data, 1));
+        RET_CHECK(ret)
+
+        ret = CALL(chipSelectPin.set(1));
+        RET_CHECK(ret)
 
         RESET();
         return ret;
@@ -139,7 +147,9 @@ public:
         uint8_t addrTwo = (address & 0xFF000000) >> 8;
         uint8_t addrThree = (address & 0xFF000000);
 
-        chipSelectPin.set(0);
+        RetType ret = CALL(chipSelectPin.set(0));
+        RET_CHECK(ret);
+
         uint8_t buffSize = 6;
 
         switch (readCommand) {
@@ -166,10 +176,14 @@ public:
             }
         }
 
-        RetType ret = CALL(spiDevice.write(buff, buffSize));
-        ret = CALL(spiDevice.read(receivedData, receivedSize));
+        ret = CALL(spiDevice.write(buff, buffSize));
+        RET_CHECK(ret)
 
-        chipSelectPin.set(1);
+        ret = CALL(spiDevice.read(receivedData, receivedSize));
+        RET_CHECK(ret)
+
+        ret = CALL(chipSelectPin.set(1));
+        RET_CHECK(ret)
 
         RESET();
         return ret;
@@ -185,11 +199,15 @@ public:
         uint8_t addrThree = address >> 8;
         uint8_t buff[5] = {static_cast<uint8_t>(programCommand), addrOne, addrTwo, addrThree};
 
-        chipSelectPin.set(0);
-        RetType ret = CALL(spiDevice.write(buff, 5));
-        ret = CALL(spiDevice.write(page, pageSize));
+        RetType ret = chipSelectPin.set(0);
+        ret = CALL(spiDevice.write(buff, 5));
+        RET_CHECK(ret)
 
-        chipSelectPin.set(1);
+        ret = CALL(spiDevice.write(page, pageSize));
+        RET_CHECK(ret)
+
+        ret = chipSelectPin.set(1);
+        RET_CHECK(ret)
 
         RESET();
         return RET_SUCCESS;
