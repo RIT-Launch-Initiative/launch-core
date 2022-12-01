@@ -8,12 +8,19 @@
 #ifndef LAUNCH_CORE_BMP390_H
 #define LAUNCH_CORE_BMP390_H
 
-#include "bmp3_defs.h"
+#include "device/peripherals/bmp390/bmp3.h"
+#include "return.h"
+
+extern int8_t bmp3_init(bmp3_dev dev);
 
 class BMP390 {
 public:
-    BMP390() {
+    BMP390() {}
 
+    RetType init() {
+        bmp3_init(this->device);
+
+        return
     }
 
 
