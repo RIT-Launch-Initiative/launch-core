@@ -10,6 +10,7 @@
 #include "device/SPIDevice.h"
 #include "device/GPIODevice.h"
 #include "sched/macros.h"
+#include "device/BlockDevice.h"
 
 
 #define WQ25Q_CMD(command) { \
@@ -74,12 +75,12 @@ typedef enum {
     REGISTER_THREE_WRITE = 0x11,
 } WRITE_STATUS_REGISTER_T;
 
-class W25Q {
+class W25Q : public BlockDevice {
 public:
     const uint8_t DUMMY_BYTE = 0xA5;
 
     W25Q(SPIDevice &spiDevice, GPIODevice &csPin, GPIODevice &clkPin) :
-            spiDevice(spiDevice), chipSelectPin(csPin), clockPin(clkPin) {}
+            BlockDevice("FlashDevice"), spiDevice(spiDevice), chipSelectPin(csPin), clockPin(clkPin) {}
 
 
     RetType init() {
@@ -242,6 +243,13 @@ public:
         return RET_SUCCESS;
     }
 
+    size_t getBlockSize() override {
+        return 256;
+    }
+
+    size_t getNumBlocks() override {
+        return 65536;
+    }
 private:
     // TODO: Just realized a SPI device might not be needed if we just have all the pins below :P
     GPIODevice &chipSelectPin;

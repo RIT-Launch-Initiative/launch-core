@@ -91,7 +91,7 @@ int main() {
     FakeSPIDevice spiDev = FakeSPIDevice();
     FakeGPIODevice csPin = FakeGPIODevice();
     FakeGPIODevice clkPin = FakeGPIODevice();
-    W25Q w25q = W25Q(spiDev, csPin, clkPin);
+    W25Q w25q = W25Q(nullptr, spiDev, csPin, clkPin);
 
     printf("Testing init\n");
     w25q.init();
