@@ -109,7 +109,6 @@ namespace udp {
         RetType transmit2(Packet &packet, sockinfo_t &info, NetworkLayer *caller) override {
             RESUME();
 
-            // TODO: Figure this out
             UDP_HEADER_T *header = packet.allocate_header<UDP_HEADER_T>();
 
             if (header == nullptr) {
