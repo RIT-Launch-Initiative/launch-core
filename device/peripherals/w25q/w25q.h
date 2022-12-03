@@ -114,7 +114,7 @@ public:
         ret = chipSelectPin.set(1);
         RET_CHECK(ret)
 
-        // TODO: Figure out why this causes chipSelectPin memory to be borked
+        // TODO: Figure out possibility chipSelectPin memory to be borked
         ret = CALL(spiDevice.read(receiveBuff, 1));
         RET_CHECK(ret)
 
@@ -201,8 +201,11 @@ public:
         RetType ret = chipSelectPin.set(0);
         RET_CHECK(ret);
 
-        uint8_t buffer[5] = {static_cast<uint8_t>(programCommand), static_cast<uint8_t>(address >> 24),
-                             static_cast<uint8_t>(address >> 16), static_cast<uint8_t>(address >> 8)};
+        uint8_t buffer[5] = {static_cast<uint8_t>(programCommand),
+                             static_cast<uint8_t>((address & 0xFF000000) >> 16),
+                             static_cast<uint8_t>((address & 0xFF000000) >> 8),
+                             static_cast<uint8_t>((address & 0xFF000000))};
+
         buff = buffer;
 
         ret = CALL(spiDevice.write(buff, 5));
@@ -223,11 +226,10 @@ public:
 
         this->toggleWrite(WRITE_SET_ENABLE);
 
-        // TODO: Figure out this 24 bit address thing
-        uint8_t addrOne = address >> 24;
-        uint8_t addrTwo = address >> 16;
-        uint8_t addrThree = address >> 8;
-        uint8_t buff[5] = {static_cast<uint8_t>(eraseCommand), addrOne, addrTwo, addrThree};
+        uint8_t buff[5] = {static_cast<uint8_t>(eraseCommand),
+                           static_cast<uint8_t>((address & 0xFF000000) >> 16),
+                           static_cast<uint8_t>((address & 0xFF000000) >> 8),
+                           static_cast<uint8_t>((address & 0xFF000000))};
 
         RetType ret = CALL(chipSelectPin.set(0));
         RET_CHECK(ret);
@@ -251,7 +253,6 @@ public:
     }
 
 private:
-    // TODO: Just realized a SPI device might not be needed if we just have all the pins below :P
     GPIODevice &chipSelectPin;
     GPIODevice &clockPin;
     SPIDevice &spiDevice;
