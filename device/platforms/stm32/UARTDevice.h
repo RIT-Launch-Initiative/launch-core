@@ -7,6 +7,7 @@
 #include "device/platforms/stm32/HAL_Handlers.h"
 #include "sched/macros.h"
 #include "ringbuffer/RingBuffer.h"
+#include "sync/BlockingSemaphore.h"
 
 /// @brief HAL UART device
 ///        essentially wraps HAL_UART functions
@@ -19,6 +20,7 @@ public:
                                                               m_blocked(-1),
                                                               m_waiting(false),
                                                               m_buff(),
+                                                              m_lock(1),
                                                               StreamDevice(name) {};
 
     /// @brief initialize
@@ -70,7 +72,7 @@ public:
         RESUME();
 
         // block waiting for the device to be free
-        RetType ret = CALL(check_block());
+        RetType ret = CALL(m_lock.acquire());
         if(ret != RET_SUCCESS) {
             // some error
             return ret;
@@ -93,7 +95,11 @@ public:
         m_blocked = -1;
 
         // we can unblock someone else if they were waiting
-        check_unblock();
+        RetType ret = CALL(m_lock.release());
+        if(ret != RET_SUCCESS) {
+            // some error
+            return ret;
+        }
 
         RESET();
         return RET_SUCCESS;
@@ -108,7 +114,7 @@ public:
         RESUME();
 
         // block until the device is free to use
-        RetType ret = CALL(check_block());
+        RetType ret = CALL(m_lock.acquire());
         if(ret != RET_SUCCESS) {
             // some error
             return ret;
@@ -125,7 +131,11 @@ public:
         }
 
         // we can unblock someone else if they were waiting
-        check_unblock();
+        RetType ret = CALL(m_lock.release());
+        if(ret != RET_SUCCESS) {
+            // some error
+            return ret;
+        }
 
         RESET();
         return ret;
@@ -228,38 +238,8 @@ private:
     // queue of tasks waiting on the device to be unblocked
     alloc::Queue<tid_t, MAX_NUM_TASKS> m_queue;
 
-
-    /// @brief helper function that blocks the calling task if the device is busy
-    /// @return
-    RetType check_block() {
-        RESUME();
-
-        // someone else is blocked on this device, wait for them
-        if(m_blocked != -1) {
-            if(!m_queue.push(sched_dispatched)) {
-                return RET_ERROR;
-            }
-
-            BLOCK();
-        } // otherwise we can just return, the device is ours
-
-        RESET();
-        return RET_SUCCESS;
-    }
-
-    /// @brief helper function that unblocks the next waiting task if there is one
-    void check_unblock() {
-        tid_t* task = m_queue.peek();
-
-        if(task == NULL) {
-            // nothing is waiting
-            return;
-        }
-
-        // otherwise wake up the next task
-        WAKE(*task);
-        m_queue.pop();
-    }
+    // semaphore
+    BlockingSemaphore m_lock;
 };
 
 #endif
