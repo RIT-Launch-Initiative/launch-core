@@ -11,15 +11,18 @@
 #include "device/peripherals/bmp390/bmp3.h"
 #include "return.h"
 
-extern int8_t bmp3_init(bmp3_dev dev);
 
 class BMP390 {
 public:
     BMP390() {}
 
     RetType init() {
-        int8_t result = bmp3_init(this->device);
+        int8_t result = bmp3_init(&this->device);
+
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
     }
+
+    RetType
 
 
 private:
