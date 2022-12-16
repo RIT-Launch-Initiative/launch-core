@@ -26,7 +26,7 @@ public:
     /// @brief constructor
     /// @param name     the name of this device
     /// @param h12c     the HAL SPI device wrapped by this device
-    SPIDevice(const char* name, SPI_HandleTypeDef* hspi) :
+    HALSPIDevice(const char* name, SPI_HandleTypeDef* hspi) :
                                                            m_spi(hspi),
                                                            m_blocked(-1),
                                                            m_lock(1),

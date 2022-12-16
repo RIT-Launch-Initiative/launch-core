@@ -16,7 +16,7 @@ public:
     /// @brief constructor
     /// @param name     the name of this device
     /// @param huart    the HAL UART device wrapped by this device
-    UARTDevice(const char* name, UART_HandleTypeDef* huart) : m_uart(huart),
+    HALUARTDevice(const char* name, UART_HandleTypeDef* huart) : m_uart(huart),
                                                               m_blocked(-1),
                                                               m_waiting(false),
                                                               m_buff(),
