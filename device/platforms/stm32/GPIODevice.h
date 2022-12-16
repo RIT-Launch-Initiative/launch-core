@@ -6,6 +6,8 @@
 #define LAUNCH_CORE_GPIODEVICE_H
 
 #include "stm32f4xx_hal_gpio.h"
+#include "stm32f4xx_hal_def.h"
+
 
 #include "device/GPIODevice.h"
 #include "HAL_Handlers.h"
@@ -34,6 +36,18 @@ public:
     }
 
     RetType release() {
+        return RET_SUCCESS;
+    }
+
+    RetType set(uint32_t val) {
+        // TODO: Call HAL fns
+
+        return RET_SUCCESS;
+    }
+
+    RetType get(uint32_t* val) {
+        // TODO Call HAL fn
+
         return RET_SUCCESS;
     }
 
