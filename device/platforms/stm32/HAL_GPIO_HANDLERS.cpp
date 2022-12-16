@@ -25,7 +25,7 @@ namespace HALHandlers {
     }
 }
 
-void halGPIOCallback(GPIO_HandleTypeDef *halGPIO) {
+void HAL_GPIO_CpltCallback(GPIO_HandleTypeDef *halGPIO) {
     HALHandlers::dev_t *dev = HALHandlers::gpioMap[halGPIO];
     if (dev) dev->dev->callback(dev->num);
 }
