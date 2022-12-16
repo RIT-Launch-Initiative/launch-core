@@ -22,15 +22,11 @@ public:
 
 
     RetType init() {
-        RetType ret = HALHandlers::register_gpio(halGPIO, this, REG_NUM);
-
-
-
-        return RET_SUCCESS;
+        return HALHandlers::register_gpio(halGPIO, this, REG_NUM);
     }
 
 private:
-    static const int REG_NUM = 0halGPIO;
+    static const int REG_NUM = 0;
     tid_t currentBlocked;
     alloc::Queue<tid_t, MAX_NUM_TASKS> taskQueue;
     BlockingSemaphore taskLock;
