@@ -25,6 +25,20 @@ public:
         return HALHandlers::register_gpio(halGPIO, this, REG_NUM);
     }
 
+    RetType obtain() {
+        return RET_SUCCESS;
+    }
+
+    RetType poll() {
+        return RET_SUCCESS;
+    }
+
+    RetType release() {
+        return RET_SUCCESS;
+    }
+
+
+
 private:
     static const int REG_NUM = 0;
     tid_t currentBlocked;
