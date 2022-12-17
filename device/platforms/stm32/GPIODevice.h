@@ -76,7 +76,7 @@ public:
         RET_CHECK(ret);
 
         taskLock = sched_dispatched;
-        *val = HAL_GPIO_ReadPin(halGPIO, pin);
+        *val = static_cast<uint32_t>(HAL_GPIO_ReadPin(halGPIO, pin));
 
         BLOCK();
 
