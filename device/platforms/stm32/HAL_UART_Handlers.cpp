@@ -17,7 +17,7 @@ RetType register_uart_tx(UART_HandleTypeDef* huart, CallbackDevice* dev, int num
     if(uart_tx_map[huart] != NULL) {
         // someone is already registered for this device
         // delete them and add us instead
-        if(!uart_tx_map.rm(huart)) {
+        if(!uart_tx_map.remove(huart)) {
             return RET_ERROR;
         }
     }
@@ -38,7 +38,7 @@ RetType register_uart_rx(UART_HandleTypeDef* huart, CallbackDevice* dev, int num
     if(uart_rx_map[huart] != NULL) {
         // someone is already registered for this device
         // delete them and add us instead
-        if(!uart_rx_map.rm(huart)) {
+        if(!uart_rx_map.remove(huart)) {
             return RET_ERROR;
         }
     }
