@@ -4,8 +4,8 @@
  * @author Aaron Chan
  */
 
-#ifndef LAUNCH_CORE_GPIODEVICE_H
-#define LAUNCH_CORE_GPIODEVICE_H
+#ifndef LAUNCH_CORE_HALGPIODEVICE_H
+#define LAUNCH_CORE_HALGPIODEVICE_H
 
 #include "stm32f4xx_hal_gpio.h"
 #include "stm32f4xx_hal_def.h"
@@ -97,4 +97,4 @@ private:
     uint16_t pin;
 };
 
-#endif //LAUNCH_CORE_GPIODEVICE_H
+#endif //LAUNCH_CORE_HALGPIODEVICE_H
