@@ -96,7 +96,6 @@ public:
 private:
     static const int REG_NUM = 0;
     tid_t currentBlocked;
-    alloc::Queue<tid_t, MAX_NUM_TASKS> taskQueue;
     BlockingSemaphore taskLock;
 
     GPIO_TypeDef *halGPIO;
