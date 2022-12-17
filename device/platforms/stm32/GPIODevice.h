@@ -1,6 +1,8 @@
-//
-// Created by aaron on 12/16/22.
-//
+/**
+ * HAL Implementation for GPIO Devices
+ *
+ * @author Aaron Chan
+ */
 
 #ifndef LAUNCH_CORE_GPIODEVICE_H
 #define LAUNCH_CORE_GPIODEVICE_H
@@ -25,34 +27,65 @@ public:
                                                                            GPIODevice(name) {};
 
 
-    RetType init() {
+    RetType init() override {
         return HALHandlers::register_gpio(halGPIO, this, REG_NUM);
     }
 
-    RetType obtain() {
+    RetType obtain() override {
         return RET_SUCCESS;
     }
 
-    RetType poll() {
+    RetType poll() override {
         return RET_SUCCESS;
     }
 
-    RetType release() {
+    RetType release() override {
         return RET_SUCCESS;
     }
 
-    RetType set(uint32_t val) {
+    RetType set(uint32_t val) override {
+        RESUME();
+
+        RetType ret = CALL(taskLock.acquire());
+        RET_CHECK(ret);
+
+        taskLock = sched_dispatched;
+
         HAL_GPIO_WritePin(halGPIO, this->pin, val);
+        BLOCK();
 
+        currentBlocked = -1;
+
+        ret = CALL(taskLock.release());
+        RET_CHECK(ret);
+
+        RESET();
         return RET_SUCCESS;
     }
 
-    RetType get(uint32_t *val) {
+    RetType get(uint32_t *val) override {
+        RESUME();
+
+        RetType ret = CALL(taskLock.acquire());
+        RET_CHECK(ret);
+
+        taskLock = sched_dispatched;
         *val = HAL_GPIO_ReadPin(halGPIO, this->pin);
 
+        BLOCK();
+
+        currentBlocked = -1;
+
+        ret = CALL(taskLock.release());
+        RET_CHECK(ret);
+
+        RESET();
         return RET_SUCCESS;
     }
 
+    void callback(int) override {
+        if (currentBlocked != -1) WAKE(currentBlocked);
+    }
 
 private:
     static const int REG_NUM = 0;
