@@ -7,6 +7,7 @@
 
 #include "stm32f4xx_hal_gpio.h"
 #include "stm32f4xx_hal_def.h"
+#include "stm32f446xx.h"
 
 
 #include "device/GPIODevice.h"
@@ -17,10 +18,11 @@
 class HALGPIODevice : public GPIODevice, public CallbackDevice {
 public:
 
-    HALGPIODevice(const char *name, GPIO_HandleTypeDef *halGPIO) : halGPIO(halGPIO),
-                                                                   currentBlocked(-1),
-                                                                   taskLock(1),
-                                                                   GPIODevice(name) {}
+    HALGPIODevice(const char *name, GPIO_TypeDef *halGPIO, uint16_t pin) : halGPIO(halGPIO),
+                                                                           pin(pin),
+                                                                           currentBlocked(-1),
+                                                                           taskLock(1),
+                                                                           GPIODevice(name) {};
 
 
     RetType init() {
@@ -40,17 +42,16 @@ public:
     }
 
     RetType set(uint32_t val) {
-        // TODO: Call HAL fns
+        HAL_GPIO_WritePin(halGPIO, this->pin, val);
 
         return RET_SUCCESS;
     }
 
-    RetType get(uint32_t* val) {
-        // TODO Call HAL fn
+    RetType get(uint32_t *val) {
+        *val = HAL_GPIO_ReadPin(halGPIO, this->pin);
 
         return RET_SUCCESS;
     }
-
 
 
 private:
@@ -59,7 +60,9 @@ private:
     alloc::Queue<tid_t, MAX_NUM_TASKS> taskQueue;
     BlockingSemaphore taskLock;
 
-    GPIO_HandleTypeDef *halGPIO;
+    GPIO_TypeDef *halGPIO;
+    uint16_t pin;
+    GPIO_PinState state;
 };
 
 #endif //LAUNCH_CORE_GPIODEVICE_H
