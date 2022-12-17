@@ -47,7 +47,10 @@ public:
         RESUME();
 
         RetType ret = CALL(taskLock.acquire());
-        RET_CHECK(ret);
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         taskLock = sched_dispatched;
 
@@ -63,7 +66,10 @@ public:
         currentBlocked = -1;
 
         ret = CALL(taskLock.release());
-        RET_CHECK(ret);
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         RESET();
         return RET_SUCCESS;
@@ -73,17 +79,23 @@ public:
         RESUME();
 
         RetType ret = CALL(taskLock.acquire());
-        RET_CHECK(ret);
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         taskLock = sched_dispatched;
-        *val = static_cast<uint32_t>(HAL_GPIO_ReadPin(halGPIO, pin));
+        *val = static_cast<int>(HAL_GPIO_ReadPin(halGPIO, pin));
 
         BLOCK();
 
         currentBlocked = -1;
 
         ret = CALL(taskLock.release());
-        RET_CHECK(ret);
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         RESET();
         return RET_SUCCESS;
