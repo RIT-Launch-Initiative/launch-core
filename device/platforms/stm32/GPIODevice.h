@@ -70,7 +70,7 @@ public:
         RET_CHECK(ret);
 
         taskLock = sched_dispatched;
-        *val = HAL_GPIO_ReadPin(halGPIO, this->pin);
+        *val = HAL_GPIO_ReadPin(halGPIO, pin);
 
         BLOCK();
 
@@ -95,7 +95,6 @@ private:
 
     GPIO_TypeDef *halGPIO;
     uint16_t pin;
-    GPIO_PinState state;
 };
 
 #endif //LAUNCH_CORE_GPIODEVICE_H

@@ -2,7 +2,7 @@
 #define I2C_DEVICE_H
 
 #include "stm32f4xx_hal.h"
-#include "stm32f4xx_hal_i2c.h"
+z#include "stm32f4xx_hal_i2c.h"
 
 #include "device/I2CDevice.h"
 #include "device/platforms/stm32/HAL_Handlers.h"
