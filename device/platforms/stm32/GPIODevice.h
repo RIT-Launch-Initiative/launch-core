@@ -51,7 +51,13 @@ public:
 
         taskLock = sched_dispatched;
 
-        HAL_GPIO_WritePin(halGPIO, this->pin, val);
+        if (val != 0 || val != 1) {
+            RESET();
+
+            return RET_ERROR;
+        }
+
+        HAL_GPIO_WritePin(halGPIO, this->pin, static_cast<GPIO_PinState>(val));
         BLOCK();
 
         currentBlocked = -1;
