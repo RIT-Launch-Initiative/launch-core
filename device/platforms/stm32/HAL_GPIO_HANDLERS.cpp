@@ -9,24 +9,24 @@
 #include "stm32f446xx.h"
 
 namespace HALHandlers {
-    static alloc::Hashmap<GPIO_TypeDef *, dev_t, MAX_GPIO_DEVICES, MAX_GPIO_DEVICES> gpioMap;
+    static alloc::Hashmap<GPIO_TypeDef *, CallbackDevice *, MAX_GPIO_DEVICES, MAX_GPIO_DEVICES> gpioMap;
 
-    RetType register_gpio(GPIO_TypeDef *halGPIO, CallbackDevice *dev, int num) {
+    RetType register_gpio(GPIO_TypeDef *halGPIO, CallbackDevice *callbackDev) {
         if (gpioMap[halGPIO] != nullptr && !gpioMap.remove(halGPIO)) return RET_ERROR;
 
-        dev_t *pDev = gpioMap.add(halGPIO);
+        CallbackDevice **pCallbackDevice = gpioMap.add(halGPIO);
 
-        if (pDev == nullptr) return RET_ERROR;
+        if (pCallbackDevice == nullptr) return RET_ERROR;
 
-        *pDev = {dev, num};
+        *pCallbackDevice = callbackDev;
 
         return RET_SUCCESS;
     }
 }
 
 void HAL_GPIO_CpltCallback(GPIO_TypeDef *halGPIO) {
-    HALHandlers::dev_t *dev = HALHandlers::gpioMap[halGPIO];
-    if (dev) dev->dev->callback(dev->num);
+    CallbackDevice **dev = HALHandlers::gpioMap[halGPIO];
+    if (dev) (*dev)->callback(0);
 }
 
 
