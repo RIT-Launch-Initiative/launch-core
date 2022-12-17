@@ -18,7 +18,7 @@ RetType register_i2c_tx(I2C_HandleTypeDef* hi2c, CallbackDevice* dev, int num) {
     if(i2c_tx_map[hi2c] != NULL) {
         // someone is already registered for this device
         // delete them and add us instead
-        if(!i2c_tx_map.rm(hi2c)) {
+        if(!i2c_tx_map.remove(hi2c)) {
             return RET_ERROR;
         }
     }
@@ -39,7 +39,7 @@ RetType register_i2c_rx(I2C_HandleTypeDef* hi2c, CallbackDevice* dev, int num) {
     if(i2c_rx_map[hi2c] != NULL) {
         // someone is already registered for this device
         // delete them and add us instead
-        if(!i2c_rx_map.rm(hi2c)) {
+        if(!i2c_rx_map.remove(hi2c)) {
             return RET_ERROR;
         }
     }
