@@ -18,7 +18,7 @@ RetType register_spi_tx(SPI_HandleTypeDef* hspi, CallbackDevice* dev, int num) {
     if(spi_tx_map[hspi] != NULL) {
         // someone is already registered for this device
         // delete them and add us instead
-        if(!spi_tx_map.rm(hspi)) {
+        if(!spi_tx_map.remove(hspi)) {
             return RET_ERROR;
         }
     }
@@ -39,7 +39,7 @@ RetType register_spi_rx(SPI_HandleTypeDef* hspi, CallbackDevice* dev, int num) {
     if(spi_rx_map[hspi] != NULL) {
         // someone is already registered for this device
         // delete them and add us instead
-        if(!spi_rx_map.rm(hspi)) {
+        if(!spi_rx_map.remove(hspi)) {
             return RET_ERROR;
         }
     }
