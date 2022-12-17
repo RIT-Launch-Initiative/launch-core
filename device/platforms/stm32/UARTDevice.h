@@ -11,17 +11,17 @@
 
 /// @brief HAL UART device
 ///        essentially wraps HAL_UART functions
-class UARTDevice : public StreamDevice, public CallbackDevice {
+class HALUARTDevice : public StreamDevice, public CallbackDevice {
 public:
     /// @brief constructor
     /// @param name     the name of this device
     /// @param huart    the HAL UART device wrapped by this device
-    UARTDevice(const char* name, UART_HandleTypeDef* huart) : m_uart(huart),
-                                                              m_blocked(-1),
-                                                              m_waiting(false),
-                                                              m_buff(),
-                                                              m_lock(1),
-                                                              StreamDevice(name) {};
+    HALUARTDevice(const char* name, UART_HandleTypeDef* huart) : m_uart(huart),
+                                                                 m_blocked(-1),
+                                                                 m_waiting(false),
+                                                                 m_buff(),
+                                                                 m_lock(1),
+                                                                 StreamDevice(name) {};
 
     /// @brief initialize
     RetType init() {
@@ -234,9 +234,6 @@ private:
 
     // single byte to read into
     uint8_t m_byte;
-
-    // queue of tasks waiting on the device to be unblocked
-    alloc::Queue<tid_t, MAX_NUM_TASKS> m_queue;
 
     // semaphore
     BlockingSemaphore m_lock;

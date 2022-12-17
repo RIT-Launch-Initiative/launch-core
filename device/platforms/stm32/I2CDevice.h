@@ -15,10 +15,10 @@ public:
     /// @brief constructor
     /// @param name     the name of this device
     /// @param h12c     the HAL I2C device wrapped by this device
-    I2CDevice(const char* name, I2C_HandleTypeDef* hi2c) : m_i2c(hi2c),
-                                                           m_blocked(-1),
-                                                           m_lock(1),
-                                                           RegisterDevice<I2CAddr_t>(name) {};
+    HALI2CDevice(const char* name, I2C_HandleTypeDef* hi2c) : m_i2c(hi2c),
+                                                              m_blocked(-1),
+                                                              m_lock(1),
+                                                              RegisterDevice<I2CAddr_t>(name) {};
 
     /// @brief initialize
     RetType init() {
@@ -160,9 +160,6 @@ private:
 
     // HAL I2C handle
     I2C_HandleTypeDef* m_i2c;
-
-    // queue of tasks waiting on the device to be unblocked
-    alloc::Queue<tid_t, MAX_NUM_TASKS> m_queue;
 
     // semaphore
     BlockingSemaphore m_lock;

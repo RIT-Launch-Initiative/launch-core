@@ -10,15 +10,6 @@
 #include "sched/sched.h"
 #include "sync/BlockingSemaphore.h"
 
-// /// @brief defines which GPIO pin and state selects a chip
-// typedef struct {
-//     GPIO_TypeDef* gpio;     // GPIO device
-//     uint16_t pin;           // which pin to change the state of
-//     GPIO_PinState state;    // what to set the pin too
-// } ChipSelect_t;
-
-// TODO how to be able to read and write before toggling chip select?
-// maybe just make the underlying device do this actually
 
 /// @brief SPI device controller
 class HALSPIDevice : public SPIDevice, public CallbackDevice {
@@ -26,7 +17,7 @@ public:
     /// @brief constructor
     /// @param name     the name of this device
     /// @param h12c     the HAL SPI device wrapped by this device
-    SPIDevice(const char* name, SPI_HandleTypeDef* hspi) :
+    HALSPIDevice(const char* name, SPI_HandleTypeDef* hspi) :
                                                            m_spi(hspi),
                                                            m_blocked(-1),
                                                            m_lock(1),
@@ -91,8 +82,6 @@ public:
         if(HAL_OK != HAL_SPI_Transmit_IT(m_spi, buff, len)) {
             return RET_ERROR;
         }
-
-        // TODO race condition
 
         // block until the transmit is complete
         BLOCK();
@@ -170,9 +159,6 @@ private:
 
     // current blocked task
     tid_t m_blocked;
-
-    // queue of tasks waiting on the device to be unblocked
-    alloc::Queue<tid_t, MAX_NUM_TASKS> m_queue;
 
     // HAL handle
     SPI_HandleTypeDef* m_spi;
