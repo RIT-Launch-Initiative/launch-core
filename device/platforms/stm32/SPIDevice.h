@@ -9,6 +9,7 @@
 #include "device/platforms/stm32/HAL_Handlers.h"
 #include "sched/sched.h"
 #include "sync/BlockingSemaphore.h"
+#include "device/SPIDevice.h"
 
 // /// @brief defines which GPIO pin and state selects a chip
 // typedef struct {
