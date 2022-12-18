@@ -28,7 +28,7 @@ public:
 
 
     RetType init() override {
-        return HALHandlers::register_gpio(halGPIO, this, REG_NUM);
+        return HALHandlers::register_gpio(halGPIO, this);
     }
 
     RetType obtain() override {

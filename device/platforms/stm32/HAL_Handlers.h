@@ -98,7 +98,7 @@ RetType register_spi_rx(SPI_HandleTypeDef* hspi, CallbackDevice* dev, int num);
 /// @param num      some unique number that will be passed back in the 'callback'
 ///                 function of 'dev' when the event occurs
 /// @return
-RetType register_gpio(GPIO_TypeDef* halGPIO, CallbackDevice* dev, int num);
+RetType register_gpio(GPIO_TypeDef* halGPIO, CallbackDevice* dev);
 
 }
 
