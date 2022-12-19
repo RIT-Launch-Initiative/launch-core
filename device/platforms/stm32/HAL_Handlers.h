@@ -12,6 +12,7 @@
 
 #include "return.h"
 #include "device/Device.h"
+#include "stm32f446xx.h"
 
 /// @brief defines a device interface for an aysnchronous callback enabled device
 class CallbackDevice {
