@@ -131,7 +131,7 @@ public:
         }
 
         // we can unblock someone else if they were waiting
-        RetType ret = CALL(m_lock.release());
+        ret = CALL(m_lock.release());
         if(ret != RET_SUCCESS) {
             // some error
             return ret;
