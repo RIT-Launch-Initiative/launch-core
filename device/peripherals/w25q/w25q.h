@@ -245,11 +245,11 @@ public:
     }
 
     // TODO: Implement this
-    RetType write(uint8_t* buff, size_t len) {
+    RetType write(size_t block, uint8_t* buff) override {
         return RET_SUCCESS;
     }
 
-    RetType read(uint8_t* buff, size_t len) {
+    RetType read(size_t block, uint8_t* buff) override {
         return RET_SUCCESS;
     }
 
