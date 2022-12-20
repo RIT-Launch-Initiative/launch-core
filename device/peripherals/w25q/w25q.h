@@ -252,6 +252,19 @@ public:
         return 65536;
     }
 
+    // TODO: Should these need to be implemented?
+    RetType obtain() {
+        return RET_SUCCESS;
+    }
+
+    RetType release() {
+        return RET_SUCCESS;
+    }
+
+    RetType poll() {
+        return RET_SUCCESS;
+    }
+
 private:
     GPIODevice &chipSelectPin;
     GPIODevice &clockPin;
