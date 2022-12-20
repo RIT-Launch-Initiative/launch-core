@@ -1,5 +1,5 @@
-#ifndef SPI_DEVICE_H
-#define SPI_DEVICE_H
+#ifndef HAL_SPI_DEVICE_H
+#define HAL_SPI_DEVICE_H
 
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_spi.h"
@@ -18,23 +18,22 @@ public:
     /// @brief constructor
     /// @param name     the name of this device
     /// @param h12c     the HAL SPI device wrapped by this device
-    HALSPIDevice(const char* name, SPI_HandleTypeDef* hspi) :
-                                                           m_spi(hspi),
-                                                           m_blocked(-1),
-                                                           m_lock(1),
-                                                           StreamDevice(name) {};
+    HALSPIDevice(const char *name, SPI_HandleTypeDef *hspi) : m_spi(hspi),
+                                                              m_blocked(-1),
+                                                              m_lock(1),
+                                                              SPIDevice(name) {};
 
     /// @brief initialize
     RetType init() {
         // register for tx callback
         RetType ret = HALHandlers::register_spi_tx(m_spi, this, TX_NUM);
-        if(ret != RET_SUCCESS) {
+        if (ret != RET_SUCCESS) {
             return ret;
         }
 
         // register for rx callback
         ret = HALHandlers::register_spi_rx(m_spi, this, RX_NUM);
-        if(ret != RET_SUCCESS) {
+        if (ret != RET_SUCCESS) {
             return ret;
         }
 
@@ -64,12 +63,12 @@ public:
     /// @param buff     the buffer to write
     /// @param len      the size of 'buff' in bytes
     /// @return
-    RetType write(uint8_t* buff, size_t len) {
+    RetType write(uint8_t *buff, size_t len) {
         RESUME();
 
         // block waiting for the device to be free to use
         RetType ret = CALL(m_lock.acquire());
-        if(ret != RET_SUCCESS) {
+        if (ret != RET_SUCCESS) {
             // some error
             return ret;
         }
@@ -80,7 +79,7 @@ public:
         m_blocked = sched_dispatched;
 
         // do our transmit
-        if(HAL_OK != HAL_SPI_Transmit_IT(m_spi, buff, len)) {
+        if (HAL_OK != HAL_SPI_Transmit_IT(m_spi, buff, len)) {
             return RET_ERROR;
         }
 
@@ -92,7 +91,7 @@ public:
 
         // we can unblock someone else if they were waiting
         ret = CALL(m_lock.release());
-        if(ret != RET_SUCCESS) {
+        if (ret != RET_SUCCESS) {
             // some error
             return ret;
         }
@@ -106,12 +105,12 @@ public:
     /// @param buff     the buffer to read into
     /// @param len      the number of bytes to read
     /// @return
-    RetType read(uint8_t* buff, size_t len) {
+    RetType read(uint8_t *buff, size_t len) {
         RESUME();
 
         // block waiting for the device to be available
         RetType ret = CALL(m_lock.acquire());
-        if(ret != RET_SUCCESS) {
+        if (ret != RET_SUCCESS) {
             // some error
             return ret;
         }
@@ -122,7 +121,7 @@ public:
         m_blocked = sched_dispatched;
 
         // start the transfer
-        if(HAL_OK != HAL_SPI_Receive_IT(m_spi, buff, len)) {
+        if (HAL_OK != HAL_SPI_Receive_IT(m_spi, buff, len)) {
             return RET_ERROR;
         }
 
@@ -134,7 +133,7 @@ public:
 
         // we can unblock someone else if they were waiting
         ret = CALL(m_lock.release());
-        if(ret != RET_SUCCESS) {
+        if (ret != RET_SUCCESS) {
             // some error
             return ret;
         }
@@ -147,7 +146,7 @@ public:
     void callback(int) {
         // don't care if it was tx or rx, for now
 
-        if(m_blocked != -1) {
+        if (m_blocked != -1) {
             // wake up the task that's blocked
             WAKE(m_blocked);
         }
@@ -162,7 +161,7 @@ private:
     tid_t m_blocked;
 
     // HAL handle
-    SPI_HandleTypeDef* m_spi;
+    SPI_HandleTypeDef *m_spi;
 
     // semaphore
     BlockingSemaphore m_lock;
