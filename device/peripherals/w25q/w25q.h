@@ -244,6 +244,15 @@ public:
         return RET_SUCCESS;
     }
 
+    // TODO: Implement this
+    RetType write(uint8_t* buff, size_t len) {
+        return RET_SUCCESS;
+    }
+
+    RetType read(uint8_t* buff, size_t len) {
+        return RET_SUCCESS;
+    }
+
     size_t getBlockSize() override {
         return 256;
     }
@@ -253,15 +262,15 @@ public:
     }
 
     // TODO: Should these need to be implemented?
-    RetType obtain() {
+    RetType obtain() override {
         return RET_SUCCESS;
     }
 
-    RetType release() {
+    RetType release() override {
         return RET_SUCCESS;
     }
 
-    RetType poll() {
+    RetType poll() override {
         return RET_SUCCESS;
     }
 
