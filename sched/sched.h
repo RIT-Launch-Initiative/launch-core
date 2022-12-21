@@ -17,8 +17,6 @@
 
 #include "return.h"
 
-#define RET_CHECK(ret) if(ret != RET_SUCCESS) return ret;
-
 /// @brief task id, any tid < 0 is an error
 typedef int tid_t;
 
