@@ -20,7 +20,8 @@
 class BlockingSemaphore {
 public:
     /// @brief constructor
-    BlockingSemaphore(int count) : m_count(count), m_lock(1) {};
+    BlockingSemaphore(int count) : m_queue(), m_lock(1), m_count(count) {};
+
 
     /// @brief release
     /// @return
@@ -30,8 +31,8 @@ public:
         m_count++;
 
         // unblock the next task waiting, if there is one
-        tid_t* waiting = m_queue.peek();
-        if(waiting) {
+        tid_t *waiting = m_queue.peek();
+        if (waiting) {
             // someone is waiting, let's wake them up
             m_queue.pop();
             WAKE(*waiting);
@@ -47,12 +48,12 @@ public:
     RetType acquire() {
         RESUME();
 
-        while(1) {
+        while (1) {
             m_lock.acquire();
 
-            if(m_count == 0) {
+            if (m_count == 0) {
                 // add the calling task to the wait queue
-                if(!m_queue.push(sched_dispatched)) {
+                if (!m_queue.push(sched_dispatched)) {
                     // no room on queue, uh oh
                     return RET_ERROR;
                 }
@@ -73,14 +74,15 @@ public:
     }
 
 private:
+    // queue of waiting tasks
+    alloc::Queue <tid_t, MAX_NUM_TASKS> m_queue;
+
     // guarantees atomic access to m_count and m_queue
     Semaphore m_lock;
 
     // count of the semaphore
     int m_count;
 
-    // queue of waiting tasks
-    alloc::Queue<tid_t, MAX_NUM_TASKS> m_queue;
 };
 
 #endif
