@@ -20,12 +20,11 @@
 class HALGPIODevice : public GPIODevice, public CallbackDevice {
 public:
 
-    HALGPIODevice(const char *name, GPIO_TypeDef *halGPIO, uint16_t pin) : halGPIO(halGPIO),
-                                                                           pin(pin),
-                                                                           currentBlocked(-1),
+    HALGPIODevice(const char *name, GPIO_TypeDef *halGPIO, uint16_t pin) : GPIODevice(name),
                                                                            taskLock(1),
-                                                                           GPIODevice(name) {};
-
+                                                                           halGPIO(halGPIO),
+                                                                           currentBlocked(-1),
+                                                                           pin(pin) {};
 
     RetType init() override {
         return HALHandlers::register_gpio(halGPIO, this);
@@ -106,12 +105,12 @@ public:
     }
 
 private:
-    static const int REG_NUM = 0;
-    tid_t currentBlocked;
     BlockingSemaphore taskLock;
-
     GPIO_TypeDef *halGPIO;
+    tid_t currentBlocked;
     uint16_t pin;
+
+    static const int REG_NUM = 0;
 };
 
 #endif //LAUNCH_CORE_HALGPIODEVICE_H

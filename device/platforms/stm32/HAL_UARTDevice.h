@@ -16,12 +16,12 @@ public:
     /// @brief constructor
     /// @param name     the name of this device
     /// @param huart    the HAL UART device wrapped by this device
-    HALUARTDevice(const char* name, UART_HandleTypeDef* huart) : m_uart(huart),
-                                                                 m_blocked(-1),
-                                                                 m_waiting(false),
+    HALUARTDevice(const char *name, UART_HandleTypeDef *huart) : StreamDevice(name),
                                                                  m_buff(),
+                                                                 m_uart(huart),
                                                                  m_lock(1),
-                                                                 StreamDevice(name) {};
+                                                                 m_blocked(-1),
+                                                                 m_waiting(false) {};
 
     /// @brief initialize
     RetType init() {
@@ -191,15 +191,29 @@ public:
     }
 
 private:
+    // TODO not sure what size this should be yet
+    alloc::RingBuffer<256, true> m_buff;
+
+    UART_HandleTypeDef *m_uart; // HAL handler
+
+    BlockingSemaphore m_lock; // semaphore
+
+    tid_t m_blocked;  // currently blocked task
+    size_t m_waiting; // amount of data the blocked task is waiting for (if rx)
+
+    // single byte to read into
+    uint8_t m_byte;
+
+
     // unique numbers for tx vs. rx callback
     static const int TX_NUM = 0;
     static const int RX_NUM = 1;
 
     /// @brief called by UART handler asynchronously
     void callback(int num) {
-        if(num == TX_NUM) {
+        if (num == TX_NUM) {
             // transmit complete
-            if(m_blocked != -1) {
+            if (m_blocked != -1) {
                 // some task blocked on us transmitting
                 WAKE(m_blocked);
                 m_blocked = -1;
@@ -209,8 +223,8 @@ private:
             m_buff.push(&m_byte, sizeof(uint8_t)); // don't error check
 
             // if someone is blocked on reading, see if we can now unblock them
-            if(m_blocked == -1) {
-                if(m_buff.size() >= m_waiting) {
+            if (m_blocked == -1) {
+                if (m_buff.size() >= m_waiting) {
                     // someone was waiting, wake them up now
                     WAKE(m_blocked);
                 }
@@ -222,21 +236,6 @@ private:
 
         return;
     }
-
-    // TODO not sure what size this should be yet
-    alloc::RingBuffer<256, true> m_buff;
-
-    tid_t m_blocked;  // currently blocked task
-    size_t m_waiting; // amount of data the blocked task is waiting for (if rx)
-
-    // HAL handler
-    UART_HandleTypeDef* m_uart;
-
-    // single byte to read into
-    uint8_t m_byte;
-
-    // semaphore
-    BlockingSemaphore m_lock;
 };
 
 #endif
