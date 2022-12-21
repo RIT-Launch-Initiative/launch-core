@@ -275,9 +275,9 @@ public:
     }
 
 private:
+    SPIDevice &spiDevice;
     GPIODevice &chipSelectPin;
     GPIODevice &clockPin;
-    SPIDevice &spiDevice;
 };
 
 #endif //LAUNCH_CORE_W25Q_H

@@ -18,10 +18,10 @@ public:
     /// @brief constructor
     /// @param name     the name of this device
     /// @param h12c     the HAL SPI device wrapped by this device
-    HALSPIDevice(const char *name, SPI_HandleTypeDef *hspi) : m_spi(hspi),
+    HALSPIDevice(const char *name, SPI_HandleTypeDef *hspi) : SPIDevice(name),
+                                                              m_spi(hspi),
                                                               m_blocked(-1),
-                                                              m_lock(1),
-                                                              SPIDevice(name) {};
+                                                              m_lock(1) {};
 
     /// @brief initialize
     RetType init() {
@@ -153,18 +153,19 @@ public:
     }
 
 private:
-    // unique numbers for tx vs. rx callback
-    static const int TX_NUM = 0;
-    static const int RX_NUM = 1;
+    // HAL handle
+    SPI_HandleTypeDef *m_spi;
 
     // current blocked task
     tid_t m_blocked;
 
-    // HAL handle
-    SPI_HandleTypeDef *m_spi;
-
     // semaphore
     BlockingSemaphore m_lock;
+
+
+    // unique numbers for tx vs. rx callback
+    static const int TX_NUM = 0;
+    static const int RX_NUM = 1;
 };
 
 #endif
