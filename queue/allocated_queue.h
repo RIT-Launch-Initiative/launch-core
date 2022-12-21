@@ -116,7 +116,7 @@ template <typename T, const size_t SIZE>
 class SortedQueue : public ::SimpleSortedQueue<T>, public ::Queue<T> {
 public:
     /// @brief constructor
-    explicit SortedQueue(sort_t<T> sort) : m_pool(), ::SimpleSortedQueue<T>(sort) {};
+    explicit SortedQueue(sort_t<T> sort) : ::SimpleSortedQueue<T>(sort), m_pool()  {};
 
     /// @brief push an object onto the queue
     /// @return 'true' on success, 'false' on error
