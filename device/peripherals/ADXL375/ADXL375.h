@@ -37,7 +37,7 @@ public:
         }
 
         // value is in 2's complement so have to convert it
-        *xAxis = ((msb << 8) | lsb) * -1;
+        *xAxis = ((*msb << 8) | *lsb) * -1;
 
         RESET();
         return RET_SUCCESS;
@@ -63,7 +63,7 @@ public:
 
 
         // value is in 2's complement so have to convert it
-        *yAxis = ((msb << 8) | lsb) * -1;
+        *yAxis = ((*msb << 8) | *lsb) * -1;
 
         RESET();
         return RET_SUCCESS;
@@ -87,7 +87,7 @@ public:
             return ret;
         }
 
-        *zAxis = ((msb << 8) | lsb) * -1;
+        *zAxis = ((*msb << 8) | *lsb) * -1;
 
         RESET();
         return RET_SUCCESS;
