@@ -1,159 +1,175 @@
 /**
- * This is the device independent driver for the MS5607 Barometric sensor module.
- * The datasheet can be found at https://www.te.com/commerce/DocumentDelivery/DDEController?Action=srchrtrv&DocNm=MS5607-02BA03&DocType=Data+Sheet&DocLang=English
- **/
+ * Implementation of driver for the MS5607 Altimeter
+ *
+ * @author Aaron Chan
+ */
 
-#ifndef MS5607_H
-#define MS5607_H
+#ifndef LAUNCH_CORE_MS5607_H
+#define LAUNCH_CORE_MS5607_H
 
-#include <stdlib.h>
-#include <stdint.h>
-
-#include "device/StreamDevice.h"
+#include "device/GPIODevice.h"
 #include "sched/macros.h"
 #include "return.h"
+
+#define CHECK_RET {if (ret != RET_SUCCESS) {RESET(); return ret;}}
+
+typedef enum {
+    I2C_PROTOCOL = 1,
+    SPI_PROTOCOL = 0
+} MS5607_SERIAL_PROTOCOL_T;
+
+typedef enum {
+    FACTORY_DATA_ADDR = 0,
+    COEFFICIENT_ONE_ADDR = 1,
+    COEFFICIENT_TWO_ADDR = 2,
+    COEFFICIENT_THREE_ADDR = 3,
+    COEFFICIENT_FOUR_ADDR = 4,
+    COEFFICIENT_FIVE_ADDR = 5,
+    COEFFICIENT_SIX_ADDR = 6,
+    SERIAL_CRC_ADDR = 7,
+} PROM_ADDR_T;
+
+typedef enum {
+    SPI_RESET_COMMAND = 0x1E,
+    SPI_CONVERT_D1_256 = 0x40,
+    SPI_CONVERT_D1_512 = 0x42,
+    SPI_CONVERT_D1_1024 = 0x44,
+    SPI_CONVERT_D1_2048 = 0x46,
+    SPI_CONVERT_D1_4096 = 0x48,
+
+    SPI_CONVERT_D2_256 = 0x50,
+    SPI_CONVERT_D2_512 = 0x52,
+    SPI_CONVERT_D2_1024 = 0x54,
+    SPI_CONVERT_D2_2048 = 0x56,
+    SPI_CONVERT_D2_4096 = 0x58,
+
+    SPI_ADC_READ = 0x00,
+    SPI_PROM_READ = 0xA0, // TODO: Goes to 0xAE based on b4-6 Ad2, Ad1, Ad0.
+} SPI_COMMAND_T;
 
 
 class MS5607 {
 public:
-    // constructor method, here send a reset command to the chip, must happen once after power on
-    // constructor must also read PROM and the stores the different 1-6 cofficients
-    MS5607(I2CDevice &i2c) : m_i2c(i2c) {
-        // RESET command sent to the device
-        CALL(m_i2c.write(i2cWriteAddr, REST, 1)); // addr, 0xE1, 1 byte (8 bits)
+    MS5607(GPIODevice &psPin, GPIODevice &diPin, GPIODevice &doPin, GPIODevice &csPin, GPIODevice &sdaPin) :
+            protocolSelectPin(psPin), dataInPin(diPin), dataOutPin(doPin), chipSelectPin(csPin),
+            serialDataPin(sdaPin) {}
 
-        // The buffer to write variables into
-        uint8_t *buff;
+    RetType init(MS5607_SERIAL_PROTOCOL_T protocol) {
+        RESUME();
 
-        // reading PROM coffients and storing them
-        CALL(m_i2c.write(i2cWriteAddr, c1, 1)); // reading c1
-        SENS_T1 = CALL(m_i2c.read(i2cReadAddr, buff, 2));
+        RetType ret = CALL(setProtocol(protocol));
 
-        CALL(m_i2c.write(i2cWriteAddr, c2, 1)); // reading c2
-        OFF_T1 = CALL(m_i2c.read(i2cReadAddr, buff, 2));
+        // TODO: Set T1 and S1
 
-        CALL(m_i2c.write(i2cWriteAddr, c3, 1)); // reading c3
-        TCS = CALL(m_i2c.read(i2cReadAddr, buff, 2));
-
-        CALL(m_i2c.write(i2cWriteAddr, c4, 1)); // reading c4
-        TCO = CALL(m_i2c.read(i2cReadAddr, buff, 2));
-
-        CALL(m_i2c.write(i2cWriteAddr, c5, 1)); // reading c5
-        T_REF = CALL(m_i2c.read(i2cReadAddr, buff, 2));
-
-        CALL(m_i2c.write(i2cWriteAddr, c6, 1)); // reading c6
-        TEMP_SENS = CALL(m_i2c.read(i2cReadAddr, buff, 2));
+        RESET();
+        return ret;
     }
 
-    // public methods to return compensated pressure and temperate based on converted (D1 and D2) data using cofficients read in from the PROM
 
-    /**
-     * @breif a function to return the calculated pressure from offset and D1
-     */
+    RetType setProtocol(MS5607_SERIAL_PROTOCOL_T protocol) {
+        RESUME();
 
-    RetType pressure() {
-        uint8_t *pressureBuffer;
-        RetType pressureValue = read_pressure(i2cWriteAddr, i2cReadAddr, pressureBuffer);
-        return pressureValue;
+        this->selectedProtocol = protocol;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+
+
+
+    RetType d1Conversion() {
+
+    }
+
+    RetType d2Conversion() {
+
+    }
+
+    RetType readADC() {
+
+    }
+
+    RetType calcPressureTemp(int32_t *pressure, int32_t *temp) {
+        RESUME();
+
+        // Read Calibration Data
+        uint16_t pressureSens = 0;
+        uint16_t pressureOffset = 0;
+        uint16_t pressureSensTempCo = 0;
+        uint16_t pressureOffsetTempCo = 0;
+        uint16_t tempRef = 0;
+        uint16_t tempSens = 0;
+
+        RetType ret;
+        for (uint8_t i = 1; i < 7; i++) {
+            ret = CALL(readProm(static_cast<PROM_ADDR_T>(i)));
+            if (ret != RET_SUCCESS) {
+                RESET();
+                return ret;
+            }
+        }
+
+        // Read Digital Values
+        uint32_t digitalPressure = d1Conversion();
+        uint32_t digitalTemperature = d2Conversion();
+
+        // Calculate temperature
+        int32_t tempDiff = digitalTemperature - tempRef; // dT = D2 - TREF = D2 - C5 * 2^8
+        int32_t actualTemp = 20 + digitalTemperature * tempSens; // TEMP = 20°C + dT * TEMPSENS =2000 + dT * C6 / 223
+
+        // Calculate temperature compensated pressure
+        int64_t actualTempOffset = offsetT1 + pressureOffsetTempCo * tempDiff; // OFF = OFFT1 + TCO * dT = C2 * 2^17 +(C4 *dT) / 26
+        int64_t actualTempSens = sensitivityT1 + pressureSensTempCo * tempDiff; // SENS = SENST1+ TCS* dT= C1 * 2 16 + (C3 * dT )/ 27
+        int32_t tempCompPressure = digitalPressure * actualTempSens - actualTempOffset; // P = D1 * SENS - OFF = (D1 * SENS / 2 21 - OFF) / 2^15
+
+        *pressure = tempCompPressure;
+        *temp = actualTemp;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType calcTempCompensation(int32_t temperature) {
+        return RET_SUCCESS;
     }
 
 
 private:
+    MS5607_SERIAL_PROTOCOL_T selectedProtocol;
+    GPIODevice &protocolSelectPin;
 
-    StreamDevice &m_i2c;
+    GPIODevice &dataInPin;
+    GPIODevice &dataOutPin;
+    GPIODevice &chipSelectPin;
 
-    // Don't understand what it means by CSB value form datasheet, therefore leaving these variables undefined for now.
-    uint16_t i2cReadAddr;
-    uint16_t i2cWriteAddr;
+    GPIODevice &serialDataPin;
 
-    // PROM variables (QUESTIONS: Should these be RetTypes or uint16_t???)
-    RetType SENS_T1;
-    RetType OFF_T1;
-    RetType TCS;
-    RetType TCO;
-    RetType T_REF;
-    RetType TEMP_SENS;
+    int64_t offsetT1;
+    int64_t sensitivityT1;
 
-    // PROM registors
-    uint8_t c1 = 0xA2; // cofficient 1
-    uint8_t c2 = 0xA4; // cofficient 2
-    uint8_t c3 = 0xA6; // cofficinet 3
-    uint8_t c4 = 0xA8; // cofficinet 4
-    uint8_t c5 = 0xAA; // cofficinet 5
-    uint8_t c6 = 0xAC; // cofficient 6
-
-    // Commands
-    uint8_t REST = 0x1E; // Reset command, need to call in the constructor
-    uint8_t ADC = 0x00; // ADC read command
-    uint8_t D1 = 0x48; // Temp convert
-    uint8_t D2 = 0x58; // Pressure convert
-
-    // Data buffers to store the data
-    RetType d1Converter;
-    RetType d2Converter;
-
-    /**@breif a helper method to read D1 value and use PROM variables
-     * to calculate pressure
-     * @param WriteAddr the address to write to.
-     * @param ReadAddr the adress to read from
-     * @param buff, the buffer to write to
-     * @return the final pressure
-     */
-    RetType read_pressure(uint8_t WriteAddr, uint8_t ReadAddr, uint8_t *buff) {
-        RetType ret;
-        RetType finalPressure;
-
-        // Starting D1 conversion
-        CALL(m_i2c.write(WriteAddr, D1, 1));
-
-        // Writing to the sensor to start the ADC message
-        CALL(m_i2c.write(WriteAddr, ADC, 1));
-
-        // Reading the values from the sensor
-        ret = CALL(m_i2c.read(ReadAddr, buff, 4));
-
-        uint8_t *dTBuffer;
-        // Getting the temp difference
-        int dT = computeTempDT(WriteAddr, ReadAddr, dTBuffer);
-
-        // Math to convert the digital value into an actual pressure
-        int SEN = SENS_T1 * TCS * dT;
-        finalPressure = D1 * SENS - OFF;
-
-        // Return the value
-        return finalPressure;
-
+    RetType readProm(PROM_ADDR_T address) {
 
     }
 
-    int computeTempDT(uint8_t WriteAddr, uint8_t ReadAddr, uint8_t *buff) {
-        RetType ret;
-        int dT;
+    RetType reset() {
+        RESUME();
+        if (selectedProtocol == SPI_PROTOCOL) {
+            RetType ret = CALL(chipSelectPin.set(0));
+            CHECK_RET
 
-        // starting D2 conversion
-        CALL(m_i2c.write(WriteAddr, D2, 1));
-        CALL(m_i2c.write(WriteAddr, ADC, 1));
+            ret = CALL(dataOutPin.set(SPI_RESET_COMMAND));
+            CHECK_RET
 
-        ret = CALL(m_i2c.read(ReadAddr, buff, 4));
+            ret = CALL(chipSelectPin.set(1));
 
-        // computing D2 here
-        dT = D2 - T_REF;
-        return dT;
+            RESET();
+            return ret;
+        }
+
 
     }
-
-
-
-    //private method to read uncompendsated temperature
-
-    /**
-     * List of things needed to be done after verfying that current code can
-     * actually compile and work
-     * TODO:
-     *  1. Get temperature
-     *  2. Compute Second order temperature compenstation*/
-
-
 };
 
-#endif //MS5607_H
+#endif //LAUNCH_CORE_MS5607_H
+
