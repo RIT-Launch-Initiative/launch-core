@@ -16,22 +16,22 @@
 
 class ADXL375 {
 public:
-    ADXL375(I2CDevice& i2c) : m_i2c(i2c) {}
+    ADXL375(I2CDevice &i2c) : m_i2c(i2c) {}
 
-   RetType readX(int16_t* xAxis){
+    RetType readX(int16_t *xAxis) {
         RESUME();
-        uint8_t* lsb;
-        uint8_t* msb;
+        uint8_t *lsb;
+        uint8_t *msb;
 
         // reading the data
         RetType ret = CALL(m_i2c.read(xLSBData, lsb, 1));
-        if (ret != RET_SUCCESS){
+        if (ret != RET_SUCCESS) {
             RESET();
             return ret;
         }
 
         ret = CALL(m_i2c.read(xMSBData, msb, 1));
-        if (ret != RET_SUCCESS){
+        if (ret != RET_SUCCESS) {
             RESET();
             return ret;
         }
@@ -43,20 +43,20 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType readY(int16_t* yAxis){
+    RetType readY(int16_t *yAxis) {
         RESUME();
-        uint8_t* lsb;
-        uint8_t* msb;
+        uint8_t *lsb;
+        uint8_t *msb;
 
         // reading the data
         RetType ret = CALL(m_i2c.read(yLSBData, lsb, 1));
-        if (ret != RET_SUCCESS){
+        if (ret != RET_SUCCESS) {
             RESET();
             return ret;
         }
 
         ret = CALL(m_i2c.read(yMSBData, msb, 1));
-        if (ret != RET_SUCCESS){
+        if (ret != RET_SUCCESS) {
             RESET();
             return ret;
         }
@@ -69,20 +69,20 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType readZ(int16_t* zAxis){
+    RetType readZ(int16_t *zAxis) {
         RESUME();
-        uint8_t* lsb;
-        uint8_t* msb;
+        uint8_t *lsb;
+        uint8_t *msb;
 
         // reading the data
         RetType ret = CALL(m_i2c.read(zLSBData, lsb, 1));
-        if (ret != RET_SUCCESS){
+        if (ret != RET_SUCCESS) {
             RESET();
             return ret;
         }
 
         ret = CALL(m_i2c.read(zMSBData, msb, 1));
-        if (ret != RET_SUCCESS){
+        if (ret != RET_SUCCESS) {
             RESET();
             return ret;
         }
@@ -96,15 +96,15 @@ public:
 
 
 private:
-    I2CDevice& m_i2c;
+    I2CDevice &m_i2c;
 
     // I2CAddr for the different axis data
-    I2CAddr_t xLSBData {0x3B, 0x32, 1};
-    I2CAddr_t xMSBData {0x3B, 0x33, 1};
-    I2CAddr_t yLSBData {0x3B, 0x34, 1};
-    I2CAddr_t yMSBData {0x3B, 0x35, 1};
-    I2CAddr_t zLSBData {0x3B, 0x36, 1};
-    I2CAddr_t zMSBData {0x3B, 0x37, 1};
+    I2CAddr_t xLSBData{0x3B, 0x32, 1};
+    I2CAddr_t xMSBData{0x3B, 0x33, 1};
+    I2CAddr_t yLSBData{0x3B, 0x34, 1};
+    I2CAddr_t yMSBData{0x3B, 0x35, 1};
+    I2CAddr_t zLSBData{0x3B, 0x36, 1};
+    I2CAddr_t zMSBData{0x3B, 0x37, 1};
 };
 
 
