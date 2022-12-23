@@ -111,6 +111,25 @@ public:
         return RET_SUCCESS;
     }
 
+    RetType dataRateSet(lis3mdl_om_t val) {
+        RESUME();
+
+        int32_t result = lis3mdl_data_rate_set(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType dataRateGet(lis3mdl_om_t *val) {
+        RESUME();
+
+        int32_t result = lis3mdl_data_rate_get(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+
 
 
 private:
