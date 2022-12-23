@@ -92,13 +92,13 @@ public:
     RetType readTempCelsius(float *temp) {
         RESUME();
 
-        uint8_t data[2] = {0, 0};
+        uint8_t data[2] = {};
         RetType ret = readRegister(TMP117_TEMP_RESULT, data, 2);
         if (ret != RET_SUCCESS) {
             return ret;
         }
 
-        *temp = ((int16_t) data[0] << 8 | data[1]) * TMP117_RESOLUTION;
+        *temp = uint8ToInt16(data) * TMP117_RESOLUTION;
 
         RESET();
         return ret;
@@ -121,11 +121,11 @@ public:
     RetType getTempOffset(float *offset) {
         RESUME();
 
-        uint8_t *initOffset;
+        uint8_t initOffset[2] = {};
         RetType ret = readRegister(TMP117_TEMP_OFFSET, initOffset, 2);
         if (ret != RET_SUCCESS) return ret;
 
-        int16_t initOffset16 = (initOffset[0] << 8) | initOffset[1];
+        int16_t initOffset16 = uint8ToInt16(initOffset);
         *offset = static_cast<float>(initOffset16) * TMP117_RESOLUTION;
 
         RESET();
@@ -136,7 +136,7 @@ public:
         RESUME();
         int16_t resolutionOffset = offset / TMP117_RESOLUTION;
         uint8_t offset8[2] = {static_cast<uint8_t>(resolutionOffset >> 8),
-                                  static_cast<uint8_t>(resolutionOffset & 0xFF)};
+                              static_cast<uint8_t>(resolutionOffset & 0xFF)};
 
         RetType ret = CALL(writeRegister(TMP117_TEMP_OFFSET, offset8, 2));
         if (ret != RET_SUCCESS) return ret;
@@ -144,6 +144,20 @@ public:
         RESET();
         return RET_SUCCESS;
     }
+
+    RetType getLowLimit(int16_t *limit) {
+        RESUME();
+
+        uint8_t limit8[2] = {};
+        RetType ret = readRegister(TMP117_T_LOW_LIMIT, limit8, 2);
+        if (ret != RET_SUCCESS) return ret;
+
+        *limit = uint8ToInt16(limit8);
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
 
     RetType getConversionCycleBit(uint8_t *cycleBit) {
         RESUME();
@@ -207,6 +221,17 @@ public:
 private:
     I2CDevice *mI2C;
     uint8_t deviceAddr;
+
+    int16_t uint8ToInt16(uint8_t *data) {
+        return (data[0] << 8) | data[1];
+    }
+
+    void *int16ToUint8(int16_t data16, uint8_t *data8) {
+        data8[0] = static_cast<uint8_t>(data16 >> 8);
+        data8[1] = static_cast<uint8_t>(data16 & 0xFF);
+
+        return data8;
+    }
 
 };
 
