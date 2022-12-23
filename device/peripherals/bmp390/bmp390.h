@@ -24,7 +24,7 @@ public:
                            .intf_ptr = pInterface,
                            .intf = commInterface,
                            .intf_rslt = BMP3_INTF_RET_SUCCESS,
-                           .dummy_byte = 0, // TODO: Figure dummy bytes out
+                           .dummy_byte = 0x00,
                            .delay_us = delayFptr,
                            .calib_data = calibrationData,
                    }) {
