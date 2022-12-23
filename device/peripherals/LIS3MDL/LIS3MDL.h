@@ -1,5 +1,5 @@
 /**
- * Platform Independent Implementation of the LIS3MDL sensor
+ * Facade for using LIS3MDL sensor driver with launch-core scheduler
  *
  * @author Aaron Chan
  */
@@ -12,6 +12,7 @@
 #include "sched/macros/resume.h"
 #include "sched/macros/reset.h"
 #include "lis3mdl_reg.h"
+#include "sched/macros/call.h"
 
 enum COMM_MODE { // Please just use I2C for now
     SPI,
@@ -30,6 +31,7 @@ public:
     }
 
     RetType init(COMM_MODE mode) {
+        RESUME();
 
         switch (mode) {
             case SPI:
@@ -40,7 +42,30 @@ public:
                 device.read_reg = i2cRead;
                 break;
         }
+
+        RESET();
+        return RET_SUCCESS;
     }
+
+    RetType readRegister(uint8_t reg, uint8_t *data, uint16_t len) {
+        RESUME();
+
+        int32_t result = lis3mdl_read_reg(&device, reg, data, len);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType writeRegister(uint8_t reg, uint8_t *data, uint16_t len) {
+        RESUME();
+
+        int32_t result = lis3mdl_write_reg(&device, reg, data, len);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+
 
 private:
     static I2CDevice *mI2C;
@@ -56,7 +81,7 @@ private:
                 .mem_addr_size = sizeof(uint8_t),
         };
 
-        RetType ret = mI2C->read(addr, const_cast<uint8_t *>(data), len);
+        RetType ret = CALL(mI2C->read(addr, const_cast<uint8_t *>(data), len));
 
         RESET();
         return ret == RET_SUCCESS ? 0 : -1;
@@ -72,7 +97,7 @@ private:
                 .mem_addr_size = sizeof(uint8_t),
         };
 
-        RetType ret = mI2C->write(addr, const_cast<uint8_t *>(data), len);
+        RetType ret = CALL(mI2C->write(addr, const_cast<uint8_t *>(data), len));
 
         RESET();
         return ret == RET_SUCCESS ? 0 : -1;
@@ -83,7 +108,7 @@ private:
     static int32_t spiRead(void *handle, uint8_t reg, uint8_t *data, uint16_t len) {
         RESUME();
 
-        RetType ret = mSPI->read(const_cast<uint8_t *>(data), len);
+        RetType ret = CALL(mSPI->read(const_cast<uint8_t *>(data), len));
 
         RESET();
         return ret == RET_SUCCESS ? 0 : -1;
@@ -92,7 +117,7 @@ private:
     static int32_t spiWrite(void *handle, uint8_t reg, const uint8_t *data, uint16_t len) {
         RESUME();
 
-        RetType ret = mSPI->read(const_cast<uint8_t *>(data), len);
+        RetType ret = CALL(mSPI->read(const_cast<uint8_t *>(data), len));
 
         RESET();
         return ret == RET_SUCCESS ? 0 : -1;
