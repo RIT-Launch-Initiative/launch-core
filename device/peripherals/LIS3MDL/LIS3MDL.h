@@ -24,8 +24,8 @@ public:
     LIS3MDL(uint8_t chipID, void *pInterface, stmdev_mdelay_ptr delayFptr,
             SPIDevice *spiDev = nullptr, I2CDevice *i2cDev = nullptr) :
             device({
-                .mdelay = delayFptr
-            }){
+                           .mdelay = delayFptr
+                   }) {
         mSPI = spiDev;
         mI2C = i2cDev;
     }
@@ -66,7 +66,7 @@ public:
     }
 
 
-    RetType fs4ToGauss(int16_t lsb, float_t* gauss) {
+    RetType fs4ToGauss(int16_t lsb, float_t *gauss) {
         RESUME();
 
         *gauss = lis3mdl_from_fs4_to_gauss(lsb);
@@ -75,7 +75,7 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType fs8ToGauss(int16_t lsb, float_t* gauss) {
+    RetType fs8ToGauss(int16_t lsb, float_t *gauss) {
         RESUME();
 
         *gauss = lis3mdl_from_fs8_to_gauss(lsb);
@@ -84,7 +84,7 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType fs12ToGauss(int16_t lsb, float_t* gauss) {
+    RetType fs12ToGauss(int16_t lsb, float_t *gauss) {
         RESUME();
 
         *gauss = lis3mdl_from_fs12_to_gauss(lsb);
@@ -93,7 +93,7 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType fs16ToGauss(int16_t lsb, float_t* gauss) {
+    RetType fs16ToGauss(int16_t lsb, float_t *gauss) {
         RESUME();
 
         *gauss = lis3mdl_from_fs16_to_gauss(lsb);
@@ -102,7 +102,7 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType lsbToGauss(int16_t lsb, float_t* gauss) {
+    RetType lsbToGauss(int16_t lsb, float_t *gauss) {
         RESUME();
 
         *gauss = lis3mdl_from_lsb_to_celsius(lsb);
@@ -436,8 +436,131 @@ public:
         return result == 0 ? RET_SUCCESS : RET_ERROR;
     }
 
+    RetType getMagDataReady(uint8_t *val) {
+        RESUME();
 
+        int32_t result = lis3mdl_mag_data_ready_get(&device, val);
 
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType getMagDataOvr(uint8_t *val) {
+        RESUME();
+
+        int32_t result = lis3mdl_mag_data_ovr_get(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType getRawMagnetic(int16_t *val) {
+        RESUME();
+
+        int32_t result = lis3mdl_magnetic_raw_get(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType getRawTemperature(int16_t *val) {
+        RESUME();
+
+        int32_t result = lis3mdl_temperature_raw_get(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType getDeviceID(uint8_t *buff) {
+        RESUME();
+
+        int32_t result = lis3mdl_device_id_get(&device, buff);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType getSource(lis3mdl_int_src_t *val) {
+        RESUME();
+
+        int32_t result = lis3mdl_int_source_get(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType getInterruptEventFlag(uint8_t *val) {
+        RESUME();
+
+        int32_t result = lis3mdl_interrupt_event_flag_get(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType getMagOverRangeFlag(uint8_t *val) {
+        RESUME();
+
+        int32_t result = lis3mdl_int_mag_over_range_flag_get(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType getNegZFlag(uint8_t *val) {
+        RESUME();
+
+        int32_t result = lis3mdl_int_neg_z_flag_get(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType getNegYFlag(uint8_t *val) {
+        RESUME();
+
+        int32_t result = lis3mdl_int_neg_y_flag_get(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType getNegXFlag(uint8_t *val) {
+        RESUME();
+
+        int32_t result = lis3mdl_int_neg_x_flag_get(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType getPosZFlag(uint8_t *val) {
+        RESUME();
+
+        int32_t result = lis3mdl_int_pos_z_flag_get(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType getPosYFlag(uint8_t *val) {
+        RESUME();
+
+        int32_t result = lis3mdl_int_pos_y_flag_get(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType getPosXFlag(uint8_t *val) {
+        RESUME();
+
+        int32_t result = lis3mdl_int_pos_x_flag_get(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
 
 
     RetType getStatus(lis3mdl_status_reg_t *val) {
