@@ -73,6 +73,11 @@ enum TMP117_HILO_LIMIT {
     TMP117_LO_REG = 0X03,
 };
 
+enum TMP117_HILO_ALERT_BIT {
+    TMP117_HI_BIT = 15,
+    TMP117_LO_BIT = 14,
+};
+
 
 class TMP117 {
 public:
@@ -257,7 +262,7 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType getHighAlert(bool *alertResult) {
+    RetType getAlert(bool *alertResult, TMP117_HILO_ALERT_BIT alertBit) {
         RESUME();
 
         uint8_t configRegister8[2] = {};
@@ -265,9 +270,47 @@ public:
         if (ret != RET_SUCCESS) return ret;
 
         uint16_t configRegister16 = uint8ToInt16(configRegister8); // TODO: Is Int16 conversion going to be ok?
-        uint8_t highAlert = bitRead(configRegister16, 15);
+        uint8_t highAlert = bitRead(configRegister16, alertBit);
 
         *alertResult = highAlert == 1;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType setAlertFunctionMode(uint8_t alertMode) {
+        RESUME();
+
+        uint8_t alertFunctionMode8[2] = {};
+        RetType ret = CALL(readRegister(TMP117_CONFIGURATION, alertFunctionMode8, 2));
+        if (ret != RET_SUCCESS) return ret;
+
+        uint16_t alertFunctionMode16 = uint8ToInt16(alertFunctionMode8);
+
+        if (alertMode == 1) {
+            bitWrite(alertFunctionMode16, 4, 1);
+        } else {
+            bitClear(alertFunctionMode16, 4);
+        }
+
+        uint16ToUint8(alertFunctionMode16, alertFunctionMode8);
+        ret = CALL(writeRegister(TMP117_CONFIGURATION, alertFunctionMode8, 2));
+        if (ret != RET_SUCCESS) return ret;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getAlertFunctionMode(uint8_t *functionMode) {
+        RESUME();
+        uint8_t configRegister8[2] = {};
+        RetType ret = CALL(readRegister(TMP117_CONFIGURATION, configRegister8, 2));
+        if (ret != RET_SUCCESS) return ret;
+
+        uint16_t configRegister16 = uint8ToInt16(configRegister8);
+        uint8_t currentAlertMode = bitRead(configRegister16, 4);
+
+        *functionMode = currentAlertMode == 1 ? 1 : 0;
 
         RESET();
         return RET_SUCCESS;
@@ -287,6 +330,13 @@ private:
     }
 
     void *int16ToUint8(int16_t data16, uint8_t *data8) {
+        data8[0] = static_cast<uint8_t>(data16 >> 8);
+        data8[1] = static_cast<uint8_t>(data16 & 0xFF);
+
+        return data8;
+    }
+
+    void *uint16ToUint8(uint16_t data16, uint8_t *data8) {
         data8[0] = static_cast<uint8_t>(data16 >> 8);
         data8[1] = static_cast<uint8_t>(data16 & 0xFF);
 
