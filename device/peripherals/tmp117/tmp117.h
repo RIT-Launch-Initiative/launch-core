@@ -419,6 +419,74 @@ public:
         return RET_SUCCESS;
     }
 
+    RetType setConversionCycleBit(uint8_t convTime) {
+        RESUME();
+        uint16_t *configReg;
+        RetType ret = getConfigRegister(configReg);
+        if (ret != RET_SUCCESS) return ret;
+
+        switch (convTime) {
+            case 0:
+                bitClear(*configReg, 9);
+                bitClear(*configReg, 8);
+                bitClear(*configReg, 7);
+
+                break;
+            case 1:
+                bitClear(*configReg, 9);
+                bitClear(*configReg, 8);
+                bitWrite(*configReg, 7, 1);
+
+                break;
+            case 2:
+                bitClear(*configReg, 9);
+                bitWrite(*configReg, 8, 1);
+                bitClear(*configReg, 7);
+
+                break;
+            case 3:
+                bitClear(*configReg, 9);
+                bitWrite(*configReg, 8, 1);
+                bitWrite(*configReg, 7, 1);
+
+                break;
+            case 4:
+                bitWrite(*configReg, 9, 1);
+                bitClear(*configReg, 8);
+                bitClear(*configReg, 7);
+
+                break;
+            case 5:
+                bitWrite(*configReg, 9, 1);
+                bitClear(*configReg, 8);
+                bitWrite(*configReg, 7, 1);
+
+                break;
+            case 6:
+                bitWrite(*configReg, 9, 1);
+                bitWrite(*configReg, 8, 1);
+                bitClear(*configReg, 7);
+
+                break;
+            case 7:
+                bitWrite(*configReg, 9, 1);
+                bitWrite(*configReg, 8, 1);
+                bitWrite(*configReg, 7, 1);
+
+                break;
+            default:
+                return RET_ERROR;
+        }
+
+        uint8_t configReg8[2] = {};
+        uint16ToUint8(*configReg, configReg8);
+        ret = CALL(writeRegister(TMP117_CONFIGURATION, configReg8, 2));
+        if (ret != RET_SUCCESS) return ret;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
     RetType getConversionCycleBit(uint8_t *cycleBit) {
         RESUME();
         uint16_t configReg = 0;
