@@ -436,6 +436,44 @@ public:
         return result == 0 ? RET_SUCCESS : RET_ERROR;
     }
 
+    RetType setNotificationMode(lis3mdl_lir_t val) {
+        RESUME();
+
+        int32_t result = lis3mdl_int_notification_mode_set(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType getNotificationMode(lis3mdl_lir_t *val) {
+        RESUME();
+
+        int32_t result = lis3mdl_int_notification_mode_get(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType setSPIMode(lis3mdl_sim_t val) {
+        RESUME();
+
+        int32_t result = lis3mdl_spi_mode_set(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType getSPIMode(lis3mdl_sim_t *val) {
+        RESUME();
+
+        int32_t result = lis3mdl_spi_mode_get(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+
+
     RetType getMagDataReady(uint8_t *val) {
         RESUME();
 
