@@ -111,7 +111,6 @@ public:
 
         int8_t result = bmp3_get_regs(regAddress, regData, len, &this->device);
 
-
         RESET();
         return result == 0 ? RET_SUCCESS : RET_ERROR;
     }
@@ -134,8 +133,7 @@ public:
         return result == 0 ? RET_SUCCESS : RET_ERROR;
     }
 
-    RetType getFifoData(struct bmp3_fifo_data *fifo,
-                        const struct bmp3_fifo_settings *fifoSettings) {
+    RetType getFifoData(struct bmp3_fifo_data *fifo, const struct bmp3_fifo_settings *fifoSettings) {
         RESUME();
 
         int8_t result = bmp3_get_fifo_data(fifo, fifoSettings, &this->device);
@@ -237,7 +235,6 @@ private:
     };
 
     // TODO: Not using SPI, but should figure out how to use regAddr here
-
     static BMP3_INTF_RET_TYPE spiRead(uint8_t regAddr, uint8_t *data, uint32_t len, void *intfPtr) {
         RESUME();
 
