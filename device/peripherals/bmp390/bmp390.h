@@ -11,27 +11,49 @@
 #include "return.h"
 #include "sched/macros/resume.h"
 #include "sched/macros/reset.h"
+#include "device/SPIDevice.h"
+#include "device/I2CDevice.h"
 
 
 class BMP390 {
 public:
     BMP390(uint8_t chipID, void *pInterface, bmp3_intf commInterface, struct bmp3_calib_data calibrationData,
-           bmp3_read_fptr_t readFptr, bmp3_write_fptr_t writePtr, bmp3_delay_us_fptr_t delayPtr) :
+           bmp3_delay_us_fptr_t delayFptr, SPIDevice *spiDev = nullptr, I2CDevice *i2cDev = nullptr) :
             device({
                            .chip_id = chipID,
                            .intf_ptr = pInterface,
                            .intf = commInterface,
                            .intf_rslt = BMP3_INTF_RET_SUCCESS,
                            .dummy_byte = 0, // TODO: Figure dummy bytes out
-                           .read = readFptr,
-                           .write = writePtr,
-                           .delay_us = delayPtr,
+                           .delay_us = delayFptr,
                            .calib_data = calibrationData,
                    }) {
+        mSPI = spiDev;
+        mI2C = i2cDev;
     }
 
     RetType init() {
         RESUME();
+
+        switch (device.intf) {
+            case BMP3_SPI_INTF:
+                if (mSPI == nullptr) return RET_ERROR;
+
+                device.read = spiRead;
+                device.write = spiWrite;
+
+                break;
+            case BMP3_I2C_INTF:
+                if (mI2C == nullptr) return RET_ERROR;
+
+                device.read = i2cRead;
+                device.write = i2cWrite;
+
+                break;
+            default:
+                return RET_ERROR;
+        }
+
 
         int8_t result = bmp3_init(&this->device);
 
@@ -52,15 +74,6 @@ public:
         RESUME();
 
         int8_t result = bmp3_set_sensor_settings(desiredSettings, settings, &this->device);
-
-        RESET();
-        return result == 0 ? RET_SUCCESS : RET_ERROR;
-    }
-
-    RetType setSensorSettings(struct bmp3_settings *settings) {
-        RESUME();
-
-        int8_t result = bmp3_get_sensor_settings(settings, &this->device);
 
         RESET();
         return result == 0 ? RET_SUCCESS : RET_ERROR;
@@ -98,15 +111,6 @@ public:
 
         int8_t result = bmp3_get_regs(regAddress, regData, len, &this->device);
 
-
-        RESET();
-        return result == 0 ? RET_SUCCESS : RET_ERROR;
-    }
-
-    RetType setSensorSettings() {
-        RESUME();
-
-        int8_t result = bmp3_set_sensor_settings(&this->device);
 
         RESET();
         return result == 0 ? RET_SUCCESS : RET_ERROR;
@@ -198,10 +202,49 @@ public:
 
 private:
     bmp3_dev device;
+    static SPIDevice *mSPI;
+    static I2CDevice *mI2C;
 
-    RetType bmpResultConvert(int8_t result) {
-        return result == 0 ? RET_SUCCESS : RET_ERROR;
-    }
+    static BMP3_INTF_RET_TYPE spiRead(uint8_t reg_addr, uint8_t *read_data, uint32_t len, void *intf_ptr) {
+        RESUME();
+
+        RetType ret = mSPI->read();
+
+        RESET();
+        return ret == RET_SUCCESS ? 0 : -1;
+    };
+
+    static BMP3_INTF_RET_TYPE spiWrite(uint8_t reg_addr, const uint8_t *write_data, uint32_t len, void *intf_ptr) {
+        RESUME();
+
+        RetType ret = mSPI->read();
+
+        RESET();
+        return ret == RET_SUCCESS ? 0 : -1;
+
+    };
+
+    static BMP3_INTF_RET_TYPE i2cRead(uint8_t reg_addr, uint8_t *read_data, uint32_t len, void *intf_ptr) {
+        RESUME();
+
+        RetType ret = mI2C->read();
+
+        RESET();
+        return ret == RET_SUCCESS ? 0 : -1;
+
+    };
+
+    static BMP3_INTF_RET_TYPE i2cWrite(uint8_t reg_addr, const uint8_t *write_data, uint32_t len, void *intf_ptr) {
+        RESUME();
+
+        RetType ret = mI2C->read();
+
+        RESET();
+        return ret == RET_SUCCESS ? 0 : -1;
+    };
+
+
 };
+
 
 #endif //LAUNCH_CORE_BMP390_H
