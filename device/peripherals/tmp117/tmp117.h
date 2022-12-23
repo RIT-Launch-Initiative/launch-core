@@ -12,6 +12,7 @@
 #include "device/I2CDevice.h"
 #include "sched/macros/resume.h"
 #include "sched/macros/reset.h"
+#include "sched/macros/call.h"
 
 
 #define DEVICE_ID_VALUE 0x0117
@@ -106,7 +107,7 @@ public:
     RetType readTempFahrenheit(float *temp) {
         RESUME();
 
-        RetType ret = readTempCelsius(temp);
+        RetType ret = CALL(readTempCelsius(temp));
         if (ret != RET_SUCCESS) {
             return ret;
         }
@@ -115,6 +116,52 @@ public:
 
         RESET();
         return ret;
+    }
+
+    RetType getConversionCycleBit(uint8_t* cycleBit) {
+        RESUME();
+        uint16_t configReg = 0;
+        uint8_t data = static_cast<uint8_t>(configReg >> 8);
+        configReg = readRegister(TMP117_CONFIGURATION, &data, sizeof(data));
+
+        uint8_t currentTime9 = CALL(bitRead(configReg, 9));
+        uint8_t currentTime8 = CALL(bitRead(configReg, 8));
+        uint8_t currentTime7 = CALL(bitRead(configReg, 7));
+
+        if (currentTime9 == 0 && currentTime8 == 0 && currentTime7 == 0) {
+            *cycleBit = 0b000;
+        } else if (currentTime9 == 0 && currentTime8 == 0 && currentTime7 == 1) {
+            *cycleBit = 0b001;
+        } else if (currentTime9 == 0 && currentTime8 == 1 && currentTime7 == 0) {
+            *cycleBit = 0b010;
+        } else if (currentTime9 == 0 && currentTime8 == 1 && currentTime7 == 1) {
+            *cycleBit = 0b011;
+        } else if (currentTime9 == 1 && currentTime8 == 0 && currentTime7 == 0) {
+            *cycleBit = 0b100;
+        } else if (currentTime9 == 1 && currentTime8 == 0 && currentTime7 == 1) {
+            *cycleBit = 0b101;
+        } else if (currentTime9 == 1 && currentTime8 == 1 && currentTime7 == 0) {
+            *cycleBit = 0b110;
+        } else if (currentTime9 == 1 && currentTime8 == 1 && currentTime7 == 1) {
+            *cycleBit = 0b111;
+        }
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType isDataReady(bool *dataReady) {
+        RESUME();
+
+        uint8_t *response;
+
+        RetType  ret = CALL(readRegister(TMP117_CONFIGURATION, response, 2));
+        uint16_t response16 = (response[0] << 8) | response[1];
+
+        *dataReady = *response & 1 << 13;
+
+        RESET();
+        return RET_SUCCESS;
     }
 
 
