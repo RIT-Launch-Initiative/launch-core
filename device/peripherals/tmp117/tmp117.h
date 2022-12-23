@@ -232,6 +232,19 @@ public:
         return RET_SUCCESS;
     }
 
+    RetType getConfigRegister(uint16_t *configRegister) {
+        RESUME();
+
+        uint8_t configRegister8[2] = {};
+        RetType ret = CALL(readRegister(TMP117_CONFIGURATION, configRegister8, 2));
+        if (ret != RET_SUCCESS) return ret;
+
+        *configRegister = uint8ToInt16(configRegister8); // TODO: Is Int16 conversion going to be ok?
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
 
     uint8_t getAddress() {
         return this->deviceAddr;
@@ -251,7 +264,6 @@ private:
 
         return data8;
     }
-
 };
 
 #endif //LAUNCH_CORE_TMP117_H
