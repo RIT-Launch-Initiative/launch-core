@@ -15,7 +15,20 @@
 
 class BMP390 {
 public:
-    BMP390() {}
+    BMP390(uint8_t chipID, void *pInterface, bmp3_intf commInterface, struct bmp3_calib_data calibrationData,
+           bmp3_read_fptr_t readFptr, bmp3_write_fptr_t writePtr, bmp3_delay_us_fptr_t delayPtr) :
+            device({
+                           .chip_id = chipID,
+                           .intf_ptr = pInterface,
+                           .intf = commInterface,
+                           .intf_rslt = BMP3_INTF_RET_SUCCESS,
+                           .dummy_byte = 0, // TODO: Figure dummy bytes out
+                           .read = readFptr,
+                           .write = writePtr,
+                           .delay_us = delayPtr,
+                           .calib_data = calibrationData,
+                   }) {
+    }
 
     RetType init() {
         RESUME();
@@ -185,14 +198,6 @@ public:
 
 private:
     bmp3_dev device;
-    int8_t chip_id;
-
-
-    void *intf_ptr;
-
-    enum bmp3_intf commInterface;
-
-    BMP3_INTF_RET_TYPE interfaceResult;
 
     RetType bmpResultConvert(int8_t result) {
         return result == 0 ? RET_SUCCESS : RET_ERROR;
