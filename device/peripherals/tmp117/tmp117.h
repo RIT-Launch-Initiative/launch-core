@@ -316,6 +316,57 @@ public:
         return RET_SUCCESS;
     }
 
+    RetType softReset() {
+        RESUME();
+        uint8_t reset8[2] = {};
+        RetType ret = CALL(readRegister(TMP117_CONFIGURATION, reset8, 2));
+        if (ret != RET_SUCCESS) return ret;
+
+        uint16_t reset16 = uint8ToInt16(reset8);
+        bitWrite(reset16, 1, 1);
+        int16ToUint8(reset16, reset8);
+
+        ret = CALL(writeRegister(TMP117_CONFIGURATION, reset8, 2));
+        if (ret != RET_SUCCESS) return ret;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType setContinuousConversionMode(TMP117_Mode mode) {
+        RESUME();
+        uint8_t mode8[2] = {};
+        RetType ret = CALL(readRegister(TMP117_CONFIGURATION, mode8, 2));
+        if (ret != RET_SUCCESS) return ret;
+
+        uint16_t mode16 = uint8ToInt16(mode8);
+
+        switch (mode) {
+            case CONTINUOUS_CONVERSION:
+                bitClear(mode16, 10);
+                bitClear(mode16, 11);
+
+                break;
+            case ONE_SHOT:
+                bitWrite(mode16, 10, 1);
+                bitWrite(mode16, 11, 1);
+
+                break;
+            case SHUTDOWN:
+                bitClear(mode16, 11);
+                bitWrite(mode16, 10, 1);
+                break;
+        }
+
+        int16ToUint8(mode16, mode8);
+
+        ret = CALL(writeRegister(TMP117_CONFIGURATION, mode8, 2));
+        if (ret != RET_SUCCESS) return ret;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
 
     uint8_t getAddress() {
         return this->deviceAddr;
