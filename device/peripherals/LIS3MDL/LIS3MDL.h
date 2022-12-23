@@ -202,6 +202,96 @@ public:
         return result == 0 ? RET_SUCCESS : RET_ERROR;
     }
 
+    RetType setBlockDataUpdate(lis3mdl_md_t val) {
+        RESUME();
+
+        int32_t result = lis3mdl_block_data_update_set(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType getBlockDataUpdate(lis3mdl_md_t *val) {
+        RESUME();
+
+        int32_t result = lis3mdl_block_data_update_get(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType setHighPartCycle(uint8_t val) {
+        RESUME();
+
+        int32_t result = lis3mdl_high_part_cycle_set(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType getHighPartCycle(uint8_t *val) {
+        RESUME();
+
+        int32_t result = lis3mdl_high_part_cycle_get(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType setSelfTest(uint8_t val) {
+        RESUME();
+
+        int32_t result = lis3mdl_self_test_set(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType getSelfTest(uint8_t *val) {
+        RESUME();
+
+        int32_t result = lis3mdl_self_test_get(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType setReset(uint8_t val) {
+        RESUME();
+
+        int32_t result = lis3mdl_reset_set(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType getReset(uint8_t *val) {
+        RESUME();
+
+        int32_t result = lis3mdl_reset_get(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType setBoot(uint8_t val) {
+        RESUME();
+
+        int32_t result = lis3mdl_boot_set(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType getBoot(uint8_t *val) {
+        RESUME();
+
+        int32_t result = lis3mdl_boot_get(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
 
 
 
