@@ -118,15 +118,50 @@ public:
         return ret;
     }
 
-    RetType getConversionCycleBit(uint8_t* cycleBit) {
+    RetType getTempOffset(float *offset) {
+        RESUME();
+
+        uint8_t *initOffset;
+        RetType ret = readRegister(TMP117_TEMP_OFFSET, initOffset, 2);
+        if (ret != RET_SUCCESS) return ret;
+
+        int16_t initOffset16 = (initOffset[0] << 8) | initOffset[1];
+        *offset = static_cast<float>(initOffset16) * TMP117_RESOLUTION;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType setTempOffset(float offset) {
+        RESUME();
+        int16_t resolutionOffset = offset / TMP117_RESOLUTION;
+        uint8_t offset8[2] = {static_cast<uint8_t>(resolutionOffset >> 8),
+                                  static_cast<uint8_t>(resolutionOffset & 0xFF)};
+
+        RetType ret = CALL(writeRegister(TMP117_TEMP_OFFSET, offset8, 2));
+        if (ret != RET_SUCCESS) return ret;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getConversionCycleBit(uint8_t *cycleBit) {
         RESUME();
         uint16_t configReg = 0;
         uint8_t data = static_cast<uint8_t>(configReg >> 8);
         configReg = readRegister(TMP117_CONFIGURATION, &data, sizeof(data));
 
-        uint8_t currentTime9 = CALL(bitRead(configReg, 9));
-        uint8_t currentTime8 = CALL(bitRead(configReg, 8));
-        uint8_t currentTime7 = CALL(bitRead(configReg, 7));
+        uint8_t *currentTime9;
+        RetType ret = CALL(bitRead(configReg, 9));
+        if (ret != RET_SUCCESS) return ret;
+
+        uint8_t *currentTime8;
+        ret = CALL(bitRead(configReg, 8));
+        if (ret != RET_SUCCESS) return ret;
+
+        uint8_t *currentTime7;
+        ret = CALL(bitRead(configReg, 7));
+        if (ret != RET_SUCCESS) return ret;
 
         if (currentTime9 == 0 && currentTime8 == 0 && currentTime7 == 0) {
             *cycleBit = 0b000;
@@ -155,7 +190,7 @@ public:
 
         uint8_t *response;
 
-        RetType  ret = CALL(readRegister(TMP117_CONFIGURATION, response, 2));
+        RetType ret = CALL(readRegister(TMP117_CONFIGURATION, response, 2));
         uint16_t response16 = (response[0] << 8) | response[1];
 
         *dataReady = *response & 1 << 13;
@@ -165,8 +200,6 @@ public:
     }
 
 
-
-
     uint8_t getAddress() {
         return this->deviceAddr;
     }
@@ -174,7 +207,6 @@ public:
 private:
     I2CDevice *mI2C;
     uint8_t deviceAddr;
-
 
 };
 
