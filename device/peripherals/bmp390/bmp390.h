@@ -108,53 +108,78 @@ public:
         return result == 0 ? RET_SUCCESS : RET_ERROR;
     }
 
-    RetType setSensorSettings() {
+    RetType getFifoSettings() {
         RESUME();
 
-        int8_t result = bmp3_set_sensor_settings(&this->device);
+        int8_t result = bmp3_get_fifo_settings(&this->device);
 
         RESET();
         return result == 0 ? RET_SUCCESS : RET_ERROR;
     }
 
-    RetType setSensorSettings() {
+    RetType getFifoData() {
         RESUME();
 
-        int8_t result = bmp3_set_sensor_settings(&this->device);
+        int8_t result = bmp3_get_fifo_data(&this->device);
 
         RESET();
         return result == 0 ? RET_SUCCESS : RET_ERROR;
     }
 
-    RetType setSensorSettings() {
+    RetType getFifoLength() {
         RESUME();
 
-        int8_t result = bmp3_set_sensor_settings(&this->device);
+        int8_t result = bmp3_get_fifo_length(&this->device);
 
         RESET();
         return result == 0 ? RET_SUCCESS : RET_ERROR;
     }
 
-    RetType setSensorSettings() {
+    RetType extractFifoData() {
         RESUME();
 
-        int8_t result = bmp3_set_sensor_settings(&this->device);
+        int8_t result = bmp3_extract_fifo_data(&this->device);
 
         RESET();
         return result == 0 ? RET_SUCCESS : RET_ERROR;
     }
 
-    RetType setSensorSettings() {
+    RetType setFifoWatermark() {
         RESUME();
 
-        int8_t result = bmp3_set_sensor_settings(&this->device);
+        int8_t result = bmp3_set_fifo_watermark(&this->device);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType getFifoWatermark() {
+        RESUME();
+
+        int8_t result = bmp3_get_fifo_watermark(&this->device);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType flushFifo() {
+        RESUME();
+
+        int8_t result = bmp3_fifo_flush(&this->device);
 
         RESET();
         return result == 0 ? RET_SUCCESS : RET_ERROR;
     }
 
 
+    RetType getStatus() {
+        RESUME();
 
+        int8_t result = bmp3_get_status(&this->device);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
 
 private:
     bmp3_dev device;
