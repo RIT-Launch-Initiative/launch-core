@@ -473,7 +473,6 @@ public:
     }
 
 
-
     RetType getMagDataReady(uint8_t *val) {
         RESUME();
 
