@@ -202,7 +202,7 @@ public:
         return result == 0 ? RET_SUCCESS : RET_ERROR;
     }
 
-    RetType setBlockDataUpdate(lis3mdl_md_t val) {
+    RetType setBlockDataUpdate(uint8_t val) {
         RESUME();
 
         int32_t result = lis3mdl_block_data_update_set(&device, val);
@@ -211,7 +211,7 @@ public:
         return result == 0 ? RET_SUCCESS : RET_ERROR;
     }
 
-    RetType getBlockDataUpdate(lis3mdl_md_t *val) {
+    RetType getBlockDataUpdate(uint8_t *val) {
         RESUME();
 
         int32_t result = lis3mdl_block_data_update_get(&device, val);
@@ -292,10 +292,72 @@ public:
         return result == 0 ? RET_SUCCESS : RET_ERROR;
     }
 
+    RetType setDataFormat(lis3mdl_ble_t val) {
+        RESUME();
+
+        int32_t result = lis3mdl_data_format_set(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType getDataFormat(lis3mdl_ble_t *val) {
+        RESUME();
+
+        int32_t result = lis3mdl_data_format_get(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType setConfig(lis3mdl_int_cfg_t *val) { // Possible error made by the library?
+        RESUME();
+
+        int32_t result = lis3mdl_int_config_set(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType getConfig(lis3mdl_int_cfg_t *val) {
+        RESUME();
+
+        int32_t result = lis3mdl_int_config_get(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType setGeneration(uint8_t val) {
+        RESUME();
+
+        int32_t result = lis3mdl_int_generation_set(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType getGeneration(uint8_t *val) {
+        RESUME();
+
+        int32_t result = lis3mdl_int_generation_get(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
 
 
 
 
+
+    RetType getStatus(lis3mdl_status_reg_t *val) {
+        RESUME();
+
+        int32_t result = lis3mdl_status_get(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
 
 
 private:

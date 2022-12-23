@@ -496,7 +496,7 @@ int32_t lis3mdl_status_get(stmdev_ctx_t *ctx,
                            lis3mdl_status_reg_t *val);
 
 int32_t lis3mdl_int_config_set(stmdev_ctx_t *ctx,
-                               lis3mdl_int_cfg_t *val);
+                               lis3mdl_int_cfg_t *val); // This might be an error they made?
 int32_t lis3mdl_int_config_get(stmdev_ctx_t *ctx,
                                lis3mdl_int_cfg_t *val);
 
