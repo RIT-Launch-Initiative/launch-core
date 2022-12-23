@@ -108,55 +108,57 @@ public:
         return result == 0 ? RET_SUCCESS : RET_ERROR;
     }
 
-    RetType getFifoSettings() {
+    RetType getFifoSettings(struct bmp3_fifo_settings *fifoSettings) {
         RESUME();
 
-        int8_t result = bmp3_get_fifo_settings(&this->device);
+        int8_t result = bmp3_get_fifo_settings(fifoSettings, &this->device);
 
         RESET();
         return result == 0 ? RET_SUCCESS : RET_ERROR;
     }
 
-    RetType getFifoData() {
+    RetType getFifoData(struct bmp3_fifo_data *fifo,
+                        const struct bmp3_fifo_settings *fifoSettings) {
         RESUME();
 
-        int8_t result = bmp3_get_fifo_data(&this->device);
+        int8_t result = bmp3_get_fifo_data(fifo, fifoSettings, &this->device);
 
         RESET();
         return result == 0 ? RET_SUCCESS : RET_ERROR;
     }
 
-    RetType getFifoLength() {
+    RetType getFifoLength(uint16_t *fifoLength) {
         RESUME();
 
-        int8_t result = bmp3_get_fifo_length(&this->device);
+        int8_t result = bmp3_get_fifo_length(fifoLength, &this->device);
 
         RESET();
         return result == 0 ? RET_SUCCESS : RET_ERROR;
     }
 
-    RetType extractFifoData() {
+    RetType extractFifoData(struct bmp3_data *data, struct bmp3_fifo_data *fifoData) {
         RESUME();
 
-        int8_t result = bmp3_extract_fifo_data(&this->device);
+        int8_t result = bmp3_extract_fifo_data(data, fifoData, &this->device);
 
         RESET();
         return result == 0 ? RET_SUCCESS : RET_ERROR;
     }
 
-    RetType setFifoWatermark() {
+    RetType setFifoWatermark(const struct bmp3_fifo_data *fifoData,
+                             const struct bmp3_fifo_settings *fifoSettings) {
         RESUME();
 
-        int8_t result = bmp3_set_fifo_watermark(&this->device);
+        int8_t result = bmp3_set_fifo_watermark(fifoData, fifoSettings, &this->device);
 
         RESET();
         return result == 0 ? RET_SUCCESS : RET_ERROR;
     }
 
-    RetType getFifoWatermark() {
+    RetType getFifoWatermark(uint16_t *watermarkLength) {
         RESUME();
 
-        int8_t result = bmp3_get_fifo_watermark(&this->device);
+        int8_t result = bmp3_get_fifo_watermark(watermarkLength, &this->device);
 
         RESET();
         return result == 0 ? RET_SUCCESS : RET_ERROR;
@@ -172,10 +174,10 @@ public:
     }
 
 
-    RetType getStatus() {
+    RetType getStatus(struct bmp3_status *status) {
         RESUME();
 
-        int8_t result = bmp3_get_status(&this->device);
+        int8_t result = bmp3_get_status(status, &this->device);
 
         RESET();
         return result == 0 ? RET_SUCCESS : RET_ERROR;
