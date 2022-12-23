@@ -75,7 +75,7 @@ public:
         uint8_t command8[2] = {};
         uint16ToUint8(command16, command8);
 
-        RetType ret = mI2C->write(addr, command8, 2);
+        RetType ret = CALL(mI2C->write(addr, command8, 2));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
@@ -88,10 +88,10 @@ public:
         uint8_t command8[2] = {};
         uint16ToUint8(command16, command8);
 
-        RetType ret = mI2C->write(addr, command8, 2);
+        RetType ret = CALL(mI2C->write(addr, command8, 2));
         if (ret != RET_SUCCESS) return ret;
 
-        ret = mI2C->read(addr, buff, numBytes);
+        ret = CALL(mI2C->read(addr, buff, numBytes));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
