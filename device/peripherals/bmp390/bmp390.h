@@ -1,6 +1,5 @@
 /**
- * Implementation of the BMP390 device
- * by providing an interface for the BMP API
+ * Facade for the BMP390 API that utilizes the scheduler
  *
  * @author Aaron Chan
  */
@@ -10,6 +9,8 @@
 
 #include "device/peripherals/bmp390/bmp3.h"
 #include "return.h"
+#include "sched/macros/resume.h"
+#include "sched/macros/reset.h"
 
 
 class BMP390 {
@@ -17,12 +18,142 @@ public:
     BMP390() {}
 
     RetType init() {
+        RESUME();
+
         int8_t result = bmp3_init(&this->device);
 
+        RESET();
         return result == 0 ? RET_SUCCESS : RET_ERROR;
     }
 
-    RetType
+    RetType softReset() {
+        RESUME();
+
+        int8_t result = bmp3_soft_reset(&this->device);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType setSensorSettings(uint32_t desiredSettings, struct bmp3_settings *settings) {
+        RESUME();
+
+        int8_t result = bmp3_set_sensor_settings(desiredSettings, settings, &this->device);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType setSensorSettings(struct bmp3_settings *settings) {
+        RESUME();
+
+        int8_t result = bmp3_get_sensor_settings(settings, &this->device);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType getPowerMode(uint8_t *opMode) {
+        RESUME();
+
+        int8_t result = bmp3_get_op_mode(opMode, &this->device);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType getSensorData(uint8_t sensorComp, struct bmp3_data *data) {
+        RESUME();
+
+        int8_t result = bmp3_get_sensor_data(sensorComp, data, &this->device);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType setRegister(uint8_t *regAddress, const uint8_t *regData, uint32_t len) {
+        RESUME();
+
+        int8_t result = bmp3_set_regs(regAddress, regData, len, &this->device);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType getRegister(uint8_t regAddress, uint8_t *regData, uint32_t len) {
+        RESUME();
+
+        int8_t result = bmp3_get_regs(regAddress, regData, len, &this->device);
+
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType setSensorSettings() {
+        RESUME();
+
+        int8_t result = bmp3_set_sensor_settings(&this->device);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType setFifoSettings(uint16_t desiredSettings, const struct bmp3_fifo_settings *fifo_settings) {
+        RESUME();
+
+        int8_t result = bmp3_set_fifo_settings(desiredSettings, fifo_settings, &this->device);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType setSensorSettings() {
+        RESUME();
+
+        int8_t result = bmp3_set_sensor_settings(&this->device);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType setSensorSettings() {
+        RESUME();
+
+        int8_t result = bmp3_set_sensor_settings(&this->device);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType setSensorSettings() {
+        RESUME();
+
+        int8_t result = bmp3_set_sensor_settings(&this->device);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType setSensorSettings() {
+        RESUME();
+
+        int8_t result = bmp3_set_sensor_settings(&this->device);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType setSensorSettings() {
+        RESUME();
+
+        int8_t result = bmp3_set_sensor_settings(&this->device);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+
 
 
 private:
