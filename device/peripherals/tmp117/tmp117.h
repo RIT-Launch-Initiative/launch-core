@@ -8,6 +8,11 @@
 #define LAUNCH_CORE_TMP117_H
 
 #include <stdint.h>
+#include "return.h"
+#include "device/I2CDevice.h"
+#include "sched/macros/resume.h"
+#include "sched/macros/reset.h"
+
 
 #define DEVICE_ID_VALUE 0x0117
 #define TMP117_RESOLUTION 0.0078125f
@@ -60,6 +65,68 @@ enum TMP117_Mode {
 
 
 class TMP117 {
+public:
+    TMP117(I2CDevice *i2CDevice) : mI2C(i2CDevice), deviceAddr(0) {}
+
+    RetType init() {
+        // TODO: init stuff
+        return RET_SUCCESS;
+    }
+
+    RetType readRegister(uint8_t reg, uint8_t *data, size_t len) {
+        RESUME();
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType writeRegister(uint8_t reg, uint8_t *data, size_t len) {
+        RESUME();
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    // TODO: Add parentheses to be more explicit
+    RetType readTempCelsius(float *temp) {
+        RESUME();
+
+        uint8_t data[2] = {0, 0};
+        RetType ret = readRegister(TMP117_TEMP_RESULT, data, 2);
+        if (ret != RET_SUCCESS) {
+            return ret;
+        }
+
+        *temp = ((int16_t) data[0] << 8 | data[1]) * TMP117_RESOLUTION;
+
+        RESET();
+        return ret;
+    }
+
+    RetType readTempFahrenheit(float *temp) {
+        RESUME();
+
+        RetType ret = readTempCelsius(temp);
+        if (ret != RET_SUCCESS) {
+            return ret;
+        }
+
+        *temp = *temp * 9.0f / 5.0f + 32.0f;
+
+        RESET();
+        return ret;
+    }
+
+
+
+
+    uint8_t getAddress() {
+        return this->deviceAddr;
+    }
+
+private:
+    I2CDevice *mI2C;
+    uint8_t deviceAddr;
 
 
 };
