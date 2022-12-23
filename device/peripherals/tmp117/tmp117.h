@@ -17,6 +17,10 @@
 
 #define DEVICE_ID_VALUE 0x0117
 #define TMP117_RESOLUTION 0.0078125f
+#define bitRead(value, bit) (((value) >> (bit)) & 0x01)
+#define bitSet(value, bit) ((value) |= (1UL << (bit)))
+#define bitClear(value, bit) ((value) &= ~(1UL << (bit)))
+#define bitWrite(value, bit, bitVal) (bitVal ? bitSet(value, bit) : bitClear(value, bit))
 
 typedef union {
     struct {
@@ -184,17 +188,9 @@ public:
         uint8_t data = static_cast<uint8_t>(configReg >> 8);
         configReg = CALL(readRegister(TMP117_CONFIGURATION, &data, sizeof(data)));
 
-        uint8_t *currentTime9;
-        RetType ret = CALL(bitRead(configReg, 9));
-        if (ret != RET_SUCCESS) return ret;
-
-        uint8_t *currentTime8;
-        ret = CALL(bitRead(configReg, 8));
-        if (ret != RET_SUCCESS) return ret;
-
-        uint8_t *currentTime7;
-        ret = CALL(bitRead(configReg, 7));
-        if (ret != RET_SUCCESS) return ret;
+        uint8_t currentTime9 = bitRead(configReg, 9);
+        uint8_t currentTime8 = bitRead(configReg, 8);
+        uint8_t currentTime7 = bitRead(configReg, 7);
 
         if (currentTime9 == 0 && currentTime8 == 0 && currentTime7 == 0) {
             *cycleBit = 0b000;
@@ -240,6 +236,22 @@ public:
         if (ret != RET_SUCCESS) return ret;
 
         *configRegister = uint8ToInt16(configRegister8); // TODO: Is Int16 conversion going to be ok?
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getHighLowAlert(uint8_t *alert) {
+        RESUME();
+
+        uint8_t configRegister8[2] = {};
+        RetType ret = CALL(readRegister(TMP117_CONFIGURATION, configRegister8, 2));
+        if (ret != RET_SUCCESS) return ret;
+
+        uint16_t configRegister16 = uint8ToInt16(configRegister8); // TODO: Is Int16 conversion going to be ok?
+
+        bitWrite(*alert, 1, bitRead(configRegister16, 15));
+        bitWrite(*alert, 0, bitRead(configRegister16, 14));
 
         RESET();
         return RET_SUCCESS;
