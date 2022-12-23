@@ -346,6 +346,96 @@ public:
         return result == 0 ? RET_SUCCESS : RET_ERROR;
     }
 
+    RetType setPolarity(lis3mdl_iea_t val) {
+        RESUME();
+
+        int32_t result = lis3mdl_int_polarity_set(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType getPolarity(lis3mdl_iea_t *val) {
+        RESUME();
+
+        int32_t result = lis3mdl_int_polarity_get(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType setZAxis(uint8_t val) {
+        RESUME();
+
+        int32_t result = lis3mdl_int_on_z_ax_set(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType getZAxis(uint8_t *val) {
+        RESUME();
+
+        int32_t result = lis3mdl_int_on_z_ax_get(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType setYAxis(uint8_t val) {
+        RESUME();
+
+        int32_t result = lis3mdl_int_on_y_ax_set(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType getYAxis(uint8_t *val) {
+        RESUME();
+
+        int32_t result = lis3mdl_int_on_y_ax_get(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType setXAxis(uint8_t val) {
+        RESUME();
+
+        int32_t result = lis3mdl_int_on_x_ax_set(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType getXAxis(uint8_t *val) {
+        RESUME();
+
+        int32_t result = lis3mdl_int_on_x_ax_get(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType setThreshold(uint16_t val) {
+        RESUME();
+
+        int32_t result = lis3mdl_int_threshold_set(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType getThreshold(uint16_t *val) {
+        RESUME();
+
+        int32_t result = lis3mdl_int_threshold_get(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
 
 
 
