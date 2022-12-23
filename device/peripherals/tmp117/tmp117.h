@@ -233,6 +233,7 @@ public:
         return RET_SUCCESS;
     }
 
+    // TODO: See if this function can be reused more without breaking
     RetType getConfigRegister(uint16_t *configRegister) {
         RESUME();
 
@@ -362,6 +363,29 @@ public:
 
         ret = CALL(writeRegister(TMP117_CONFIGURATION, mode8, 2));
         if (ret != RET_SUCCESS) return ret;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getConversionMode(TMP117_Mode *mode) {
+        RESUME();
+        uint16_t *configRegister;
+        RetType ret = getConfigRegister(configRegister);
+        if (ret != RET_SUCCESS) return ret;
+
+        uint8_t currMode1 = bitRead(*configRegister, 11);
+        uint8_t currMode2 = bitRead(*configRegister, 10);
+
+        if ((currMode1 == 0) && (currMode2 == 1)) {
+            *mode = SHUTDOWN;
+        } else if ((currMode1 == 1) && (currMode2 == 1)) {
+            *mode = ONE_SHOT;
+        } else if ((currMode1 == 1) && (currMode2 == 0)) { // Impossible
+            return RET_ERROR;
+        } else { // 0b00 or by default
+            *mode = CONTINUOUS_CONVERSION;
+        }
 
         RESET();
         return RET_SUCCESS;
