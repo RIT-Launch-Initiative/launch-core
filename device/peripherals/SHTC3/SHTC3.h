@@ -118,15 +118,6 @@ private:
     I2CDevice *mI2C;
     I2CAddr_t addr;
 
-    int16_t uint8ToInt16(uint8_t *data) {
-        return (data[0] << 8) | data[1];
-    }
-
-    void int16ToUint8(int16_t data16, uint8_t *data8) {
-        data8[0] = static_cast<uint8_t>(data16 >> 8);
-        data8[1] = static_cast<uint8_t>(data16 & 0xFF);
-    }
-
     void uint16ToUint8(uint16_t data16, uint8_t *data8) {
         data8[0] = static_cast<uint8_t>(data16 >> 8);
         data8[1] = static_cast<uint8_t>(data16 & 0xFF);
