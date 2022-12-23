@@ -64,6 +64,11 @@ enum TMP117_Mode {
     SHUTDOWN = 0b01
 };
 
+enum TMP117_HILO_LIMIT {
+    TMP117_HI_REG = 0X02,
+    TMP117_LO_REG = 0X03,
+};
+
 
 class TMP117 {
 public:
@@ -93,7 +98,7 @@ public:
         RESUME();
 
         uint8_t data[2] = {};
-        RetType ret = readRegister(TMP117_TEMP_RESULT, data, 2);
+        RetType ret = CALL(readRegister(TMP117_TEMP_RESULT, data, 2));
         if (ret != RET_SUCCESS) {
             return ret;
         }
@@ -122,7 +127,7 @@ public:
         RESUME();
 
         uint8_t initOffset[2] = {};
-        RetType ret = readRegister(TMP117_TEMP_OFFSET, initOffset, 2);
+        RetType ret = CALL(readRegister(TMP117_TEMP_OFFSET, initOffset, 2));
         if (ret != RET_SUCCESS) return ret;
 
         int16_t initOffset16 = uint8ToInt16(initOffset);
@@ -145,14 +150,28 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType getLowLimit(int16_t *limit) {
+    RetType getLimit(int16_t *limit, TMP117_HILO_LIMIT hilo) {
         RESUME();
 
         uint8_t limit8[2] = {};
-        RetType ret = readRegister(TMP117_T_LOW_LIMIT, limit8, 2);
+        RetType ret = CALL(readRegister(hilo, limit8, 2));
         if (ret != RET_SUCCESS) return ret;
 
         *limit = uint8ToInt16(limit8);
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType setLimit(float limit, TMP117_HILO_LIMIT hilo) {
+        RESUME();
+
+        int16_t resolutionLimit = limit / TMP117_RESOLUTION;
+        uint8_t limit8[2] = {};
+        int16ToUint8(resolutionLimit, limit8);
+
+        RetType ret = CALL(writeRegister(hilo, limit8, 2));
+        if (ret != RET_SUCCESS) return ret;
 
         RESET();
         return RET_SUCCESS;
@@ -163,7 +182,7 @@ public:
         RESUME();
         uint16_t configReg = 0;
         uint8_t data = static_cast<uint8_t>(configReg >> 8);
-        configReg = readRegister(TMP117_CONFIGURATION, &data, sizeof(data));
+        configReg = CALL(readRegister(TMP117_CONFIGURATION, &data, sizeof(data)));
 
         uint8_t *currentTime9;
         RetType ret = CALL(bitRead(configReg, 9));
