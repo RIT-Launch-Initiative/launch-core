@@ -89,6 +89,20 @@ private:
         data8[1] = static_cast<uint8_t>(data16 & 0xFF);
     }
 
+    static uint8_t crc8(const uint8_t *data, int len) {
+        const uint8_t POLYNOMIAL(0x31);
+        uint8_t crc(0xFF);
+
+        for (int i = len; i; --i) {
+            crc ^= *data++;
+
+            for (int j = 8; j; --j) {
+                crc = (crc & 0x80) ? (crc << 1) ^ POLYNOMIAL : (crc << 1);
+            }
+        }
+        return crc;
+    }
+
 };
 
 
