@@ -111,7 +111,7 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType dataRateSet(lis3mdl_om_t val) {
+    RetType setDataRate(lis3mdl_om_t val) {
         RESUME();
 
         int32_t result = lis3mdl_data_rate_set(&device, val);
@@ -120,7 +120,7 @@ public:
         return result == 0 ? RET_SUCCESS : RET_ERROR;
     }
 
-    RetType dataRateGet(lis3mdl_om_t *val) {
+    RetType getDataRate(lis3mdl_om_t *val) {
         RESUME();
 
         int32_t result = lis3mdl_data_rate_get(&device, val);
@@ -128,6 +128,82 @@ public:
         RESET();
         return result == 0 ? RET_SUCCESS : RET_ERROR;
     }
+
+    RetType setTempMeas(uint8_t val) {
+        RESUME();
+
+        int32_t result = lis3mdl_temperature_meas_set(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType getTempMeas(uint8_t *val) {
+        RESUME();
+
+        int32_t result = lis3mdl_temperature_meas_get(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+
+    RetType setFullScale(lis3mdl_fs_t val) {
+        RESUME();
+
+        int32_t result = lis3mdl_full_scale_set(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType getFullScale(lis3mdl_fs_t *val) {
+        RESUME();
+
+        int32_t result = lis3mdl_full_scale_get(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType setOperatingMode(lis3mdl_md_t val) {
+        RESUME();
+
+        int32_t result = lis3mdl_operating_mode_set(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType getOperatingMode(lis3mdl_md_t *val) {
+        RESUME();
+
+        int32_t result = lis3mdl_operating_mode_get(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType setLowPower(uint8_t val) {
+        RESUME();
+
+        int32_t result = lis3mdl_fast_low_power_set(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType getLowPower(uint8_t *val) {
+        RESUME();
+
+        int32_t result = lis3mdl_fast_low_power_get(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+
+
 
 
 
