@@ -25,11 +25,11 @@
 #define SHTC3_LOWPOW_MEAS_HFIRST 0x401A /**< Low power measurement, hum first with Clock Stretch disabled */
 
 #define SHTC3_READ_ID_CMD 0xEFC8    /**< Read Out of ID Register */
-#define SHTC3_SOFT_RESET_CMD 0x805D /**< Soft Reset */
 
 enum SHTC3_CMD {
     SLEEP_CMD = 0xB098,
     WAKEUP_CMD = 0x3517,
+    RESET_CMD = 0x805D,
 
 
 };
@@ -40,11 +40,12 @@ public:
     SHTC3(I2CDevice *i2CDevice) : mI2C(i2CDevice) {}
 
     RetType init() {
-
+        return RET_SUCCESS;
     }
 
     RetType toggleSleep(bool setSleep) {
         RESUME();
+
         RetType ret;
         if (setSleep) {
             ret = CALL(writeCommand(SLEEP_CMD));
@@ -53,6 +54,16 @@ public:
             // TODO: Delay for 200 microsecs in the future
         }
 
+        if (ret != RET_SUCCESS) return ret;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType reset() {
+        RESUME();
+
+        RetType ret = CALL(writeCommand(RESET_CMD));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
