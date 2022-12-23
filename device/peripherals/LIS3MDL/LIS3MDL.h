@@ -66,6 +66,52 @@ public:
     }
 
 
+    RetType fs4ToGauss(int16_t lsb, float_t* gauss) {
+        RESUME();
+
+        *gauss = lis3mdl_from_fs4_to_gauss(lsb);
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType fs8ToGauss(int16_t lsb, float_t* gauss) {
+        RESUME();
+
+        *gauss = lis3mdl_from_fs8_to_gauss(lsb);
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType fs12ToGauss(int16_t lsb, float_t* gauss) {
+        RESUME();
+
+        *gauss = lis3mdl_from_fs12_to_gauss(lsb);
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType fs16ToGauss(int16_t lsb, float_t* gauss) {
+        RESUME();
+
+        *gauss = lis3mdl_from_fs16_to_gauss(lsb);
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType lsbToGauss(int16_t lsb, float_t* gauss) {
+        RESUME();
+
+        *gauss = lis3mdl_from_lsb_to_celsius(lsb);
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+
 
 private:
     static I2CDevice *mI2C;
