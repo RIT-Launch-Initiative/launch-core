@@ -24,14 +24,13 @@
 #define SHTC3_NORMAL_MEAS_HFIRST 0x58E0 /**< Normal measurement, hum first with Clock Stretch disabled */
 #define SHTC3_LOWPOW_MEAS_HFIRST 0x401A /**< Low power measurement, hum first with Clock Stretch disabled */
 
-#define SHTC3_READ_ID_CMD 0xEFC8    /**< Read Out of ID Register */
 
 enum SHTC3_CMD {
     SLEEP_CMD = 0xB098,
     WAKEUP_CMD = 0x3517,
     RESET_CMD = 0x805D,
 
-
+    READ_ID_CMD = 0xEFC8
 };
 
 
@@ -94,6 +93,21 @@ public:
 
         ret = mI2C->read(addr, buff, numBytes);
         if (ret != RET_SUCCESS) return ret;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getID(uint16_t *id) {
+        RESUME();
+
+        uint8_t data[3] = {};
+        RetType ret = CALL(readCommand(READ_ID_CMD, data, 3));
+        if (ret != RET_SUCCESS) return ret;
+
+        *id = data[0];
+        *id <<= 8;
+        *id |= data[1];
 
         RESET();
         return RET_SUCCESS;
