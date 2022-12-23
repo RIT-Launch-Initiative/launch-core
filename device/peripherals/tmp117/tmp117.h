@@ -186,39 +186,6 @@ public:
         return RET_SUCCESS;
     }
 
-
-    RetType getConversionCycleBit(uint8_t *cycleBit) {
-        RESUME();
-        uint16_t configReg = 0;
-        uint8_t data = static_cast<uint8_t>(configReg >> 8);
-        configReg = CALL(readRegister(TMP117_CONFIGURATION, &data, sizeof(data)));
-
-        uint8_t currentTime9 = bitRead(configReg, 9);
-        uint8_t currentTime8 = bitRead(configReg, 8);
-        uint8_t currentTime7 = bitRead(configReg, 7);
-
-        if (currentTime9 == 0 && currentTime8 == 0 && currentTime7 == 0) {
-            *cycleBit = 0b000;
-        } else if (currentTime9 == 0 && currentTime8 == 0 && currentTime7 == 1) {
-            *cycleBit = 0b001;
-        } else if (currentTime9 == 0 && currentTime8 == 1 && currentTime7 == 0) {
-            *cycleBit = 0b010;
-        } else if (currentTime9 == 0 && currentTime8 == 1 && currentTime7 == 1) {
-            *cycleBit = 0b011;
-        } else if (currentTime9 == 1 && currentTime8 == 0 && currentTime7 == 0) {
-            *cycleBit = 0b100;
-        } else if (currentTime9 == 1 && currentTime8 == 0 && currentTime7 == 1) {
-            *cycleBit = 0b101;
-        } else if (currentTime9 == 1 && currentTime8 == 1 && currentTime7 == 0) {
-            *cycleBit = 0b110;
-        } else if (currentTime9 == 1 && currentTime8 == 1 && currentTime7 == 1) {
-            *cycleBit = 0b111;
-        }
-
-        RESET();
-        return RET_SUCCESS;
-    }
-
     RetType isDataReady(bool *dataReady) {
         RESUME();
 
@@ -391,6 +358,99 @@ public:
         return RET_SUCCESS;
     }
 
+    RetType setConversionAverageMode(uint8_t conversionMode) {
+        RESUME();
+        uint16_t *configRegister;
+        RetType ret = CALL(getConfigRegister(configRegister));
+        if (ret != RET_SUCCESS) return ret;
+
+        switch (conversionMode) {
+            case 0:
+                bitClear(*configRegister, 5);
+                bitClear(*configRegister, 6);
+                break;
+            case 1:
+                bitClear(*configRegister, 6);
+                bitWrite(*configRegister, 5, 1);
+                break;
+            case 2:
+                bitWrite(*configRegister, 6, 1);
+                bitClear(*configRegister, 5);
+                break;
+            case 3:
+                bitWrite(*configRegister, 6, 1);
+                bitWrite(*configRegister, 5, 1);
+                break;
+            default:
+                return RET_ERROR;
+        }
+
+        uint8_t configReg8[2] = {};
+        uint16ToUint8(*configRegister, configReg8);
+
+        ret = CALL(writeRegister(TMP117_CONFIGURATION, configReg8, 2));
+        if (ret != RET_SUCCESS) return ret;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getConversionAverageMode(uint8_t *mode) {
+        RESUME();
+
+        uint16_t *configReg;
+        RetType ret = CALL(getConfigRegister(configReg));
+        if (ret != RET_SUCCESS) return ret;
+
+        uint8_t currMode6 = bitRead(*configReg, 6);
+        uint8_t currMode5 = bitRead(*configReg, 5);
+
+        if ((currMode6 == 0) && (currMode5 == 1)) {// 8 avg conv
+            *mode = 0b01;
+        } else if ((currMode6 == 1) && (currMode5 == 0)) {// 32 avg conv
+            *mode = 0b10;
+        } else if ((currMode6 == 1) && (currMode5 == 1)) {// 64 avg conv
+            *mode = 0b11;
+        } else { // No avg conv
+            *mode = 0b00;
+        }
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getConversionCycleBit(uint8_t *cycleBit) {
+        RESUME();
+        uint16_t configReg = 0;
+        uint8_t data = static_cast<uint8_t>(configReg >> 8);
+        configReg = CALL(readRegister(TMP117_CONFIGURATION, &data, sizeof(data)));
+
+        uint8_t currentTime9 = bitRead(configReg, 9);
+        uint8_t currentTime8 = bitRead(configReg, 8);
+        uint8_t currentTime7 = bitRead(configReg, 7);
+
+        if (currentTime9 == 0 && currentTime8 == 0 && currentTime7 == 0) {
+            *cycleBit = 0b000;
+        } else if (currentTime9 == 0 && currentTime8 == 0 && currentTime7 == 1) {
+            *cycleBit = 0b001;
+        } else if (currentTime9 == 0 && currentTime8 == 1 && currentTime7 == 0) {
+            *cycleBit = 0b010;
+        } else if (currentTime9 == 0 && currentTime8 == 1 && currentTime7 == 1) {
+            *cycleBit = 0b011;
+        } else if (currentTime9 == 1 && currentTime8 == 0 && currentTime7 == 0) {
+            *cycleBit = 0b100;
+        } else if (currentTime9 == 1 && currentTime8 == 0 && currentTime7 == 1) {
+            *cycleBit = 0b101;
+        } else if (currentTime9 == 1 && currentTime8 == 1 && currentTime7 == 0) {
+            *cycleBit = 0b110;
+        } else if (currentTime9 == 1 && currentTime8 == 1 && currentTime7 == 1) {
+            *cycleBit = 0b111;
+        }
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
 
     uint8_t getAddress() {
         return this->deviceAddr;
@@ -404,18 +464,14 @@ private:
         return (data[0] << 8) | data[1];
     }
 
-    void *int16ToUint8(int16_t data16, uint8_t *data8) {
+    void int16ToUint8(int16_t data16, uint8_t *data8) {
         data8[0] = static_cast<uint8_t>(data16 >> 8);
         data8[1] = static_cast<uint8_t>(data16 & 0xFF);
-
-        return data8;
     }
 
-    void *uint16ToUint8(uint16_t data16, uint8_t *data8) {
+    void uint16ToUint8(uint16_t data16, uint8_t *data8) {
         data8[0] = static_cast<uint8_t>(data16 >> 8);
         data8[1] = static_cast<uint8_t>(data16 & 0xFF);
-
-        return data8;
     }
 };
 
