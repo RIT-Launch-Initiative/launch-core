@@ -202,35 +202,16 @@ public:
 
 private:
     bmp3_dev device;
-    static SPIDevice *mSPI;
     static I2CDevice *mI2C;
-
-    static BMP3_INTF_RET_TYPE spiRead(uint8_t regAddr, uint8_t *data, uint32_t len, void *intfPtr) {
-        RESUME();
-
-        RetType ret = mSPI->read();
-
-        RESET();
-        return ret == RET_SUCCESS ? 0 : -1;
-    };
-
-    static BMP3_INTF_RET_TYPE spiWrite(uint8_t regAddr, const uint8_t *data, uint32_t len, void *intfPtr) {
-        RESUME();
-
-        RetType ret = mSPI->read();
-
-        RESET();
-        return ret == RET_SUCCESS ? 0 : -1;
-
-    };
+    static SPIDevice *mSPI;
 
     static BMP3_INTF_RET_TYPE i2cRead(uint8_t regAddr, uint8_t *data, uint32_t len, void *intfPtr) {
         RESUME();
 
         I2CAddr_t addr = {
-            .dev_addr = BMP3_ADDR_I2C_PRIM,
-            .mem_addr = regAddr,
-            .mem_addr_size = sizeof(uint8_t),
+                .dev_addr = BMP3_ADDR_I2C_PRIM,
+                .mem_addr = regAddr,
+                .mem_addr_size = sizeof(uint8_t),
         };
 
         RetType ret = mI2C->read(addr, data, len);
@@ -254,6 +235,29 @@ private:
         RESET();
         return ret == RET_SUCCESS ? 0 : -1;
     };
+
+    // TODO: Not using SPI, but should figure out how to use regAddr here
+
+    static BMP3_INTF_RET_TYPE spiRead(uint8_t regAddr, uint8_t *data, uint32_t len, void *intfPtr) {
+        RESUME();
+
+        RetType ret = mSPI->read(data, len);
+
+        RESET();
+        return ret == RET_SUCCESS ? 0 : -1;
+    };
+
+    static BMP3_INTF_RET_TYPE spiWrite(uint8_t regAddr, const uint8_t *data, uint32_t len, void *intfPtr) {
+        RESUME();
+
+        RetType ret = mSPI->read(const_cast<uint8_t *>(data), len);
+
+        RESET();
+        return ret == RET_SUCCESS ? 0 : -1;
+
+    };
+
+
 
 
 };
