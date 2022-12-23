@@ -10,6 +10,7 @@
 #include "sched/macros/resume.h"
 #include "sched/macros/reset.h"
 #include "device/I2CDevice.h"
+#include "sched/macros/call.h"
 
 
 #define SHTC3_I2C_ADDR 0x70
@@ -25,10 +26,11 @@
 
 #define SHTC3_READ_ID_CMD 0xEFC8    /**< Read Out of ID Register */
 #define SHTC3_SOFT_RESET_CMD 0x805D /**< Soft Reset */
-#define SHTC3_SLEEP_CMD 0xB098     /**< Enter sleep mode */
-#define SHTC3_WAKEUP_CMD 0x3517    /**< Wakeup mode */
 
 enum SHTC3_CMD {
+    SLEEP_CMD = 0xB098,
+    WAKEUP_CMD = 0x3517,
+
 
 };
 
@@ -39,6 +41,22 @@ public:
 
     RetType init() {
 
+    }
+
+    RetType toggleSleep(bool setSleep) {
+        RESUME();
+        RetType ret;
+        if (setSleep) {
+            ret = CALL(writeCommand(SLEEP_CMD));
+        } else {
+            ret = CALL(writeCommand(WAKEUP_CMD));
+            // TODO: Delay for 200 microsecs in the future
+        }
+
+        if (ret != RET_SUCCESS) return ret;
+
+        RESET();
+        return RET_SUCCESS;
     }
 
     RetType writeCommand(SHTC3_CMD command16) {
