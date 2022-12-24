@@ -10,8 +10,11 @@
 #include "device/GPIODevice.h"
 #include "sched/macros.h"
 #include "return.h"
+#include "device/SPIDevice.h"
+#include "device/I2CDevice.h"
 
 #define CHECK_RET {if (ret != RET_SUCCESS) {RESET(); return ret;}}
+#define CONCAT(a, b) a ## b
 
 typedef enum {
     I2C_PROTOCOL = 1,
@@ -29,7 +32,7 @@ typedef enum {
     SERIAL_CRC_ADDR = 7,
 } PROM_ADDR_T;
 
-typedef enum {
+enum COMMAND_T {
     SPI_RESET_COMMAND = 0x1E,
     SPI_CONVERT_D1_256 = 0x40,
     SPI_CONVERT_D1_512 = 0x42,
@@ -45,26 +48,51 @@ typedef enum {
 
     SPI_ADC_READ = 0x00,
     SPI_PROM_READ = 0xA0, // TODO: Goes to 0xAE based on b4-6 Ad2, Ad1, Ad0.
-} SPI_COMMAND_T;
-
+};
 
 class MS5607 {
 public:
     MS5607(GPIODevice &psPin, GPIODevice &diPin, GPIODevice &doPin, GPIODevice &csPin, GPIODevice &sdaPin) :
-            protocolSelectPin(psPin), dataInPin(diPin), dataOutPin(doPin), chipSelectPin(csPin),
+            protocolSelectPin(psPin), chipSelectPin(csPin),
             serialDataPin(sdaPin) {}
 
     RetType init(MS5607_SERIAL_PROTOCOL_T protocol) {
         RESUME();
 
         RetType ret = CALL(setProtocol(protocol));
+//        MS5607-02BA address is 111011Cx, where C is the complementary value of the pin CSB
 
+
+
+
+        // RESET
         // TODO: Set T1 and S1
+
+
 
         RESET();
         return ret;
     }
 
+    RetType reset() {
+        RESUME();
+
+        uint8_t resetCommand = SPI_RESET_COMMAND;
+
+        RetType ret;
+        switch (selectedProtocol) {
+            case I2C_PROTOCOL:
+                ret = CALL(mI2C->write(mAddr, &resetCommand, 1));
+                break;
+            case SPI_PROTOCOL: // TODO: Implement eventually
+                return RET_ERROR;
+        }
+
+        if (ret != RET_SUCCESS) return ret;
+
+        RESET();
+        return RET_SUCCESS;
+    }
 
     RetType setProtocol(MS5607_SERIAL_PROTOCOL_T protocol) {
         RESUME();
@@ -74,9 +102,6 @@ public:
         RESET();
         return RET_SUCCESS;
     }
-
-
-
 
     RetType d1Conversion() {
 
@@ -88,6 +113,37 @@ public:
 
     RetType readADC() {
 
+    }
+
+    RetType readPROM(uint8_t *data) {
+        RESUME();
+
+        uint8_t command = SPI_PROM_READ;
+        RetType ret;
+
+        switch (selectedProtocol) {
+            case I2C_PROTOCOL:
+                ret = CALL(mI2C->write(mAddr, &command, 1));
+                break;
+            case SPI_PROTOCOL: // TODO: Implement eventually
+                return RET_ERROR;
+        }
+
+        if (ret != RET_SUCCESS) return ret;
+
+        switch (selectedProtocol) {
+            case I2C_PROTOCOL:
+                ret = CALL(mI2C->read(mAddr, data, 2));
+                break;
+            case SPI_PROTOCOL: // TODO: Implement eventually
+                return RET_ERROR;
+        }
+
+        if (ret != RET_SUCCESS) return ret;
+
+
+        RESET();
+        return RET_SUCCESS;
     }
 
     RetType calcPressureTemp(int32_t *pressure, int32_t *temp) {
@@ -139,10 +195,14 @@ private:
     MS5607_SERIAL_PROTOCOL_T selectedProtocol;
     GPIODevice &protocolSelectPin;
 
-    GPIODevice &dataInPin;
-    GPIODevice &dataOutPin;
+    I2CDevice *mI2C;
+    I2CAddr_t mAddr = {
+            .dev_addr = CONCAT(0b111011, 0), // TODO: Dont know CS pin value
+            .mem_addr = 0,
+            .mem_addr_size = 0,
+    };
+    SPIDevice *mSpi;
     GPIODevice &chipSelectPin;
-
     GPIODevice &serialDataPin;
 
     int64_t offsetT1;
@@ -150,25 +210,9 @@ private:
 
     RetType readProm(PROM_ADDR_T address) {
 
-    }
-
-    RetType reset() {
-        RESUME();
-        if (selectedProtocol == SPI_PROTOCOL) {
-            RetType ret = CALL(chipSelectPin.set(0));
-            CHECK_RET
-
-            ret = CALL(dataOutPin.set(SPI_RESET_COMMAND));
-            CHECK_RET
-
-            ret = CALL(chipSelectPin.set(1));
-
-            RESET();
-            return ret;
-        }
-
 
     }
+
 };
 
 #endif //LAUNCH_CORE_MS5607_H
