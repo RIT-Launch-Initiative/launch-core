@@ -17,16 +17,14 @@
 
 class BMP390 {
 public:
-    BMP390(uint8_t chipID, void *pInterface, bmp3_intf commInterface, struct bmp3_calib_data calibrationData,
+    BMP390(void *pInterface, bmp3_intf commInterface, struct bmp3_calib_data calibrationData,
            bmp3_delay_us_fptr_t delayFptr, SPIDevice *spiDev = nullptr, I2CDevice *i2cDev = nullptr) :
             device({
-                           .chip_id = chipID,
                            .intf_ptr = pInterface,
                            .intf = commInterface,
-                           .intf_rslt = BMP3_INTF_RET_SUCCESS,
-                           .dummy_byte = 0x00,
+//                           .intf_rslt = BMP3_INTF_RET_SUCCESS,
                            .delay_us = delayFptr,
-                           .calib_data = calibrationData,
+//                           .calib_data = calibrationData,
                    }) {
         mSPI = spiDev;
         mI2C = i2cDev;
@@ -200,8 +198,8 @@ public:
 
 private:
     bmp3_dev device;
-    static I2CDevice *mI2C;
-    static SPIDevice *mSPI;
+    inline static I2CDevice *mI2C;
+    inline static SPIDevice *mSPI;
 
     static BMP3_INTF_RET_TYPE i2cRead(uint8_t regAddr, uint8_t *data, uint32_t len, void *intfPtr) {
         RESUME();
