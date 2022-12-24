@@ -28,6 +28,13 @@ public:
 
     RetType init() {
         RESUME();
+        // TODO: Figure mem and size out
+        mAddr = {
+                .dev_addr = MMA8451_I2C_ADDRESS,
+                .mem_addr = 0,
+                .mem_addr_size = 0
+        };
+
         uint8_t data[2]{CTRL_REG_1, 0x01};
 
         RetType ret = CALL(mI2C->write(mAddr, data, 2));
