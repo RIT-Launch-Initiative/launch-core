@@ -38,15 +38,25 @@ public:
     }
 
     RetType getAxisAccel(MMA8451_REG reg, int16_t *result16) {
+        RESUME();
         uint8_t result8[2] = {};
 
-    }
+        RetType ret = CALL(readReg(reg, result8, 2));
+        if (ret != RET_SUCCESS) return ret;
 
+        *result16 = ((result8[0]) << 6) | (result8[1] >> 2);
+        if (*result16 > UINT14_MAX/2) {
+            *result16 -= UINT14_MAX;
+        }
+
+        RESET();
+        return RET_SUCCESS;
+    }
 
     RetType getXAccel(int16_t *result) {
         RESUME();
 
-        RetType ret = CALL(getAccAxis(X_MSB_REG, result));
+        RetType ret = CALL(getAxisAccel(X_MSB_REG, result));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
@@ -56,7 +66,7 @@ public:
     RetType getYAccel(int16_t *result) {
         RESUME();
 
-        RetType ret = CALL(getAccAxis(Y_MSB_REG, result));
+        RetType ret = CALL(getAxisAccel(Y_MSB_REG, result));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
@@ -66,7 +76,7 @@ public:
     RetType getZAccel(int16_t *result) {
         RESUME();
 
-        RetType ret = CALL(getAccAxis(Z_MSB_REG, result));
+        RetType ret = CALL(getAxisAccel(Z_MSB_REG, result));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
