@@ -102,6 +102,27 @@ public:
         return RET_SUCCESS;
     }
 
+    RetType setGyroAxis(l3gd20h_gy_axis_t val) {
+        RESUME();
+
+        int32_t result = l3gd20h_gy_axis_set(&device, val);
+        if (result != 0) return RET_ERROR;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getGyroAxis(l3gd20h_gy_axis_t *val) {
+        RESUME();
+
+        int32_t result = l3gd20h_gy_axis_get(&device, val);
+        if (result != 0) return RET_ERROR;
+
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
     RetType setDataRate(l3gd20h_gy_data_rate_t val) {
         RESUME();
 
@@ -487,7 +508,7 @@ public:
     RetType getPinNotification(l3gd20h_lir_t *val) {
         RESUME();
 
-        int32_t result = (l3gd20h_pin_notification_get&device, val);
+        int32_t result = (l3gd20h_pin_notification_get & device, val);
         if (result != 0) return RET_ERROR;
 
 
@@ -746,7 +767,55 @@ public:
         return RET_SUCCESS;
     }
 
+    RetType getGyroFlagDataReady(uint8_t *val) {
+        RESUME();
 
+        int32_t result = l3gd20h_gy_flag_data_ready_get(&device, val);
+        if (result != 0) return RET_ERROR;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getRawTemp(uint8_t *buff) {
+        RESUME();
+
+        int32_t result = l3gd20h_temperature_raw_get(&device, buff);
+        if (result != 0) return RET_ERROR;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getRawAngularRate(int16_t *val) {
+        RESUME();
+
+        int32_t result = l3gd20h_angular_rate_raw_get(&device, val);
+        if (result != 0) return RET_ERROR;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getDeviceID(uint8_t *val) {
+        RESUME();
+
+        int32_t result = l3gd20h_dev_id_get(&device, val);
+        if (result != 0) return RET_ERROR;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getDeviceStatus(l3gd20h_status_reg_t *val) {
+        RESUME();
+
+        int32_t result = l3gd20h_dev_status_get(&device, val);
+        if (result != 0) return RET_ERROR;
+
+        RESET();
+        return RET_SUCCESS;
+    }
 
     RetType getGyroscopeThreshold(l3gd20h_gy_trshld_src_t *val) {
         RESUME();
@@ -797,10 +866,6 @@ public:
         RESET();
         return RET_SUCCESS;
     }
-
-
-
-
 
 private:
     static I2CDevice *mI2C;
