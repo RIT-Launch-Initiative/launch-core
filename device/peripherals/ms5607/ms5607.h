@@ -12,6 +12,7 @@
 #include "return.h"
 #include "device/SPIDevice.h"
 #include "device/I2CDevice.h"
+#include <math.h>
 
 #define CHECK_RET {if (ret != RET_SUCCESS) {RESET(); return ret;}}
 #define CONCAT(a, b) a ## b
@@ -211,9 +212,12 @@ public:
         int32_t actualTemp = 20 + digitalTemperature * tempSens; // TEMP = 20°C + dT * TEMPSENS =2000 + dT * C6 / 223
 
         // Calculate temperature compensated pressure
-        int64_t actualTempOffset = offsetT1 + pressureOffsetTempCo * tempDiff; // OFF = OFFT1 + TCO * dT = C2 * 2^17 +(C4 *dT) / 26
-        int64_t actualTempSens = sensitivityT1 + pressureSensTempCo * tempDiff; // SENS = SENST1+ TCS* dT= C1 * 2 16 + (C3 * dT )/ 27
-        int32_t tempCompPressure = digitalPressure * actualTempSens - actualTempOffset; // P = D1 * SENS - OFF = (D1 * SENS / 2 21 - OFF) / 2^15
+        int64_t actualTempOffset =
+                offsetT1 + pressureOffsetTempCo * tempDiff; // OFF = OFFT1 + TCO * dT = C2 * 2^17 +(C4 *dT) / 26
+        int64_t actualTempSens =
+                sensitivityT1 + pressureSensTempCo * tempDiff; // SENS = SENST1+ TCS* dT= C1 * 2 16 + (C3 * dT )/ 27
+        int32_t tempCompPressure = digitalPressure * actualTempSens -
+                                   actualTempOffset; // P = D1 * SENS - OFF = (D1 * SENS / 2 21 - OFF) / 2^15
 
         *pressure = tempCompPressure;
         *temp = actualTemp;
@@ -222,8 +226,25 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType calcTempCompensation(int32_t temperature) {
-        return RET_SUCCESS;
+    RetType calcTempCompensation(int32_t *temperature, int32_t *tempOffset) {
+        double T2 = 0;
+        double OFF2 = 0;
+        double SENS2 = 0;
+
+        if (*temperature < 20) {
+            T2 = pow(*tempOffset, 2) / pow(2, 31);
+            OFF2 = 61 * pow(*temperature - 2000, 2) / pow(2, 4);
+            SENS2 = 2 * pow(*temperature - 2000, 2);
+
+            if (*temperature < -15) {
+                OFF2 += 15 * pow(*temperature + 1500, 2);
+                SENS2 += 8 * pow(*temperature + 1500, 2);
+            }
+        }
+
+        *temperature -= T2;
+        *tempOffset -= OFF2;
+        *tempOffset -= SENS2;
     }
 
 
