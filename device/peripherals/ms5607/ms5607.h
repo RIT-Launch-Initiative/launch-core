@@ -195,17 +195,27 @@ public:
         uint16_t tempSens = 0;
 
         RetType ret;
+        uint8_t data[2];
         for (uint8_t i = 1; i < 7; i++) {
-            ret = CALL(readProm(static_cast<PROM_ADDR_T>(i)));
+            ret = CALL(readPROM(data));
             if (ret != RET_SUCCESS) {
-                RESET();
                 return ret;
             }
         }
 
         // Read Digital Values
-        uint32_t digitalPressure = d1Conversion();
-        uint32_t digitalTemperature = d2Conversion();
+        uint8_t conversionData[3] = {};
+        uint32_t digitalPressure;
+        uint32_t digitalTemperature;
+
+        ret = CALL(conversion(CONVERT_D1_4096, conversionData));
+        if (ret != RET_SUCCESS) return ret;
+        digitalPressure = (conversionData[0] << 16) | (conversionData[1] << 8) | conversionData[2];
+
+        ret = CALL(conversion(CONVERT_D2_4096, conversionData));
+        if (ret != RET_SUCCESS) return ret;
+        digitalTemperature = (conversionData[0] << 16) | (conversionData[1] << 8) | conversionData[2];
+
 
         // Calculate temperature
         int32_t tempDiff = digitalTemperature - tempRef; // dT = D2 - TREF = D2 - C5 * 2^8
@@ -226,7 +236,7 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType calcTempCompensation(int32_t *temperature, int32_t *tempOffset) {
+    void calcTempCompensation(int32_t *temperature, int32_t *tempOffset) {
         double T2 = 0;
         double OFF2 = 0;
         double SENS2 = 0;
@@ -264,12 +274,6 @@ private:
 
     int64_t offsetT1;
     int64_t sensitivityT1;
-
-    RetType readProm(PROM_ADDR_T address) {
-
-
-    }
-
 };
 
 #endif //LAUNCH_CORE_MS5607_H
