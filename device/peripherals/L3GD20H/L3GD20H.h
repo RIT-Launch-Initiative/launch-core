@@ -13,6 +13,10 @@
 #include "sched/macros/call.h"
 #include "sched/macros/reset.h"
 
+enum COMM_MODE { // Please just use I2C for now
+    SPI,
+    I2C
+};
 
 class L3GD20H {
 public:
@@ -24,6 +28,25 @@ public:
         mSPI = spiDev;
         mI2C = i2cDev;
     };
+
+    RetType init(COMM_MODE mode) {
+        RESUME();
+
+        switch (mode) {
+            case SPI:
+                device.write_reg = spiWrite;
+                device.read_reg = spiRead;
+            case I2C:
+                device.write_reg = i2cWrite;
+                device.read_reg = i2cRead;
+                break;
+        }
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+
 
 
 private:
