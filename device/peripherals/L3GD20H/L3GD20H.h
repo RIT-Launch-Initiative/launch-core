@@ -46,6 +46,55 @@ public:
         return RET_SUCCESS;
     }
 
+    RetType readReg(uint8_t reg, uint8_t *data, uint16_t len) {
+        RESUME();
+
+        int32_t result = l3gd20h_read_reg(&device, reg, data, len);
+        if (result != 0) return RET_ERROR;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType writeReg(uint8_t reg, uint8_t *data, uint16_t len) {
+        RESUME();
+
+        int32_t result = l3gd20h_write_reg(&device, reg, data, len);
+        if (result != 0) return RET_ERROR;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType fs245ToMDPS(int16_t lsb, float_t *result) {
+        RESUME();
+
+        *result = l3gd20h_from_fs245_to_mdps(lsb);
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType fs500ToMDPS(int16_t lsb, float_t *result) {
+        RESUME();
+
+        *result = l3gd20h_from_fs500_to_mdps(lsb);
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType fs2000ToMDPS(int16_t lsb, float_t *result) {
+        RESUME();
+
+        *result = l3gd20h_from_fs2000_to_mdps(lsb);
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+
+
 
 
 
