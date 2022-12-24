@@ -32,22 +32,23 @@ typedef enum {
     SERIAL_CRC_ADDR = 7,
 } PROM_ADDR_T;
 
+
 enum COMMAND_T {
-    SPI_RESET_COMMAND = 0x1E,
-    SPI_CONVERT_D1_256 = 0x40,
-    SPI_CONVERT_D1_512 = 0x42,
-    SPI_CONVERT_D1_1024 = 0x44,
-    SPI_CONVERT_D1_2048 = 0x46,
-    SPI_CONVERT_D1_4096 = 0x48,
+    RESET_COMMAND = 0x1E,
+    CONVERT_D1_256 = 0x40,
+    CONVERT_D1_512 = 0x42,
+    CONVERT_D1_1024 = 0x44,
+    CONVERT_D1_2048 = 0x46,
+    CONVERT_D1_4096 = 0x48,
 
-    SPI_CONVERT_D2_256 = 0x50,
-    SPI_CONVERT_D2_512 = 0x52,
-    SPI_CONVERT_D2_1024 = 0x54,
-    SPI_CONVERT_D2_2048 = 0x56,
-    SPI_CONVERT_D2_4096 = 0x58,
+    CONVERT_D2_256 = 0x50,
+    CONVERT_D2_512 = 0x52,
+    CONVERT_D2_1024 = 0x54,
+    CONVERT_D2_2048 = 0x56,
+    CONVERT_D2_4096 = 0x58,
 
-    SPI_ADC_READ = 0x00,
-    SPI_PROM_READ = 0xA0, // TODO: Goes to 0xAE based on b4-6 Ad2, Ad1, Ad0.
+    ADC_READ = 0x00,
+    PROM_READ = 0xA0, // TODO: Goes to 0xAE based on b4-6 Ad2, Ad1, Ad0.
 };
 
 class MS5607 {
@@ -77,7 +78,7 @@ public:
     RetType reset() {
         RESUME();
 
-        uint8_t resetCommand = SPI_RESET_COMMAND;
+        uint8_t resetCommand = RESET_COMMAND;
 
         RetType ret;
         switch (selectedProtocol) {
@@ -103,12 +104,47 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType d1Conversion() {
+    RetType conversion(COMMAND_T cmd, uint8_t *data) {
+        RESUME();
+        if ((cmd == RESET_COMMAND) || (cmd == ADC_READ) || (cmd == PROM_READ)) {
+            return RET_ERROR;
+        }
 
-    }
+        RetType ret;
+        uint8_t command = cmd;
+        switch (selectedProtocol) {
+            case I2C_PROTOCOL:
+                ret = CALL(mI2C->write(mAddr, &command, 1));
+                break;
+            case SPI_PROTOCOL: // TODO: Implement eventually
+                return RET_ERROR;
+        }
 
-    RetType d2Conversion() {
+        if (ret != RET_SUCCESS) return ret;
 
+        command = ADC_READ;
+        switch (selectedProtocol) {
+            case I2C_PROTOCOL:
+                ret = CALL(mI2C->write(mAddr, &command, 1));
+                break;
+            case SPI_PROTOCOL: // TODO: Implement eventually
+                return RET_ERROR;
+        }
+
+        if (ret != RET_SUCCESS) return ret;
+
+        switch (selectedProtocol) {
+            case I2C_PROTOCOL:
+                ret = CALL(mI2C->read(mAddr, data, 3));
+                break;
+            case SPI_PROTOCOL: // TODO: Implement eventually
+                return RET_ERROR;
+        }
+
+        if (ret != RET_SUCCESS) return ret;
+
+        RESET();
+        return RET_SUCCESS;
     }
 
     RetType readADC() {
@@ -118,7 +154,7 @@ public:
     RetType readPROM(uint8_t *data) {
         RESUME();
 
-        uint8_t command = SPI_PROM_READ;
+        uint8_t command = PROM_READ;
         RetType ret;
 
         switch (selectedProtocol) {
