@@ -93,6 +93,385 @@ public:
         return RET_SUCCESS;
     }
 
+    RetType lsbToCelsius(int16_t lsb, float_t *result) {
+        RESUME();
+
+        *result = l3gd20h_from_lsb_to_celsius(lsb);
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType setDataRate(l3gd20h_gy_data_rate_t val) {
+        RESUME();
+
+        int32_t result = l3gd20h_gy_data_rate_set(&device, val);
+        if (result != 0) return RET_ERROR;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getDataRate(l3gd20h_gy_data_rate_t *val) {
+        RESUME();
+
+        int32_t result = l3gd20h_gy_data_rate_get(&device, val);
+        if (result != 0) return RET_ERROR;
+
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType setFullScale(l3gd20h_gy_fs_t val) {
+        RESUME();
+
+        int32_t result = l3gd20h_gy_full_scale_set(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType getFullScale(l3gd20h_gy_fs_t *val) {
+        RESUME();
+
+        int32_t result = l3gd20h_gy_full_scale_get(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType setBlockDataUpdate(uint8_t val) {
+        RESUME();
+
+        int32_t result = l3gd20h_block_data_update_set(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType getBlockDataUpdate(uint8_t *val) {
+        RESUME();
+
+        int32_t result = l3gd20h_block_data_update_get(&device, val);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType setDataFormat(l3gd20h_ble_t val) {
+        RESUME();
+
+        int32_t result = l3gd20h_dev_data_format_set(&device, val);
+        if (result != 0) return RET_ERROR;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getDataFormat(l3gd20h_ble_t *val) {
+        RESUME();
+
+        int32_t result = l3gd20h_dev_data_format_get(&device, val);
+        if (result != 0) return RET_ERROR;
+
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType set(uint8_t val) {
+        RESUME();
+
+        int32_t result = (&device, val);
+        if (result != 0) return RET_ERROR;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType get(uint8_t *val) {
+        RESUME();
+
+        int32_t result = (&device, val);
+        if (result != 0) return RET_ERROR;
+
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType setBoot(uint8_t val) {
+        RESUME();
+
+        int32_t result = l3gd20h_dev_boot_set(&device, val);
+        if (result != 0) return RET_ERROR;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getBoot(uint8_t *val) {
+        RESUME();
+
+        int32_t result = l3gd20h_dev_boot_get(&device, val);
+        if (result != 0) return RET_ERROR;
+
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType setReset(uint8_t val) {
+        RESUME();
+
+        int32_t result = l3gd20h_dev_reset_set(&device, val);
+        if (result != 0) return RET_ERROR;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getReset(uint8_t *val) {
+        RESUME();
+
+        int32_t result = l3gd20h_dev_reset_get(&device, val);
+        if (result != 0) return RET_ERROR;
+
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType setLPFilterBandwith(l3gd20h_lpbw_t val) {
+        RESUME();
+
+        int32_t result = l3gd20h_gy_filter_lp_bandwidth_set(&device, val);
+        if (result != 0) return RET_ERROR;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getLPFilterBandwith(l3gd20h_lpbw_t *val) {
+        RESUME();
+
+        int32_t result = l3gd20h_gy_filter_lp_bandwidth_get(&device, val);
+        if (result != 0) return RET_ERROR;
+
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType setHPFilterBandwith(l3gd20h_gy_hp_bw_t val) {
+        RESUME();
+
+        int32_t result = l3gd20h_gy_filter_hp_bandwidth_set(&device, val);
+        if (result != 0) return RET_ERROR;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getHPFilterBandwith(l3gd20h_gy_hp_bw_t *val) {
+        RESUME();
+
+        int32_t result = l3gd20h_gy_filter_hp_bandwidth_get(&device, val);
+        if (result != 0) return RET_ERROR;
+
+
+        RESET();
+        return RET_SUCCESS;
+    }
+    RetType setFilterOutPath(l3gd20h_gy_out_path_t val) {
+        RESUME();
+
+        int32_t result = l3gd20h_gy_filter_out_path_set(&device, val);
+        if (result != 0) return RET_ERROR;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getFilterOutPath(l3gd20h_gy_out_path_t *val) {
+        RESUME();
+
+        int32_t result = l3gd20h_gy_filter_out_path_get(&device, val);
+        if (result != 0) return RET_ERROR;
+
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType setFilterReference(uint8_t val) {
+        RESUME();
+
+        int32_t result = l3gd20h_gy_filter_reference_set(&device, val);
+        if (result != 0) return RET_ERROR;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getFilterReference(uint8_t *val) {
+        RESUME();
+
+        int32_t result = l3gd20h_gy_filter_reference_get(&device, val);
+        if (result != 0) return RET_ERROR;
+
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType setSPIMode(l3gd20h_sim_t val) {
+        RESUME();
+
+        int32_t result = l3gd20h_spi_mode_set(&device, val);
+        if (result != 0) return RET_ERROR;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getSPIMode(l3gd20h_sim_t *val) {
+        RESUME();
+
+        int32_t result = l3gd20h_spi_mode_get(&device, val);
+        if (result != 0) return RET_ERROR;
+
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType setI2CInterface(l3gd20h_i2c_dis_t val) {
+        RESUME();
+
+        int32_t result = l3gd20h_i2c_interface_set(&device, val);
+        if (result != 0) return RET_ERROR;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getI2CInterface(l3gd20h_i2c_dis_t *val) {
+        RESUME();
+
+        int32_t result = l3gd20h_i2c_interface_get(&device, val);
+        if (result != 0) return RET_ERROR;
+
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType setPinInt1Route(l3gd20h_pin_int1_rt_t val) {
+        RESUME();
+
+        int32_t result = l3gd20h_pin_int1_route_set(&device, val);
+        if (result != 0) return RET_ERROR;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getPinInt1Route(l3gd20h_pin_int1_rt_t *val) {
+        RESUME();
+
+        int32_t result = l3gd20h_pin_int1_route_get(&device, val);
+        if (result != 0) return RET_ERROR;
+
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType setPinInt2Route(l3gd20h_pin_int2_rt_t val) {
+        RESUME();
+
+        int32_t result = l3gd20h_pin_int2_route_set(&device, val);
+        if (result != 0) return RET_ERROR;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getPinInt2Route(l3gd20h_pin_int2_rt_t *val) {
+        RESUME();
+
+        int32_t result = l3gd20h_pin_int2_route_get(&device, val);
+        if (result != 0) return RET_ERROR;
+
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType setPinMode(l3gd20h_pp_od_t val) {
+        RESUME();
+
+        int32_t result = l3gd20h_pin_mode_set(&device, val);
+        if (result != 0) return RET_ERROR;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getPinMode(l3gd20h_pp_od_t *val) {
+        RESUME();
+
+        int32_t result = l3gd20h_pin_mode_get(&device, val);
+        if (result != 0) return RET_ERROR;
+
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType setPinPolarity(l3gd20h_pin_pol_t val) {
+        RESUME();
+
+        int32_t result = l3gd20h_pin_polarity_set(&device, val);
+        if (result != 0) return RET_ERROR;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getPinPolarity(l3gd20h_pin_pol_t *val) {
+        RESUME();
+
+        int32_t result = l3gd20h_pin_polarity_get(&device, val);
+        if (result != 0) return RET_ERROR;
+
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType setPinNotification(l3gd20h_lir_t val) {
+        RESUME();
+
+        int32_t result = l3gd20h_pin_notification_set(&device, val);
+        if (result != 0) return RET_ERROR;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getPinNotification(l3gd20h_lir_t *val) {
+        RESUME();
+
+        int32_t result = (l3gd20h_pin_notification_get&device, val);
+        if (result != 0) return RET_ERROR;
+
+
+        RESET();
+        return RET_SUCCESS;
+    }
 
 
 
