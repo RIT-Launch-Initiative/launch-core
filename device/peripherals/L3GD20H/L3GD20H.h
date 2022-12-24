@@ -211,17 +211,6 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType get(uint8_t *val) {
-        RESUME();
-
-        int32_t result = (&device, val);
-        if (result != 0) return RET_ERROR;
-
-
-        RESET();
-        return RET_SUCCESS;
-    }
-
     RetType setBoot(uint8_t val) {
         RESUME();
 
@@ -508,7 +497,7 @@ public:
     RetType getPinNotification(l3gd20h_lir_t *val) {
         RESUME();
 
-        int32_t result = (l3gd20h_pin_notification_get & device, val);
+        int32_t result = l3gd20h_pin_notification_get(&device, val);
         if (result != 0) return RET_ERROR;
 
 
