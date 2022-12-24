@@ -37,16 +37,63 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType getAccAxis(MMA8451_REG reg, int16_t *result16) {
+    RetType getAxisAccel(MMA8451_REG reg, int16_t *result16) {
         uint8_t result8[2] = {};
-        RetType ret = mI2C->write(mAddr,)
-
 
     }
+
+
+    RetType getXAccel(int16_t *result) {
+        RESUME();
+
+        RetType ret = CALL(getAccAxis(X_MSB_REG, result));
+        if (ret != RET_SUCCESS) return ret;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getYAccel(int16_t *result) {
+        RESUME();
+
+        RetType ret = CALL(getAccAxis(Y_MSB_REG, result));
+        if (ret != RET_SUCCESS) return ret;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getZAccel(int16_t *result) {
+        RESUME();
+
+        RetType ret = CALL(getAccAxis(Z_MSB_REG, result));
+        if (ret != RET_SUCCESS) return ret;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getAllAccel(int16_t *result) {
+        RESUME();
+
+        RetType ret = CALL(getXAccel(&result[0]));
+        if (ret != RET_SUCCESS) return ret;
+
+        ret = CALL(getXAccel(&result[1]));
+        if (ret != RET_SUCCESS) return ret;
+
+        ret = CALL(getXAccel(&result[2]));
+        if (ret != RET_SUCCESS) return ret;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
 
 private:
     I2CDevice *mI2C;
     I2CAddr_t mAddr;
+
 
     RetType readReg(MMA8451_REG addr, uint8_t *data, int len) {
         RESUME();
