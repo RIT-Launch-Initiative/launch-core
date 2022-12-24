@@ -284,6 +284,7 @@ public:
         RESET();
         return RET_SUCCESS;
     }
+
     RetType setFilterOutPath(l3gd20h_gy_out_path_t val) {
         RESUME();
 
@@ -305,7 +306,28 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType setFilterReference(uint8_t val) {
+    RetType setFilterIntPath(l3gd20h_gy_int_path_t val) {
+        RESUME();
+
+        int32_t result = l3gd20h_gy_filter_int_path_set(&device, val);
+        if (result != 0) return RET_ERROR;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getFilterIntPath(l3gd20h_gy_int_path_t *val) {
+        RESUME();
+
+        int32_t result = l3gd20h_gy_filter_int_path_get(&device, val);
+        if (result != 0) return RET_ERROR;
+
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType setFilterReference(uint8_t *val) {
         RESUME();
 
         int32_t result = l3gd20h_gy_filter_reference_set(&device, val);
@@ -473,20 +495,20 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType setPinLogic(l3gd20h_gy_trshld_en_t val) {
+    RetType setPinLogic(l3gd20h_pin_logic_t val) {
         RESUME();
 
-        int32_t result = l3gd20h_gy_trshld_axis_set(&device, val);
+        int32_t result = l3gd20h_pin_logic_set(&device, val);
         if (result != 0) return RET_ERROR;
 
         RESET();
         return RET_SUCCESS;
     }
 
-    RetType getPinLogic(l3gd20h_gy_trshld_en_t *val) {
+    RetType getPinLogic(l3gd20h_pin_logic_t *val) {
         RESUME();
 
-        int32_t result = l3gd20h_gy_trshld_axis_get(&device, val);
+        int32_t result = l3gd20h_pin_logic_get(&device, val);
         if (result != 0) return RET_ERROR;
 
 
@@ -557,6 +579,27 @@ public:
         return RET_SUCCESS;
     }
 
+    RetType setGyroThresholdAxis(l3gd20h_gy_trshld_en_t val) {
+        RESUME();
+
+        int32_t result = l3gd20h_gy_trshld_axis_set(&device, val);
+        if (result != 0) return RET_ERROR;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType setGyroThresholdAxis(l3gd20h_gy_trshld_en_t *val) {
+        RESUME();
+
+        int32_t result = l3gd20h_gy_trshld_axis_get(&device, val);
+        if (result != 0) return RET_ERROR;
+
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
     RetType setGyroModeThreshold(l3gd20h_dcrm_g_t val) {
         RESUME();
 
@@ -599,41 +642,20 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType set(uint8_t val) {
+    RetType setFifoStopWtm(uint8_t val) {
         RESUME();
 
-        int32_t result = (&device, val);
+        int32_t result = l3gd20h_fifo_stop_on_wtm_set(&device, val);
         if (result != 0) return RET_ERROR;
 
         RESET();
         return RET_SUCCESS;
     }
 
-    RetType get(uint8_t *val) {
+    RetType getFifoStopWtm(uint8_t *val) {
         RESUME();
 
-        int32_t result = (&device, val);
-        if (result != 0) return RET_ERROR;
-
-
-        RESET();
-        return RET_SUCCESS;
-    }
-
-    RetType set(uint8_t val) {
-        RESUME();
-
-        int32_t result = (&device, val);
-        if (result != 0) return RET_ERROR;
-
-        RESET();
-        return RET_SUCCESS;
-    }
-
-    RetType get(uint8_t *val) {
-        RESUME();
-
-        int32_t result = (&device, val);
+        int32_t result = l3gd20h_fifo_stop_on_wtm_get(&device, val);
         if (result != 0) return RET_ERROR;
 
 
@@ -641,20 +663,20 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType set(uint8_t val) {
+    RetType setFifoMode(l3gd20h_fifo_m_t val) {
         RESUME();
 
-        int32_t result = (&device, val);
+        int32_t result = l3gd20h_fifo_mode_set(&device, val);
         if (result != 0) return RET_ERROR;
 
         RESET();
         return RET_SUCCESS;
     }
 
-    RetType get(uint8_t *val) {
+    RetType getFifoMode(l3gd20h_fifo_m_t *val) {
         RESUME();
 
-        int32_t result = (&device, val);
+        int32_t result = l3gd20h_fifo_mode_get(&device, val);
         if (result != 0) return RET_ERROR;
 
 
@@ -662,6 +684,67 @@ public:
         return RET_SUCCESS;
     }
 
+    RetType setFifoWatermark(uint8_t val) {
+        RESUME();
+
+        int32_t result = l3gd20h_fifo_watermark_set(&device, val);
+        if (result != 0) return RET_ERROR;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getFifoWatermark(uint8_t *val) {
+        RESUME();
+
+        int32_t result = l3gd20h_fifo_watermark_get(&device, val);
+        if (result != 0) return RET_ERROR;
+
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType setDenMode(l3gd20h_den_md_t val) {
+        RESUME();
+
+        int32_t result = l3gd20h_den_mode_set(&device, val);
+        if (result != 0) return RET_ERROR;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getDenMode(l3gd20h_den_md_t *val) {
+        RESUME();
+
+        int32_t result = l3gd20h_den_mode_get(&device, val);
+        if (result != 0) return RET_ERROR;
+
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType setSelfTest(l3gd20h_st_t val) {
+        RESUME();
+
+        int32_t result = l3gd20h_gy_self_test_set(&device, val);
+        if (result != 0) return RET_ERROR;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getSelfTest(l3gd20h_st_t *val) {
+        RESUME();
+
+        int32_t result = l3gd20h_gy_self_test_get(&device, val);
+        if (result != 0) return RET_ERROR;
+
+        RESET();
+        return RET_SUCCESS;
+    }
 
 
 
@@ -671,10 +754,51 @@ public:
         int32_t result = l3gd20h_gy_trshld_src_get(&device, val);
         if (result != 0) return RET_ERROR;
 
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getFifoSrc(l3gd20h_fifo_srs_t *val) {
+        RESUME();
+
+        int32_t result = l3gd20h_fifo_src_get(&device, val);
+        if (result != 0) return RET_ERROR;
 
         RESET();
         return RET_SUCCESS;
     }
+
+    RetType getFifoDataLevel(uint8_t *val) {
+        RESUME();
+
+        int32_t result = l3gd20h_fifo_data_level_get(&device, val);
+        if (result != 0) return RET_ERROR;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getFifoFullFlag(uint8_t *val) {
+        RESUME();
+
+        int32_t result = l3gd20h_fifo_full_flag_get(&device, val);
+        if (result != 0) return RET_ERROR;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getFifoWtmFlag(uint8_t *val) {
+        RESUME();
+
+        int32_t result = l3gd20h_fifo_wtm_flag_get(&device, val);
+        if (result != 0) return RET_ERROR;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+
 
 
 
