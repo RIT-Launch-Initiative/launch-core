@@ -44,8 +44,8 @@ public:
         RetType ret = CALL(readReg(reg, result8, 2));
         if (ret != RET_SUCCESS) return ret;
 
-        *result16 = ((result8[0]) << 6) | (result8[1] >> 2);
-        if (*result16 > UINT14_MAX/2) {
+        *result16 = static_cast<int16_t>((result8[0] << 6) | (result8[1] >> 2));
+        if (*result16 > UINT14_MAX / 2) {
             *result16 -= UINT14_MAX;
         }
 
@@ -93,6 +93,16 @@ public:
         if (ret != RET_SUCCESS) return ret;
 
         ret = CALL(getXAccel(&result[2]));
+        if (ret != RET_SUCCESS) return ret;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    uint8_t getDeviceID(uint8_t *id) {
+        RESUME();
+
+        RetType ret = CALL(readReg(DEVICE_ID_REG, id, 1));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
