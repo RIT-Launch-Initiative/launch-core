@@ -11,7 +11,6 @@
 #include "sched/macros/reset.h"
 #include "device/I2CDevice.h"
 #include "sched/macros/call.h"
-#include "device/peripherals/adafruit_def.h"
 
 #define SHTC3_I2C_ADDR 0x70
 
@@ -36,16 +35,15 @@ enum SHTC3_CMD {
 
 class SHTC3 {
 public:
-    SHTC3(I2CDevice *i2CDevice) : mI2C(i2CDevice), inLowPowerMode(true) {}
+    // TODO: Validate addr
+    SHTC3(I2CDevice *i2CDevice) : mI2C(i2CDevice), inLowPowerMode(true), addr({
+                                                                                      .dev_addr = SHTC3_I2C_ADDR,
+                                                                                      .mem_addr = 0,
+                                                                                      .mem_addr_size = 0
+                                                                              }) {}
 
     RetType init() {
         RESUME();
-
-        addr = {
-                .dev_addr = SHTC3_I2C_ADDR,
-                .mem_addr = 0,
-                .mem_addr_size = 0
-        };
 
         uint16_t id = 0;
         RetType ret = CALL(getID(&id));
@@ -67,10 +65,10 @@ public:
         uint8_t buff[6];
         if (inLowPowerMode) {
             ret = CALL(writeCommand(LOW_POW_MEAS_TEMP));
-            // Call a delay of 1
+            // TODO: Call a delay of 1
         } else {
             ret = CALL(writeCommand(NORMAL_POW_MEAS_TEMP));
-            // Call a delay of 13
+            // TODO: Call a delay of 13
         }
         if (ret != RET_SUCCESS) return ret;
 
