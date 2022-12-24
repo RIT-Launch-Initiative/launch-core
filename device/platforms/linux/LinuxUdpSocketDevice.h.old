@@ -75,14 +75,14 @@ public:
         }
 
         packet->len = len;
-        packet->src.addr = ntohl(addr.sin_addr.s_addr);
+        packet->src.mAddr = ntohl(addr.sin_addr.s_addr);
         packet->src.port = ntohs(addr.sin_port);
         return RET_SUCCESS;
     }
 
     RetType bind(addr_t* addr) {
         struct sockaddr_in sock_addr;
-        sock_addr.sin_addr.s_addr = htonl(addr->addr);
+        sock_addr.sin_addr.s_addr = htonl(addr->mAddr);
         sock_addr.sin_family = AF_INET;
         sock_addr.sin_port = htons(addr->port);
 
@@ -95,7 +95,7 @@ public:
 
     RetType subscribe(addr_t* addr) {
         struct ip_mreq mreq;
-        mreq.imr_multiaddr.s_addr = htonl(addr->addr);
+        mreq.imr_multiaddr.s_addr = htonl(addr->mAddr);
         mreq.imr_interface.s_addr = htonl(INADDR_ANY);
         if(setsockopt(m_sockFd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0) {
             return RET_ERROR;
@@ -107,8 +107,8 @@ public:
     RetType sendmsg(msg_t* msg) {
         struct sockaddr_in addr;
         addr.sin_family = AF_INET;
-        addr.sin_addr.s_addr = htonl(msg->addr.addr);
-        addr.sin_port = htons(msg->addr.port);
+        addr.sin_addr.s_addr = htonl(msg->mAddr.mAddr);
+        addr.sin_port = htons(msg->mAddr.port);
 
         if(sendto(m_sockFd, (void*)(msg->payload), msg->payload_len,
                   0, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
@@ -135,7 +135,7 @@ public:
         } // otherwise truncate and don't copy all of the packet
 
         memcpy(msg->payload, packet->buff, msg->payload_len);
-        msg->addr = packet->src;
+        msg->mAddr = packet->src;
         return RET_SUCCESS;
     }
 

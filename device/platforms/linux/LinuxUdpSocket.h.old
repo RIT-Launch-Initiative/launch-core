@@ -106,7 +106,7 @@ public:
     RetType sendmsg(sockinfo_t* msg) {
         struct sockaddr_in addr;
         addr.sin_family = AF_INET;
-        addr.sin_addr.s_addr = htonl(msg->addr.addr);
+        addr.sin_addr.s_addr = htonl(msg->addr.mAddr);
         addr.sin_port = htons(msg->addr.port);
 
         if(sendto(m_sockFd, (void*)(msg->payload), msg->payload_len,

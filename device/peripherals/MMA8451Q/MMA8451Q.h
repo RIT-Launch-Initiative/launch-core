@@ -28,18 +28,49 @@ public:
 
     RetType init() {
         RESUME();
-        uint8_t data[2] {CTRL_REG_1, 0x01};
+        uint8_t data[2]{CTRL_REG_1, 0x01};
 
-        RetType ret = CALL(mI2C->write(addr, data, 2));
+        RetType ret = CALL(mI2C->write(mAddr, data, 2));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
         return RET_SUCCESS;
     }
 
+    RetType getAccAxis(MMA8451_REG reg, int16_t *result16) {
+        uint8_t result8[2] = {};
+        RetType ret = mI2C->write(mAddr,)
+
+
+    }
+
 private:
     I2CDevice *mI2C;
-    I2CAddr_t addr;
+    I2CAddr_t mAddr;
+
+    RetType readReg(MMA8451_REG addr, uint8_t *data, int len) {
+        RESUME();
+
+        uint8_t regAddr[1] = {static_cast<uint8_t>(addr)};
+        RetType ret = CALL(mI2C->write(mAddr, regAddr, 1));
+        if (ret != RET_SUCCESS) return ret;
+
+        ret = CALL(mI2C->read(mAddr, data, len));
+        if (ret != RET_SUCCESS) return ret;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType writeReg(uint8_t *data, int len) {
+        RESUME();
+
+        RetType ret = CALL(mI2C->write(mAddr, data, len));
+        if (ret != RET_SUCCESS) return ret;
+
+        RESET();
+        return RET_SUCCESS;
+    }
 
 };
 
