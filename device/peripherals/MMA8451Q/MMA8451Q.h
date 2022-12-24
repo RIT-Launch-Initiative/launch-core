@@ -1,5 +1,7 @@
 /**
  * MMA8451Q Platform Independent Driver Implementation Using launch-core
+ *
+ * @author Aaron Chan
  */
 #ifndef LAUNCH_CORE_MMA8451Q_H
 #define LAUNCH_CORE_MMA8451Q_H
