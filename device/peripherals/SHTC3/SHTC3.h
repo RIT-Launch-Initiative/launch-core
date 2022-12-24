@@ -11,6 +11,7 @@
 #include "sched/macros/reset.h"
 #include "device/I2CDevice.h"
 #include "sched/macros/call.h"
+#include "device/peripherals/adafruit_def.h"
 
 
 #define SHTC3_I2C_ADDR 0x70
@@ -19,18 +20,17 @@
 #define SHTC3_NORMAL_MEAS_HFIRST_STRETCH 0x5C24 /**< Normal measurement, hum first with Clock Stretch Enabled */
 #define SHTC3_LOWPOW_MEAS_HFIRST_STRETCH 0x44DE /**< Low power measurement, hum first with Clock Stretch Enabled */
 
-#define SHTC3_NORMAL_MEAS_TFIRST 0x7866 /**< Normal measurement, temp first with Clock Stretch disabled */
-#define SHTC3_LOWPOW_MEAS_TFIRST 0x609C /**< Low power measurement, temp first with Clock Stretch disabled */
-#define SHTC3_NORMAL_MEAS_HFIRST 0x58E0 /**< Normal measurement, hum first with Clock Stretch disabled */
-#define SHTC3_LOWPOW_MEAS_HFIRST 0x401A /**< Low power measurement, hum first with Clock Stretch disabled */
-
-
 enum SHTC3_CMD {
     SLEEP_CMD = 0xB098,
     WAKEUP_CMD = 0x3517,
     RESET_CMD = 0x805D,
 
-    READ_ID_CMD = 0xEFC8
+    READ_ID_CMD = 0xEFC8,
+
+    NORMAL_POW_MEAS_TEMP = 0x7866,
+    LOW_POW_MEAS_TEMP = 0x609C,
+    NORMAL_POW_MEAS_HUM = 0x58E0,
+    LOW_POW_MEAS_HUM = 0x401A,
 };
 
 
@@ -39,6 +39,39 @@ public:
     SHTC3(I2CDevice *i2CDevice) : mI2C(i2CDevice) {}
 
     RetType init() {
+        return RET_SUCCESS;
+    }
+
+    RetType getHumidityAndTemp(float *temperature, float *humidity) {
+        RESUME();
+
+        RetType ret;
+        uint8_t buff[6];
+        if (inLowPowerMode) {
+            ret = CALL(writeCommand(LOW_POW_MEAS_TEMP));
+            // Call a delay of 1
+        } else {
+            ret = CALL(writeCommand(NORMAL_POW_MEAS_TEMP));
+            // Call a delay of 13
+        }
+        if (ret != RET_SUCCESS) return ret;
+
+        ret = CALL(mI2C->read(addr, buff, sizeof(buff)));
+        if (ret != RET_SUCCESS) return ret;
+
+        if ((buff[2] != crc8(buff, 2)) || (buff[5] != crc8(buff + 3, 2))) {
+            return RET_ERROR;
+        }
+
+        int32_t calcTemp = static_cast<int32_t>((static_cast<uint32_t>(buff[0]) << 8) | buff[1]);
+        calcTemp = ((4375 * calcTemp) >> 14) - 4500;
+        *temperature = static_cast<float>(calcTemp) / 100.0f;
+
+        uint32_t calcHum = (static_cast<uint32_t>(buff[3]) << 8) | buff[4];
+        calcHum = (625 * calcHum) >> 12;
+        *humidity = static_cast<float>(calcHum) / 100.0f;
+
+        RESET();
         return RET_SUCCESS;
     }
 
@@ -117,6 +150,7 @@ public:
 private:
     I2CDevice *mI2C;
     I2CAddr_t addr;
+    bool inLowPowerMode;
 
     void uint16ToUint8(uint16_t data16, uint8_t *data8) {
         data8[0] = static_cast<uint8_t>(data16 >> 8);
