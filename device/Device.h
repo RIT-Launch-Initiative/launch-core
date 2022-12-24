@@ -25,7 +25,7 @@
 class Device {
 public:
     /// @brief constructor
-    Device(const char* name) : m_name(name), m_uid(uid_counter) {
+    Device(const char* name) :  m_uid(uid_counter), m_name(name) {
         uid_counter++;
     };
 
@@ -57,12 +57,12 @@ public:
         return m_uid;
     }
 
-    #ifdef DEBUG
+#ifdef DEBUG
     /// @brief print a textual representation of the device using 'printf'
     virtual void print() {
         printf("%s\t---\tunique ID 0x%04x\r\n", m_name, m_uid);
     }
-    #endif
+#endif
 
 protected:
     uint16_t m_uid;

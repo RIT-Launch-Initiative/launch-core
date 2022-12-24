@@ -7,6 +7,7 @@
 #include "device/StreamDevice.h"
 #include "sched/sched.h"
 #include "sched/macros.h"
+#include "sync/BlockingSemaphore.h"
 
 // *** stolen from stack overflow to make terminal work *** //
 // notable disables line buffering
