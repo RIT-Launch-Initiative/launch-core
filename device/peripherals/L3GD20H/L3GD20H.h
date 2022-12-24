@@ -473,7 +473,208 @@ public:
         return RET_SUCCESS;
     }
 
+    RetType setPinLogic(l3gd20h_gy_trshld_en_t val) {
+        RESUME();
 
+        int32_t result = l3gd20h_gy_trshld_axis_set(&device, val);
+        if (result != 0) return RET_ERROR;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getPinLogic(l3gd20h_gy_trshld_en_t *val) {
+        RESUME();
+
+        int32_t result = l3gd20h_gy_trshld_axis_get(&device, val);
+        if (result != 0) return RET_ERROR;
+
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType setGyroXThreshold(uint16_t val) {
+        RESUME();
+
+        int32_t result = l3gd20h_gy_trshld_x_set(&device, val);
+        if (result != 0) return RET_ERROR;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getGyroXThreshold(uint16_t *val) {
+        RESUME();
+
+        int32_t result = l3gd20h_gy_trshld_x_get(&device, val);
+        if (result != 0) return RET_ERROR;
+
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType setGyroYThreshold(uint16_t val) {
+        RESUME();
+
+        int32_t result = l3gd20h_gy_trshld_y_set(&device, val);
+        if (result != 0) return RET_ERROR;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getGyroYThreshold(uint16_t *val) {
+        RESUME();
+
+        int32_t result = l3gd20h_gy_trshld_y_get(&device, val);
+        if (result != 0) return RET_ERROR;
+
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType setGyroZThreshold(uint16_t val) {
+        RESUME();
+
+        int32_t result = l3gd20h_gy_trshld_z_set(&device, val);
+        if (result != 0) return RET_ERROR;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getGyroZThreshold(uint16_t *val) {
+        RESUME();
+
+        int32_t result = l3gd20h_gy_trshld_z_get(&device, val);
+        if (result != 0) return RET_ERROR;
+
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType setGyroModeThreshold(l3gd20h_dcrm_g_t val) {
+        RESUME();
+
+        int32_t result = l3gd20h_gy_trshld_mode_set(&device, val);
+        if (result != 0) return RET_ERROR;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getGyroModeThreshold(l3gd20h_dcrm_g_t *val) {
+        RESUME();
+
+        int32_t result = l3gd20h_gy_trshld_mode_get(&device, val);
+        if (result != 0) return RET_ERROR;
+
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType setGyroMinSampleThreshold(uint8_t val) {
+        RESUME();
+
+        int32_t result = l3gd20h_gy_trshld_min_sample_set(&device, val);
+        if (result != 0) return RET_ERROR;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getGyroMinSampleThreshold(uint8_t *val) {
+        RESUME();
+
+        int32_t result = l3gd20h_gy_trshld_min_sample_get(&device, val);
+        if (result != 0) return RET_ERROR;
+
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType set(uint8_t val) {
+        RESUME();
+
+        int32_t result = (&device, val);
+        if (result != 0) return RET_ERROR;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType get(uint8_t *val) {
+        RESUME();
+
+        int32_t result = (&device, val);
+        if (result != 0) return RET_ERROR;
+
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType set(uint8_t val) {
+        RESUME();
+
+        int32_t result = (&device, val);
+        if (result != 0) return RET_ERROR;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType get(uint8_t *val) {
+        RESUME();
+
+        int32_t result = (&device, val);
+        if (result != 0) return RET_ERROR;
+
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType set(uint8_t val) {
+        RESUME();
+
+        int32_t result = (&device, val);
+        if (result != 0) return RET_ERROR;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType get(uint8_t *val) {
+        RESUME();
+
+        int32_t result = (&device, val);
+        if (result != 0) return RET_ERROR;
+
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+
+
+
+    RetType getGyroscopeThreshold(l3gd20h_gy_trshld_src_t *val) {
+        RESUME();
+
+        int32_t result = l3gd20h_gy_trshld_src_get(&device, val);
+        if (result != 0) return RET_ERROR;
+
+
+        RESET();
+        return RET_SUCCESS;
+    }
 
 
 
