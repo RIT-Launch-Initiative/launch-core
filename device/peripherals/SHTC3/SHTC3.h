@@ -13,12 +13,7 @@
 #include "sched/macros/call.h"
 #include "device/peripherals/adafruit_def.h"
 
-
 #define SHTC3_I2C_ADDR 0x70
-#define SHTC3_NORMAL_MEAS_TFIRST_STRETCH 0x7CA2 /**< Normal measurement, temp first with Clock Stretch Enabled */
-#define SHTC3_LOWPOW_MEAS_TFIRST_STRETCH 0x6458 /**< Low power measurement, temp first with Clock Stretch Enabled */
-#define SHTC3_NORMAL_MEAS_HFIRST_STRETCH 0x5C24 /**< Normal measurement, hum first with Clock Stretch Enabled */
-#define SHTC3_LOWPOW_MEAS_HFIRST_STRETCH 0x44DE /**< Low power measurement, hum first with Clock Stretch Enabled */
 
 enum SHTC3_CMD {
     SLEEP_CMD = 0xB098,
@@ -31,14 +26,37 @@ enum SHTC3_CMD {
     LOW_POW_MEAS_TEMP = 0x609C,
     NORMAL_POW_MEAS_HUM = 0x58E0,
     LOW_POW_MEAS_HUM = 0x401A,
+
+    NORMAL_POW_MEAS_TEMP_STRETCH = 0x7CA2,
+    LOW_POW_MEAS_TEMP_STRETCH = 0x6458,
+    NORMAL_POW_MEAS_HUM_STRETCH = 0x5C24,
+    LOW_POW_MEAS_HUM_STRETCH = 0x44DE,
 };
 
 
 class SHTC3 {
 public:
-    SHTC3(I2CDevice *i2CDevice) : mI2C(i2CDevice) {}
+    SHTC3(I2CDevice *i2CDevice) : mI2C(i2CDevice), inLowPowerMode(true) {}
 
     RetType init() {
+        RESUME();
+
+        addr = {
+                .dev_addr = SHTC3_I2C_ADDR,
+                .mem_addr = 0,
+                .mem_addr_size = 0
+        };
+
+        uint16_t id = 0;
+        RetType ret = CALL(getID(&id));
+        if (ret != RET_SUCCESS) return ret;
+
+
+        if ((id & 0x083F) != 0x807) {
+            return RET_ERROR;
+        }
+
+        RESET();
         return RET_SUCCESS;
     }
 
@@ -144,6 +162,10 @@ public:
 
         RESET();
         return RET_SUCCESS;
+    }
+
+    RetType setPowerMode(bool lowPowerMode) {
+        this->inLowPowerMode = lowPowerMode;
     }
 
 
