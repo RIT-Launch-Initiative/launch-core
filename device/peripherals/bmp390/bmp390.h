@@ -19,40 +19,55 @@ class BMP390 {
 public:
     BMP390(void *pInterface, bmp3_intf commInterface, struct bmp3_calib_data calibrationData,
            bmp3_delay_us_fptr_t delayFptr, SPIDevice *spiDev = nullptr, I2CDevice *i2cDev = nullptr) :
-            device({
-                           .intf_ptr = pInterface,
-                           .intf = commInterface,
-//                           .intf_rslt = BMP3_INTF_RET_SUCCESS,
-                           .delay_us = delayFptr,
-//                           .calib_data = calibrationData,
-                   }) {
+            device({.intf_ptr = pInterface, .intf = commInterface, .delay_us = delayFptr,}) {
         mSPI = spiDev;
         mI2C = i2cDev;
     }
 
-    BMP390(void *pInterface, struct bmp3_calib_data calibrationData, bmp3_delay_us_fptr_t delayFptr, I2CDevice *i2cDev = nullptr) :
-            device({
-                           .intf_ptr = pInterface,
-                           .intf = BMP3_I2C_INTF,
-//                           .intf_rslt = BMP3_INTF_RET_SUCCESS,
-                           .delay_us = delayFptr,
-//                           .calib_data = calibrationData,
-                   }) {
+    BMP390(void *pInterface, struct bmp3_calib_data calibrationData, bmp3_delay_us_fptr_t delayFptr,
+           I2CDevice *i2cDev = nullptr) :
+            device({.intf_ptr = pInterface, .intf = BMP3_I2C_INTF, .delay_us = delayFptr,}) {
         mI2C = i2cDev;
     }
 
     BMP390(void *pInterface, struct bmp3_calib_data calibrationData, bmp3_delay_us_fptr_t delayFptr, SPIDevice *spiDev)
             :
-            device({
-                           .intf_ptr = pInterface,
-                           .intf = BMP3_SPI_INTF,
-//                           .intf_rslt = BMP3_INTF_RET_SUCCESS,
-                           .delay_us = delayFptr,
-//                           .calib_data = calibrationData,
-                   }) {
+            device({.intf_ptr = pInterface, .intf = BMP3_SPI_INTF, .delay_us = delayFptr,}) {
         mSPI = spiDev;
     }
 
+    // Provide own functions for now
+    RetType init(BMP3_INTF_RET_TYPE (*readFptr)(uint8_t, uint8_t *, uint32_t, void *),
+                 BMP3_INTF_RET_TYPE (writeFptr)(uint8_t, const uint8_t *, uint32_t, void *)) {
+        RESUME();
+
+        switch (device.intf) {
+            case BMP3_SPI_INTF:
+                if (mSPI == nullptr) return RET_ERROR;
+
+                device.read = spiRead;
+                device.write = spiWrite;
+
+                break;
+            case BMP3_I2C_INTF:
+                if (mI2C == nullptr) return RET_ERROR;
+
+                device.read = readFptr;
+                device.write = writeFptr;
+
+                break;
+            default:
+                return RET_ERROR;
+        }
+
+
+        int8_t result = bmp3_init(&this->device);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    // TODO: Provided fn ptrs having issues with scheduler
     RetType init() {
         RESUME();
 
@@ -260,7 +275,6 @@ private:
     // TODO: Not using SPI, but should figure out how to use regAddr here
     static BMP3_INTF_RET_TYPE spiRead(uint8_t regAddr, uint8_t *data, uint32_t len, void *intfPtr) {
         RESUME();
-
         RetType ret = mSPI->read(data, len);
         if (ret != RET_SUCCESS) return ret;
 
