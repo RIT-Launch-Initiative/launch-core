@@ -243,10 +243,12 @@ private:
         RESUME();
 
         I2CAddr_t addr = {
-                .dev_addr = BMP3_ADDR_I2C_PRIM,
+                .dev_addr = *static_cast<uint8_t *>(intfPtr),
                 .mem_addr = regAddr,
                 .mem_addr_size = sizeof(uint8_t),
         };
+
+        static_cast<void>(intfPtr);
 
         RetType ret = mI2C->read(addr, data, len);
         if (ret != RET_SUCCESS) return ret;
@@ -260,13 +262,15 @@ private:
         RESUME();
 
         I2CAddr_t addr = {
-                .dev_addr = BMP3_ADDR_I2C_PRIM,
+                .dev_addr = *static_cast<uint8_t *>(intfPtr),
                 .mem_addr = regAddr,
                 .mem_addr_size = sizeof(uint8_t),
         };
 
+        static_cast<void>(intfPtr);
+
         RetType ret = mI2C->write(addr, const_cast<uint8_t *>(data), len);
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) return ret; // TODO: Should map to BMP3_INTF_RET_TYPE if possible
 
         RESET();
         return RET_SUCCESS;
