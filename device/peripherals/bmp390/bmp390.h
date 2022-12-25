@@ -30,6 +30,29 @@ public:
         mI2C = i2cDev;
     }
 
+    BMP390(void *pInterface, struct bmp3_calib_data calibrationData, bmp3_delay_us_fptr_t delayFptr, I2CDevice *i2cDev = nullptr) :
+            device({
+                           .intf_ptr = pInterface,
+                           .intf = BMP3_I2C_INTF,
+//                           .intf_rslt = BMP3_INTF_RET_SUCCESS,
+                           .delay_us = delayFptr,
+//                           .calib_data = calibrationData,
+                   }) {
+        mI2C = i2cDev;
+    }
+
+    BMP390(void *pInterface, struct bmp3_calib_data calibrationData, bmp3_delay_us_fptr_t delayFptr, SPIDevice *spiDev)
+            :
+            device({
+                           .intf_ptr = pInterface,
+                           .intf = BMP3_SPI_INTF,
+//                           .intf_rslt = BMP3_INTF_RET_SUCCESS,
+                           .delay_us = delayFptr,
+//                           .calib_data = calibrationData,
+                   }) {
+        mSPI = spiDev;
+    }
+
     RetType init() {
         RESUME();
 
@@ -211,9 +234,10 @@ private:
         };
 
         RetType ret = mI2C->read(addr, data, len);
+        if (ret != RET_SUCCESS) return ret;
 
         RESET();
-        return ret == RET_SUCCESS ? 0 : -1;
+        return RET_SUCCESS;
 
     };
 
@@ -227,9 +251,10 @@ private:
         };
 
         RetType ret = mI2C->write(addr, const_cast<uint8_t *>(data), len);
+        if (ret != RET_SUCCESS) return ret;
 
         RESET();
-        return ret == RET_SUCCESS ? 0 : -1;
+        return RET_SUCCESS;
     };
 
     // TODO: Not using SPI, but should figure out how to use regAddr here
@@ -237,18 +262,20 @@ private:
         RESUME();
 
         RetType ret = mSPI->read(data, len);
+        if (ret != RET_SUCCESS) return ret;
 
         RESET();
-        return ret == RET_SUCCESS ? 0 : -1;
+        return RET_SUCCESS;
     };
 
     static BMP3_INTF_RET_TYPE spiWrite(uint8_t regAddr, const uint8_t *data, uint32_t len, void *intfPtr) {
         RESUME();
 
         RetType ret = mSPI->read(const_cast<uint8_t *>(data), len);
+        if (ret != RET_SUCCESS) return ret;
 
         RESET();
-        return ret == RET_SUCCESS ? 0 : -1;
+        return RET_SUCCESS;
 
     };
 };
