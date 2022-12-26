@@ -5,6 +5,7 @@
 #include "stm32f4xx_hal_i2c.h"
 
 #include "device/platforms/stm32/HAL_Handlers.h"
+#include "device/platforms/stm32/HAL_Callbacks.h"
 #include "hashmap/hashmap.h"
 
 namespace HALHandlers {
