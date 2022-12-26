@@ -234,6 +234,15 @@ public:
         return result == 0 ? RET_SUCCESS : RET_ERROR;
     }
 
+    RetType setOperatingMode(bmp3_settings *settings) {
+        RESUME();
+
+        int8_t result = bmp3_set_op_mode(settings, &this->device);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
 private:
     bmp3_dev device;
     inline static I2CDevice *mI2C;
