@@ -36,6 +36,10 @@ public:
         mSPI = spiDev;
     }
 
+    /*************************************************************************************
+     * Main Functionality
+     *************************************************************************************/
+
     // Provide own functions for now
     RetType init(BMP3_INTF_RET_TYPE (*readFptr)(uint8_t, uint8_t *, uint32_t, void *),
                  BMP3_INTF_RET_TYPE (writeFptr)(uint8_t, const uint8_t *, uint32_t, void *)) {
@@ -97,6 +101,15 @@ public:
         return result == 0 ? RET_SUCCESS : RET_ERROR;
     }
 
+    RetType getSensorData(uint8_t sensorComp, struct bmp3_data *data) {
+        RESUME();
+
+        int8_t result = bmp3_get_sensor_data(sensorComp, data, &this->device);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
     RetType softReset() {
         RESUME();
 
@@ -106,32 +119,6 @@ public:
         return result == 0 ? RET_SUCCESS : RET_ERROR;
     }
 
-    RetType setSensorSettings(uint32_t desiredSettings, struct bmp3_settings *settings) {
-        RESUME();
-
-        int8_t result = bmp3_set_sensor_settings(desiredSettings, settings, &this->device);
-
-        RESET();
-        return result == 0 ? RET_SUCCESS : RET_ERROR;
-    }
-
-    RetType getPowerMode(uint8_t *opMode) {
-        RESUME();
-
-        int8_t result = bmp3_get_op_mode(opMode, &this->device);
-
-        RESET();
-        return result == 0 ? RET_SUCCESS : RET_ERROR;
-    }
-
-    RetType getSensorData(uint8_t sensorComp, struct bmp3_data *data) {
-        RESUME();
-
-        int8_t result = bmp3_get_sensor_data(sensorComp, data, &this->device);
-
-        RESET();
-        return result == 0 ? RET_SUCCESS : RET_ERROR;
-    }
 
     RetType setRegister(uint8_t *regAddress, const uint8_t *regData, uint32_t len) {
         RESUME();
@@ -142,6 +129,7 @@ public:
         return result == 0 ? RET_SUCCESS : RET_ERROR;
     }
 
+
     RetType getRegister(uint8_t regAddress, uint8_t *regData, uint32_t len) {
         RESUME();
 
@@ -151,23 +139,9 @@ public:
         return result == 0 ? RET_SUCCESS : RET_ERROR;
     }
 
-    RetType setFifoSettings(uint16_t desiredSettings, const struct bmp3_fifo_settings *fifo_settings) {
-        RESUME();
-
-        int8_t result = bmp3_set_fifo_settings(desiredSettings, fifo_settings, &this->device);
-
-        RESET();
-        return result == 0 ? RET_SUCCESS : RET_ERROR;
-    }
-
-    RetType getFifoSettings(struct bmp3_fifo_settings *fifoSettings) {
-        RESUME();
-
-        int8_t result = bmp3_get_fifo_settings(fifoSettings, &this->device);
-
-        RESET();
-        return result == 0 ? RET_SUCCESS : RET_ERROR;
-    }
+    /*************************************************************************************
+     * FIFO
+     *************************************************************************************/
 
     RetType getFifoData(struct bmp3_fifo_data *fifo, const struct bmp3_fifo_settings *fifoSettings) {
         RESUME();
@@ -187,29 +161,28 @@ public:
         return result == 0 ? RET_SUCCESS : RET_ERROR;
     }
 
-    RetType extractFifoData(struct bmp3_data *data, struct bmp3_fifo_data *fifoData) {
-        RESUME();
-
-        int8_t result = bmp3_extract_fifo_data(data, fifoData, &this->device);
-
-        RESET();
-        return result == 0 ? RET_SUCCESS : RET_ERROR;
-    }
-
-    RetType setFifoWatermark(const struct bmp3_fifo_data *fifoData,
-                             const struct bmp3_fifo_settings *fifoSettings) {
-        RESUME();
-
-        int8_t result = bmp3_set_fifo_watermark(fifoData, fifoSettings, &this->device);
-
-        RESET();
-        return result == 0 ? RET_SUCCESS : RET_ERROR;
-    }
-
     RetType getFifoWatermark(uint16_t *watermarkLength) {
         RESUME();
 
         int8_t result = bmp3_get_fifo_watermark(watermarkLength, &this->device);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType getStatus(struct bmp3_status *status) {
+        RESUME();
+
+        int8_t result = bmp3_get_status(status, &this->device);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType extractFifoData(struct bmp3_data *data, struct bmp3_fifo_data *fifoData) {
+        RESUME();
+
+        int8_t result = bmp3_extract_fifo_data(data, fifoData, &this->device);
 
         RESET();
         return result == 0 ? RET_SUCCESS : RET_ERROR;
@@ -224,11 +197,14 @@ public:
         return result == 0 ? RET_SUCCESS : RET_ERROR;
     }
 
+    /*************************************************************************************
+     * Settings
+     *************************************************************************************/
 
-    RetType getStatus(struct bmp3_status *status) {
+    RetType setSensorSettings(uint32_t desiredSettings, struct bmp3_settings *settings) {
         RESUME();
 
-        int8_t result = bmp3_get_status(status, &this->device);
+        int8_t result = bmp3_set_sensor_settings(desiredSettings, settings, &this->device);
 
         RESET();
         return result == 0 ? RET_SUCCESS : RET_ERROR;
@@ -238,6 +214,46 @@ public:
         RESUME();
 
         int8_t result = bmp3_set_op_mode(settings, &this->device);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+    RetType getPowerMode(uint8_t *opMode) {
+        RESUME();
+
+        int8_t result = bmp3_get_op_mode(opMode, &this->device);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+    }
+
+
+    RetType setFifoSettings(uint16_t desiredSettings, const struct bmp3_fifo_settings *fifo_settings) {
+        RESUME();
+
+        int8_t result = bmp3_set_fifo_settings(desiredSettings, fifo_settings, &this->device);
+
+        RESET();
+        return result == 0 ? RET_SUCCESS : RET_ERROR;
+
+
+        RetType getFifoSettings(struct bmp3_fifo_settings *fifoSettings) {
+            RESUME();
+
+            int8_t result = bmp3_get_fifo_settings(fifoSettings, &this->device);
+
+            RESET();
+            return result == 0 ? RET_SUCCESS : RET_ERROR;
+        }
+    }
+
+
+    RetType setFifoWatermarkSettings(const struct bmp3_fifo_data *fifoData,
+                                     const struct bmp3_fifo_settings *fifoSettings) {
+        RESUME();
+
+        int8_t result = bmp3_set_fifo_watermark(fifoData, fifoSettings, &this->device);
 
         RESET();
         return result == 0 ? RET_SUCCESS : RET_ERROR;
