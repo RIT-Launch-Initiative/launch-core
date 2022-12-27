@@ -111,6 +111,27 @@ public:
         return ret;
     }
 
+    RetType write(size_t block, uint8_t* buff) override {
+        RESUME();
+
+        RetType ret = CALL(writeData(PAGE_PROGRAM, block, buff, getBlockSize()));
+        RET_CHECK(ret);
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType read(size_t block, uint8_t* buff) override {
+        RESUME();
+
+        uint8_t commandBuff[4];
+        RetType ret = CALL(readData(READ_DATA, block, commandBuff, buff, getBlockSize()));
+        RET_CHECK(ret);
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
     RetType readRegister(READ_STATUS_REGISTER_T reg, uint8_t *receiveBuff) {
         RESUME();
 
@@ -253,14 +274,7 @@ public:
         return RET_SUCCESS;
     }
 
-    // TODO: Implement this
-    RetType write(size_t block, uint8_t* buff) override {
-        return RET_SUCCESS;
-    }
 
-    RetType read(size_t block, uint8_t* buff) override {
-        return RET_SUCCESS;
-    }
 
     size_t getBlockSize() override {
         return 256;
