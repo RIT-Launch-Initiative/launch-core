@@ -90,7 +90,25 @@ public:
         RetType ret = CALL(readID(&deviceID));
         if (ret != RET_SUCCESS) return ret;
 
-        if (deviceID != 0x17) return RET_ERROR;
+        switch (deviceID & 0x000000FF) {
+            case 0x18:
+                this->blockSize = 256;
+                this->numBlocks = 65536;
+
+                break;
+            default: // Currently only using W25Q128FV. Can add more in the future
+                return RET_ERROR;
+        }
+
+        uint8_t regResult = 0;
+        ret = CALL(readRegister(REGISTER_ONE_READ, &regResult));
+        RET_CHECK(ret);
+
+        ret = CALL(readRegister(REGISTER_TWO_READ, &regResult));
+        RET_CHECK(ret);
+
+        ret = CALL(readRegister(REGISTER_THREE_READ, &regResult));
+        RET_CHECK(ret);
 
         RESET();
         return RET_SUCCESS;
@@ -277,11 +295,11 @@ public:
 
 
     size_t getBlockSize() override {
-        return 256;
+        return blockSize;
     }
 
     size_t getNumBlocks() override {
-        return 65536;
+        return numBlocks;
     }
 
     // TODO: Should these need to be implemented?
@@ -301,6 +319,9 @@ private:
     SPIDevice &spiDevice;
     GPIODevice &chipSelectPin;
     GPIODevice &clockPin;
+
+    size_t blockSize = 256;
+    size_t numBlocks = 65536;
 
     RetType readID(uint32_t *deviceID) {
         RESUME();
