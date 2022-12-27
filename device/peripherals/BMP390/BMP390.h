@@ -99,14 +99,22 @@ public:
         }
 
 
-        int8_t result = bmp3_init(&this->device);
-        if (result != BMP3_OK) return RET_ERROR;
+//        int8_t result = bmp3_init(&this->device);
+//        if (result != BMP3_OK) return RET_ERROR;
+        uint8_t chipID;
+        I2CAddr_t addr = {
+                .dev_addr = static_cast<uint16_t>((*reinterpret_cast<uint8_t *>(&device)) << 1),
+                .mem_addr = 0x00,
+                .mem_addr_size = 0x00000001U,
+        };
+        RetType ret = mI2C->read(addr, &chipID, 1);
 
-        result = initSettings();
+
+//        result = initSettings();
 
 
         RESET();
-        return result == BMP3_OK ? RET_SUCCESS : RET_ERROR;
+        return RET_SUCCESS;
     }
 
     RetType getSensorData(uint8_t sensorComp, struct bmp3_data *data) {
