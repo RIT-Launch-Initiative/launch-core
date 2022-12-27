@@ -1,6 +1,8 @@
 /**
  * MMA8451Q Platform Independent Driver Implementation Using launch-core
  *
+ * NOTE: Untested and most likely unused. Will be replaced by other sensors.
+ *
  * @author Aaron Chan
  */
 #ifndef LAUNCH_CORE_MMA8451Q_H
