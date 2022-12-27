@@ -7,12 +7,13 @@
 #ifndef LAUNCH_CORE_BMP390_H
 #define LAUNCH_CORE_BMP390_H
 
-#include "device/peripherals/bmp390/bmp3.h"
+#include "device/peripherals/BMP390/bmp3.h"
 #include "return.h"
 #include "sched/macros/resume.h"
 #include "sched/macros/reset.h"
 #include "device/SPIDevice.h"
 #include "device/I2CDevice.h"
+#include "sched/macros/call.h"
 
 
 class BMP390 {
@@ -308,14 +309,14 @@ private:
         RESUME();
 
         I2CAddr_t addr = {
-                .dev_addr = *static_cast<uint8_t *>(intfPtr),
+                .dev_addr = static_cast<uint16_t>((*static_cast<uint8_t *>(intfPtr)) << 1),
                 .mem_addr = regAddr,
-                .mem_addr_size = sizeof(uint8_t),
+                .mem_addr_size = 0x00000001U,
         };
 
         static_cast<void>(intfPtr);
 
-        RetType ret = mI2C->read(addr, data, len);
+        RetType ret = CALL(mI2C->read(addr, data, len));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
@@ -327,14 +328,14 @@ private:
         RESUME();
 
         I2CAddr_t addr = {
-                .dev_addr = *static_cast<uint8_t *>(intfPtr),
+                .dev_addr = static_cast<uint16_t>((*static_cast<uint8_t *>(intfPtr)) << 1),
                 .mem_addr = regAddr,
-                .mem_addr_size = sizeof(uint8_t),
+                .mem_addr_size = 0x00000001U,
         };
 
         static_cast<void>(intfPtr);
 
-        RetType ret = mI2C->write(addr, const_cast<uint8_t *>(data), len);
+        RetType ret = CALL(mI2C->write(addr, const_cast<uint8_t *>(data), len));
         if (ret != RET_SUCCESS) return ret; // TODO: Should map to BMP3_INTF_RET_TYPE if possible
 
         RESET();
