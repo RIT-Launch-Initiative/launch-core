@@ -87,10 +87,7 @@ public:
         RESUME();
         uint32_t deviceID = 0;
 
-        RetType ret = CALL(chipSelectPin.set(1));
-        if (ret != RET_SUCCESS) return ret;
-
-        ret = CALL(readID(&deviceID));
+        RetType ret = CALL(readID(&deviceID));
         if (ret != RET_SUCCESS) return ret;
 
         if (deviceID != 0x17) return RET_ERROR;
