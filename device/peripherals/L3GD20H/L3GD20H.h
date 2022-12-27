@@ -1,6 +1,8 @@
 /**
  * Facade for the L3GD20H STM driver using launch-core
  *
+ * NOTE: Will be untested and most likely unused. Going out of production.
+ *
  * @author Aaron Chan
  */
 #ifndef LAUNCH_CORE_L3GD20H_H
