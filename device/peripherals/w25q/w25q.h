@@ -84,6 +84,18 @@ public:
 
 
     RetType init() {
+        RESUME();
+        uint32_t deviceID = 0;
+
+        RetType ret = CALL(chipSelectPin.set(1));
+        if (ret != RET_SUCCESS) return ret;
+
+        ret = CALL(readID(&deviceID));
+        if (ret != RET_SUCCESS) return ret;
+
+        if (deviceID != 0x17) return RET_ERROR;
+
+        RESET();
         return RET_SUCCESS;
     }
 
@@ -278,6 +290,29 @@ private:
     SPIDevice &spiDevice;
     GPIODevice &chipSelectPin;
     GPIODevice &clockPin;
+
+    RetType readID(uint32_t *deviceID) {
+        RESUME();
+
+        uint8_t buff[4] = {0x9F, 0x00, 0x00, 0x00};
+
+        RetType ret = CALL(chipSelectPin.set(0));
+        RET_CHECK(ret);
+
+        ret = spiDevice.write(buff, 4);
+        RET_CHECK(ret)
+
+        ret = spiDevice.read(buff, 4);
+        RET_CHECK(ret)
+
+        ret = chipSelectPin.set(1);
+        RET_CHECK(ret);
+
+        *deviceID = (buff[0] << 24) | (buff[1] << 16) | (buff[2] << 8) | buff[3];
+
+        RESET();
+        return RET_SUCCESS;
+    }
 };
 
 #endif //LAUNCH_CORE_W25Q_H
