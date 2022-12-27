@@ -91,7 +91,7 @@ public:
         if (ret != RET_SUCCESS) return ret;
 
         switch (deviceID & 0x000000FF) {
-            case 0x18:
+            case 0x18: // W25Q128FV
                 this->blockSize = 256;
                 this->numBlocks = 65536;
 
