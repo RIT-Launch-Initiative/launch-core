@@ -33,7 +33,7 @@ public:
         this->device.dummy_byte = 0;
 
         I2CAddr_t addr = {
-                .dev_addr = static_cast<uint16_t>((*reinterpret_cast<uint8_t *>(&device)) << 1),
+                .dev_addr = BMP3_ADDR_I2C_SEC << 1,
                 .mem_addr = 0x00, // Try reading Chip ID
                 .mem_addr_size = 0x00000001U,
         };
@@ -55,7 +55,7 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType getSensorData(uint8_t sensorComp) {
+    RetType getSensorData(uint8_t sensorComp, bmp3_data *bmpData) {
         RESUME();
 
         uint8_t regData[BMP3_LEN_P_T_DATA] = {0};
@@ -68,6 +68,8 @@ public:
 
         parseSensorData(regData, &uncompensatedData);
         compensateData(&uncompensatedData, &this->device.calib_data);
+
+        *bmpData = this->data;
 
         RESET();
         return RET_SUCCESS;
@@ -215,9 +217,9 @@ public:
     }
 
 private:
-    bmp3_dev device;
-    bmp3_data data;
-    bmp3_settings settings;
+    bmp3_dev device = {};
+    bmp3_data data = {};
+    bmp3_settings settings = {};
     uint8_t chipID;
     I2CDevice *mI2C;
     I2CAddr_t i2cAddr;
