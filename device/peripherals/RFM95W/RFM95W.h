@@ -88,6 +88,25 @@ public:
         return RET_SUCCESS;
     }
 
+    RetType setFrequency(uint32_t frequency) {
+        uint64_t freqRespFunc = (static_cast<uint64_t>(frequency) << 19) / 32000000;
+
+        RetType ret = CALL(writeReg(RFM95_REGISTER_FR_MSB, static_cast<uint8_t>(freqRespFunc >> 16)));
+        if (ret != RET_SUCCESS) return ret;
+
+        ret = CALL(writeReg(RFM95_REGISTER_FR_MID, static_cast<uint8_t>(freqRespFunc >> 8)));
+        if (ret != RET_SUCCESS) return ret;
+
+        ret = CALL(writeReg(RFM95_REGISTER_FR_LSB, static_cast<uint8_t>(freqRespFunc >> 0)));
+        if (ret != RET_SUCCESS) return ret;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+
+
+
     RetType reset() {
         RESUME();
 
@@ -113,6 +132,21 @@ private:
     GPIODevice *nrstPin;
     uint16_t txCount;
     uint16_t rxCount;
+
+    RetType writeReg(RFM95_REGISTER_T reg, uint8_t val) {
+
+
+    }
+
+    RetType readReg(RFM95_REGISTER_T reg, uint8_t *val) {
+        RESUME();
+
+        RetType ret =;
+        if (ret != RET_SUCCESS) return ret;
+
+        RESET();
+        return RET_SUCCESS;
+    }
 
 
 };
