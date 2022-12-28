@@ -72,7 +72,7 @@ public:
         RetType ret = CALL(getRegister(BMP3_REG_DATA, regData, BMP3_LEN_P_T_DATA));
         if (ret != RET_SUCCESS) return ret;
 
-        SLEEP(10);
+        SLEEP(25000);
 
         parseSensorData(regData, &uncompensatedData);
         compensateData(&uncompensatedData, &this->device.calib_data);
@@ -84,10 +84,20 @@ public:
     RetType softReset() {
         RESUME();
 
-        int8_t result = bmp3_soft_reset(&this->device);
+        uint8_t cmdReadyStatus;
+        uint8_t cmdErrorStatus;
+
+        RetType ret = CALL(getRegister(BMP3_REG_SENS_STATUS, &cmdReadyStatus, 1));
+        if (ret != RET_SUCCESS) return ret;
+        SLEEP(25000);
+
+        if ((cmdReadyStatus & BMP3_CMD_RDY)) {
+            setRegister(reinterpret_cast<uint8_t *>(BMP3_REG_CMD), reinterpret_cast<const uint8_t *>(BMP3_SOFT_RESET), 1);
+            SLEEP(2000);
+        }
 
         RESET();
-        return result == BMP3_OK ? RET_SUCCESS : RET_ERROR;
+        return RET_SUCCESS;
     }
 
 
