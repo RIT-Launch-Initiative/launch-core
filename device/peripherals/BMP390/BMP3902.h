@@ -124,10 +124,8 @@ public:
         if (ret != RET_SUCCESS) return ret;
         SLEEP(INTERRUPT_WAIT_TIME);
 
-        int8_t result = bmp3_set_regs(regAddress, regData, len, &this->device);
-
         RESET();
-        return result == BMP3_OK ? RET_SUCCESS : RET_ERROR;
+        return RET_SUCCESS;
     }
 
     void interleaveRegAddr(const uint8_t *regAddr, uint8_t *buff, const uint8_t *regData, uint32_t len) {
@@ -142,11 +140,14 @@ public:
 
     RetType getRegister(uint8_t regAddress, uint8_t *regData, uint32_t len) {
         RESUME();
+        this->i2cAddr.mem_addr = regAddress;
 
-        int8_t result = bmp3_get_regs(regAddress, regData, len, &this->device);
+        RetType ret = mI2C->write(this->i2cAddr, regData, len);
+        if (ret != RET_SUCCESS) return ret;
+        SLEEP(INTERRUPT_WAIT_TIME);
 
         RESET();
-        return result == BMP3_OK ? RET_SUCCESS : RET_ERROR;
+        return RET_SUCCESS;
     }
 
     /*************************************************************************************
