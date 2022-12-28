@@ -94,6 +94,15 @@ public:
     RetType getCalibrationData() {
         RESUME();
 
+        uint8_t calibrationData[BMP3_LEN_CALIB_DATA] = {};
+
+        RetType ret = getRegister(BMP3_REG_CALIB_DATA, calibrationData, BMP3_LEN_CALIB_DATA);
+        if (ret != RET_SUCCESS) return ret;
+
+        SLEEP(INTERRUPT_WAIT_TIME);
+
+        parseCalibrationData(calibrationData);
+
         RESET();
         return RET_SUCCESS;
     }
@@ -109,7 +118,8 @@ public:
         SLEEP(INTERRUPT_WAIT_TIME);
 
         if ((cmdReadyStatus & BMP3_CMD_RDY)) {
-            setRegister(reinterpret_cast<uint8_t *>(BMP3_REG_CMD), reinterpret_cast<const uint8_t *>(BMP3_SOFT_RESET), 1);
+            setRegister(reinterpret_cast<uint8_t *>(BMP3_REG_CMD), reinterpret_cast<const uint8_t *>(BMP3_SOFT_RESET),
+                        1);
             SLEEP(2000);
         }
 
@@ -364,6 +374,77 @@ private:
         return RET_SUCCESS;
     };
 
+    void parseCalibrationData(uint8_t *calibrationData) {
+        struct bmp3_reg_calib_data *reg_calib_data = &this->device.calib_data.reg_calib_data;
+        struct bmp3_quantized_calib_data *quantized_calib_data = &this->device.calib_data.quantized_calib_data;
+
+        double temp;
+
+        /* 1 / 2^8 */
+        temp = 0.00390625f;
+        reg_calib_data->par_t1 = BMP3_CONCAT_BYTES(calibrationData[1], calibrationData[0]);
+        quantized_calib_data->par_t1 = ((double) reg_calib_data->par_t1 / temp);
+        reg_calib_data->par_t2 = BMP3_CONCAT_BYTES(calibrationData[3], calibrationData[2]);
+
+        temp = 1073741824.0f;
+        quantized_calib_data->par_t2 = ((double) reg_calib_data->par_t2 / temp);
+        reg_calib_data->par_t3 = (int8_t) calibrationData[4];
+
+        temp = 281474976710656.0f;
+        quantized_calib_data->par_t3 = ((double) reg_calib_data->par_t3 / temp);
+        reg_calib_data->par_p1 = (int16_t) BMP3_CONCAT_BYTES(calibrationData[6], calibrationData[5]);
+
+        temp = 1048576.0f;
+        quantized_calib_data->par_p1 =
+                ((double) (reg_calib_data->par_p1 - (16384)) / temp);
+        reg_calib_data->par_p2 =
+                (int16_t) BMP3_CONCAT_BYTES(calibrationData[8], calibrationData[7]);
+
+        temp = 536870912.0f;
+        quantized_calib_data->par_p2 =
+                ((double) (reg_calib_data->par_p2 - (16384)) / temp);
+        reg_calib_data->par_p3 = (int8_t) calibrationData[9];
+
+        temp = 4294967296.0f;
+        quantized_calib_data->par_p3 = ((double) reg_calib_data->par_p3 / temp);
+        reg_calib_data->par_p4 = (int8_t) calibrationData[10];
+
+        temp = 137438953472.0f;
+        quantized_calib_data->par_p4 = ((double) reg_calib_data->par_p4 / temp);
+        reg_calib_data->par_p5 = BMP3_CONCAT_BYTES(calibrationData[12], calibrationData[11]);
+
+        /* 1 / 2^3 */
+        temp = 0.125f;
+        quantized_calib_data->par_p5 = ((double) reg_calib_data->par_p5 / temp);
+        reg_calib_data->par_p6 = BMP3_CONCAT_BYTES(calibrationData[14], calibrationData[13]);
+
+        temp = 64.0f;
+        quantized_calib_data->par_p6 = ((double) reg_calib_data->par_p6 / temp);
+        reg_calib_data->par_p7 = (int8_t) calibrationData[15];
+
+        temp = 256.0f;
+        quantized_calib_data->par_p7 = ((double) reg_calib_data->par_p7 / temp);
+        reg_calib_data->par_p8 = (int8_t) calibrationData[16];
+
+        temp = 32768.0f;
+        quantized_calib_data->par_p8 = ((double) reg_calib_data->par_p8 / temp);
+        reg_calib_data->par_p9 =
+                (int16_t) BMP3_CONCAT_BYTES(calibrationData[18], calibrationData[17]);
+
+        temp = 281474976710656.0f;
+        quantized_calib_data->par_p9 = ((double) reg_calib_data->par_p9 / temp);
+        reg_calib_data->par_p10 = (int8_t) calibrationData[19];
+
+        temp = 281474976710656.0f;
+        quantized_calib_data->par_p10 =
+                ((double) reg_calib_data->par_p10 / temp);
+        reg_calib_data->par_p11 = (int8_t) calibrationData[20];
+
+        temp = 36893488147419103232.0f;
+        quantized_calib_data->par_p11 =
+                ((double) reg_calib_data->par_p11 / temp);
+    }
+
 
     void parseSensorData(const uint8_t *reg_data, struct bmp3_uncomp_data *uncomp_data) {
         uint32_t data_xlsb;
@@ -390,7 +471,8 @@ private:
     }
 
 
-    void compensatePressure(double *pressure, const struct bmp3_uncomp_data *uncompData, const struct bmp3_calib_data *calibrationData) {
+    void
+    compensatePressure(double *pressure, const struct bmp3_uncomp_data *uncompData, const struct bmp3_calib_data *calibrationData) {
         const struct bmp3_quantized_calib_data *quantizedCalibData = &calibrationData->quantized_calib_data;
 
         double comp_press;
@@ -430,7 +512,8 @@ private:
 
     }
 
-    void compensateTemperature(double *temperature, const struct bmp3_uncomp_data *uncompData, struct bmp3_calib_data *calibData) {
+    void
+    compensateTemperature(double *temperature, const struct bmp3_uncomp_data *uncompData, struct bmp3_calib_data *calibData) {
         int64_t uncompTemp = uncompData->temperature;
         double tempData1;
         double tempData2;
@@ -440,7 +523,8 @@ private:
 
         /* Update the compensated temperature in calib structure since this is
          * needed for pressure calculation */
-        calibData->quantized_calib_data.t_lin = tempData2 + (tempData1 * tempData1) * calibData->quantized_calib_data.par_t3;
+        calibData->quantized_calib_data.t_lin =
+                tempData2 + (tempData1 * tempData1) * calibData->quantized_calib_data.par_t3;
 
         /* Returns compensated temperature */
         if (calibData->quantized_calib_data.t_lin < BMP3_MIN_TEMP_DOUBLE) {
