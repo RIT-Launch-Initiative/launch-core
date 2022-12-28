@@ -47,19 +47,27 @@ public:
     RetType init() {
         RESUME();
 
-//        int8_t result = bmp3_init(&this->device);
-//        if (result != BMP3_OK) return RET_ERROR;
-        uint8_t chipID;
+        uint8_t chipID = 0;
+        this->device.dummy_byte = 0;
+
         I2CAddr_t addr = {
                 .dev_addr = static_cast<uint16_t>((*reinterpret_cast<uint8_t *>(&device)) << 1),
-                .mem_addr = 0x00,
+                .mem_addr = 0x00, // Try reading Chip ID
                 .mem_addr_size = 0x00000001U,
         };
+
         RetType ret = mI2C->read(addr, &chipID, 1);
+        if (ret != RET_SUCCESS) return ret;
+        SLEEP(INTERRUPT_WAIT_TIME);
 
+        if (chipID != BMP390_CHIP_ID) return RET_ERROR;
+        this->device.chip_id = chipID;
 
-//        result = initSettings();
+        ret = CALL(softReset());
+        if (ret != RET_SUCCESS) return ret;
 
+        ret = CALL(getCalibrationData());
+        if (ret != RET_SUCCESS) return ret;
 
         RESET();
         return RET_SUCCESS;
@@ -78,6 +86,13 @@ public:
 
         parseSensorData(regData, &uncompensatedData);
         compensateData(&uncompensatedData, &this->device.calib_data);
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getCalibrationData() {
+        RESUME();
 
         RESET();
         return RET_SUCCESS;
