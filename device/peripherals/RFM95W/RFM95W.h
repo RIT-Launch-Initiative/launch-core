@@ -12,16 +12,45 @@
 #include "sched/macros/call.h"
 #include "sched/macros/reset.h"
 #include "device/SPIDevice.h"
+#include "device/StreamDevice.h"
 
-class RFM95W {
+class RFM95W : public StreamDevice {
 public:
-    RFM95W(SPIDevice *spiDevice) : mSpi(spiDevice) {}
+    RFM95W(SPIDevice *spiDevice) : StreamDevice("RFM95W"), mSpi(spiDevice) {}
 
     RetType init() {
         RESUME();
 
 //        RetType ret = ;
 //        if (ret != RET_SUCCESS) return ret;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType write(uint8_t* buff, size_t len) {
+        RESUME();
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType read(uint8_t* buff, size_t len) {
+        RESUME();
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    size_t available() {
+        RESUME();
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType wait(size_t len) {
+        RESUME();
 
         RESET();
         return RET_SUCCESS;
