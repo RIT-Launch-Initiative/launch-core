@@ -7,6 +7,8 @@
 #ifndef LAUNCH_CORE_BMP390_H
 #define LAUNCH_CORE_BMP390_H
 
+#define INTERRUPT_WAIT_TIME 25000
+
 #include "device/peripherals/BMP390/bmp3.h"
 #include "return.h"
 #include "sched/macros/resume.h"
@@ -72,7 +74,7 @@ public:
         RetType ret = CALL(getRegister(BMP3_REG_DATA, regData, BMP3_LEN_P_T_DATA));
         if (ret != RET_SUCCESS) return ret;
 
-        SLEEP(25000);
+        SLEEP(INTERRUPT_WAIT_TIME);
 
         parseSensorData(regData, &uncompensatedData);
         compensateData(&uncompensatedData, &this->device.calib_data);
@@ -89,7 +91,7 @@ public:
 
         RetType ret = CALL(getRegister(BMP3_REG_SENS_STATUS, &cmdReadyStatus, 1));
         if (ret != RET_SUCCESS) return ret;
-        SLEEP(25000);
+        SLEEP(INTERRUPT_WAIT_TIME);
 
         if ((cmdReadyStatus & BMP3_CMD_RDY)) {
             setRegister(reinterpret_cast<uint8_t *>(BMP3_REG_CMD), reinterpret_cast<const uint8_t *>(BMP3_SOFT_RESET), 1);
@@ -104,10 +106,37 @@ public:
     RetType setRegister(uint8_t *regAddress, const uint8_t *regData, uint32_t len) {
         RESUME();
 
+        uint8_t temporaryBuffer[len * 2];
+        uint8_t regAddrCount;
+        size_t temporaryLen = len;
+
+        temporaryBuffer[0] = regData[0];
+
+        if (len > 1) {
+            interleaveRegAddr(regAddress, temporaryBuffer, regData, len);
+            temporaryLen = len * 2;
+        }
+
+        this->i2cAddr.mem_addr = *regAddress;
+
+
+        RetType ret = CALL(mI2C->write(this->i2cAddr, temporaryBuffer, temporaryLen));
+        if (ret != RET_SUCCESS) return ret;
+        SLEEP(INTERRUPT_WAIT_TIME);
+
         int8_t result = bmp3_set_regs(regAddress, regData, len, &this->device);
 
         RESET();
         return result == BMP3_OK ? RET_SUCCESS : RET_ERROR;
+    }
+
+    void interleaveRegAddr(const uint8_t *regAddr, uint8_t *buff, const uint8_t *regData, uint32_t len) {
+        uint32_t index;
+
+        for (index = 1; index < len; index++) {
+            buff[(index * 2) - 1] = regAddr[index];
+            buff[index * 2] = regData[index];
+        }
     }
 
 
@@ -246,6 +275,7 @@ private:
     bmp3_settings settings;
     uint8_t chipID;
     inline static I2CDevice *mI2C;
+    I2CAddr_t i2cAddr;
     inline static SPIDevice *mSPI;
 
     RetType initSettings() {
