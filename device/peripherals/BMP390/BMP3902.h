@@ -21,29 +21,11 @@
 
 class BMP390 {
 public:
-    BMP390(void *pInterface, bmp3_intf commInterface, struct bmp3_calib_data calibrationData,
-           bmp3_delay_us_fptr_t delayFptr, SPIDevice *spiDev = nullptr, I2CDevice *i2cDev = nullptr) :
-            device({.intf_ptr = pInterface, .intf = commInterface, .delay_us = delayFptr,}) {
-        mSPI = spiDev;
-        mI2C = i2cDev;
-    }
-
-    BMP390(void *pInterface, struct bmp3_calib_data calibrationData, bmp3_delay_us_fptr_t delayFptr,
-           I2CDevice *i2cDev = nullptr) :
-            device({.intf_ptr = pInterface, .intf = BMP3_I2C_INTF, .delay_us = delayFptr,}) {
-        mI2C = i2cDev;
-    }
-
-    BMP390(void *pInterface, struct bmp3_calib_data calibrationData, bmp3_delay_us_fptr_t delayFptr, SPIDevice *spiDev)
-            :
-            device({.intf_ptr = pInterface, .intf = BMP3_SPI_INTF, .delay_us = delayFptr,}) {
-        mSPI = spiDev;
-    }
+    BMP390(I2CDevice *i2cDev) : mI2C(i2cDev) {}
 
     /*************************************************************************************
      * Main Functionality
      *************************************************************************************/
-
     RetType init() {
         RESUME();
 
@@ -91,21 +73,6 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType getCalibrationData() {
-        RESUME();
-
-        uint8_t calibrationData[BMP3_LEN_CALIB_DATA] = {};
-
-        RetType ret = getRegister(BMP3_REG_CALIB_DATA, calibrationData, BMP3_LEN_CALIB_DATA);
-        if (ret != RET_SUCCESS) return ret;
-
-        SLEEP(INTERRUPT_WAIT_TIME);
-
-        parseCalibrationData(calibrationData);
-
-        RESET();
-        return RET_SUCCESS;
-    }
 
     RetType softReset() {
         RESUME();
@@ -122,54 +89,6 @@ public:
                         1);
             SLEEP(2000);
         }
-
-        RESET();
-        return RET_SUCCESS;
-    }
-
-
-    RetType setRegister(uint8_t *regAddress, const uint8_t *regData, uint32_t len) {
-        RESUME();
-
-        uint8_t temporaryBuffer[len * 2];
-        uint8_t regAddrCount;
-        size_t temporaryLen = len;
-
-        temporaryBuffer[0] = regData[0];
-
-        if (len > 1) {
-            interleaveRegAddr(regAddress, temporaryBuffer, regData, len);
-            temporaryLen = len * 2;
-        }
-
-        this->i2cAddr.mem_addr = *regAddress;
-
-
-        RetType ret = CALL(mI2C->write(this->i2cAddr, temporaryBuffer, temporaryLen));
-        if (ret != RET_SUCCESS) return ret;
-        SLEEP(INTERRUPT_WAIT_TIME);
-
-        RESET();
-        return RET_SUCCESS;
-    }
-
-    void interleaveRegAddr(const uint8_t *regAddr, uint8_t *buff, const uint8_t *regData, uint32_t len) {
-        uint32_t index;
-
-        for (index = 1; index < len; index++) {
-            buff[(index * 2) - 1] = regAddr[index];
-            buff[index * 2] = regData[index];
-        }
-    }
-
-
-    RetType getRegister(uint8_t regAddress, uint8_t *regData, uint32_t len) {
-        RESUME();
-        this->i2cAddr.mem_addr = regAddress;
-
-        RetType ret = mI2C->write(this->i2cAddr, regData, len);
-        if (ret != RET_SUCCESS) return ret;
-        SLEEP(INTERRUPT_WAIT_TIME);
 
         RESET();
         return RET_SUCCESS;
@@ -300,9 +219,9 @@ private:
     bmp3_data data;
     bmp3_settings settings;
     uint8_t chipID;
-    inline static I2CDevice *mI2C;
+    I2CDevice *mI2C;
     I2CAddr_t i2cAddr;
-    inline static SPIDevice *mSPI;
+    SPIDevice *mSPI;
 
     RetType initSettings() {
         bmp3_settings settings = {
@@ -337,42 +256,69 @@ private:
         return result == BMP3_OK ? RET_SUCCESS : RET_ERROR;
     }
 
-    static BMP3_INTF_RET_TYPE i2cRead(uint8_t regAddr, uint8_t *data, uint32_t len, void *intfPtr) {
+    RetType getCalibrationData() {
         RESUME();
 
-        I2CAddr_t addr = {
-                .dev_addr = static_cast<uint16_t>((*static_cast<uint8_t *>(intfPtr)) << 1),
-                .mem_addr = regAddr,
-                .mem_addr_size = 0x00000001U,
-        };
+        uint8_t calibrationData[BMP3_LEN_CALIB_DATA] = {};
 
-        static_cast<void>(intfPtr);
-
-        RetType ret = CALL(mI2C->read(addr, data, len));
+        RetType ret = getRegister(BMP3_REG_CALIB_DATA, calibrationData, BMP3_LEN_CALIB_DATA);
         if (ret != RET_SUCCESS) return ret;
 
+        SLEEP(INTERRUPT_WAIT_TIME);
+
+        parseCalibrationData(calibrationData);
+
         RESET();
         return RET_SUCCESS;
+    }
 
-    };
 
-    static BMP3_INTF_RET_TYPE i2cWrite(uint8_t regAddr, const uint8_t *data, uint32_t len, void *intfPtr) {
+    RetType setRegister(uint8_t *regAddress, const uint8_t *regData, uint32_t len) {
         RESUME();
 
-        I2CAddr_t addr = {
-                .dev_addr = static_cast<uint16_t>((*static_cast<uint8_t *>(intfPtr)) << 1),
-                .mem_addr = regAddr,
-                .mem_addr_size = 0x00000001U,
-        };
+        uint8_t temporaryBuffer[len * 2];
+        uint8_t regAddrCount;
+        size_t temporaryLen = len;
 
-        static_cast<void>(intfPtr);
+        temporaryBuffer[0] = regData[0];
 
-        RetType ret = CALL(mI2C->write(addr, const_cast<uint8_t *>(data), len));
-        if (ret != RET_SUCCESS) return ret; // TODO: Should map to BMP3_INTF_RET_TYPE if possible
+        if (len > 1) {
+            interleaveRegAddr(regAddress, temporaryBuffer, regData, len);
+            temporaryLen = len * 2;
+        }
+
+        this->i2cAddr.mem_addr = *regAddress;
+
+
+        RetType ret = CALL(mI2C->write(this->i2cAddr, temporaryBuffer, temporaryLen));
+        if (ret != RET_SUCCESS) return ret;
+        SLEEP(INTERRUPT_WAIT_TIME);
 
         RESET();
         return RET_SUCCESS;
-    };
+    }
+
+    void interleaveRegAddr(const uint8_t *regAddr, uint8_t *buff, const uint8_t *regData, uint32_t len) {
+        uint32_t index;
+
+        for (index = 1; index < len; index++) {
+            buff[(index * 2) - 1] = regAddr[index];
+            buff[index * 2] = regData[index];
+        }
+    }
+
+
+    RetType getRegister(uint8_t regAddress, uint8_t *regData, uint32_t len) {
+        RESUME();
+        this->i2cAddr.mem_addr = regAddress;
+
+        RetType ret = mI2C->write(this->i2cAddr, regData, len);
+        if (ret != RET_SUCCESS) return ret;
+        SLEEP(INTERRUPT_WAIT_TIME);
+
+        RESET();
+        return RET_SUCCESS;
+    }
 
     void parseCalibrationData(uint8_t *calibrationData) {
         struct bmp3_reg_calib_data *reg_calib_data = &this->device.calib_data.reg_calib_data;
@@ -471,8 +417,8 @@ private:
     }
 
 
-    void
-    compensatePressure(double *pressure, const struct bmp3_uncomp_data *uncompData, const struct bmp3_calib_data *calibrationData) {
+    void compensatePressure(double *pressure, const struct bmp3_uncomp_data *uncompData,
+                            const struct bmp3_calib_data *calibrationData) {
         const struct bmp3_quantized_calib_data *quantizedCalibData = &calibrationData->quantized_calib_data;
 
         double comp_press;
@@ -512,8 +458,8 @@ private:
 
     }
 
-    void
-    compensateTemperature(double *temperature, const struct bmp3_uncomp_data *uncompData, struct bmp3_calib_data *calibData) {
+    void compensateTemperature(double *temperature, const struct bmp3_uncomp_data *uncompData,
+                               struct bmp3_calib_data *calibData) {
         int64_t uncompTemp = uncompData->temperature;
         double tempData1;
         double tempData2;
