@@ -130,18 +130,37 @@ private:
     SPIDevice *mSpi;
     GPIODevice *csPin;
     GPIODevice *nrstPin;
+    GPIODevice *nssPin;
+
     uint16_t txCount;
     uint16_t rxCount;
 
     RetType writeReg(RFM95_REGISTER_T reg, uint8_t val) {
+        RESUME();
+
+        RetType ret = ;
+        if (ret != RET_SUCCESS) return ret;
+
+        RESET();
+        return RET_SUCCESS;
 
 
     }
 
-    RetType readReg(RFM95_REGISTER_T reg, uint8_t *val) {
+    RetType readReg(RFM95_REGISTER_T reg, uint8_t *buff, size_t len) {
         RESUME();
 
-        RetType ret =;
+        RetType ret = CALL(this->nssPin->set(1));
+        if (ret != RET_SUCCESS) return ret;
+
+        uint8_t txBuff = static_cast<uint8_t>(reg) & 0x7fu;
+        ret = this->mSpi->write(&txBuff, 1);
+        if (ret != RET_SUCCESS) return ret;
+
+        ret = this->mSpi->read(buff, len);
+        if (ret != RET_SUCCESS) return ret;
+
+        ret = CALL(this->nssPin->set(0));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
