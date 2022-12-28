@@ -56,8 +56,8 @@ public:
     RetType init() {
         RESUME();
 
-//        RetType ret = ;
-//        if (ret != RET_SUCCESS) return ret;
+        RetType ret = CALL(reset());
+        if (ret != RET_SUCCESS) return ret;
 
         RESET();
         return RET_SUCCESS;
@@ -77,7 +77,7 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType setFrequency(uint32_t frequency) {
+    RetType configFrequency(uint32_t frequency) {
         uint64_t freqRespFunc = (static_cast<uint64_t>(frequency) << 19) / 32000000;
 
         RetType ret = CALL(writeReg(RFM95_REGISTER_FR_MSB, static_cast<uint8_t>(freqRespFunc >> 16)));
