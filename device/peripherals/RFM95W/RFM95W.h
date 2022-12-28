@@ -138,7 +138,14 @@ private:
     RetType writeReg(RFM95_REGISTER_T reg, uint8_t val) {
         RESUME();
 
-        RetType ret = ;
+        RetType ret = CALL(this->nssPin->set(1));
+        if (ret != RET_SUCCESS) return ret;
+
+        uint8_t txBuff[2] = {static_cast<uint8_t>((static_cast<uint8_t>(reg)) | 0x80u), val};
+        ret = this->mSpi->write(txBuff, 2);
+        if (ret != RET_SUCCESS) return ret;
+
+        ret = CALL(this->nssPin->set(0));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
