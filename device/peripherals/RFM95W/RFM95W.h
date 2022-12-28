@@ -47,7 +47,7 @@ enum RFM95_REGISTER_T {
 };
 
 
-class RFM95W : public StreamDevice {
+class RFM95W {
 public:
     RFM95W(SPIDevice *spiDevice, GPIODevice *csPin) : StreamDevice("RFM95W"),
                                                       mSpi(spiDevice),
@@ -77,17 +77,6 @@ public:
         return RET_SUCCESS;
     }
 
-    size_t available() {
-        return 0;
-    }
-
-    RetType wait(size_t len) {
-        RESUME();
-
-        RESET();
-        return RET_SUCCESS;
-    }
-
     RetType setFrequency(uint32_t frequency) {
         uint64_t freqRespFunc = (static_cast<uint64_t>(frequency) << 19) / 32000000;
 
@@ -103,9 +92,6 @@ public:
         RESET();
         return RET_SUCCESS;
     }
-
-
-
 
     RetType reset() {
         RESUME();
