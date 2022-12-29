@@ -174,18 +174,13 @@ public:
         if (ret != RET_SUCCESS) goto setSensorSettingsEnd;
 
         setSensorSettingsEnd:
-        RESET();
+    RESET();
         return ret;
     }
 
-    RetType setOperatingMode(bmp3_settings *settings) {
-        RESUME();
 
-        int8_t result = bmp3_set_op_mode(settings, &this->device);
 
-        RESET();
-        return result == BMP3_OK ? RET_SUCCESS : RET_ERROR;
-    }
+
 
     RetType getPowerMode(uint8_t *opMode) {
         RESUME();
@@ -263,10 +258,12 @@ private:
         uint16_t settingsSel = BMP3_SEL_PRESS_EN | BMP3_SEL_TEMP_EN | BMP3_SEL_PRESS_OS |
                                BMP3_SEL_TEMP_OS | BMP3_SEL_ODR | BMP3_SEL_DRDY_EN;
 
-        RetType ret = setSensorSettings(settingsSel);
+        RetType ret = CALL(setSensorSettings(settingsSel));
         if (ret != RET_SUCCESS) goto initSettingsEnd;
 
-        ret = CALL(setOperatingMode(&settings));
+//        ret = CALL(setOperatingMode(&settings));
+//        if (ret != RET_SUCCESS) goto initSettingsEnd;
+
 
         initSettingsEnd:
     RESET();
@@ -573,7 +570,7 @@ private:
         if (ret != RET_SUCCESS) goto setODRFilterEnd;
 
         setODRFilterEnd:
-        RESET();
+    RESET();
         return ret;
     }
 
@@ -609,7 +606,7 @@ private:
         if (ret != RET_SUCCESS) goto setIntCtrlEnd;
 
         setIntCtrlEnd:
-        RESET();
+    RESET();
         return ret;
     }
 
@@ -636,7 +633,20 @@ private:
 
 
         setAdvSettingsEnd:
-        RESET();
+    RESET();
+        return ret;
+    }
+
+    RetType getOperatingMode(uint8_t *opMode) {
+        RESUME();
+
+        RetType ret = CALL(getRegister(BMP3_REG_PWR_CTRL, opMode, 1));
+        if (ret != RET_SUCCESS) goto getOpModeEnd;
+
+        *opMode = BMP3_GET_BITS(*opMode, BMP3_OP_MODE);
+
+        getOpModeEnd:
+    RESET();
         return ret;
     }
 
