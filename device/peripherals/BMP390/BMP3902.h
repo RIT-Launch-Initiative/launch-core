@@ -50,7 +50,7 @@ public:
         if (ret != RET_SUCCESS) goto initEnd;
 
         initEnd:
-        RESET();
+    RESET();
         return ret;
     }
 
@@ -67,7 +67,7 @@ public:
         compensateData(&uncompensatedData, &this->device.calib_data);
 
         getSensorDataEnd:
-        RESET();
+    RESET();
         return RET_SUCCESS;
     }
 
@@ -82,12 +82,13 @@ public:
         if (ret != RET_SUCCESS) goto softResetEnd;
 
         if ((cmdReadyStatus & BMP3_CMD_RDY)) {
-            ret = CALL(setRegister(reinterpret_cast<uint8_t *>(BMP3_REG_CMD), reinterpret_cast<const uint8_t *>(BMP3_SOFT_RESET), 1));
-            if (ret !=RET_SUCCESS) goto softResetEnd;
+            ret = CALL(setRegister(reinterpret_cast<uint8_t *>(BMP3_REG_CMD),
+                                   reinterpret_cast<const uint8_t *>(BMP3_SOFT_RESET), 1));
+            if (ret != RET_SUCCESS) goto softResetEnd;
         }
 
         softResetEnd:
-        RESET();
+    RESET();
         return RET_SUCCESS;
     }
 
@@ -153,10 +154,13 @@ public:
      * Settings
      *************************************************************************************/
 
-    RetType setSensorSettings(uint32_t desiredSettings, struct bmp3_settings *settings) {
+    RetType setSensorSettings(uint32_t desiredSettings) {
         RESUME();
 
-        int8_t result = bmp3_set_sensor_settings(desiredSettings, settings, &this->device);
+        setPowerControl(desiredSettings);
+        setODRFilter(desiredSettings);
+        setIntCtrl(desiredSettings);
+        setAdvanceSettings(desiredSettings);
 
         RESET();
         return result == BMP3_OK ? RET_SUCCESS : RET_ERROR;
@@ -221,7 +225,8 @@ private:
     SPIDevice *mSPI;
 
     RetType initSettings() {
-        bmp3_settings settings = {
+        RESUME();
+        this->settings = {
                 .op_mode = BMP3_MODE_NORMAL,
                 .press_en = BMP3_ENABLE,
                 .temp_en = BMP3_ENABLE,
@@ -245,13 +250,14 @@ private:
 
         uint16_t settingsSel = BMP3_SEL_PRESS_EN | BMP3_SEL_TEMP_EN | BMP3_SEL_PRESS_OS |
                                BMP3_SEL_TEMP_OS | BMP3_SEL_ODR | BMP3_SEL_DRDY_EN;
-        RetType ret = setSensorSettings(settingsSel, &settings);
+
+        RetType ret = setSensorSettings(settingsSel);
         if (ret != RET_SUCCESS) goto initSettingsEnd;
 
         ret = CALL(setOperatingMode(&settings));
 
         initSettingsEnd:
-        RESET();
+    RESET();
         return RET_SUCCESS;
     }
 
@@ -266,8 +272,8 @@ private:
         parseCalibrationData(calibrationData);
 
         getCalibEnd:
-        RESET();
-        return RET_SUCCESS;
+    RESET();
+        return ret;
     }
 
 
@@ -292,8 +298,8 @@ private:
         if (ret != RET_SUCCESS) goto setRegEnd;
 
         setRegEnd:
-        RESET();
-        return RET_SUCCESS;
+    RESET();
+        return ret;
     }
 
     void interleaveRegAddr(const uint8_t *regAddr, uint8_t *buff, const uint8_t *regData, uint32_t len) {
@@ -315,8 +321,8 @@ private:
 
 
         getRegEnd:
-        RESET();
-        return RET_SUCCESS;
+    RESET();
+        return ret;
     }
 
     void parseCalibrationData(uint8_t *calibrationData) {
@@ -481,6 +487,82 @@ private:
         }
 
         (*temperature) = calibData->quantized_calib_data.t_lin;
+    }
+
+    RetType setPowerControl(uint32_t desiredSettings) {
+        RESUME();
+
+        uint8_t regAddr = BMP3_REG_PWR_CTRL;
+        uint8_t regData = 0;
+
+        RetType ret = CALL(getRegister(regAddr, &regData, 1));
+        if (ret != RET_SUCCESS) goto setPowerControlEnd;
+
+        if (desiredSettings & BMP3_SEL_PRESS_EN) {
+            regData = BMP3_SET_BITS_POS_0(regData, BMP3_PRESS_EN, this->settings.press_en);
+        }
+
+        if (desiredSettings & BMP3_SEL_TEMP_EN) {
+            regData = BMP3_SET_BITS(regData, BMP3_TEMP_EN, this->settings.temp_en);
+        }
+
+        ret = CALL(setRegister(&regAddr, &regData, 1));
+        if (ret != RET_SUCCESS) goto setPowerControlEnd;
+
+        setPowerControlEnd:
+    RESET();
+        return ret;
+    }
+
+    RetType setODRFilter(uint32_t desiredSettings) {
+        RESUME();
+
+        uint8_t len = 0;
+        uint8_t regAddr[3] = {0};
+        uint8_t regData[4];
+
+        RetType ret = CALL(getRegister(BMP3_REG_OSR, regData, 4));
+        if (ret != RET_SUCCESS) goto setODRFilterEnd;
+
+        struct bmp3_odr_filter_settings osrSettings = settings->odr_filter;
+
+
+        if (desiredSettings & (BMP3_SEL_PRESS_OS | BMP3_SEL_TEMP_OS)) {
+            if (desiredSettings & BMP3_SEL_PRESS_OS) {
+                regData[len] = BMP3_SET_BITS_POS_0(regData[0], BMP3_PRESS_OS, osrSettings.press_os);
+            }
+
+            if (desiredSettings & BMP3_SEL_TEMP_OS) {
+                regData[len] = BMP3_SET_BITS(regData[0], BMP3_TEMP_OS, osrSettings.temp_os);
+            }
+
+            regAddr[len] = BMP3_REG_OSR;
+            len++;
+        }
+
+        if (osrSettings.odr > BMP3_ODR_0_001_HZ) {
+            osrSettings.odr = BMP3_ODR_0_001_HZ;
+        }
+
+        regData[len] = BMP3_SET_BITS_POS_0(regData[1], BMP3_ODR, osrSettings.odr);
+
+        regAddr[len] = BMP3_REG_ODR;
+        len++;
+
+        regData[len] = BMP3_SET_BITS(regData[3], BMP3_IIR_FILTER, osrSettings.iir_filter);
+
+        /* 0x1F is the register address of iir filter register */
+        regAddr[len] = BMP3_REG_CONFIG;
+        len++;
+
+        // TODO: Validation Check
+
+        ret = CALL(setRegister(regAddr, regData, len));
+        if (ret != RET_SUCCESS) goto setODRFilterEnd;
+
+        setODRFilterEnd:
+        RESET();
+        return ret;
     }
 
     float pow(double base, uint8_t power) {

@@ -2085,7 +2085,7 @@ static uint32_t calculate_temp_meas_time(const struct bmp3_settings *settings) {
  */
 static void fill_osr_data(uint32_t desired_settings, uint8_t *addr,
                           uint8_t *reg_data, uint8_t *len,
-                          const struct bmp3_settings *settings) {
+                          bmp3_settings *settings) {
     struct bmp3_odr_filter_settings osr_settings = settings->odr_filter;
 
     if (desired_settings & (BMP3_SEL_PRESS_OS | BMP3_SEL_TEMP_OS)) {
