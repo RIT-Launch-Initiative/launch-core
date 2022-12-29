@@ -198,7 +198,7 @@ public:
         if (ret != RET_SUCCESS) goto setOperatingModeEnd;
 
         setOperatingModeEnd:
-    RESET();
+        RESET();
         return ret;
     }
 
@@ -288,6 +288,7 @@ private:
     I2CDevice *mI2C;
     I2CAddr_t i2cAddr;
     SPIDevice *mSPI;
+
 
     RetType initSettings() {
         RESUME();
@@ -587,11 +588,11 @@ private:
         uint8_t len = 0;
         uint8_t regAddr[3] = {0};
         uint8_t regData[4];
+        struct bmp3_odr_filter_settings osrSettings = settings.odr_filter;
 
         RetType ret = CALL(getRegister(BMP3_REG_OSR, regData, 4));
         if (ret != RET_SUCCESS) goto setODRFilterEnd;
 
-        struct bmp3_odr_filter_settings osrSettings = settings->odr_filter;
 
 
         if (desiredSettings & (BMP3_SEL_PRESS_OS | BMP3_SEL_TEMP_OS)) {
@@ -637,11 +638,11 @@ private:
 
         uint8_t regAddr;
         uint8_t regData;
+        bmp3_int_ctrl_settings intSettings = this->settings.int_settings;
 
         RetType ret = CALL(getRegister(regAddr, &regData, 1));
         if (ret != RET_SUCCESS) goto setIntCtrlEnd;
 
-        bmp3_int_ctrl_settings intSettings = this->settings.int_settings;
 
         if (desiredSettings & BMP3_SEL_OUTPUT_MODE) {
             regData = BMP3_SET_BITS_POS_0(regData, BMP3_INT_OUTPUT_MODE, intSettings.output_mode);
