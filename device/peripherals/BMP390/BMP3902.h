@@ -245,12 +245,14 @@ private:
 
         uint16_t settingsSel = BMP3_SEL_PRESS_EN | BMP3_SEL_TEMP_EN | BMP3_SEL_PRESS_OS |
                                BMP3_SEL_TEMP_OS | BMP3_SEL_ODR | BMP3_SEL_DRDY_EN;
-        int result = setSensorSettings(settingsSel, &settings);
-        if (result != BMP3_OK) return RET_ERROR;
+        RetType ret = setSensorSettings(settingsSel, &settings);
+        if (ret != RET_SUCCESS) goto initSettingsEnd;
 
-        result = setOperatingMode(&settings);
+        ret = CALL(setOperatingMode(&settings));
 
-        return result == BMP3_OK ? RET_SUCCESS : RET_ERROR;
+        initSettingsEnd:
+
+        return RET_SUCCESS;
     }
 
     RetType getCalibrationData() {
@@ -258,11 +260,12 @@ private:
 
         uint8_t calibrationData[BMP3_LEN_CALIB_DATA] = {};
 
-        RetType ret = getRegister(BMP3_REG_CALIB_DATA, calibrationData, BMP3_LEN_CALIB_DATA);
-        if (ret != RET_SUCCESS) return ret;
+        RetType ret = CALL(getRegister(BMP3_REG_CALIB_DATA, calibrationData, BMP3_LEN_CALIB_DATA));
+        if (ret != RET_SUCCESS) goto getCalibEnd;
 
         parseCalibrationData(calibrationData);
 
+        getCalibEnd:
         RESET();
         return RET_SUCCESS;
     }
@@ -286,8 +289,9 @@ private:
 
 
         RetType ret = CALL(mI2C->write(this->i2cAddr, temporaryBuffer, temporaryLen));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) goto setRegEnd;
 
+        setRegEnd:
         RESET();
         return RET_SUCCESS;
     }
@@ -306,10 +310,11 @@ private:
         RESUME();
         this->i2cAddr.mem_addr = regAddress;
 
-        RetType ret = mI2C->write(this->i2cAddr, regData, len);
-        if (ret != RET_SUCCESS) return ret;
+        RetType ret = CALL(mI2C->write(this->i2cAddr, regData, len));
+        if (ret != RET_SUCCESS) goto getRegEnd;
 
 
+        getRegEnd:
         RESET();
         return RET_SUCCESS;
     }
