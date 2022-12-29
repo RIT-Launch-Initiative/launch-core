@@ -178,21 +178,20 @@ public:
         return ret;
     }
 
-    RetType setOperatingMode(bmp3_settings *newSettings) {
+    RetType setOperatingMode() {
         RESUME();
 
-        uint8_t last_set_mode;
-        this->settings = *newSettings;
-        uint8_t curr_mode = this->settings.op_mode;
+        uint8_t lastSetMode;
+        uint8_t currMode = this->settings.op_mode;
 
-        RetType ret = CALL(getOperatingMode(&last_set_mode));
+        RetType ret = CALL(getOperatingMode(&lastSetMode));
         if (ret != RET_SUCCESS) goto setOperatingModeEnd;
 
-        if (last_set_mode != BMP3_MODE_SLEEP) {
+        if (lastSetMode != BMP3_MODE_SLEEP) {
             ret = CALL(sleep());
 
             // TODO: Sleep
-        } else if (curr_mode == BMP3_MODE_FORCED) {
+        } else if (currMode == BMP3_MODE_FORCED) {
             ret = CALL(writePowerMode());
 
         }
@@ -320,8 +319,8 @@ private:
         RetType ret = CALL(setSensorSettings(settingsSel));
         if (ret != RET_SUCCESS) goto initSettingsEnd;
 
-//        ret = CALL(setOperatingMode(&settings));
-//        if (ret != RET_SUCCESS) goto initSettingsEnd;
+        ret = CALL(setOperatingMode());
+        if (ret != RET_SUCCESS) goto initSettingsEnd;
 
 
         initSettingsEnd:
