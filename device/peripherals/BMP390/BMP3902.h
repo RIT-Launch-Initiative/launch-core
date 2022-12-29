@@ -565,6 +565,42 @@ private:
         return ret;
     }
 
+    RetType setIntCtrl(uint32_t desiredSettings) {
+        RESUME();
+
+        uint8_t regAddr;
+        uint8_t regData;
+
+        RetType ret = CALL(getRegister(regAddr, &regData, 1));
+        if (ret != RET_SUCCESS) goto setIntCtrlEnd;
+
+        bmp3_int_ctrl_settings intSettings = this->settings.int_settings;
+
+        if (desiredSettings & BMP3_SEL_OUTPUT_MODE) {
+            regData = BMP3_SET_BITS_POS_0(regData, BMP3_INT_OUTPUT_MODE, intSettings.output_mode);
+        }
+
+        if (desiredSettings & BMP3_SEL_LEVEL) {
+            regData = BMP3_SET_BITS(regData, BMP3_INT_LEVEL, intSettings.level);
+        }
+
+        if (desiredSettings & BMP3_SEL_LATCH) {
+            regData =
+                    BMP3_SET_BITS(regData, BMP3_INT_LATCH, intSettings.latch);
+        }
+
+        if (desiredSettings & BMP3_SEL_DRDY_EN) {
+            regData = BMP3_SET_BITS(regData, BMP3_INT_DRDY_EN, intSettings.drdy_en);
+        }
+
+        ret = CALL(setRegister(&regAddr, &regData, 1));
+        if (ret != RET_SUCCESS) goto setIntCtrlEnd;
+
+        setIntCtrlEnd:
+        RESET();
+        return ret;
+    }
+
     float pow(double base, uint8_t power) {
         float pow_output = 1;
 
