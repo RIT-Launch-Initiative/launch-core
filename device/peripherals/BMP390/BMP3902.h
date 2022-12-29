@@ -37,7 +37,7 @@ public:
                 .mem_addr_size = 0x00000001U,
         };
 
-        RetType ret = mI2C->read(addr, &chipID, 1);
+        RetType ret = CALL(mI2C->read(addr, &chipID, 1));
         if (ret != RET_SUCCESS) goto initEnd;
 
         if (chipID != BMP390_CHIP_ID) goto initEnd;
