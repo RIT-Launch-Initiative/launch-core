@@ -16,7 +16,6 @@
 #include "device/SPIDevice.h"
 #include "device/I2CDevice.h"
 #include "sched/macros/call.h"
-#include "sched/macros/sleep.h"
 
 
 class BMP390 {
@@ -39,20 +38,20 @@ public:
         };
 
         RetType ret = mI2C->read(addr, &chipID, 1);
-        if (ret != RET_SUCCESS) return ret;
-        SLEEP(INTERRUPT_WAIT_TIME);
+        if (ret != RET_SUCCESS) goto init_end;
 
-        if (chipID != BMP390_CHIP_ID) return RET_ERROR;
+        if (chipID != BMP390_CHIP_ID) goto init_end;
         this->device.chip_id = chipID;
 
         ret = CALL(softReset());
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) goto init_end;
 
         ret = CALL(getCalibrationData());
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) goto init_end;
 
+        init_end:
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     RetType getSensorData(uint8_t sensorComp) {
@@ -64,7 +63,6 @@ public:
         RetType ret = CALL(getRegister(BMP3_REG_DATA, regData, BMP3_LEN_P_T_DATA));
         if (ret != RET_SUCCESS) return ret;
 
-        SLEEP(INTERRUPT_WAIT_TIME);
 
         parseSensorData(regData, &uncompensatedData);
         compensateData(&uncompensatedData, &this->device.calib_data);
@@ -82,12 +80,10 @@ public:
 
         RetType ret = CALL(getRegister(BMP3_REG_SENS_STATUS, &cmdReadyStatus, 1));
         if (ret != RET_SUCCESS) return ret;
-        SLEEP(INTERRUPT_WAIT_TIME);
 
         if ((cmdReadyStatus & BMP3_CMD_RDY)) {
             setRegister(reinterpret_cast<uint8_t *>(BMP3_REG_CMD), reinterpret_cast<const uint8_t *>(BMP3_SOFT_RESET),
                         1);
-            SLEEP(2000);
         }
 
         RESET();
@@ -264,8 +260,6 @@ private:
         RetType ret = getRegister(BMP3_REG_CALIB_DATA, calibrationData, BMP3_LEN_CALIB_DATA);
         if (ret != RET_SUCCESS) return ret;
 
-        SLEEP(INTERRUPT_WAIT_TIME);
-
         parseCalibrationData(calibrationData);
 
         RESET();
@@ -292,7 +286,6 @@ private:
 
         RetType ret = CALL(mI2C->write(this->i2cAddr, temporaryBuffer, temporaryLen));
         if (ret != RET_SUCCESS) return ret;
-        SLEEP(INTERRUPT_WAIT_TIME);
 
         RESET();
         return RET_SUCCESS;
@@ -314,7 +307,7 @@ private:
 
         RetType ret = mI2C->write(this->i2cAddr, regData, len);
         if (ret != RET_SUCCESS) return ret;
-        SLEEP(INTERRUPT_WAIT_TIME);
+
 
         RESET();
         return RET_SUCCESS;
