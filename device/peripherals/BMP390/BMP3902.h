@@ -160,7 +160,7 @@ public:
         setPowerControl(desiredSettings);
         setODRFilter(desiredSettings);
         setIntCtrl(desiredSettings);
-        setAdvanceSettings(desiredSettings);
+        setAdvSettings(desiredSettings);
 
         RESET();
         return result == BMP3_OK ? RET_SUCCESS : RET_ERROR;
@@ -597,6 +597,33 @@ private:
         if (ret != RET_SUCCESS) goto setIntCtrlEnd;
 
         setIntCtrlEnd:
+        RESET();
+        return ret;
+    }
+
+    RetType setAdvSettings(uint32_t desiredSettings) {
+        RESUME();
+
+        bmp3_adv_settings advSettings = this->settings.adv_settings;
+        uint8_t regAddr = BMP3_REG_IF_CONF;
+        uint8_t regData = 0;
+
+        RetType ret = CALL(getRegister(regAddr, &regData, 1));
+        if (ret != RET_SUCCESS) goto setAdvSettingsEnd;
+
+        if (desiredSettings & BMP3_SEL_I2C_WDT_EN) {
+            regData = BMP3_SET_BITS(regData, BMP3_I2C_WDT_EN, advSettings.i2c_wdt_en);
+        }
+
+        if (desiredSettings & BMP3_SEL_I2C_WDT) {
+            regData = BMP3_SET_BITS(regData, BMP3_I2C_WDT_SEL, advSettings.i2c_wdt_sel);
+        }
+
+        ret = CALL(setRegister(&regAddr, &regData, 1));
+        if (ret != RET_SUCCESS) goto setAdvSettingsEnd;
+
+
+        setAdvSettingsEnd:
         RESET();
         return ret;
     }
