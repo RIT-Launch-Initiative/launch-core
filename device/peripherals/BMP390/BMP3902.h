@@ -49,6 +49,10 @@ public:
         ret = CALL(getCalibrationData());
         if (ret != RET_SUCCESS) goto initEnd;
 
+        ret = CALL(initSettings());
+        if (ret != RET_SUCCESS) goto initEnd;
+
+
         initEnd:
     RESET();
         return ret;
@@ -157,13 +161,21 @@ public:
     RetType setSensorSettings(uint32_t desiredSettings) {
         RESUME();
 
-        setPowerControl(desiredSettings);
-        setODRFilter(desiredSettings);
-        setIntCtrl(desiredSettings);
-        setAdvSettings(desiredSettings);
+        RetType ret = CALL(setPowerControl(desiredSettings));
+        if (ret != RET_SUCCESS) goto setSensorSettingsEnd;
 
+        ret = CALL(setODRFilter(desiredSettings));
+        if (ret != RET_SUCCESS) goto setSensorSettingsEnd;
+
+        ret = CALL(setIntCtrl(desiredSettings));
+        if (ret != RET_SUCCESS) goto setSensorSettingsEnd;
+
+        ret = CALL(setAdvSettings(desiredSettings));
+        if (ret != RET_SUCCESS) goto setSensorSettingsEnd;
+
+        setSensorSettingsEnd:
         RESET();
-        return result == BMP3_OK ? RET_SUCCESS : RET_ERROR;
+        return ret;
     }
 
     RetType setOperatingMode(bmp3_settings *settings) {
