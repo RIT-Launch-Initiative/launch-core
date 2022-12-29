@@ -178,9 +178,68 @@ public:
         return ret;
     }
 
+    RetType setOperatingMode(bmp3_settings *newSettings) {
+        RESUME();
 
+        uint8_t last_set_mode;
+        this->settings = *newSettings;
+        uint8_t curr_mode = this->settings.op_mode;
 
+        RetType ret = CALL(getOperatingMode(&last_set_mode));
+        if (ret != RET_SUCCESS) goto setOperatingModeEnd;
 
+        if (last_set_mode != BMP3_MODE_SLEEP) {
+            ret = CALL(sleep());
+
+            // TODO: Sleep
+        } else if (curr_mode == BMP3_MODE_FORCED) {
+            ret = CALL(writePowerMode());
+
+        }
+        if (ret != RET_SUCCESS) goto setOperatingModeEnd;
+
+        setOperatingModeEnd:
+    RESET();
+        return ret;
+    }
+
+    RetType sleep() {
+        RESUME();
+
+        uint8_t regAddr = BMP3_REG_PWR_CTRL;
+        uint8_t operatingMode;
+
+        RetType ret = CALL(getRegister(regAddr, &operatingMode, 1));
+        if (ret != RET_SUCCESS) goto sleepEnd;
+
+        operatingMode = operatingMode & ~BMP3_OP_MODE_MSK;
+        ret = CALL(setRegister(&regAddr, &operatingMode, 1));
+        if (ret != RET_SUCCESS) goto sleepEnd;
+
+        sleepEnd:
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType writePowerMode() {
+        RESUME();
+
+        uint8_t tempOpMode;
+        uint8_t regAddr = BMP3_REG_PWR_CTRL;
+        uint8_t operatingMode = this->settings.op_mode;
+
+        RetType ret = CALL(getRegister(regAddr, &tempOpMode, 1));
+        if (ret != RET_SUCCESS) goto sleepEnd;
+
+        tempOpMode = BMP3_SET_BITS(tempOpMode, BMP3_OP_MODE, operatingMode);
+        ret = CALL(setRegister(&regAddr, &tempOpMode, 1));
+        if (ret != RET_SUCCESS) goto sleepEnd;
+
+        sleepEnd:
+        RESET();
+        return RET_SUCCESS;
+
+    }
 
     RetType getPowerMode(uint8_t *opMode) {
         RESUME();
