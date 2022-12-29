@@ -38,18 +38,18 @@ public:
         };
 
         RetType ret = mI2C->read(addr, &chipID, 1);
-        if (ret != RET_SUCCESS) goto init_end;
+        if (ret != RET_SUCCESS) goto initEnd;
 
-        if (chipID != BMP390_CHIP_ID) goto init_end;
+        if (chipID != BMP390_CHIP_ID) goto initEnd;
         this->device.chip_id = chipID;
 
         ret = CALL(softReset());
-        if (ret != RET_SUCCESS) goto init_end;
+        if (ret != RET_SUCCESS) goto initEnd;
 
         ret = CALL(getCalibrationData());
-        if (ret != RET_SUCCESS) goto init_end;
+        if (ret != RET_SUCCESS) goto initEnd;
 
-        init_end:
+        initEnd:
         RESET();
         return ret;
     }
@@ -61,12 +61,12 @@ public:
         struct bmp3_uncomp_data uncompensatedData = {0};
 
         RetType ret = CALL(getRegister(BMP3_REG_DATA, regData, BMP3_LEN_P_T_DATA));
-        if (ret != RET_SUCCESS) return ret;
-
+        if (ret != RET_SUCCESS) goto getSensorDataEnd;
 
         parseSensorData(regData, &uncompensatedData);
         compensateData(&uncompensatedData, &this->device.calib_data);
 
+        getSensorDataEnd:
         RESET();
         return RET_SUCCESS;
     }
@@ -79,13 +79,14 @@ public:
         uint8_t cmdErrorStatus;
 
         RetType ret = CALL(getRegister(BMP3_REG_SENS_STATUS, &cmdReadyStatus, 1));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) goto softResetEnd;
 
         if ((cmdReadyStatus & BMP3_CMD_RDY)) {
-            setRegister(reinterpret_cast<uint8_t *>(BMP3_REG_CMD), reinterpret_cast<const uint8_t *>(BMP3_SOFT_RESET),
-                        1);
+            ret = CALL(setRegister(reinterpret_cast<uint8_t *>(BMP3_REG_CMD), reinterpret_cast<const uint8_t *>(BMP3_SOFT_RESET), 1));
+            if (ret !=RET_SUCCESS) goto softResetEnd;
         }
 
+        softResetEnd:
         RESET();
         return RET_SUCCESS;
     }
