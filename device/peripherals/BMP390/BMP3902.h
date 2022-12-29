@@ -251,7 +251,7 @@ private:
         ret = CALL(setOperatingMode(&settings));
 
         initSettingsEnd:
-
+        RESET();
         return RET_SUCCESS;
     }
 
