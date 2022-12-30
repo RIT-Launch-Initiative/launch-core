@@ -25,13 +25,13 @@ public:
     RetType init() {
         // register for tx callback
         RetType ret = HALHandlers::register_i2c_tx(m_i2c, this, TX_NUM);
-        if(ret != RET_SUCCESS) {
+        if (ret != RET_SUCCESS) {
             return ret;
         }
 
         // register for rx callback
         ret = HALHandlers::register_i2c_rx(m_i2c, this, RX_NUM);
-        if(ret != RET_SUCCESS) {
+        if (ret != RET_SUCCESS) {
             return ret;
         }
 
@@ -61,12 +61,12 @@ public:
     /// @param buff     the buffer to write
     /// @param len      the size of 'buff' in bytes
     /// @return
-    RetType write(I2CAddr_t& addr, uint8_t* buff, size_t len) {
+    RetType write(I2CAddr_t &addr, uint8_t *buff, size_t len) {
         RESUME();
 
         // block and wait for the device to be available
         RetType ret = CALL(m_lock.acquire());
-        if(ret != RET_SUCCESS) {
+        if (ret != RET_SUCCESS) {
             // some error
             return ret;
         }
@@ -77,14 +77,15 @@ public:
         m_blocked = sched_dispatched;
 
         // start the transfer
-        if (async){
+        if (async) {
             if (HAL_OK != HAL_I2C_Mem_Write_IT(m_i2c, addr.dev_addr, addr.mem_addr,
                                                addr.mem_addr_size, buff, len)) {
                 return RET_ERROR;
             }
 
             // block and wait for the transfer to complete
-            BLOCK();
+            HAL_Delay(10); // Using a delay for now as aa bandaid
+//            BLOCK();
         } else {
             if (HAL_OK != HAL_I2C_Mem_Write(m_i2c, addr.dev_addr, addr.mem_addr,
                                             addr.mem_addr_size, buff, len, 1000)) {
@@ -100,7 +101,7 @@ public:
         m_blocked = -1;
 
         ret = CALL(m_lock.release());
-        if(ret != RET_SUCCESS) {
+        if (ret != RET_SUCCESS) {
             return ret;
         }
 
@@ -114,12 +115,12 @@ public:
     /// @param buff     the buffer to read into
     /// @param len      the number of bytes to read
     /// @return
-    RetType read(I2CAddr_t& addr, uint8_t* buff, size_t len) {
+    RetType read(I2CAddr_t &addr, uint8_t *buff, size_t len) {
         RESUME();
 
         // block and wait for the device to be available
         RetType ret = CALL(m_lock.acquire());
-        if(ret != RET_SUCCESS) {
+        if (ret != RET_SUCCESS) {
             // some error
             return ret;
         }
@@ -131,14 +132,15 @@ public:
 
 
         // start the transfer
-        if (async){
+        if (async) {
             if (HAL_OK != HAL_I2C_Mem_Read_IT(m_i2c, addr.dev_addr, addr.mem_addr,
                                               addr.mem_addr_size, buff, len)) {
                 return RET_ERROR;
             }
 
             // wait for the transfer to complete
-            BLOCK();
+            HAL_Delay(10); // Using a delay for now as aa bandaid
+//            BLOCK();
         } else {
             if (HAL_OK != HAL_I2C_Mem_Read(m_i2c, addr.dev_addr, addr.mem_addr,
                                            addr.mem_addr_size, buff, len, 1000)) {
@@ -154,7 +156,7 @@ public:
 
         // we can unblock someone else if they were waiting
         ret = CALL(m_lock.release());
-        if(ret != RET_SUCCESS) {
+        if (ret != RET_SUCCESS) {
             // some error
             return ret;
         }
@@ -168,13 +170,13 @@ public:
     void callback(int) {
         // don't care if it was tx or rx, for now
 
-        if(m_blocked != -1) {
+        if (m_blocked != -1) {
             WAKE(m_blocked);
         }
     }
 
-    void setAsync(bool async){
-        this->async = async;
+    void setAsync(bool asyncVal) {
+        this->async = asyncVal;
     }
 
 private:
@@ -186,7 +188,7 @@ private:
     tid_t m_blocked;
 
     // HAL I2C handle
-    I2C_HandleTypeDef* m_i2c;
+    I2C_HandleTypeDef *m_i2c;
 
     // semaphore
     BlockingSemaphore m_lock;
