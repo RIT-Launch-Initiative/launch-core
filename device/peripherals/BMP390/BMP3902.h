@@ -703,7 +703,7 @@ private:
     RetType setIntCtrl(uint32_t desiredSettings) {
         RESUME();
 
-        uint8_t regAddr;
+        uint8_t regAddr = BMP3_REG_INT_CTRL;
         uint8_t regData;
         bmp3_int_ctrl_settings intSettings = this->settings.int_settings;
 
