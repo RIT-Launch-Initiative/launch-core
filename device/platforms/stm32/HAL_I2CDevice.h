@@ -82,14 +82,16 @@ public:
                                                addr.mem_addr_size, buff, len)) {
                 return RET_ERROR;
             }
+
+            // block and wait for the transfer to complete
+            BLOCK();
         } else {
             if (HAL_OK != HAL_I2C_Mem_Write(m_i2c, addr.dev_addr, addr.mem_addr,
                                             addr.mem_addr_size, buff, len, 1000)) {
                 return RET_ERROR;
             }
 
-            // block and wait for the transfer to complete
-            BLOCK();
+
         }
 
 
@@ -129,19 +131,21 @@ public:
 
 
         // start the transfer
-        if (!async){
+        if (async){
             if (HAL_OK != HAL_I2C_Mem_Read_IT(m_i2c, addr.dev_addr, addr.mem_addr,
                                               addr.mem_addr_size, buff, len)) {
-                return RET_ERROR;
-            }
-        } else {
-            if (HAL_OK != HAL_I2C_Mem_Read(m_i2c, addr.dev_addr, addr.mem_addr,
-                                              addr.mem_addr_size, buff, len, 1000)) {
                 return RET_ERROR;
             }
 
             // wait for the transfer to complete
             BLOCK();
+        } else {
+            if (HAL_OK != HAL_I2C_Mem_Read(m_i2c, addr.dev_addr, addr.mem_addr,
+                                           addr.mem_addr_size, buff, len, 1000)) {
+                return RET_ERROR;
+            }
+
+
         }
 
 
@@ -187,7 +191,7 @@ private:
     // semaphore
     BlockingSemaphore m_lock;
 
-    bool async;
+    bool async = true;
 };
 
 #endif
