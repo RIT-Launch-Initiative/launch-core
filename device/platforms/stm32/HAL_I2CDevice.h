@@ -77,13 +77,22 @@ public:
         m_blocked = sched_dispatched;
 
         // start the transfer
-        if(HAL_OK != HAL_I2C_Mem_Write_IT(m_i2c, addr.dev_addr, addr.mem_addr,
+        if (async){
+            if (HAL_OK != HAL_I2C_Mem_Write_IT(m_i2c, addr.dev_addr, addr.mem_addr,
                                                addr.mem_addr_size, buff, len)) {
-            return RET_ERROR;
+                return RET_ERROR;
+            }
+        } else {
+            if (HAL_OK != HAL_I2C_Mem_Write(m_i2c, addr.dev_addr, addr.mem_addr,
+                                            addr.mem_addr_size, buff, len, 1000)) {
+                return RET_ERROR;
+            }
+
+            // block and wait for the transfer to complete
+            BLOCK();
         }
 
-        // block and wait for the transfer to complete
-        BLOCK();
+
 
         // mark the device as unblocked
         m_blocked = -1;
@@ -118,14 +127,23 @@ public:
         // and blocking the task
         m_blocked = sched_dispatched;
 
+
         // start the transfer
-        if(HAL_OK != HAL_I2C_Mem_Read_IT(m_i2c, addr.dev_addr, addr.mem_addr,
-                                               addr.mem_addr_size, buff, len)) {
-            return RET_ERROR;
+        if (!async){
+            if (HAL_OK != HAL_I2C_Mem_Read_IT(m_i2c, addr.dev_addr, addr.mem_addr,
+                                              addr.mem_addr_size, buff, len)) {
+                return RET_ERROR;
+            }
+        } else {
+            if (HAL_OK != HAL_I2C_Mem_Read(m_i2c, addr.dev_addr, addr.mem_addr,
+                                              addr.mem_addr_size, buff, len, 1000)) {
+                return RET_ERROR;
+            }
+
+            // wait for the transfer to complete
+            BLOCK();
         }
 
-        // wait for the transfer to complete
-        BLOCK();
 
         // mark the device as unblocked
         m_blocked = -1;
@@ -151,6 +169,10 @@ public:
         }
     }
 
+    void setAsync(bool async){
+        this->async = async;
+    }
+
 private:
     // unique numbers for tx vs. rx callback
     static const int TX_NUM = 0;
@@ -164,6 +186,8 @@ private:
 
     // semaphore
     BlockingSemaphore m_lock;
+
+    bool async;
 };
 
 #endif

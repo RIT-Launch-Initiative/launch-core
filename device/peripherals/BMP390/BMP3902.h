@@ -32,7 +32,7 @@ public:
         this->device.dummy_byte = 0;
 
         I2CAddr_t addr = {
-                .dev_addr = static_cast<uint16_t>((*reinterpret_cast<uint8_t *>(&device)) << 1),
+                .dev_addr = BMP3_ADDR_I2C_SEC << 1,
                 .mem_addr = 0x00, // Try reading Chip ID
                 .mem_addr_size = 0x00000001U,
         };
@@ -543,12 +543,9 @@ private:
         data_msb = static_cast<uint32_t>(reg_data[2]) << 16;
         uncomp_data->pressure = data_msb | data_lsb | data_xlsb;
 
-        data_xlsb = static_cast<uint32_t>(reg_data[2]) << 16;
-        (reg_data[3]);
-        data_lsb = static_cast<uint32_t>(reg_data[2]) << 16;
-        (reg_data[4]) << 8;
-        data_msb = static_cast<uint32_t>(reg_data[2]) << 16;
-        (reg_data[5]) << 16;
+        data_xlsb = static_cast<uint32_t>(reg_data[3]);
+        data_lsb = static_cast<uint32_t>(reg_data[4]) << 8;
+        data_msb = static_cast<uint32_t>(reg_data[5]) << 16;
         uncomp_data->temperature = data_msb | data_lsb | data_xlsb;
     }
 
