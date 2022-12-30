@@ -21,7 +21,6 @@
 class BMP390 {
 public:
     BMP390(I2CDevice *i2cDev) : mI2C(i2cDev) {}
-    uint64_t initCount = 0;
 
     /*************************************************************************************
      * Main Functionality
@@ -56,36 +55,19 @@ public:
         ret = CALL(initSettings());
         if (ret != RET_SUCCESS) goto initEnd;
 
-
         initEnd:
-        initCount++;
         mI2C->setAsync(true);
 
         RESET();
         return ret;
     }
 
-    bmp3_data getData() {
+    bmp3_data getSensorData() {
         getSensorData(BMP3_PRESS_TEMP);
         return this->data;
     }
 
-    RetType getSensorData(uint8_t sensorComp) {
-        RESUME();
 
-        uint8_t regData[BMP3_LEN_P_T_DATA] = {0};
-        struct bmp3_uncomp_data uncompensatedData = {0};
-
-        RetType ret = CALL(getRegister(BMP3_REG_DATA, regData, BMP3_LEN_P_T_DATA));
-        if (ret != RET_SUCCESS) goto getSensorDataEnd;
-
-        parseSensorData(regData, &uncompensatedData);
-        compensateData(&uncompensatedData, &this->device.calib_data);
-
-        getSensorDataEnd:
-    RESET();
-        return RET_SUCCESS;
-    }
 
 
     RetType softReset() {
@@ -361,8 +343,8 @@ public:
     }
 
 private:
-    bmp3_dev device;
-    bmp3_data data;
+    bmp3_dev device = {};
+    bmp3_data data = {};
     bmp3_settings settings;
     uint8_t chipID;
     I2CDevice *mI2C;
@@ -405,6 +387,23 @@ private:
 
 
         initSettingsEnd:
+    RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getSensorData(uint8_t sensorComp) {
+        RESUME();
+
+        uint8_t regData[BMP3_LEN_P_T_DATA] = {0};
+        struct bmp3_uncomp_data uncompensatedData = {0};
+
+        RetType ret = CALL(getRegister(BMP3_REG_DATA, regData, BMP3_LEN_P_T_DATA));
+        if (ret != RET_SUCCESS) goto getSensorDataEnd;
+
+        parseSensorData(regData, &uncompensatedData);
+        compensateData(&uncompensatedData, &this->device.calib_data);
+
+        getSensorDataEnd:
     RESET();
         return RET_SUCCESS;
     }
@@ -464,7 +463,7 @@ private:
         RESUME();
         this->i2cAddr.mem_addr = regAddress;
 
-        RetType ret = CALL(mI2C->write(this->i2cAddr, regData, len));
+        RetType ret = CALL(mI2C->read(this->i2cAddr, regData, len));
         if (ret != RET_SUCCESS) goto getRegEnd;
 
 
