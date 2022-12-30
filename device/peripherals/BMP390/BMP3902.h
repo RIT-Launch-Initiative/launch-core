@@ -130,10 +130,78 @@ public:
     RetType getStatus(struct bmp3_status *status) {
         RESUME();
 
-        int8_t result = bmp3_get_status(status, &this->device);
+        RetType ret = CALL(getSensorStatus(status));
+        if (ret != RET_SUCCESS) goto getStatusEnd;
 
+        ret = CALL(getIntStatus(status));
+        if (ret != RET_SUCCESS) goto getStatusEnd;
+
+        ret = CALL(getErrStatus(status));
+        if (ret != RET_SUCCESS) goto getStatusEnd;
+
+        getStatusEnd:
+    RESET();
+        return ret;
+    }
+
+    RetType getSensorStatus(struct bmp3_status *status) {
+        RESUME();
+
+        uint8_t regAddr = BMP3_REG_SENS_STATUS;
+        uint8_t regData;
+        RetType ret = CALL(getRegister(regAddr, &regData, 1));
+        if (ret != RET_SUCCESS) goto getSensorStatusEnd;
+
+
+        status->sensor.cmd_rdy = BMP3_GET_BITS(regData, BMP3_STATUS_CMD_RDY);
+        status->sensor.drdy_press = BMP3_GET_BITS(regData, BMP3_STATUS_DRDY_PRESS);
+        status->sensor.drdy_temp = BMP3_GET_BITS(regData, BMP3_STATUS_DRDY_TEMP);
+
+        regAddr = BMP3_REG_EVENT;
+        ret = CALL(getRegister(regAddr, &regData, 1));
+        if (ret != RET_SUCCESS) goto getSensorStatusEnd;
+
+        status->pwr_on_rst = regData & 0x01;
+
+        getSensorStatusEnd:
         RESET();
-        return result == BMP3_OK ? RET_SUCCESS : RET_ERROR;
+        return ret;
+    }
+
+    RetType getIntStatus(struct bmp3_status *status) {
+        RESUME();
+
+        uint8_t regData;
+
+        RetType ret = CALL(getRegister(BMP3_REG_INT_STATUS, &regData, 1));
+        if (ret != RET_SUCCESS) goto getIntStatusEnd;
+
+
+        status->intr.fifo_wm = BMP3_GET_BITS_POS_0(regData, BMP3_INT_STATUS_FWTM);
+        status->intr.fifo_full = BMP3_GET_BITS(regData, BMP3_INT_STATUS_FFULL);
+        status->intr.drdy = BMP3_GET_BITS(regData, BMP3_INT_STATUS_DRDY);
+
+
+        getIntStatusEnd:
+        RESET();
+        return ret;
+    }
+
+    RetType getErrStatus(struct bmp3_status *status) {
+        RESUME();
+
+        uint8_t regData;
+
+        RetType ret = CALL(getRegister(BMP3_REG_ERR, &regData, 1));
+        if (ret != RET_SUCCESS) goto getErrStatus;
+
+        status->err.fatal = BMP3_GET_BITS_POS_0(regData, BMP3_ERR_FATAL);
+        status->err.cmd = BMP3_GET_BITS(regData, BMP3_ERR_CMD);
+        status->err.conf = BMP3_GET_BITS(regData, BMP3_ERR_CONF);
+
+        getErrStatus:
+        RESET();
+        return ret;
     }
 
     RetType extractFifoData(struct bmp3_data *data, struct bmp3_fifo_data *fifoData) {
@@ -198,7 +266,7 @@ public:
         if (ret != RET_SUCCESS) goto setOperatingModeEnd;
 
         setOperatingModeEnd:
-        RESET();
+    RESET();
         return ret;
     }
 
@@ -216,7 +284,7 @@ public:
         if (ret != RET_SUCCESS) goto sleepEnd;
 
         sleepEnd:
-        RESET();
+    RESET();
         return RET_SUCCESS;
     }
 
@@ -235,7 +303,7 @@ public:
         if (ret != RET_SUCCESS) goto sleepEnd;
 
         sleepEnd:
-        RESET();
+    RESET();
         return RET_SUCCESS;
 
     }
@@ -592,7 +660,6 @@ private:
 
         RetType ret = CALL(getRegister(BMP3_REG_OSR, regData, 4));
         if (ret != RET_SUCCESS) goto setODRFilterEnd;
-
 
 
         if (desiredSettings & (BMP3_SEL_PRESS_OS | BMP3_SEL_TEMP_OS)) {
