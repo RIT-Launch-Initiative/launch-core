@@ -21,6 +21,7 @@
 class BMP390 {
 public:
     BMP390(I2CDevice *i2cDev) : mI2C(i2cDev) {}
+    uint64_t initCount = 0;
 
     /*************************************************************************************
      * Main Functionality
@@ -29,15 +30,18 @@ public:
         RESUME();
 
         uint8_t chipID = 0;
+
         this->device.dummy_byte = 0;
 
-        I2CAddr_t addr = {
+        this->i2cAddr = {
                 .dev_addr = BMP3_ADDR_I2C_SEC << 1,
-                .mem_addr = 0x00, // Try reading Chip ID
-                .mem_addr_size = 0x00000001U,
+                .mem_addr = BMP3_REG_CHIP_ID, // Try reading Chip ID
+                .mem_addr_size = 1,
         };
 
-        RetType ret = CALL(mI2C->read(addr, &chipID, 1));
+        mI2C->setAsync(false);
+
+        RetType ret = CALL(mI2C->read(this->i2cAddr, &chipID, 1));
         if (ret != RET_SUCCESS) goto initEnd;
 
         if (chipID != BMP390_CHIP_ID) goto initEnd;
@@ -54,8 +58,16 @@ public:
 
 
         initEnd:
-    RESET();
+        initCount++;
+        mI2C->setAsync(true);
+
+        RESET();
         return ret;
+    }
+
+    bmp3_data getData() {
+        getSensorData(BMP3_PRESS_TEMP);
+        return this->data;
     }
 
     RetType getSensorData(uint8_t sensorComp) {
@@ -164,7 +176,7 @@ public:
         status->pwr_on_rst = regData & 0x01;
 
         getSensorStatusEnd:
-        RESET();
+    RESET();
         return ret;
     }
 
@@ -183,7 +195,7 @@ public:
 
 
         getIntStatusEnd:
-        RESET();
+    RESET();
         return ret;
     }
 
@@ -200,7 +212,7 @@ public:
         status->err.conf = BMP3_GET_BITS(regData, BMP3_ERR_CONF);
 
         getErrStatus:
-        RESET();
+    RESET();
         return ret;
     }
 
