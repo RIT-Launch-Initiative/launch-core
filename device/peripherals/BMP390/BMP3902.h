@@ -15,8 +15,10 @@
 #include "sched/macros/reset.h"
 #include "device/SPIDevice.h"
 #include "device/I2CDevice.h"
-#include "sched/macros/call.h"
 #include "device/TimerDevice.h"
+#include "device/platforms/stm32/HAL_TimerDevice.h"
+#include "sched/macros/call.h"
+
 
 
 class BMP390 {
