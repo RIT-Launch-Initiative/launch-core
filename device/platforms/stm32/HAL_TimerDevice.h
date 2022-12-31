@@ -10,11 +10,25 @@
 #include "device/TimerDevice.h"
 #include "stm32f4xx_hal.h"
 
-
-
 class HALTimerDevice : public TimerDevice {
 public:
-    HALTimerDevice() : TimerDevice("HAL Timer Device") {}
+    HALTimerDevice() : TimerDevice("HAL Timer Device") {};
+
+    RetType init() override {
+        return RET_SUCCESS;
+    }
+
+    RetType poll() override {
+        return RET_SUCCESS;
+    }
+
+    RetType obtain() override {
+        return RET_SUCCESS;
+    }
+
+    RetType release() override {
+        return RET_SUCCESS;
+    }
 
     /**
      * Delays execution for a specified period of time
@@ -38,24 +52,6 @@ public:
 
         return RET_SUCCESS;
     }
-
-    RetType init() override {
-        return RET_SUCCESS;
-    }
-
-    RetType poll() override {
-        return RET_SUCCESS;
-    }
-
-    RetType obtain() override {
-        return RET_SUCCESS;
-    }
-
-    RetType release() override {
-        return RET_SUCCESS;
-    }
-
-
 };
 
 #endif //LAUNCH_CORE_HAL_TIMERDEVICE_H

@@ -16,14 +16,13 @@
 #include "device/SPIDevice.h"
 #include "device/I2CDevice.h"
 #include "device/TimerDevice.h"
-#include "device/platforms/stm32/HAL_TimerDevice.h"
 #include "sched/macros/call.h"
 
 
 
 class BMP390 {
 public:
-    BMP390(I2CDevice *i2cDev) : mI2C(i2cDev) {}
+    BMP390(I2CDevice *i2cDev, TimerDevice *timer) : mI2C(i2cDev), mTimer(timer) {}
 
     /*************************************************************************************
      * Main Functionality
@@ -86,7 +85,7 @@ public:
             ret = CALL(setRegister(&regAddr, &resetCmd, 1));
             if (ret != RET_SUCCESS) goto softResetEnd;
 
-            mTimer->delay(2000);
+            mTimer.delay(2000);
 
             ret = CALL(getRegister(BMP3_REG_ERR, &cmdErrorStatus, 1));
             if (ret != RET_SUCCESS) goto softResetEnd;
