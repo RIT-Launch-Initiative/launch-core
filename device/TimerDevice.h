@@ -9,6 +9,7 @@
 #include "Device.h"
 
 class TimerDevice : Device {
+public:
     TimerDevice(const char* name) : Device(name) {}
 
     /**
