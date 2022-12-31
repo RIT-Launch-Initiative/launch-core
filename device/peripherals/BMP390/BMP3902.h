@@ -68,26 +68,30 @@ public:
     }
 
 
-
-
     RetType softReset() {
         RESUME();
 
         uint8_t cmdReadyStatus;
         uint8_t cmdErrorStatus;
+        uint8_t regAddr = BMP3_REG_CMD;
+        uint8_t resetCmd = BMP3_SOFT_RESET;
 
         RetType ret = CALL(getRegister(BMP3_REG_SENS_STATUS, &cmdReadyStatus, 1));
         if (ret != RET_SUCCESS) goto softResetEnd;
 
         if ((cmdReadyStatus & BMP3_CMD_RDY)) {
-            ret = CALL(setRegister(reinterpret_cast<uint8_t *>(BMP3_REG_CMD),
-                                   reinterpret_cast<const uint8_t *>(BMP3_SOFT_RESET), 1));
+            ret = CALL(setRegister(&regAddr, &resetCmd, 1));
             if (ret != RET_SUCCESS) goto softResetEnd;
+
+            this->device.delay_us(2000, this->device.intf_ptr); // TODO: Make a launch-core delay
+            ret = CALL(getRegister(BMP3_REG_ERR, &cmdErrorStatus, 1));
+            if (ret != RET_SUCCESS) goto softResetEnd;
+
         }
 
         softResetEnd:
-    RESET();
-        return RET_SUCCESS;
+        RESET();
+        return ret;
     }
 
     /*************************************************************************************
@@ -387,7 +391,7 @@ private:
 
 
         initSettingsEnd:
-    RESET();
+        RESET();
         return RET_SUCCESS;
     }
 
@@ -404,7 +408,7 @@ private:
         compensateData(&uncompensatedData, &this->device.calib_data);
 
         getSensorDataEnd:
-    RESET();
+        RESET();
         return RET_SUCCESS;
     }
 
@@ -419,7 +423,7 @@ private:
         parseCalibrationData(calibrationData);
 
         getCalibEnd:
-    RESET();
+        RESET();
         return ret;
     }
 
@@ -445,7 +449,7 @@ private:
         if (ret != RET_SUCCESS) goto setRegEnd;
 
         setRegEnd:
-    RESET();
+        RESET();
         return ret;
     }
 
@@ -468,7 +472,7 @@ private:
 
 
         getRegEnd:
-    RESET();
+        RESET();
         return ret;
     }
 
@@ -694,7 +698,6 @@ private:
 
         regData[len] = BMP3_SET_BITS(regData[3], BMP3_IIR_FILTER, osrSettings.iir_filter);
 
-        /* 0x1F is the register address of iir filter register */
         regAddr[len] = BMP3_REG_CONFIG;
         len++;
 
