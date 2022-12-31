@@ -16,6 +16,7 @@
 #include "device/SPIDevice.h"
 #include "device/I2CDevice.h"
 #include "sched/macros/call.h"
+#include "device/TimerDevice.h"
 
 
 class BMP390 {
@@ -83,7 +84,8 @@ public:
             ret = CALL(setRegister(&regAddr, &resetCmd, 1));
             if (ret != RET_SUCCESS) goto softResetEnd;
 
-            this->device.delay_us(2000, this->device.intf_ptr); // TODO: Make a launch-core delay
+            mTimer->delay(2000);
+
             ret = CALL(getRegister(BMP3_REG_ERR, &cmdErrorStatus, 1));
             if (ret != RET_SUCCESS) goto softResetEnd;
 
@@ -353,7 +355,7 @@ private:
     uint8_t chipID;
     I2CDevice *mI2C;
     I2CAddr_t i2cAddr;
-    SPIDevice *mSPI;
+    TimerDevice mTimer = HALTimerDevice();
 
 
     RetType initSettings() {
