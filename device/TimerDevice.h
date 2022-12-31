@@ -8,7 +8,7 @@
 
 #include "Device.h"
 
-class TimerDevice : Device {
+class TimerDevice : public Device {
 public:
     TimerDevice(const char* name) : Device(name) {}
 

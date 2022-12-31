@@ -12,7 +12,7 @@
 
 
 
-class HALTimerDevice : TimerDevice {
+class HALTimerDevice : public TimerDevice {
 public:
     HALTimerDevice() : TimerDevice("HAL Timer Device") {}
 
