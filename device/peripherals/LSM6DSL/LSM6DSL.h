@@ -589,7 +589,19 @@ public:
     RetType disableTiltDetection() {
         RESUME();
 
-        RetType ret =;
+        // Disable Tilt Events
+        RetType ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD1_CFG, reinterpret_cast<uint8_t *>(LSM6DSL_ACC_GYRO_INT1_TILT_DISABLED), 1, LSM6DSL_ACC_GYRO_INT1_TILT_MASK));
+        if (ret != RET_SUCCESS) return ret;
+
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD2_CFG, reinterpret_cast<uint8_t *>(LSM6DSL_ACC_GYRO_INT2_TILT_DISABLED), 1, LSM6DSL_ACC_GYRO_INT2_TILT_MASK));
+        if (ret != RET_SUCCESS) return ret;
+
+        // Disable Tilt Calculations
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL10_C, reinterpret_cast<uint8_t *>(LSM6DSL_ACC_GYRO_TILT_DISABLED), 1, LSM6DSL_ACC_GYRO_TILT_MASK));
+        if (ret != RET_SUCCESS) return ret;
+
+        // Disable Embedded Functionalities
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL10_C, reinterpret_cast<uint8_t *>(LSM6DSL_ACC_GYRO_FUNC_EN_DISABLED), 1, LSM6DSL_ACC_GYRO_FUNC_EN_MASK));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
@@ -603,8 +615,8 @@ public:
     RetType enableSixDoF() {
         RESUME();
 
-        RetType ret =;
-        if (ret != RET_SUCCESS) return ret;
+
+
 
         RESET();
         return RET_SUCCESS;
