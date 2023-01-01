@@ -171,7 +171,7 @@ public:
 
         LSM6DSL_ACC_GYRO_FS_XL_t fullScale;
 
-        RetType ret = CALL(readReg(LSM6DSL_ACC_GYRO_CTRL1_XL, reinterpret_cast<uint8_t *>(&fullScale), 1));
+        RetType ret = CALL(readReg(LSM6DSL_ACC_GYRO_CTRL1_XL, reinterpret_cast<uint8_t *>(&fullScale), 1, LSM6DSL_ACC_GYRO_FS_XL_MASK));
         if (ret != RET_SUCCESS) return ret;
 
         switch (fullScale) {
@@ -219,7 +219,89 @@ public:
     /**********************************************************
      * Gyroscope Functions
      **********************************************************/
+    RetType getGyroAxes(int32_t *gyroData) {
+        RESUME();
 
+        int16_t rawData[3];
+        float sens = 0;
+
+        RetType ret = CALL(getGyroAxesRaw(rawData));
+        if (ret != RET_SUCCESS) return ret;
+
+        ret = CALL(getGyroSens(&sens));
+        if (ret != RET_SUCCESS) return ret;
+
+
+        for (int i = 0; i < 3; i++) {
+            gyroData[i] = static_cast<int32_t>(rawData[i] * sens);
+        }
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getGyroAxesRaw(int16_t *gyroData) {
+        RESUME();
+
+        uint8_t regValue[6] = {};
+
+        int accelDataIndex;
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; i < 3; i++) {
+                RetType ret = CALL(readReg(LSM6DSL_ACC_GYRO_OUTX_L_G + accelDataIndex,
+                                           reinterpret_cast<uint8_t *>(&gyroData[accelDataIndex]), 1));
+                if (ret != RET_SUCCESS) return ret;
+
+                accelDataIndex++;
+            }
+        }
+
+        gyroData[0] = static_cast<int16_t>(regValue[1] << 8) + static_cast<int16_t>(regValue[0]);
+        gyroData[1] = static_cast<int16_t>(regValue[3] << 8) + static_cast<int16_t>(regValue[2]);
+        gyroData[2] = static_cast<int16_t>(regValue[5] << 8) + static_cast<int16_t>(regValue[4]);
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getGyroSens(float *sens) {
+        RESUME();
+
+        LSM6DSL_ACC_GYRO_FS_125_t fullScale125;
+        LSM6DSL_ACC_GYRO_FS_G_t fullScale;
+
+        RetType ret = CALL(readReg(LSM6DSL_ACC_GYRO_CTRL2_G, reinterpret_cast<uint8_t *>(&fullScale125), 1,
+                                   LSM6DSL_ACC_GYRO_FS_125_MASK));
+
+
+        if (fullScale125 == LSM6DSL_ACC_GYRO_FS_125_ENABLED) {
+            *sens = static_cast<float>(LSM6DSL_GYRO_SENSITIVITY_FOR_FS_125DPS);
+        } else {
+            ret = CALL(readReg(LSM6DSL_ACC_GYRO_CTRL2_G, reinterpret_cast<uint8_t *>(&fullScale), 1, LSM6DSL_ACC_GYRO_FS_G_MASK));
+            if (ret != RET_SUCCESS) return ret;
+
+            switch (fullScale) {
+                case LSM6DSL_ACC_GYRO_FS_G_245dps:
+                    *sens = static_cast<float>(LSM6DSL_GYRO_SENSITIVITY_FOR_FS_245DPS);
+                    break;
+                case LSM6DSL_ACC_GYRO_FS_G_500dps:
+                    *sens = static_cast<float>(LSM6DSL_GYRO_SENSITIVITY_FOR_FS_500DPS);
+                    break;
+                case LSM6DSL_ACC_GYRO_FS_G_1000dps:
+                    *sens = static_cast<float>(LSM6DSL_GYRO_SENSITIVITY_FOR_FS_1000DPS);
+                    break;
+                case LSM6DSL_ACC_GYRO_FS_G_2000dps:
+                    *sens = static_cast<float>(LSM6DSL_GYRO_SENSITIVITY_FOR_FS_2000DPS);
+                    break;
+                default:
+                    *sens = -1.0f;
+                    return RET_ERROR;
+            }
+        }
+
+        RESET();
+        return RET_SUCCESS;
+    }
 
 
     RetType setFullScaleGyro(float fullScale) {
