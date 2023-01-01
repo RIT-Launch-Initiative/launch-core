@@ -609,14 +609,42 @@ public:
     }
 
     /********************************************************************
-     * Six Degrees of Freedom Settings
+     * Six Degree Orientation Settings
      ********************************************************************/
 
-    RetType enableSixDoF() {
+    RetType enable6DOrientation(LSM6DSL_Interrupt_Pin_t interruptPin) {
         RESUME();
 
+        // Output Data Rate selection
+        RetType ret = CALL(setAccelODR(416.0f));
+        if (ret != RET_SUCCESS) return ret;
 
+        ret = CALL(setAccelFullScale(2.0f));
+        if (ret != RET_SUCCESS) return ret;
 
+        // Set 6D Threshold
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_TAP_THS_6D, LSM6DSL_ACC_GYRO_SIXD_THS_60_degree, 1, LSM6DSL_ACC_GYRO_SIXD_THS_MASK));
+        if (ret != RET_SUCCESS) return ret;
+
+        /* Enable basic Interrupts */
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_TAP_CFG1, LSM6DSL_ACC_GYRO_BASIC_INT_ENABLED, 1, LSM6DSL_ACC_GYRO_INT_EN_MASK));
+        if (ret != RET_SUCCESS) return ret;
+
+        // Enable 6D orientation on either INT1 or INT2 pin
+        switch (interruptPin) {
+            case LSM6DSL_INT1_PIN:
+                ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD1_CFG, LSM6DSL_ACC_GYRO_INT1_6D_ENABLED, 1, LSM6DSL_ACC_GYRO_INT1_6D_MASK));
+                if (ret != RET_SUCCESS) return ret;
+
+                break;
+            case LSM6DSL_INT2_PIN:
+                ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD2_CFG, LSM6DSL_ACC_GYRO_INT2_6D_ENABLED, 1, LSM6DSL_ACC_GYRO_INT2_6D_MASK));
+                if (ret != RET_SUCCESS) return ret;
+
+                break;
+            default:
+                return RET_ERROR;
+        }
 
         RESET();
         return RET_SUCCESS;
@@ -695,6 +723,24 @@ private:
         value |= *buff;
 
         ret = CALL(mI2C->write(i2cAddr, &value, len));
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType writeReg(uint8_t reg, uint8_t val, size_t len, uint8_t mask) {
+        RESUME();
+
+        uint8_t newValue;
+        i2cAddr.mem_addr = reg;
+
+        RetType ret = CALL(mI2C->read(i2cAddr, &newValue, len));
+        if (ret != RET_SUCCESS) return ret;
+
+        newValue &= ~mask;
+        newValue |= val;
+
+        ret = CALL(mI2C->write(i2cAddr, &newValue, len));
 
         RESET();
         return RET_SUCCESS;
