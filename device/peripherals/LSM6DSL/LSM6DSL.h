@@ -547,11 +547,40 @@ public:
      ********************************************************************/
 
 
-    RetType enableTiltDetection() {
+    RetType enableTiltDetection(LSM6DSL_Interrupt_Pin_t interruptPin) {
         RESUME();
 
-        RetType ret =;
+        // Output Data Rate
+        RetType ret = CALL(setGyroODR(26.0f));
         if (ret != RET_SUCCESS) return ret;
+
+        // Full Scale Selection
+        ret = CALL(setGyroFullScale(2.0f));
+        if (ret != RET_SUCCESS) return ret;
+
+        // Enable Embedded Functionalities
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL10_C, reinterpret_cast<uint8_t *>(LSM6DSL_ACC_GYRO_FUNC_EN_ENABLED), 1, LSM6DSL_ACC_GYRO_FUNC_EN_MASK));
+        if (ret != RET_SUCCESS) return ret;
+
+        // Enable Tilt Calculation
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL10_C, reinterpret_cast<uint8_t *>(LSM6DSL_ACC_GYRO_TILT_ENABLED), 1, LSM6DSL_ACC_GYRO_TILT_MASK));
+        if (ret != RET_SUCCESS) return ret;
+
+        // Enable Tilt Detection
+        switch (interruptPin) {
+            case LSM6DSL_INT1_PIN:
+                ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD1_CFG, reinterpret_cast<uint8_t *>(LSM6DSL_ACC_GYRO_INT1_TILT_ENABLED), 1, LSM6DSL_ACC_GYRO_INT1_TILT_MASK));
+                if (ret != RET_SUCCESS) return ret;
+                break;
+
+            case LSM6DSL_INT2_PIN:
+                ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD2_CFG, reinterpret_cast<uint8_t *>(LSM6DSL_ACC_GYRO_INT2_TILT_ENABLED), 1, LSM6DSL_ACC_GYRO_INT2_TILT_MASK));
+                if (ret != RET_SUCCESS) return ret;
+                break;
+
+            default:
+                return RET_ERROR;
+        }
 
         RESET();
         return RET_SUCCESS;
@@ -566,6 +595,10 @@ public:
         RESET();
         return RET_SUCCESS;
     }
+
+    /********************************************************************
+     * Six Degrees of Freedom Settings
+     ********************************************************************/
 
     RetType enableSixDoF() {
         RESUME();
