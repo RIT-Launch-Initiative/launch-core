@@ -18,39 +18,11 @@
 #define LSM6DSL_GYRO_SENSITIVITY_FOR_FS_1000DPS  35.000  /**< Sensitivity value for 1000 dps full scale [mdps/LSB] */
 #define LSM6DSL_GYRO_SENSITIVITY_FOR_FS_2000DPS  70.000  /**< Sensitivity value for 2000 dps full scale [mdps/LSB] */
 
-#define LSM6DSL_PEDOMETER_THRESHOLD_LOW       0x00  /**< Lowest  value of pedometer threshold */
-#define LSM6DSL_PEDOMETER_THRESHOLD_MID_LOW   0x07
-#define LSM6DSL_PEDOMETER_THRESHOLD_MID       0x0F
-#define LSM6DSL_PEDOMETER_THRESHOLD_MID_HIGH  0x17
-#define LSM6DSL_PEDOMETER_THRESHOLD_HIGH      0x1F  /**< Highest value of pedometer threshold */
-
 #define LSM6DSL_WAKE_UP_THRESHOLD_LOW       0x01  /**< Lowest  value of wake up threshold */
 #define LSM6DSL_WAKE_UP_THRESHOLD_MID_LOW   0x0F
 #define LSM6DSL_WAKE_UP_THRESHOLD_MID       0x1F
 #define LSM6DSL_WAKE_UP_THRESHOLD_MID_HIGH  0x2F
 #define LSM6DSL_WAKE_UP_THRESHOLD_HIGH      0x3F  /**< Highest value of wake up threshold */
-
-#define LSM6DSL_TAP_THRESHOLD_LOW       0x01  /**< Lowest  value of wake up threshold */
-#define LSM6DSL_TAP_THRESHOLD_MID_LOW   0x08
-#define LSM6DSL_TAP_THRESHOLD_MID       0x10
-#define LSM6DSL_TAP_THRESHOLD_MID_HIGH  0x18
-#define LSM6DSL_TAP_THRESHOLD_HIGH      0x1F  /**< Highest value of wake up threshold */
-
-#define LSM6DSL_TAP_SHOCK_TIME_LOW       0x00  /**< Lowest  value of wake up threshold */
-#define LSM6DSL_TAP_SHOCK_TIME_MID_LOW   0x01
-#define LSM6DSL_TAP_SHOCK_TIME_MID_HIGH  0x02
-#define LSM6DSL_TAP_SHOCK_TIME_HIGH      0x03  /**< Highest value of wake up threshold */
-
-#define LSM6DSL_TAP_QUIET_TIME_LOW       0x00  /**< Lowest  value of wake up threshold */
-#define LSM6DSL_TAP_QUIET_TIME_MID_LOW   0x01
-#define LSM6DSL_TAP_QUIET_TIME_MID_HIGH  0x02
-#define LSM6DSL_TAP_QUIET_TIME_HIGH      0x03  /**< Highest value of wake up threshold */
-
-#define LSM6DSL_TAP_DURATION_TIME_LOW       0x00  /**< Lowest  value of wake up threshold */
-#define LSM6DSL_TAP_DURATION_TIME_MID_LOW   0x04
-#define LSM6DSL_TAP_DURATION_TIME_MID       0x08
-#define LSM6DSL_TAP_DURATION_TIME_MID_HIGH  0x0C
-#define LSM6DSL_TAP_DURATION_TIME_HIGH      0x0F  /**< Highest value of wake up threshold */
 
 #include <stdint.h>
 #include "device/I2CDevice.h"
