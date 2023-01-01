@@ -422,27 +422,25 @@ public:
 
         // FF Duration
         uint8_t duration = 0x06;
-
-        uint8_t val; // Write reg reads in a value before writing
         uint8_t lowVal = duration & 0x1F;
         lowVal = lowVal << LSM6DSL_ACC_GYRO_FF_FREE_FALL_DUR_POSITION;
         lowVal &= LSM6DSL_ACC_GYRO_FF_FREE_FALL_DUR_MASK;
 
-        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_FREE_FALL, &val, 1, LSM6DSL_ACC_GYRO_FF_FREE_FALL_DUR_MASK, lowVal));
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_FREE_FALL, lowVal, 1, LSM6DSL_ACC_GYRO_FF_FREE_FALL_DUR_MASK));
         if (ret != RET_SUCCESS) return ret;
 
         uint8_t highVal = (duration >> 5) & 0x1;
         highVal = highVal << LSM6DSL_ACC_GYRO_FF_WAKE_UP_DUR_POSITION;
         highVal &= LSM6DSL_ACC_GYRO_FF_WAKE_UP_DUR_MASK;
 
-        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_WAKE_UP_DUR, &val, 1, LSM6DSL_ACC_GYRO_FS_XL_MASK, highVal));
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_WAKE_UP_DUR, highVal, 1, LSM6DSL_ACC_GYRO_FS_XL_MASK));
         if (ret != RET_SUCCESS) return ret;
 
         // Wake Duration
         duration = 0x00 << LSM6DSL_ACC_GYRO_WAKE_DUR_POSITION;
         duration &= LSM6DSL_ACC_GYRO_WAKE_DUR_MASK;
 
-        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_WAKE_UP_DUR, &val, 1, LSM6DSL_ACC_GYRO_WAKE_DUR_MASK, duration));
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_WAKE_UP_DUR, duration, 1, LSM6DSL_ACC_GYRO_WAKE_DUR_MASK));
         if (ret != RET_SUCCESS) return ret;
 
         // Timer HR
@@ -453,7 +451,7 @@ public:
         duration = 0x00 << LSM6DSL_ACC_GYRO_SLEEP_DUR_POSITION;
         duration &= LSM6DSL_ACC_GYRO_SLEEP_DUR_MASK;
 
-        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_WAKE_UP_DUR, &val, 1, LSM6DSL_ACC_GYRO_SLEEP_DUR_MASK, duration));
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_WAKE_UP_DUR, duration, 1, LSM6DSL_ACC_GYRO_SLEEP_DUR_MASK));
         if (ret != RET_SUCCESS) return ret;
 
         // Free Fall THS
@@ -499,19 +497,18 @@ public:
         // Set Free Fall Duration
         uint8_t duration = 0x00;
 
-        uint8_t val; // Write reg reads in a value before writing
         uint8_t lowVal = duration & 0x1F;
         lowVal = lowVal << LSM6DSL_ACC_GYRO_FF_FREE_FALL_DUR_POSITION;
         lowVal &= LSM6DSL_ACC_GYRO_FF_FREE_FALL_DUR_MASK;
 
-        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_FREE_FALL, &val, 1, LSM6DSL_ACC_GYRO_FF_FREE_FALL_DUR_MASK, lowVal));
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_FREE_FALL, lowVal, 1, LSM6DSL_ACC_GYRO_FF_FREE_FALL_DUR_MASK));
         if (ret != RET_SUCCESS) return ret;
 
         uint8_t highVal = (duration >> 5) & 0x1;
         highVal = highVal << LSM6DSL_ACC_GYRO_FF_WAKE_UP_DUR_POSITION;
         highVal &= LSM6DSL_ACC_GYRO_FF_WAKE_UP_DUR_MASK;
 
-        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_WAKE_UP_DUR, &val, 1, LSM6DSL_ACC_GYRO_FS_XL_MASK, highVal));
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_WAKE_UP_DUR, highVal, 1, LSM6DSL_ACC_GYRO_FS_XL_MASK));
         if (ret != RET_SUCCESS) return ret;
 
         // Set Free Fall THS Setting
@@ -683,21 +680,6 @@ private:
         return RET_SUCCESS;
     }
 
-    RetType writeReg(uint8_t reg, const uint8_t *buff, size_t len) {
-        RESUME();
-
-        uint8_t value;
-        i2cAddr.mem_addr = reg;
-
-        RetType ret = CALL(mI2C->read(i2cAddr, &value, len));
-        if (ret != RET_SUCCESS) return ret;
-
-        ret = CALL(mI2C->write(i2cAddr, &value, len));
-
-        RESET();
-        return RET_SUCCESS;
-    }
-
     RetType readReg(uint8_t reg, uint8_t *buff, size_t len, uint8_t mask) {
         RESUME();
 
@@ -729,26 +711,6 @@ private:
         RESET();
         return RET_SUCCESS;
     }
-
-    RetType writeReg(uint8_t reg, uint8_t *buff, size_t len, uint8_t mask, uint8_t coerce) {
-        RESUME();
-
-        uint8_t value;
-        i2cAddr.mem_addr = reg;
-
-        RetType ret = CALL(mI2C->read(i2cAddr, &value, len));
-        if (ret != RET_SUCCESS) return ret;
-
-        value &= ~mask;
-        value |= coerce;
-
-        ret = CALL(mI2C->write(i2cAddr, &value, len));
-
-        RESET();
-        return RET_SUCCESS;
-    }
-
-
 };
 
 #endif //LAUNCH_CORE_LSM6DSL_H
