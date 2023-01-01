@@ -171,7 +171,8 @@ public:
 
         LSM6DSL_ACC_GYRO_FS_XL_t fullScale;
 
-        RetType ret = CALL(readReg(LSM6DSL_ACC_GYRO_CTRL1_XL, reinterpret_cast<uint8_t *>(&fullScale), 1, LSM6DSL_ACC_GYRO_FS_XL_MASK));
+        RetType ret = CALL(readReg(LSM6DSL_ACC_GYRO_CTRL1_XL, reinterpret_cast<uint8_t *>(&fullScale), 1,
+                                   LSM6DSL_ACC_GYRO_FS_XL_MASK));
         if (ret != RET_SUCCESS) return ret;
 
         switch (fullScale) {
@@ -215,6 +216,43 @@ public:
         return RET_SUCCESS;
     }
 
+    RetType setODRAccel(float odr) {
+        RESUME();
+
+        if (accelEnabled) {
+            LSM6DSL_ACC_GYRO_ODR_XL_t newODR;
+
+            newODR = (odr <= 13.0f) ? LSM6DSL_ACC_GYRO_ODR_XL_13Hz
+                                    : (odr <= 26.0f) ? LSM6DSL_ACC_GYRO_ODR_XL_26Hz
+                                    : (odr <= 52.0f) ? LSM6DSL_ACC_GYRO_ODR_XL_52Hz
+                                    : (odr <= 104.0f) ? LSM6DSL_ACC_GYRO_ODR_XL_104Hz
+                                    : (odr <= 208.0f) ? LSM6DSL_ACC_GYRO_ODR_XL_208Hz
+                                    : (odr <= 416.0f) ? LSM6DSL_ACC_GYRO_ODR_XL_416Hz
+                                    : (odr <= 833.0f) ? LSM6DSL_ACC_GYRO_ODR_XL_833Hz
+                                    : (odr <= 1660.0f) ? LSM6DSL_ACC_GYRO_ODR_XL_1660Hz
+                                    : (odr <= 3330.0f) ? LSM6DSL_ACC_GYRO_ODR_XL_3330Hz
+                                    : LSM6DSL_ACC_GYRO_ODR_XL_6660Hz;
+
+            RetType ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL1_XL, reinterpret_cast<uint8_t *>(&newODR), 1, LSM6DSL_ACC_GYRO_ODR_XL_MASK));
+            if (ret != RET_SUCCESS) return ret;
+
+        } else {
+            accelLastODR = (odr <= 13.0f) ? 13.0f
+                    : (odr <= 26.0f) ? 26.0f
+                    : (odr <= 52.0f) ? 52.0f
+                    : (odr <= 104.0f) ? 104.0f
+                    : (odr <= 208.0f) ? 208.0f
+                    : (odr <= 416.0f) ? 416.0f
+                    : (odr <= 833.0f) ? 833.0f
+                    : (odr <= 1660.0f) ? 1660.0f
+                    : (odr <= 3330.0f) ? 3330.0f
+                    : 6660.0f;
+
+        }
+
+        RESET();
+        return RET_SUCCESS;
+    }
 
     /**********************************************************
      * Gyroscope Functions
@@ -277,7 +315,8 @@ public:
         if (fullScale125 == LSM6DSL_ACC_GYRO_FS_125_ENABLED) {
             *sens = static_cast<float>(LSM6DSL_GYRO_SENSITIVITY_FOR_FS_125DPS);
         } else {
-            ret = CALL(readReg(LSM6DSL_ACC_GYRO_CTRL2_G, reinterpret_cast<uint8_t *>(&fullScale), 1, LSM6DSL_ACC_GYRO_FS_G_MASK));
+            ret = CALL(readReg(LSM6DSL_ACC_GYRO_CTRL2_G, reinterpret_cast<uint8_t *>(&fullScale), 1,
+                               LSM6DSL_ACC_GYRO_FS_G_MASK));
             if (ret != RET_SUCCESS) return ret;
 
             switch (fullScale) {
@@ -302,7 +341,6 @@ public:
         RESET();
         return RET_SUCCESS;
     }
-
 
     RetType setFullScaleGyro(float fullScale) {
         RESUME();
@@ -332,6 +370,71 @@ public:
         RESET();
         return RET_SUCCESS;
     }
+
+    /********************************************************************
+     * Functionality Settings
+     ********************************************************************/
+
+    RetType enableFreeFallDetection() {
+        RESUME();
+
+        RetType ret =;
+        if (ret != RET_SUCCESS) return ret;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType disableFreeFallDetection() {
+        RESUME();
+
+        RetType ret =;
+        if (ret != RET_SUCCESS) return ret;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType enableTiltDetection() {
+        RESUME();
+
+        RetType ret =;
+        if (ret != RET_SUCCESS) return ret;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType disableTiltDetection() {
+        RESUME();
+
+        RetType ret =;
+        if (ret != RET_SUCCESS) return ret;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType enable() {
+        RESUME();
+
+        RetType ret =;
+        if (ret != RET_SUCCESS) return ret;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType disable() {
+        RESUME();
+
+        RetType ret =;
+        if (ret != RET_SUCCESS) return ret;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
 
 private:
     I2CDevice *mI2C;
