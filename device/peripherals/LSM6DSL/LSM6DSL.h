@@ -91,7 +91,7 @@ public:
 
         if (fullScale <= 125.0f) {
             writeReg(LSM6DSL_ACC_GYRO_CTRL2_G, reinterpret_cast<uint8_t *>(LSM6DSL_ACC_GYRO_FS_125_ENABLED), 1,
-                     LSM6DSL_ACC_GYRO_FS_125_MASK)
+                     LSM6DSL_ACC_GYRO_FS_125_MASK);
         } else {
             newFs = (fullScale <= 245.0f) ? LSM6DSL_ACC_GYRO_FS_G_245dps
                                           : (fullScale <= 500.0f) ? LSM6DSL_ACC_GYRO_FS_G_500dps
@@ -107,12 +107,7 @@ public:
                            reinterpret_cast<uint8_t *>(newFs), 1,
                            LSM6DSL_ACC_GYRO_FS_G_MASK);
             if (ret != RET_SUCCESS) return ret;
-
         }
-
-
-        RetType ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL1_XL, &newFs, 1));
-        if (ret != RET_SUCCESS) return ret;
 
         RESET();
         return RET_SUCCESS;
