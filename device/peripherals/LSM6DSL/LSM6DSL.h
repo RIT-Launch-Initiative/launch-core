@@ -97,14 +97,14 @@ public:
                          1, LSM6DSL_ACC_GYRO_ODR_FIFO_MASK));
         if (ret != RET_SUCCESS) return ret;
 
-        ret = CALL(setFullScaleAccel(2.0f));
+        ret = CALL(setAccelFullScale(2.0f));
         if (ret != RET_SUCCESS) return ret;
 
         ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL2_G, reinterpret_cast<uint8_t *>(LSM6DSL_ACC_GYRO_ODR_G_POWER_DOWN), 1,
                             LSM6DSL_ACC_GYRO_IF_INC_MASK));
         if (ret != RET_SUCCESS) return ret;
 
-        ret = CALL(setFullScaleGyro(2000.0f));
+        ret = CALL(setGyroFullScale(2000.0f));
         if (ret != RET_SUCCESS) return ret;
 
         accelLastODR = 104.0f;
@@ -198,7 +198,7 @@ public:
     }
 
 
-    RetType setFullScaleAccel(float fullScale) {
+    RetType setAccelFullScale(float fullScale) {
         RESUME();
 
         LSM6DSL_ACC_GYRO_FS_XL_t newFs = (fullScale <= 2.0f) ? LSM6DSL_ACC_GYRO_FS_XL_2g : (fullScale <= 4.0f)
@@ -216,13 +216,11 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType setODRAccel(float odr) {
+    RetType setAccelODR(float odr) {
         RESUME();
 
         if (accelEnabled) {
-            LSM6DSL_ACC_GYRO_ODR_XL_t newODR;
-
-            newODR = (odr <= 13.0f) ? LSM6DSL_ACC_GYRO_ODR_XL_13Hz
+            LSM6DSL_ACC_GYRO_ODR_XL_t newODR = (odr <= 13.0f) ? LSM6DSL_ACC_GYRO_ODR_XL_13Hz
                                     : (odr <= 26.0f) ? LSM6DSL_ACC_GYRO_ODR_XL_26Hz
                                     : (odr <= 52.0f) ? LSM6DSL_ACC_GYRO_ODR_XL_52Hz
                                     : (odr <= 104.0f) ? LSM6DSL_ACC_GYRO_ODR_XL_104Hz
@@ -342,7 +340,7 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType setFullScaleGyro(float fullScale) {
+    RetType setGyroFullScale(float fullScale) {
         RESUME();
 
         LSM6DSL_ACC_GYRO_FS_G_t newFs;
@@ -365,6 +363,41 @@ public:
                            reinterpret_cast<uint8_t *>(newFs), 1,
                            LSM6DSL_ACC_GYRO_FS_G_MASK);
             if (ret != RET_SUCCESS) return ret;
+        }
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType setGyroODR(float odr) {
+        RESUME();
+        if (gyroEnabled) {
+            LSM6DSL_ACC_GYRO_ODR_G_t newODR = (odr <= 13.0f ) ? LSM6DSL_ACC_GYRO_ODR_G_13Hz
+                    : (odr <= 26.0f) ? LSM6DSL_ACC_GYRO_ODR_G_26Hz
+                    : (odr <= 52.0f) ? LSM6DSL_ACC_GYRO_ODR_G_52Hz
+                    : (odr <= 104.0f) ? LSM6DSL_ACC_GYRO_ODR_G_104Hz
+                    : (odr <= 208.0f) ? LSM6DSL_ACC_GYRO_ODR_G_208Hz
+                    : (odr <= 416.0f) ? LSM6DSL_ACC_GYRO_ODR_G_416Hz
+                    : (odr <= 833.0f) ? LSM6DSL_ACC_GYRO_ODR_G_833Hz
+                    : (odr <= 1660.0f) ? LSM6DSL_ACC_GYRO_ODR_G_1660Hz
+                    : (odr <= 3330.0f) ? LSM6DSL_ACC_GYRO_ODR_G_3330Hz
+                    : LSM6DSL_ACC_GYRO_ODR_G_6660Hz;
+
+            RetType ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL2_G, reinterpret_cast<uint8_t *>(&newODR), 1, LSM6DSL_ACC_GYRO_ODR_G_MASK));
+            if (ret != RET_SUCCESS) return ret;
+
+        } else {
+            gyroLastODR = (odr <= 13.0f ) ? 13.0f
+                        : (odr <=  26.0f) ? 26.0f
+                        : (odr <=  52.0f) ? 52.0f
+                        : (odr <= 104.0f) ? 104.0f
+                        : (odr <= 208.0f) ? 208.0f
+                        : (odr <= 416.0f) ? 416.0f
+                        : (odr <= 833.0f) ? 833.0f
+                        : (odr <= 1660.0) ? 1660.0f
+                        : (odr <= 3330.0) ? 3330.0f
+                        : 6660.0f;
+
         }
 
         RESET();
