@@ -93,7 +93,7 @@ public:
         }
 
         softResetEnd:
-        RESET();
+    RESET();
         return ret;
     }
 
@@ -258,12 +258,15 @@ public:
 
         if (lastSetMode != BMP3_MODE_SLEEP) {
             ret = CALL(sleep());
+            mTimer->delay(5000);
+        }
 
-            // TODO: Sleep
+        if (currMode == BMP3_MODE_NORMAL) {
+            ret = CALL(setNormalMode());
         } else if (currMode == BMP3_MODE_FORCED) {
             ret = CALL(writePowerMode());
-
         }
+
         if (ret != RET_SUCCESS) goto setOperatingModeEnd;
 
         setOperatingModeEnd:
@@ -280,13 +283,32 @@ public:
         RetType ret = CALL(getRegister(regAddr, &operatingMode, 1));
         if (ret != RET_SUCCESS) goto sleepEnd;
 
-        operatingMode = operatingMode & ~BMP3_OP_MODE_MSK;
+        operatingMode = operatingMode & (~BMP3_OP_MODE_MSK);
         ret = CALL(setRegister(&regAddr, &operatingMode, 1));
         if (ret != RET_SUCCESS) goto sleepEnd;
 
         sleepEnd:
     RESET();
         return RET_SUCCESS;
+    }
+
+    RetType setNormalMode() {
+        RESUME();
+
+        // TODO: Add validators
+        uint8_t configErrorStatus;
+        RetType ret = writePowerMode();
+        ret = getRegister(BMP3_REG_ERR, &configErrorStatus, 1);
+        if (ret != RET_SUCCESS) goto setNormalModeEnd;
+
+
+        if (configErrorStatus & BMP3_ERR_CMD) {
+            ret = RET_ERROR;
+        }
+
+        setNormalModeEnd:
+    RESET();
+        return ret;
     }
 
     RetType writePowerMode() {
@@ -297,13 +319,13 @@ public:
         uint8_t operatingMode = this->settings.op_mode;
 
         RetType ret = CALL(getRegister(regAddr, &tempOpMode, 1));
-        if (ret != RET_SUCCESS) goto sleepEnd;
+        if (ret != RET_SUCCESS) goto writePowerModeEnd;
 
         tempOpMode = BMP3_SET_BITS(tempOpMode, BMP3_OP_MODE, operatingMode);
         ret = CALL(setRegister(&regAddr, &tempOpMode, 1));
-        if (ret != RET_SUCCESS) goto sleepEnd;
+        if (ret != RET_SUCCESS) goto writePowerModeEnd;
 
-        sleepEnd:
+        writePowerModeEnd:
     RESET();
         return RET_SUCCESS;
 
@@ -394,7 +416,7 @@ private:
 
 
         initSettingsEnd:
-        RESET();
+    RESET();
         return RET_SUCCESS;
     }
 
@@ -411,7 +433,7 @@ private:
         compensateData(&uncompensatedData, &this->device.calib_data);
 
         getSensorDataEnd:
-        RESET();
+    RESET();
         return RET_SUCCESS;
     }
 
@@ -426,7 +448,7 @@ private:
         parseCalibrationData(calibrationData);
 
         getCalibEnd:
-        RESET();
+    RESET();
         return ret;
     }
 
@@ -452,7 +474,7 @@ private:
         if (ret != RET_SUCCESS) goto setRegEnd;
 
         setRegEnd:
-        RESET();
+    RESET();
         return ret;
     }
 
@@ -475,7 +497,7 @@ private:
 
 
         getRegEnd:
-        RESET();
+    RESET();
         return ret;
     }
 
@@ -676,33 +698,38 @@ private:
         RetType ret = CALL(getRegister(BMP3_REG_OSR, regData, 4));
         if (ret != RET_SUCCESS) goto setODRFilterEnd;
 
+        if (areSettingsChanged(BMP3_SEL_PRESS_OS | BMP3_SEL_TEMP_OS), desiredSettings) {
+            if (desiredSettings & (BMP3_SEL_PRESS_OS | BMP3_SEL_TEMP_OS)) {
+                if (desiredSettings & BMP3_SEL_PRESS_OS) {
+                    regData[len] = BMP3_SET_BITS_POS_0(regData[0], BMP3_PRESS_OS, osrSettings.press_os);
+                }
 
-        if (desiredSettings & (BMP3_SEL_PRESS_OS | BMP3_SEL_TEMP_OS)) {
-            if (desiredSettings & BMP3_SEL_PRESS_OS) {
-                regData[len] = BMP3_SET_BITS_POS_0(regData[0], BMP3_PRESS_OS, osrSettings.press_os);
+                if (desiredSettings & BMP3_SEL_TEMP_OS) {
+                    regData[len] = BMP3_SET_BITS(regData[0], BMP3_TEMP_OS, osrSettings.temp_os);
+                }
+
+                regAddr[len] = BMP3_REG_OSR;
+                len++;
+            }
+        }
+
+        if (areSettingsChanged(BMP3_SEL_ODR, desiredSettings)) {
+            if (osrSettings.odr > BMP3_ODR_0_001_HZ) {
+                osrSettings.odr = BMP3_ODR_0_001_HZ;
             }
 
-            if (desiredSettings & BMP3_SEL_TEMP_OS) {
-                regData[len] = BMP3_SET_BITS(regData[0], BMP3_TEMP_OS, osrSettings.temp_os);
-            }
+            regData[len] = BMP3_SET_BITS_POS_0(regData[1], BMP3_ODR, osrSettings.odr);
 
-            regAddr[len] = BMP3_REG_OSR;
+            regAddr[len] = BMP3_REG_ODR;
             len++;
         }
 
-        if (osrSettings.odr > BMP3_ODR_0_001_HZ) {
-            osrSettings.odr = BMP3_ODR_0_001_HZ;
+        if (areSettingsChanged(BMP3_SEL_IIR_FILTER, desiredSettings)) {
+            regData[len] = BMP3_SET_BITS(regData[3], BMP3_IIR_FILTER, osrSettings.iir_filter);
+
+            regAddr[len] = BMP3_REG_CONFIG;
+            len++;
         }
-
-        regData[len] = BMP3_SET_BITS_POS_0(regData[1], BMP3_ODR, osrSettings.odr);
-
-        regAddr[len] = BMP3_REG_ODR;
-        len++;
-
-        regData[len] = BMP3_SET_BITS(regData[3], BMP3_IIR_FILTER, osrSettings.iir_filter);
-
-        regAddr[len] = BMP3_REG_CONFIG;
-        len++;
 
         // TODO: Validation Check
 
@@ -801,6 +828,65 @@ private:
         return pow_output;
     }
 
+
+    bool areSettingsChanged(uint32_t subSettings, uint32_t desiredSettings) {
+        if ((subSettings & desiredSettings)) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    uint32_t calculatePressMeasTime() {
+        #ifdef BMP3_FLOAT_COMPENSATION
+        double base = 2.0;
+        float partialOut;
+        #else
+        uint8_t base = 2;
+        uint32_t partial_out;
+        #endif /* BMP3_FLOAT_COMPENSATION */
+        partialOut = pow(base, settings.odr_filter.press_os);
+        return static_cast<uint32_t>(BMP3_SETTLE_TIME_PRESS + partialOut * BMP3_ADC_CONV_TIME);
+    }
+
+    uint32_t calculateTempMeasTime() {
+        #ifdef BMP3_FLOAT_COMPENSATION
+                double base = 2.0;
+                float partialOut;
+        #else
+                uint8_t base = 2;
+            uint32_t partial_out;
+        #endif /* BMP3_FLOAT_COMPENSATION */
+        partialOut = pow(base, settings.odr_filter.temp_os);
+        return static_cast<uint32_t>(BMP3_SETTLE_TIME_TEMP + partialOut * BMP3_ADC_CONV_TIME);
+    }
+
+    bool validateSettings() {
+        uint32_t measT = 234;
+        uint32_t measTP = 0;
+
+        /* Sampling period corresponding to ODR in microseconds  */
+        uint32_t odr[18] = {5000, 10000, 20000, 40000, 80000,
+                            160000, 320000, 640000, 1280000, 2560000,
+                            5120000, 10240000, 20480000, 40960000, 81920000,
+                            163840000, 327680000, 655360000};
+
+        if (settings.press_en) {
+            /* Calculate the pressure measurement duration */
+            measTP += calculatePressMeasTime();
+        }
+
+        if (settings.temp_en) {
+            /* Calculate the temperature measurement duration */
+            measTP += calculateTempMeasTime();
+        }
+
+        /* Constant 234us added to the summation of temperature and pressure
+         * measurement duration */
+        measT += measTP;
+
+        return measT < odr[settings.odr_filter.odr];
+    }
 };
 
 
