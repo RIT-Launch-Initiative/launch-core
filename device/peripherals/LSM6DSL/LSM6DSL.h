@@ -24,8 +24,13 @@ public:
                 .mem_addr_size = 1
         };
 
+        // Check Chip ID
+        uint8_t chipID;
+        RetType ret = readReg(LSM6DSL_ACC_GYRO_WHO_AM_I_REG, &chipID, 1, LSM6DSL_ACC_GYRO_WHO_AM_I_BIT_MASK);
+        if (ret != RET_SUCCESS || LSM6DSL_ACC_GYRO_WHO_AM_I != chipID) return ret;
+
         // Enable reg addr automatically incremented during multi byte access with serial intf
-        RetType ret = CALL(
+        ret = CALL(
                 writeReg(LSM6DSL_ACC_GYRO_CTRL3_C, reinterpret_cast<uint8_t *>(LSM6DSL_ACC_GYRO_IF_INC_ENABLED), 1,
                          LSM6DSL_ACC_GYRO_IF_INC_MASK));
         if (ret != RET_SUCCESS) return ret;
