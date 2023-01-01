@@ -698,7 +698,7 @@ private:
         RetType ret = CALL(getRegister(BMP3_REG_OSR, regData, 4));
         if (ret != RET_SUCCESS) goto setODRFilterEnd;
 
-        if (areSettingsChanged(BMP3_SEL_PRESS_OS | BMP3_SEL_TEMP_OS), desiredSettings) {
+        if (areSettingsChanged((BMP3_SEL_PRESS_OS | BMP3_SEL_TEMP_OS), desiredSettings)) {
             if (desiredSettings & (BMP3_SEL_PRESS_OS | BMP3_SEL_TEMP_OS)) {
                 if (desiredSettings & BMP3_SEL_PRESS_OS) {
                     regData[len] = BMP3_SET_BITS_POS_0(regData[0], BMP3_PRESS_OS, osrSettings.press_os);
@@ -731,7 +731,10 @@ private:
             len++;
         }
 
-        // TODO: Validation Check
+        if (settings.op_mode == BMP3_MODE_NORMAL) {
+            ret = validateSettings() == TRUE ? RET_SUCCESS : RET_ERROR;
+            if (ret != RET_SUCCESS) goto setODRFilterEnd;
+        }
 
         ret = CALL(setRegister(regAddr, regData, len));
         if (ret != RET_SUCCESS) goto setODRFilterEnd;
@@ -827,7 +830,6 @@ private:
 
         return pow_output;
     }
-
 
     bool areSettingsChanged(uint32_t subSettings, uint32_t desiredSettings) {
         if ((subSettings & desiredSettings)) {
