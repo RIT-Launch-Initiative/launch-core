@@ -63,7 +63,7 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType write(uint8_t *buff, size_t len) {
+    RetType write(RFM95_REGISTER_T reg, uint8_t *buff, size_t len) {
         RESUME();
 
         RESET();
@@ -92,6 +92,7 @@ public:
         RESET();
         return RET_SUCCESS;
     }
+
 
     RetType reset() {
         RESUME();
@@ -124,14 +125,14 @@ private:
     RetType writeReg(RFM95_REGISTER_T reg, uint8_t val) {
         RESUME();
 
-        RetType ret = CALL(this->nssPin->set(1));
+        RetType ret = CALL(this->nssPin->set(0));
         if (ret != RET_SUCCESS) return ret;
 
         uint8_t txBuff[2] = {static_cast<uint8_t>((static_cast<uint8_t>(reg)) | 0x80u), val};
         ret = this->mSpi->write(txBuff, 2);
         if (ret != RET_SUCCESS) return ret;
 
-        ret = CALL(this->nssPin->set(0));
+        ret = CALL(this->nssPin->set(1));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
@@ -143,7 +144,7 @@ private:
     RetType readReg(RFM95_REGISTER_T reg, uint8_t *buff, size_t len) {
         RESUME();
 
-        RetType ret = CALL(this->nssPin->set(1));
+        RetType ret = CALL(this->nssPin->set(0));
         if (ret != RET_SUCCESS) return ret;
 
         uint8_t txBuff = static_cast<uint8_t>(reg) & 0x7fu;
@@ -153,7 +154,7 @@ private:
         ret = this->mSpi->read(buff, len);
         if (ret != RET_SUCCESS) return ret;
 
-        ret = CALL(this->nssPin->set(0));
+        ret = CALL(this->nssPin->set(1));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
