@@ -417,7 +417,7 @@ public:
     }
 
     /********************************************************************
-     * Functionality Settings
+     * Free Fall Settings
      ********************************************************************/
 
     RetType enableFreeFallDetection(LSM6DSL_Interrupt_Pin_t interruptPin) {
@@ -532,6 +532,21 @@ public:
         return RET_SUCCESS;
     }
 
+    RetType setFreeFallThreshold(uint8_t threshold) {
+        RESUME();
+
+        RetType ret = CALL(writeReg(LSM6DSL_ACC_GYRO_FREE_FALL, &threshold, 1, LSM6DSL_ACC_GYRO_FF_THS_MASK));
+        if (ret != RET_SUCCESS) return ret;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    /********************************************************************
+     * Tilt Detection Settings
+     ********************************************************************/
+
+
     RetType enableTiltDetection() {
         RESUME();
 
@@ -552,7 +567,7 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType enable() {
+    RetType enableSixDoF() {
         RESUME();
 
         RetType ret =;
@@ -562,7 +577,7 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType disable() {
+    RetType disableSixDoF() {
         RESUME();
 
         RetType ret =;
