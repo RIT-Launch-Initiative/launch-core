@@ -356,7 +356,7 @@ private:
     uint8_t chipID;
     I2CDevice *mI2C;
     I2CAddr_t i2cAddr;
-    TimerDevice *mTimer = HALTimerDevice();
+    TimerDevice *mTimer;
 
 
     RetType initSettings() {
