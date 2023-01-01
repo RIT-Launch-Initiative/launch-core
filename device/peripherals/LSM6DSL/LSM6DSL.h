@@ -1,5 +1,5 @@
 /**
- * LSM6DSL IMU
+ * Platform Independent LSM6DSL IMU Driver Using scheduler
  *
  * @author Aaron Chan
  */
