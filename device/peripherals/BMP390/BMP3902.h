@@ -295,7 +295,8 @@ public:
     RetType setNormalMode() {
         RESUME();
 
-        // TODO: Add validators
+        if (validateSettings() != RET_SUCCESS) return RET_ERROR;
+
         uint8_t configErrorStatus;
         RetType ret = writePowerMode();
         ret = getRegister(BMP3_REG_ERR, &configErrorStatus, 1);
@@ -307,7 +308,7 @@ public:
         }
 
         setNormalModeEnd:
-    RESET();
+        RESET();
         return ret;
     }
 
