@@ -653,7 +653,19 @@ public:
     RetType disableSixDoF() {
         RESUME();
 
-        RetType ret =;
+        // Disable 6D Interrupts
+        RetType ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD1_CFG, LSM6DSL_ACC_GYRO_INT1_6D_DISABLED, 1, LSM6DSL_ACC_GYRO_INT1_6D_MASK));
+        if (ret != RET_SUCCESS) return ret;
+
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD2_CFG, LSM6DSL_ACC_GYRO_INT2_6D_DISABLED, 1, LSM6DSL_ACC_GYRO_INT2_6D_MASK));
+        if (ret != RET_SUCCESS) return ret;
+
+        // Disable Basic Interrupts
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_TAP_CFG1, LSM6DSL_ACC_GYRO_BASIC_INT_DISABLED, 1, LSM6DSL_ACC_GYRO_INT_EN_MASK));
+        if (ret != RET_SUCCESS) return ret;
+
+        /* Reset 6D threshold. */
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_TAP_THS_6D, LSM6DSL_ACC_GYRO_SIXD_THS_80_degree, 1, LSM6DSL_ACC_GYRO_SIXD_THS_MASK));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
