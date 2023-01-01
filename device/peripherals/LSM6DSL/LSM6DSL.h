@@ -58,16 +58,21 @@
 #include "device/peripherals/LSM6DSL/LSM6DSL_Driver.h"
 
 
-typedef enum {
+enum LSM6DSL_Interrupt_Pin_t{
     LSM6DSL_INT1_PIN,
     LSM6DSL_INT2_PIN
-} LSM6DSL_Interrupt_Pin_t;
+} ;
 
-typedef struct {
+struct LSM6DSL_EVENT_STATUS_T {
     uint8_t FreeFallStatus: 1;
     uint8_t WakeUpStatus: 1;
     uint8_t D6DOrientationStatus: 1;
-} LSM6DSL_Event_Status_t;
+};
+
+struct LSM6DSL_SENSOR_DATA_T {
+    float acceleration;
+    float angularVelocity;
+};
 
 class LSM6DSL {
 public:
@@ -80,6 +85,8 @@ public:
                 .mem_addr = LSM6DSL_ACC_GYRO_WHO_AM_I_REG,
                 .mem_addr_size = 1
         };
+
+        mI2C->setAsync(false);
 
         // Check Chip ID
         uint8_t chipID;
@@ -115,6 +122,7 @@ public:
         ret = CALL(setGyroFullScale(2000.0f));
         if (ret != RET_SUCCESS) return ret;
 
+        mI2C->setAsync(true);
         accelLastODR = 104.0f;
         accelEnabled = true;
         gyroLastODR = 104.0f;
@@ -352,18 +360,19 @@ public:
         LSM6DSL_ACC_GYRO_FS_G_t newFs;
 
         if (fullScale <= 125.0f) {
-            writeReg(LSM6DSL_ACC_GYRO_CTRL2_G, LSM6DSL_ACC_GYRO_FS_125_ENABLED, 1,
-                     LSM6DSL_ACC_GYRO_FS_125_MASK);
+            RetType ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL2_G, LSM6DSL_ACC_GYRO_FS_125_ENABLED, 1, LSM6DSL_ACC_GYRO_FS_125_MASK));
+            if (ret != RET_SUCCESS) return ret;
+
         } else {
             newFs = (fullScale <= 245.0f) ? LSM6DSL_ACC_GYRO_FS_G_245dps
                                           : (fullScale <= 500.0f) ? LSM6DSL_ACC_GYRO_FS_G_500dps
                                                                   : (fullScale <= 1000.0f)
                                                                     ? LSM6DSL_ACC_GYRO_FS_G_1000dps
                                                                     : LSM6DSL_ACC_GYRO_FS_G_2000dps;
-            RetType ret = writeReg(LSM6DSL_ACC_GYRO_CTRL2_G, LSM6DSL_ACC_GYRO_FS_125_DISABLED, 1, LSM6DSL_ACC_GYRO_FS_125_MASK);
+            RetType ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL2_G, LSM6DSL_ACC_GYRO_FS_125_DISABLED, 1, LSM6DSL_ACC_GYRO_FS_125_MASK));
             if (ret != RET_SUCCESS) return ret;
 
-            ret = writeReg(LSM6DSL_ACC_GYRO_CTRL2_G, newFs, 1, LSM6DSL_ACC_GYRO_FS_G_MASK);
+            ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL2_G, newFs, 1, LSM6DSL_ACC_GYRO_FS_G_MASK));
             if (ret != RET_SUCCESS) return ret;
         }
 
@@ -658,6 +667,8 @@ public:
         RESET();
         return RET_SUCCESS;
     }
+
+    // TODO: Maybe add wakeup detection functionality
 
 
 private:
