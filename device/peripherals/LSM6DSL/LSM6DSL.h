@@ -14,7 +14,7 @@
 
 class LSM6DSL {
 public:
-    LSM6DSL(I2CDevice *i2CDevice) : mI2C(i2CDevice), xEnabled(false), gEnabled(false) {}
+    LSM6DSL(I2CDevice *i2CDevice) : mI2C(i2CDevice), accelEnabled(false), gyroEnabled(false) {}
 
     RetType init(uint8_t i2cDevAddr) {
         RESUME();
@@ -47,26 +47,26 @@ public:
                          1, LSM6DSL_ACC_GYRO_ODR_FIFO_MASK));
         if (ret != RET_SUCCESS) return ret;
 
-        ret = CALL(setFullScaleX(2.0f));
+        ret = CALL(setFullScaleAccel(2.0f));
         if (ret != RET_SUCCESS) return ret;
 
         ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL2_G, reinterpret_cast<uint8_t *>(LSM6DSL_ACC_GYRO_ODR_G_POWER_DOWN), 1,
                             LSM6DSL_ACC_GYRO_IF_INC_MASK));
         if (ret != RET_SUCCESS) return ret;
 
-        ret = CALL(setFullScaleG(2000.0f));
+        ret = CALL(setFullScaleGyro(2000.0f));
         if (ret != RET_SUCCESS) return ret;
 
-        xLastODR = 104.0f;
-        xEnabled = 0;
-        gLastODR = 104.0f;
-        gEnabled = 0;
+        accelLastODR = 104.0f;
+        accelEnabled = true;
+        gyroLastODR = 104.0f;
+        gyroEnabled = true;
 
         RESET();
         return RET_SUCCESS;
     }
 
-    RetType setFullScaleX(float fullScale) {
+    RetType setFullScaleAccel(float fullScale) {
         RESUME();
 
         LSM6DSL_ACC_GYRO_FS_XL_t newFs = (fullScale <= 2.0f) ? LSM6DSL_ACC_GYRO_FS_XL_2g : (fullScale <= 4.0f)
@@ -84,7 +84,7 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType setFullScaleG(float fullScale) {
+    RetType setFullScaleGyro(float fullScale) {
         RESUME();
 
         LSM6DSL_ACC_GYRO_FS_G_t newFs;
@@ -116,10 +116,10 @@ public:
 private:
     I2CDevice *mI2C;
     I2CAddr_t i2cAddr;
-    float xLastODR;
-    float gLastODR;
-    bool xEnabled;
-    bool gEnabled;
+    float accelLastODR;
+    float gyroLastODR;
+    bool accelEnabled;
+    bool gyroEnabled;
 
 
     RetType readReg(uint8_t reg, uint8_t *buff, size_t len, uint8_t mask) {
