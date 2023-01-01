@@ -466,7 +466,7 @@ public:
         ret = CALL(writeReg(LSM6DSL_ACC_GYRO_WAKE_UP_DUR, &val, 1, LSM6DSL_ACC_GYRO_SLEEP_DUR_MASK, duration));
         if (ret != RET_SUCCESS) return ret;
 
-        // FF_THS
+        // Free Fall THS
         ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL1_XL, reinterpret_cast<uint8_t *>(LSM6DSL_ACC_GYRO_FF_THS_312mg), 1, LSM6DSL_ACC_GYRO_FF_THS_MASK));
         if (ret != RET_SUCCESS) return ret;
 
@@ -479,8 +479,6 @@ public:
             case LSM6DSL_INT1_PIN:
                 ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD1_CFG, reinterpret_cast<uint8_t *>(LSM6DSL_ACC_GYRO_INT1_FF_ENABLED), 1, LSM6DSL_ACC_GYRO_INT1_FF_MASK));
                 if (ret != RET_SUCCESS) return ret;
-
-
 
             case LSM6DSL_INT2_PIN:
                 ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD2_CFG, reinterpret_cast<uint8_t *>(LSM6DSL_ACC_GYRO_INT1_FF_ENABLED), 1, LSM6DSL_ACC_GYRO_INT2_FF_MASK));
@@ -497,7 +495,37 @@ public:
     RetType disableFreeFallDetection() {
         RESUME();
 
-        RetType ret =;
+        // Disable FF events on pins
+        RetType ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD1_CFG, reinterpret_cast<uint8_t *>(LSM6DSL_ACC_GYRO_INT1_FF_DISABLED), 1, LSM6DSL_ACC_GYRO_INT1_FF_MASK));
+        if (ret != RET_SUCCESS) return ret;
+
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD2_CFG, reinterpret_cast<uint8_t *>(LSM6DSL_ACC_GYRO_INT1_FF_DISABLED), 1, LSM6DSL_ACC_GYRO_INT2_FF_MASK));
+        if (ret != RET_SUCCESS) return ret;
+
+        // Disable Interrupts
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_TAP_CFG1, reinterpret_cast<uint8_t *>(LSM6DSL_ACC_GYRO_BASIC_INT_DISABLED), 1, LSM6DSL_ACC_GYRO_INT_EN_MASK));
+        if (ret != RET_SUCCESS) return ret;
+
+        // Set Free Fall Duration
+        uint8_t duration = 0x00;
+
+        uint8_t val; // Write reg reads in a value before writing
+        uint8_t lowVal = duration & 0x1F;
+        lowVal = lowVal << LSM6DSL_ACC_GYRO_FF_FREE_FALL_DUR_POSITION;
+        lowVal &= LSM6DSL_ACC_GYRO_FF_FREE_FALL_DUR_MASK;
+
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_FREE_FALL, &val, 1, LSM6DSL_ACC_GYRO_FF_FREE_FALL_DUR_MASK, lowVal));
+        if (ret != RET_SUCCESS) return ret;
+
+        uint8_t highVal = (duration >> 5) & 0x1;
+        highVal = highVal << LSM6DSL_ACC_GYRO_FF_WAKE_UP_DUR_POSITION;
+        highVal &= LSM6DSL_ACC_GYRO_FF_WAKE_UP_DUR_MASK;
+
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_WAKE_UP_DUR, &val, 1, LSM6DSL_ACC_GYRO_FS_XL_MASK, highVal));
+        if (ret != RET_SUCCESS) return ret;
+
+        // Set Free Fall THS Setting
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL1_XL, reinterpret_cast<uint8_t *>(LSM6DSL_ACC_GYRO_FF_THS_156mg), 1, LSM6DSL_ACC_GYRO_FF_THS_MASK));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
