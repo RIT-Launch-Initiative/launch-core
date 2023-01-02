@@ -8,13 +8,9 @@
 
 #include <linux/gpio.h>
 
-#include <unistd.h>
 #include <fcntl.h>
-#include <string.h>
-#include <errno.h>
 #include <sys/ioctl.h>
-#include <stdint.h>
-#include <stdlib.h>
+
 
 #include "sched/macros.h"
 #include "device/GPIODevice.h"

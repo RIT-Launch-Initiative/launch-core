@@ -1,9 +1,9 @@
-#include <cstdio>
-#include "device/platforms/linux/LinuxGPIODevice.h"
-
 /**
 * Test Linux GPIO Implementation
 */
+
+#include <cstdio>
+#include "device/platforms/linux/LinuxGPIODevice.h"
 
 int main() {
     LinuxGPIODevice gpio = LinuxGPIODevice("/dev/gpiochip0");
