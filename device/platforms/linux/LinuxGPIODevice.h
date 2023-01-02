@@ -18,10 +18,10 @@
 
 #include "sched/macros.h"
 #include "device/GPIODevice.h"
-#include "device/platforms/stm32/HAL_Handlers.h"
 #include "sync/BlockingSemaphore.h"
 
 class LinuxGPIODevice : public GPIODevice {
+public:
     LinuxGPIODevice(const char *name) : GPIODevice(name),
                                         taskLock(1),
                                         currentBlocked(-1) {};
@@ -83,6 +83,7 @@ class LinuxGPIODevice : public GPIODevice {
 
     RetType get(uint32_t *val) override {
         RESUME();
+
         RetType ret = CALL(taskLock.acquire());
         if (ret != RET_SUCCESS) {
             RESET();
