@@ -10,6 +10,7 @@
 
 #include <fcntl.h>
 #include <sys/ioctl.h>
+#include <cstdio>
 
 
 #include "sched/macros.h"
@@ -27,8 +28,11 @@ public:
 
         fd = open(m_name, O_RDWR);
 
+#ifdef  DEBUG
+        printf("fd: %d", fd);
+#endif
         RESET();
-        return fd < 0 ? RET_SUCCESS : RET_ERROR;;
+        return fd == 0 ? RET_SUCCESS : RET_ERROR;;
     }
 
     RetType obtain() override {
@@ -60,7 +64,7 @@ public:
             return RET_ERROR;
         }
 
-        if (ioctl(fd, GPIOHANDLE_SET_LINE_VALUES_IOCTL, &val) < 0) {
+        if (ioctl(fd, GPIO_V2_LINE_SET_VALUES_IOCTL, &val) == 0) {
             return RET_ERROR;
         }
         BLOCK();
@@ -87,7 +91,7 @@ public:
         }
 
         taskLock = sched_dispatched;
-        if (ioctl(fd, GPIOHANDLE_GET_LINE_VALUES_IOCTL, val) < 0) {
+        if (ioctl(fd, GPIO_V2_LINE_GET_VALUES_IOCTL, val) == 0) {
             return RET_ERROR;
         }
 

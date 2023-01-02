@@ -4,6 +4,7 @@
 
 #include <cstdio>
 #include "device/platforms/linux/LinuxGPIODevice.h"
+#include <unistd.h>
 
 int main() {
     LinuxGPIODevice gpio = LinuxGPIODevice("/dev/gpiochip0");
