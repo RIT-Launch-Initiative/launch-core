@@ -6,19 +6,33 @@
 #ifndef LAUNCH_CORE_LINUXGPIODEVICE_H
 #define LAUNCH_CORE_LINUXGPIODEVICE_H
 
+#include <linux/gpio.h>
+
+#include <unistd.h>
+#include <fcntl.h>
+#include <string.h>
+#include <errno.h>
+#include <sys/ioctl.h>
+#include <stdint.h>
+#include <stdlib.h>
+
 #include "sched/macros.h"
 #include "device/GPIODevice.h"
 #include "device/platforms/stm32/HAL_Handlers.h"
 #include "sync/BlockingSemaphore.h"
 
 class LinuxGPIODevice : public GPIODevice {
-    LinuxGPIODevice(const char* name) : GPIODevice(name),
+    LinuxGPIODevice(const char *name) : GPIODevice(name),
                                         taskLock(1),
-                                        currentBlocked(-1),
-                                        pin(0) {};
+                                        currentBlocked(-1) {};
 
     RetType init() override {
-        return RET_SUCCESS;
+        RESUME();
+
+        fd = open(m_name, O_RDWR);
+
+        RESET();
+        return fd < 0 ? RET_SUCCESS : RET_ERROR;;
     }
 
     RetType obtain() override {
@@ -50,7 +64,9 @@ class LinuxGPIODevice : public GPIODevice {
             return RET_ERROR;
         }
 
-        // TODO: Set Pin
+        if (ioctl(fd, GPIOHANDLE_SET_LINE_VALUES_IOCTL, &val) < 0) {
+            return RET_ERROR;
+        }
         BLOCK();
 
         currentBlocked = -1;
@@ -74,7 +90,9 @@ class LinuxGPIODevice : public GPIODevice {
         }
 
         taskLock = sched_dispatched;
-        *val = nullptr; // TODO
+        if (ioctl(fd, GPIOHANDLE_GET_LINE_VALUES_IOCTL, val) < 0) {
+            return RET_ERROR;
+        }
 
         BLOCK();
 
@@ -89,10 +107,13 @@ class LinuxGPIODevice : public GPIODevice {
         RESET();
         return RET_SUCCESS;
     }
+
 private:
     BlockingSemaphore taskLock;
     tid_t currentBlocked;
-    uint16_t pin;
+    int fd = -1;
+
+
 };
 
 #endif //LAUNCH_CORE_LINUXGPIODEVICE_H
