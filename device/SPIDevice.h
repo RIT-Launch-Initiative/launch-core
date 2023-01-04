@@ -45,6 +45,8 @@ public:
      * @return if all bytes were read successfully
      */
     virtual RetType write_read(uint8_t* write_buff, size_t write_len, uint8_t* read_buff, size_t read_len) = 0;
+
+    virtual void setAsync(bool async) = 0;
 };
 
 #endif
