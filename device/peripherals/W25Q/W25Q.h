@@ -19,6 +19,7 @@
     chipSelectPin.set(1); \
 }
 
+
 #define RET_CHECK(ret) {if (ret != RET_SUCCESS) {RESET(); return ret;}}
 
 // TODO: Might be a better and the actually correct way of doing 32 bit addresses?
@@ -336,21 +337,19 @@ private:
     RetType readID(uint32_t *deviceID) {
         RESUME();
 
-        uint8_t buff[4] = {0x9F, 0x00, 0x00, 0x00};
+        uint8_t writeBuff[4] = {0x9F, 0x00, 0x00, 0x00};
+        uint8_t readBuff[4] = {};
 
         RetType ret = CALL(chipSelectPin.set(0));
         RET_CHECK(ret);
 
-        ret = spiDevice.write(buff, 4);
-        RET_CHECK(ret)
-
-        ret = spiDevice.read(buff, 4);
-        RET_CHECK(ret)
-
-        ret = chipSelectPin.set(1);
+        ret = CALL(spiDevice.write_read(writeBuff, 4, readBuff, 4));
         RET_CHECK(ret);
 
-        *deviceID = (buff[0] << 24) | (buff[1] << 16) | (buff[2] << 8) | buff[3];
+        *deviceID = (readBuff[0] << 24) | (readBuff[1] << 16) | (readBuff[2] << 8) | readBuff[3];
+
+        ret = CALL(chipSelectPin.set(1));
+        RET_CHECK(ret);
 
         RESET();
         return RET_SUCCESS;
