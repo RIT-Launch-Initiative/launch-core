@@ -16,11 +16,29 @@ public:
     
     // ICMP header for packets
     typedef struct {
+        uint8_t* buff;
+        size_t size;
+        size_t headerSize;
         // TODO define constants for packets
     } icmphead_t
 
     virtual RetType recieve(Packet& packet, sockinfo_t& info, NetworkLayer* caller) {
-        icmphead_t rec = packet read  // Do something like this that actually works
+        uint32_t src = info->src->ipv4_addr;
+        uint32_t dst = info->dst->ipv4_addr;
+
+        icmphead_t rec;
+        rec->buff = packet->buff;
+        rec->size = packet->size;
+        rec->headerSize = packet->headerSize;
+        
+        if (src == dst) {
+            
+        } else {
+            return(RET_ERROR);
+        }
+        
+
+                                      // Do something like this that actually works
                                       // Check if the packet address matches the destination
                                       // if so, send packet to caller
                                       // if not, packet is junk
