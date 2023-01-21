@@ -88,6 +88,7 @@ public:
         RESUME();
         uint32_t deviceID = 0;
 
+        spiDevice.setAsync(false);
         RetType ret = CALL(readID(&deviceID));
         if (ret != RET_SUCCESS) return ret;
 
@@ -337,19 +338,24 @@ private:
     RetType readID(uint32_t *deviceID) {
         RESUME();
 
-        uint8_t writeBuff[4] = {0x9F, 0x00, 0x00, 0x00};
+        uint8_t writeBuff[4] = {0x9F, 0xA5, 0xA5, 0xA5};
         uint8_t readBuff[4] = {};
 
         RetType ret = CALL(chipSelectPin.set(0));
         RET_CHECK(ret);
 
-        ret = CALL(spiDevice.write_read(writeBuff, 4, readBuff, 4));
+        ret = CALL(spiDevice.write_read(&writeBuff[0], 1, &readBuff[0], 1));
         RET_CHECK(ret);
 
-        *deviceID = (readBuff[0] << 24) | (readBuff[1] << 16) | (readBuff[2] << 8) | readBuff[3];
+        for (int i = 1; i < 4; i++) {
+            ret = CALL(spiDevice.write_read(&writeBuff[i], 1, &readBuff[i], 1));
+            RET_CHECK(ret);
+        }
 
         ret = CALL(chipSelectPin.set(1));
         RET_CHECK(ret);
+
+        *deviceID = (readBuff[0] << 24) | (readBuff[1] << 16) | (readBuff[2] << 8) | readBuff[3];
 
         RESET();
         return RET_SUCCESS;
