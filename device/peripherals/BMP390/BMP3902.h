@@ -65,8 +65,24 @@ public:
     }
 
     bmp3_data getSensorData() {
-        getSensorData(BMP3_PRESS_TEMP);
         return this->data;
+    }
+
+    RetType pullSensorData() {
+        RESUME();
+
+        uint8_t regData[BMP3_LEN_P_T_DATA] = {0};
+        struct bmp3_uncomp_data uncompensatedData = {0};
+
+        RetType ret = CALL(getRegister(BMP3_REG_DATA, regData, BMP3_LEN_P_T_DATA));
+        if (ret != RET_SUCCESS) goto getSensorDataEnd;
+
+        parseSensorData(regData, &uncompensatedData);
+        compensateData(&uncompensatedData, &this->device.calib_data);
+
+        getSensorDataEnd:
+        RESET();
+        return RET_SUCCESS;
     }
 
 
@@ -327,7 +343,7 @@ public:
         if (ret != RET_SUCCESS) goto writePowerModeEnd;
 
         writePowerModeEnd:
-    RESET();
+        RESET();
         return RET_SUCCESS;
 
     }
@@ -417,23 +433,6 @@ private:
 
 
         initSettingsEnd:
-    RESET();
-        return RET_SUCCESS;
-    }
-
-    RetType getSensorData(uint8_t sensorComp) {
-        RESUME();
-
-        uint8_t regData[BMP3_LEN_P_T_DATA] = {0};
-        struct bmp3_uncomp_data uncompensatedData = {0};
-
-        RetType ret = CALL(getRegister(BMP3_REG_DATA, regData, BMP3_LEN_P_T_DATA));
-        if (ret != RET_SUCCESS) goto getSensorDataEnd;
-
-        parseSensorData(regData, &uncompensatedData);
-        compensateData(&uncompensatedData, &this->device.calib_data);
-
-        getSensorDataEnd:
     RESET();
         return RET_SUCCESS;
     }
