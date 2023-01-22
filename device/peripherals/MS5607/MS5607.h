@@ -185,8 +185,6 @@ public:
 
 
 private:
-    MS5607_SERIAL_PROTOCOL_T selectedProtocol;
-
     I2CDevice *mI2C;
     I2CAddr_t mAddr = {
             .dev_addr = CONCAT(0b111011, 0), // TODO: Dont know CS pin value yet
