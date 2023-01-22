@@ -59,10 +59,8 @@ public:
     RetType init() {
         RESUME();
 
-        setProtocol(I2C_PROTOCOL);
         // TODO: See about getting chip ID here
-
-        ret = CALL(reset());
+        RetType ret = CALL(reset());
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
@@ -74,23 +72,11 @@ public:
 
         uint8_t resetCommand = RESET_COMMAND;
 
-        RetType ret;
-        switch (selectedProtocol) {
-            case I2C_PROTOCOL:
-                ret = CALL(mI2C->write(mAddr, &resetCommand, 1));
-                break;
-            case SPI_PROTOCOL: // TODO: Implement eventually
-                return RET_ERROR;
-        }
-
+        RetType ret = CALL(mI2C->write(mAddr, &resetCommand, 1));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
         return RET_SUCCESS;
-    }
-
-    void setProtocol(MS5607_SERIAL_PROTOCOL_T protocol) {
-        this->selectedProtocol = protocol;
     }
 
     RetType conversion(COMMAND_T cmd, uint8_t *data) {
@@ -99,37 +85,15 @@ public:
             return RET_ERROR;
         }
 
-        RetType ret;
         uint8_t command = cmd;
-        switch (selectedProtocol) {
-            case I2C_PROTOCOL:
-                ret = CALL(mI2C->write(mAddr, &command, 1));
-                break;
-            case SPI_PROTOCOL: // TODO: Implement eventually
-                return RET_ERROR;
-        }
-
+        RetType ret = CALL(mI2C->write(mAddr, &command, 1));
         if (ret != RET_SUCCESS) return ret;
 
         command = ADC_READ;
-        switch (selectedProtocol) {
-            case I2C_PROTOCOL:
-                ret = CALL(mI2C->write(mAddr, &command, 1));
-                break;
-            case SPI_PROTOCOL: // TODO: Implement eventually
-                return RET_ERROR;
-        }
-
+        ret = CALL(mI2C->write(mAddr, &command, 1));
         if (ret != RET_SUCCESS) return ret;
 
-        switch (selectedProtocol) {
-            case I2C_PROTOCOL:
-                ret = CALL(mI2C->read(mAddr, data, 3));
-                break;
-            case SPI_PROTOCOL: // TODO: Implement eventually
-                return RET_ERROR;
-        }
-
+        ret = CALL(mI2C->read(mAddr, data, 3));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
@@ -140,28 +104,11 @@ public:
         RESUME();
 
         uint8_t command = PROM_READ;
-        RetType ret;
-
-        switch (selectedProtocol) {
-            case I2C_PROTOCOL:
-                ret = CALL(mI2C->write(mAddr, &command, 1));
-                break;
-            case SPI_PROTOCOL: // TODO: Implement eventually
-                return RET_ERROR;
-        }
-
+        RetType ret = CALL(mI2C->write(mAddr, &command, 1));
         if (ret != RET_SUCCESS) return ret;
 
-        switch (selectedProtocol) {
-            case I2C_PROTOCOL:
-                ret = CALL(mI2C->read(mAddr, data, 2));
-                break;
-            case SPI_PROTOCOL: // TODO: Implement eventually
-                return RET_ERROR;
-        }
-
+        ret = CALL(mI2C->read(mAddr, data, 2));
         if (ret != RET_SUCCESS) return ret;
-
 
         RESET();
         return RET_SUCCESS;
