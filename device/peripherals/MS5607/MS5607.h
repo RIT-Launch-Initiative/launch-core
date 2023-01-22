@@ -12,15 +12,10 @@
 #include "return.h"
 #include "device/SPIDevice.h"
 #include "device/I2CDevice.h"
-#include <math.h>
+#include <cmath>
 
 #define CHECK_RET {if (ret != RET_SUCCESS) {RESET(); return ret;}}
 #define CONCAT(a, b) a ## b
-
-typedef enum {
-    I2C_PROTOCOL = 1,
-    SPI_PROTOCOL = 0
-} MS5607_SERIAL_PROTOCOL_T;
 
 typedef enum {
     FACTORY_DATA_ADDR = 0,
@@ -54,7 +49,7 @@ enum COMMAND_T {
 
 class MS5607 {
 public:
-    MS5607(GPIODevice &diPin, GPIODevice &doPin) : protocolSelectPin(psPin) {}
+    MS5607(GPIODevice &diPin, GPIODevice &doPin) {}
 
     RetType init() {
         RESUME();
@@ -191,7 +186,6 @@ public:
 
 private:
     MS5607_SERIAL_PROTOCOL_T selectedProtocol;
-    GPIODevice &protocolSelectPin;
 
     I2CDevice *mI2C;
     I2CAddr_t mAddr = {
