@@ -84,8 +84,7 @@ public:
             }
 
             // block and wait for the transfer to complete
-            HAL_Delay(10); // Using a delay for now as aa bandaid
-//            BLOCK();
+            BLOCK();
         } else {
             if (HAL_OK != HAL_I2C_Mem_Write(m_i2c, addr.dev_addr, addr.mem_addr,
                                             addr.mem_addr_size, buff, len, 1000)) {
@@ -139,8 +138,7 @@ public:
             }
 
             // wait for the transfer to complete
-            HAL_Delay(10); // Using a delay for now as aa bandaid
-//            BLOCK();
+            BLOCK();
         } else {
             if (HAL_OK != HAL_I2C_Mem_Read(m_i2c, addr.dev_addr, addr.mem_addr,
                                            addr.mem_addr_size, buff, len, 1000)) {
