@@ -519,15 +519,9 @@ public:
         return RET_SUCCESS;
     }
 
-
-    uint8_t getAddress() {
-        return this->deviceAddr;
-    }
-
 private:
     I2CDevice *mI2C;
     I2CAddr_t i2cAddr;
-    uint8_t deviceAddr;
 
     int16_t uint8ToInt16(uint8_t *data) {
         return (data[0] << 8) | data[1];
