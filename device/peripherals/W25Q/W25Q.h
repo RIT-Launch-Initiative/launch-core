@@ -19,6 +19,7 @@
     chipSelectPin.set(1); \
 }
 
+
 #define RET_CHECK(ret) {if (ret != RET_SUCCESS) {RESET(); return ret;}}
 
 // TODO: Might be a better and the actually correct way of doing 32 bit addresses?
@@ -84,6 +85,40 @@ public:
 
 
     RetType init() {
+        RESUME();
+        uint32_t deviceID = 0;
+
+        spiDevice.setAsync(false);
+        RetType ret = CALL(readID(&deviceID));
+        if (ret != RET_SUCCESS) return ret;
+
+        switch (deviceID & 0x000000FF) {
+            case 0x18: // W25Q128FV
+                this->blockSize = 256;
+                this->numBlocks = 65536;
+
+                break;
+            default: // Currently only using W25Q128FV. Can add more in the future
+                return RET_ERROR;
+        }
+
+        this->pageSize = 256;
+        this->sectorSize = 4096;
+        this->blockSize = this->sectorSize * 16;
+        this->sectorCount = this->numBlocks * 16;
+        this->pageCount = (this->sectorCount * this->sectorSize) / this->pageSize;
+
+        uint8_t regResult = 0;
+        ret = CALL(readRegister(REGISTER_ONE_READ, &regResult));
+        RET_CHECK(ret);
+
+        ret = CALL(readRegister(REGISTER_TWO_READ, &regResult));
+        RET_CHECK(ret);
+
+        ret = CALL(readRegister(REGISTER_THREE_READ, &regResult));
+        RET_CHECK(ret);
+
+        RESET();
         return RET_SUCCESS;
     }
 
@@ -100,6 +135,27 @@ public:
 
         RESET();
         return ret;
+    }
+
+    RetType write(size_t block, uint8_t *buff) override {
+        RESUME();
+
+        RetType ret = CALL(writeData(PAGE_PROGRAM, block, buff, getBlockSize()));
+        RET_CHECK(ret);
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType read(size_t block, uint8_t *buff) override {
+        RESUME();
+
+        uint8_t commandBuff[4];
+        RetType ret = CALL(readData(READ_DATA, block, commandBuff, buff, getBlockSize()));
+        RET_CHECK(ret);
+
+        RESET();
+        return RET_SUCCESS;
     }
 
     RetType readRegister(READ_STATUS_REGISTER_T reg, uint8_t *receiveBuff) {
@@ -141,7 +197,8 @@ public:
     }
 
 
-    RetType readData(READ_COMMAND_T readCommand, uint32_t address, uint8_t *buff, uint8_t *receivedData, size_t receivedSize) {
+    RetType
+    readData(READ_COMMAND_T readCommand, uint32_t address, uint8_t *buff, uint8_t *receivedData, size_t receivedSize) {
         RESUME();
 
         RetType ret = CALL(chipSelectPin.set(0));
@@ -244,21 +301,13 @@ public:
         return RET_SUCCESS;
     }
 
-    // TODO: Implement this
-    RetType write(size_t block, uint8_t* buff) override {
-        return RET_SUCCESS;
-    }
-
-    RetType read(size_t block, uint8_t* buff) override {
-        return RET_SUCCESS;
-    }
 
     size_t getBlockSize() override {
-        return 256;
+        return blockSize;
     }
 
     size_t getNumBlocks() override {
-        return 65536;
+        return numBlocks;
     }
 
     // TODO: Should these need to be implemented?
@@ -278,6 +327,63 @@ private:
     SPIDevice &spiDevice;
     GPIODevice &chipSelectPin;
     GPIODevice &clockPin;
+
+    size_t blockSize = 0;
+    size_t pageSize = 0;
+    size_t sectorSize = 0;
+    size_t numBlocks = 0;
+    size_t sectorCount = 0;
+    size_t pageCount = 0;
+
+    RetType readID(uint32_t *deviceID) {
+        RESUME();
+
+        uint8_t writeBuff[4] = {0x9F, 0xA5, 0xA5, 0xA5};
+        uint8_t readBuff[4] = {};
+
+        RetType ret = CALL(chipSelectPin.set(0));
+        RET_CHECK(ret);
+
+        ret = CALL(spiDevice.write_read(&writeBuff[0], 1, &readBuff[0], 1));
+        RET_CHECK(ret);
+
+        for (int i = 1; i < 4; i++) {
+            ret = CALL(spiDevice.write_read(&writeBuff[i], 1, &readBuff[i], 1));
+            RET_CHECK(ret);
+        }
+
+        ret = CALL(chipSelectPin.set(1));
+        RET_CHECK(ret);
+
+        *deviceID = (readBuff[0] << 24) | (readBuff[1] << 16) | (readBuff[2] << 8) | readBuff[3];
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    size_t pageToSector(size_t pageAddr) {
+        return (pageAddr * this->pageSize) / this->sectorSize;
+    }
+
+    size_t sectorToPage(size_t sectorAddr) {
+        return (sectorAddr * this->sectorSize) / this->pageSize;
+    }
+
+    size_t pageToBlock(size_t pageAddr) {
+        return (pageAddr * this->pageSize) / this->blockSize;
+    }
+
+    size_t blockToPage(size_t blockAddr) {
+        return (blockAddr * this->blockSize) / this->pageSize;
+    }
+
+    size_t sectorToBlock(size_t sectorAddr) {
+        return (sectorAddr * this->sectorSize) / this->blockSize;
+    }
+
+    size_t blockToSector(size_t blockAddr) {
+        return (blockAddr * this->blockSize) / this->sectorSize;
+    }
 };
 
 #endif //LAUNCH_CORE_W25Q_H

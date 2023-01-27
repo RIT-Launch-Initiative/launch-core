@@ -22,8 +22,8 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#include "device/peripherals/w5500/w5500_defines.h"
-#include "device/peripherals/w5500/w5500_socket.h"
+#include "device/peripherals/W5500/W5500_defines.h"
+#include "device/peripherals/W5500/W5500_socket.h"
 #include "device/StreamDevice.h"
 #include "sched/macros.h"
 #include "return.h"

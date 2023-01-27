@@ -142,6 +142,53 @@ public:
         return ret;
     }
 
+    RetType write_read(uint8_t* write_buff, size_t write_len, uint8_t* read_buff, size_t read_len) {
+        RESUME();
+
+        // block waiting for the device to be available
+        RetType ret = CALL(m_lock.acquire());
+        if (ret != RET_SUCCESS) {
+            // some error
+            return ret;
+        }
+
+        // mark this task as blocked BEFORE we call the interrupt function
+        // we want to make sure there is no race condition b/w processing the ISR
+        // and blocking the task
+        m_blocked = sched_dispatched;
+
+        // start the transfer
+        if (async) {
+            if (HAL_OK != HAL_SPI_TransmitReceive_IT(m_spi, write_buff, read_buff, write_len)) {
+                return RET_ERROR;
+            }
+
+            // block waiting for our read to complete
+            BLOCK();
+
+            // mark the device as unblocked
+            m_blocked = -1;
+        } else {
+            if (HAL_OK != HAL_SPI_TransmitReceive(m_spi, write_buff, read_buff, write_len, 1000)) {
+                return RET_ERROR;
+            }
+        }
+        // we can unblock someone else if they were waiting
+        ret = CALL(m_lock.release());
+        if (ret != RET_SUCCESS) {
+            // some error
+            return ret;
+        }
+
+        RESET();
+        return ret;
+    }
+
+
+    void setAsync(bool isAsync) {
+        this->async = isAsync;
+    }
+
     /// @brief called by SPI handler asynchronously
     void callback(int) {
         // don't care if it was tx or rx, for now
@@ -166,6 +213,8 @@ private:
     // unique numbers for tx vs. rx callback
     static const int TX_NUM = 0;
     static const int RX_NUM = 1;
+
+    bool async;
 };
 
 #endif

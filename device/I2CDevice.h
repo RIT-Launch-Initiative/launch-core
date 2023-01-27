@@ -44,6 +44,8 @@ public:
     /// @param len      the number of bytes to read
     /// @return if all bytes were read successfully
     virtual RetType read(I2CAddr_t& addr, uint8_t* buff, size_t len) = 0;
+
+    virtual void setAsync(bool sync) = 0;
 };
 
 #endif
