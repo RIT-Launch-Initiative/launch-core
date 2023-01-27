@@ -84,23 +84,23 @@ public:
     TMP117(I2CDevice *i2CDevice) : mI2C(i2CDevice), deviceAddr(0) {}
 
     RetType init() {
-        // TODO: init stuff
-        return RET_SUCCESS;
-    }
-
-    RetType readRegister(uint8_t reg, uint8_t *data, size_t len) {
         RESUME();
+
+        i2cAddr = {
+                .dev_addr = 0x48,
+                .mem_addr = 0x0F,
+                .mem_addr_size = 1
+        };
+
+        uint8_t buff;
+        RetType ret = mI2C->read(i2cAddr, &buff, 1);
+        if (ret != RET_SUCCESS) return ret;
 
         RESET();
         return RET_SUCCESS;
     }
 
-    RetType writeRegister(uint8_t reg, uint8_t *data, size_t len) {
-        RESUME();
 
-        RESET();
-        return RET_SUCCESS;
-    }
 
     // TODO: Add parentheses to be more explicit
     RetType readTempCelsius(float *temp) {
@@ -526,6 +526,7 @@ public:
 
 private:
     I2CDevice *mI2C;
+    I2CAddr_t i2cAddr;
     uint8_t deviceAddr;
 
     int16_t uint8ToInt16(uint8_t *data) {
@@ -540,6 +541,28 @@ private:
     void uint16ToUint8(uint16_t data16, uint8_t *data8) {
         data8[0] = static_cast<uint8_t>(data16 >> 8);
         data8[1] = static_cast<uint8_t>(data16 & 0xFF);
+    }
+
+    RetType readRegister(uint8_t reg, uint8_t *data, size_t len) {
+        RESUME();
+
+        i2cAddr.mem_addr = reg;
+        RetType ret = CALL(mI2C->read(i2cAddr, data, len));
+        if (ret != RET_SUCCESS) return ret;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType writeRegister(uint8_t reg, uint8_t *data, size_t len) {
+        RESUME();
+
+        i2cAddr.mem_addr = reg;
+        RetType ret = CALL(mI2C->write(i2cAddr, data, len));
+        if (ret != RET_SUCCESS) return ret;
+
+        RESET();
+        return RET_SUCCESS;
     }
 };
 
