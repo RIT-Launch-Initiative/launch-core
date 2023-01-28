@@ -67,6 +67,8 @@ class SHTC3 {
             return RET_ERROR;
         }
 
+        *status = 3;
+
         RESET();
         return RET_SUCCESS;
     }
