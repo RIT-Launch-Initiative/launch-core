@@ -52,18 +52,18 @@ class SHTC3 {
         return RET_SUCCESS;
     }
 
-    RetType init(char status[]) {
+    RetType init(char *status) {
         RESUME();
 
         uint16_t id = 0;
         RetType ret = CALL(getID(&id));
         if (ret != RET_SUCCESS) {
-            *status = "Failed to get ID";
+            status = "Failed to get ID";
             return ret;
         }
 
         if ((id & 0x083F) != 0x807) {
-            *status = "ID does not match";
+            status = "ID does not match";
             return RET_ERROR;
         }
 
