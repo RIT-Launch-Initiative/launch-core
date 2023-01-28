@@ -6,11 +6,11 @@
 #ifndef LAUNCH_CORE_SHTC3_H
 #define LAUNCH_CORE_SHTC3_H
 
-#include "return.h"
-#include "sched/macros/resume.h"
-#include "sched/macros/reset.h"
 #include "device/I2CDevice.h"
+#include "return.h"
 #include "sched/macros/call.h"
+#include "sched/macros/reset.h"
+#include "sched/macros/resume.h"
 
 #define SHTC3_I2C_ADDR 0x70
 
@@ -32,15 +32,10 @@ enum SHTC3_CMD {
     LOW_POW_MEAS_HUM_STRETCH = 0x44DE,
 };
 
-
 class SHTC3 {
-public:
+   public:
     // TODO: Validate addr
-    SHTC3(I2CDevice *i2CDevice) : mI2C(i2CDevice), inLowPowerMode(true), addr({
-                                                                                      .dev_addr = SHTC3_I2C_ADDR,
-                                                                                      .mem_addr = 0,
-                                                                                      .mem_addr_size = 0
-                                                                              }) {}
+    SHTC3(I2CDevice *i2CDevice) : mI2C(i2CDevice), inLowPowerMode(true), addr({.dev_addr = SHTC3_I2C_ADDR, .mem_addr = 0, .mem_addr_size = 0}) {}
 
     RetType init() {
         RESUME();
@@ -49,8 +44,26 @@ public:
         RetType ret = CALL(getID(&id));
         if (ret != RET_SUCCESS) return ret;
 
+        if ((id & 0x083F) != 0x807) {
+            return RET_ERROR;
+        }
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType init(char *status[]) {
+        RESUME();
+
+        uint16_t id = 0;
+        RetType ret = CALL(getID(&id));
+        if (ret != RET_SUCCESS) {
+            *status = "Failed to get ID";
+            return ret;
+        }
 
         if ((id & 0x083F) != 0x807) {
+            *status = "ID does not match";
             return RET_ERROR;
         }
 
@@ -170,8 +183,7 @@ public:
         this->inLowPowerMode = lowPowerMode;
     }
 
-
-private:
+   private:
     I2CDevice *mI2C;
     I2CAddr_t addr;
     bool inLowPowerMode;
@@ -194,8 +206,6 @@ private:
         }
         return crc;
     }
-
 };
 
-
-#endif //LAUNCH_CORE_SHTC3_H
+#endif  // LAUNCH_CORE_SHTC3_H
