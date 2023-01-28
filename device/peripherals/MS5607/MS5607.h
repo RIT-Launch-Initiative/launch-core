@@ -89,7 +89,7 @@ public:
         if (ret != RET_SUCCESS) return ret;
 
         ret = CALL(mI2C->read(mAddr, data, 3));
-        if (ret != RET_SUCCESS) return ret
+        if (ret != RET_SUCCESS) return ret;
 
         RESET();
         return RET_SUCCESS;
