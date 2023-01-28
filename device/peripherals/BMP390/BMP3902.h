@@ -301,7 +301,7 @@ public:
     RetType setNormalMode() {
         RESUME();
 
-        if (validateSettings() != RET_SUCCESS) return RET_ERROR;
+        if (validateOsrOdr() != RET_SUCCESS) return RET_ERROR;
 
         uint8_t configErrorStatus;
         RetType ret = writePowerMode();
@@ -717,7 +717,7 @@ private:
         }
 
         if (settings.op_mode == BMP3_MODE_NORMAL) {
-            ret = validateSettings() == TRUE ? RET_SUCCESS : RET_ERROR;
+            ret = validateOsrOdr() == TRUE ? RET_SUCCESS : RET_ERROR;
             if (ret != RET_SUCCESS) goto setODRFilterEnd;
         }
 
@@ -848,7 +848,7 @@ private:
         return static_cast<uint32_t>(BMP3_SETTLE_TIME_TEMP + partialOut * BMP3_ADC_CONV_TIME);
     }
 
-    bool validateSettings() {
+    bool validateOsrOdr() {
         uint32_t measT = 234;
         uint32_t measTP = 0;
 
