@@ -60,11 +60,11 @@ class SHTC3 {
         reset();
 
         uint16_t id = 0;
-        RetType ret = CALL(getID(&id));
-        if (ret != RET_SUCCESS) {
-            *status = 1;
-            return ret;
-        }
+        RetType ret = getID(&id);
+        // if (ret != RET_SUCCESS) {
+        //     *status = 1;
+        //     return ret;
+        // }
 
         if ((id & 0x083F) != 0x807) {
             *status = 2;
