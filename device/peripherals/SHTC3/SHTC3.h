@@ -52,7 +52,7 @@ class SHTC3 {
         return RET_SUCCESS;
     }
 
-    RetType init(char *status[]) {
+    RetType init(char status[]) {
         RESUME();
 
         uint16_t id = 0;
