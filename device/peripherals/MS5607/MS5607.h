@@ -49,16 +49,14 @@ enum COMMAND_T {
 
 class MS5607 {
 public:
-    MS5607(GPIODevice &diPin, GPIODevice &doPin) {}
+    MS5607(I2CDevice &i2cDevice) : mI2C(&i2cDevice) {}
 
     RetType init() {
-        RESUME();
 
         // TODO: See about getting chip ID here
-        RetType ret = CALL(reset());
+        RetType ret = reset();
         if (ret != RET_SUCCESS) return ret;
 
-        RESET();
         return ret;
     }
 
