@@ -28,8 +28,6 @@ public:
      * Main Functionality
      *************************************************************************************/
     RetType init() {
-        RESUME();
-
         uint8_t chipID = 0;
 
         this->device.dummy_byte = 0;
@@ -42,25 +40,23 @@ public:
 
         mI2C->setAsync(false);
 
-        RetType ret = CALL(mI2C->read(this->i2cAddr, &chipID, 1));
+        RetType ret = mI2C->read(this->i2cAddr, &chipID, 1);
         if (ret != RET_SUCCESS) goto initEnd;
 
         if (chipID != BMP390_CHIP_ID) goto initEnd;
         this->device.chip_id = chipID;
 
-        ret = CALL(softReset());
+        ret = softReset();
         if (ret != RET_SUCCESS) goto initEnd;
 
-        ret = CALL(getCalibrationData());
+        ret = getCalibrationData();
         if (ret != RET_SUCCESS) goto initEnd;
 
-        ret = CALL(initSettings());
+        ret = initSettings();
         if (ret != RET_SUCCESS) goto initEnd;
 
         initEnd:
         mI2C->setAsync(true);
-
-        RESET();
         return ret;
     }
 
@@ -87,29 +83,27 @@ public:
 
 
     RetType softReset() {
-        RESUME();
 
         uint8_t cmdReadyStatus;
         uint8_t cmdErrorStatus;
         uint8_t regAddr = BMP3_REG_CMD;
         uint8_t resetCmd = BMP3_SOFT_RESET;
 
-        RetType ret = CALL(getRegister(BMP3_REG_SENS_STATUS, &cmdReadyStatus, 1));
+        RetType ret = getRegister(BMP3_REG_SENS_STATUS, &cmdReadyStatus, 1);
         if (ret != RET_SUCCESS) goto softResetEnd;
 
         if ((cmdReadyStatus & BMP3_CMD_RDY)) {
-            ret = CALL(setRegister(&regAddr, &resetCmd, 1));
+            ret = setRegister(&regAddr, &resetCmd, 1);
             if (ret != RET_SUCCESS) goto softResetEnd;
 
             mTimer->delay(2000);
 
-            ret = CALL(getRegister(BMP3_REG_ERR, &cmdErrorStatus, 1));
+            ret = getRegister(BMP3_REG_ERR, &cmdErrorStatus, 1);
             if (ret != RET_SUCCESS) goto softResetEnd;
 
         }
 
         softResetEnd:
-    RESET();
         return ret;
     }
 
@@ -157,7 +151,7 @@ public:
         if (ret != RET_SUCCESS) goto getStatusEnd;
 
         getStatusEnd:
-    RESET();
+        RESET();
         return ret;
     }
 
@@ -244,49 +238,45 @@ public:
      *************************************************************************************/
 
     RetType setSensorSettings(uint32_t desiredSettings) {
-        RESUME();
 
-        RetType ret = CALL(setPowerControl(desiredSettings));
+        RetType ret = setPowerControl(desiredSettings);
         if (ret != RET_SUCCESS) goto setSensorSettingsEnd;
 
-        ret = CALL(setODRFilter(desiredSettings));
+        ret = setODRFilter(desiredSettings);
         if (ret != RET_SUCCESS) goto setSensorSettingsEnd;
 
-        ret = CALL(setIntCtrl(desiredSettings));
+        ret = setIntCtrl(desiredSettings);
         if (ret != RET_SUCCESS) goto setSensorSettingsEnd;
 
-        ret = CALL(setAdvSettings(desiredSettings));
+        ret = setAdvSettings(desiredSettings);
         if (ret != RET_SUCCESS) goto setSensorSettingsEnd;
 
         setSensorSettingsEnd:
-    RESET();
         return ret;
     }
 
     RetType setOperatingMode() {
-        RESUME();
 
         uint8_t lastSetMode;
         uint8_t currMode = this->settings.op_mode;
 
-        RetType ret = CALL(getOperatingMode(&lastSetMode));
+        RetType ret = (getOperatingMode(&lastSetMode));
         if (ret != RET_SUCCESS) goto setOperatingModeEnd;
 
         if (lastSetMode != BMP3_MODE_SLEEP) {
-            ret = CALL(sleep());
+            ret = sleep();
             mTimer->delay(5000);
         }
 
         if (currMode == BMP3_MODE_NORMAL) {
-            ret = CALL(setNormalMode());
+            ret = setNormalMode();
         } else if (currMode == BMP3_MODE_FORCED) {
-            ret = CALL(writePowerMode());
+            ret = writePowerMode();
         }
 
         if (ret != RET_SUCCESS) goto setOperatingModeEnd;
 
         setOperatingModeEnd:
-    RESET();
         return ret;
     }
 
@@ -304,7 +294,7 @@ public:
         if (ret != RET_SUCCESS) goto sleepEnd;
 
         sleepEnd:
-    RESET();
+        RESET();
         return RET_SUCCESS;
     }
 
@@ -343,7 +333,7 @@ public:
         if (ret != RET_SUCCESS) goto writePowerModeEnd;
 
         writePowerModeEnd:
-        RESET();
+    RESET();
         return RET_SUCCESS;
 
     }
@@ -399,7 +389,6 @@ private:
 
 
     RetType initSettings() {
-        RESUME();
         this->settings = {
                 .op_mode = BMP3_MODE_NORMAL,
                 .press_en = BMP3_ENABLE,
@@ -425,30 +414,26 @@ private:
         uint16_t settingsSel = BMP3_SEL_PRESS_EN | BMP3_SEL_TEMP_EN | BMP3_SEL_PRESS_OS |
                                BMP3_SEL_TEMP_OS | BMP3_SEL_ODR | BMP3_SEL_DRDY_EN;
 
-        RetType ret = CALL(setSensorSettings(settingsSel));
+        RetType ret = setSensorSettings(settingsSel);
         if (ret != RET_SUCCESS) goto initSettingsEnd;
 
-        ret = CALL(setOperatingMode());
+        ret = setOperatingMode();
         if (ret != RET_SUCCESS) goto initSettingsEnd;
 
 
         initSettingsEnd:
-    RESET();
         return RET_SUCCESS;
     }
 
     RetType getCalibrationData() {
-        RESUME();
-
         uint8_t calibrationData[BMP3_LEN_CALIB_DATA] = {};
 
-        RetType ret = CALL(getRegister(BMP3_REG_CALIB_DATA, calibrationData, BMP3_LEN_CALIB_DATA));
+        RetType ret = getRegister(BMP3_REG_CALIB_DATA, calibrationData, BMP3_LEN_CALIB_DATA);
         if (ret != RET_SUCCESS) goto getCalibEnd;
 
         parseCalibrationData(calibrationData);
 
         getCalibEnd:
-    RESET();
         return ret;
     }
 
@@ -474,7 +459,7 @@ private:
         if (ret != RET_SUCCESS) goto setRegEnd;
 
         setRegEnd:
-    RESET();
+        RESET();
         return ret;
     }
 
@@ -840,25 +825,25 @@ private:
     }
 
     uint32_t calculatePressMeasTime() {
-        #ifdef BMP3_FLOAT_COMPENSATION
+#ifdef BMP3_FLOAT_COMPENSATION
         double base = 2.0;
         float partialOut;
-        #else
+#else
         uint8_t base = 2;
         uint32_t partial_out;
-        #endif /* BMP3_FLOAT_COMPENSATION */
+#endif /* BMP3_FLOAT_COMPENSATION */
         partialOut = pow(base, settings.odr_filter.press_os);
         return static_cast<uint32_t>(BMP3_SETTLE_TIME_PRESS + partialOut * BMP3_ADC_CONV_TIME);
     }
 
     uint32_t calculateTempMeasTime() {
-        #ifdef BMP3_FLOAT_COMPENSATION
-                double base = 2.0;
-                float partialOut;
-        #else
-                uint8_t base = 2;
+#ifdef BMP3_FLOAT_COMPENSATION
+        double base = 2.0;
+        float partialOut;
+#else
+        uint8_t base = 2;
             uint32_t partial_out;
-        #endif /* BMP3_FLOAT_COMPENSATION */
+#endif /* BMP3_FLOAT_COMPENSATION */
         partialOut = pow(base, settings.odr_filter.temp_os);
         return static_cast<uint32_t>(BMP3_SETTLE_TIME_TEMP + partialOut * BMP3_ADC_CONV_TIME);
     }
