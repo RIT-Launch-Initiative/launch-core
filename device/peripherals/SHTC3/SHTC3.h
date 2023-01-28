@@ -40,6 +40,8 @@ class SHTC3 {
     RetType init() {
         RESUME();
 
+        reset();
+
         uint16_t id = 0;
         RetType ret = CALL(getID(&id));
         if (ret != RET_SUCCESS) return ret;
@@ -54,6 +56,8 @@ class SHTC3 {
 
     RetType init(int *status) {
         RESUME();
+
+        reset();
 
         uint16_t id = 0;
         RetType ret = CALL(getID(&id));
