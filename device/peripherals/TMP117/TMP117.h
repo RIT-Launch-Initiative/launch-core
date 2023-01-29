@@ -86,7 +86,7 @@ public:
     RetType init() {
         i2cAddr = {
                 .dev_addr = 0x48,
-                .mem_addr = 0x0F,
+                .mem_addr = TMP117_DEVICE_ID,
                 .mem_addr_size = 1
         };
 
