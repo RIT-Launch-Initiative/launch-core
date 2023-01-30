@@ -645,27 +645,6 @@ private:
         RESET();
         return ret == RET_SUCCESS ? 0 : -1;
     };
-
-    // TODO: Not using SPI, but should figure out how to use regAddr here
-    // Would need to also use cs pin and do both tx and rx
-    static int32_t spiRead(void *handle, uint8_t reg, uint8_t *data, uint16_t len) {
-        RESUME();
-
-        RetType ret = CALL(mSPI->read(const_cast<uint8_t *>(data), len));
-
-        RESET();
-        return ret == RET_SUCCESS ? 0 : -1;
-    };
-
-    static int32_t spiWrite(void *handle, uint8_t reg, const uint8_t *data, uint16_t len) {
-        RESUME();
-
-        RetType ret = CALL(mSPI->read(const_cast<uint8_t *>(data), len));
-
-        RESET();
-        return ret == RET_SUCCESS ? 0 : -1;
-
-    };
 };
 
 

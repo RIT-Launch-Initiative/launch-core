@@ -185,7 +185,7 @@ public:
 private:
     I2CDevice *mI2C;
     I2CAddr_t mAddr = {
-            .dev_addr = CONCAT(0b111011, 0), // TODO: Dont know CS pin value yet
+            .dev_addr = CONCAT(0b111011, 0) << 1, // TODO: Dont know CS pin value yet
             .mem_addr = 0,
             .mem_addr_size = 0,
     };
