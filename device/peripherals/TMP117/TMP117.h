@@ -14,7 +14,7 @@
 #include "sched/macros/reset.h"
 #include "sched/macros/call.h"
 
-
+#define TMP_117_DEVICE_ADDR 0x48
 #define DEVICE_ID_VALUE 0x0117
 #define TMP117_RESOLUTION 0.0078125f
 #define bitRead(value, bit) (((value) >> (bit)) & 0x01)
@@ -85,7 +85,7 @@ public:
 
     RetType init() {
         i2cAddr = {
-                .dev_addr = 0x48,
+                .dev_addr = TMP_117_DEVICE_ADDR << 1,
                 .mem_addr = TMP117_DEVICE_ID,
                 .mem_addr_size = 1
         };
