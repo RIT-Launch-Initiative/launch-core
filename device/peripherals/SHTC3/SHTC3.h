@@ -36,11 +36,13 @@ enum SHTC3_CMD {
 class SHTC3 {
 public:
     // TODO: Validate addr
-    SHTC3(I2CDevice *i2CDevice) : mI2C(i2CDevice), inLowPowerMode(true), addr({
-                                                                                      .dev_addr = SHTC3_I2C_ADDR,
-                                                                                      .mem_addr = 0,
-                                                                                      .mem_addr_size = 0
-                                                                              }) {}
+    SHTC3(I2CDevice *i2CDevice) : mI2C(i2CDevice),
+                                  inLowPowerMode(true),
+                                  addr({
+                                               .dev_addr = SHTC3_I2C_ADDR << 1,
+                                               .mem_addr = 0,
+                                               .mem_addr_size = 0
+                                       }) {}
 
     RetType init() {
         RESUME();
@@ -124,7 +126,8 @@ public:
         uint8_t command8[2] = {};
         uint16ToUint8(command16, command8);
 
-        // TODO: Set mem addrZ
+        addr.mem_addr = command16;
+        addr.mem_addr_size = 2;
 
         RetType ret = CALL(mI2C->write(addr, command8, 2));
         if (ret != RET_SUCCESS) return ret;
@@ -139,7 +142,9 @@ public:
         uint8_t command8[2] = {};
         uint16ToUint8(command16, command8);
 
-        // TODO: Set mem addr
+        addr.mem_addr = command16;
+        addr.mem_addr_size = 2;
+
 
         RetType ret = CALL(mI2C->write(addr, command8, 2));
         if (ret != RET_SUCCESS) return ret;
