@@ -99,12 +99,13 @@ private:
     I2CDevice &m_i2c;
 
     // I2CAddr for the different axis data
-    I2CAddr_t xLSBData{0x3B, 0x32, 1};
-    I2CAddr_t xMSBData{0x3B, 0x33, 1};
-    I2CAddr_t yLSBData{0x3B, 0x34, 1};
-    I2CAddr_t yMSBData{0x3B, 0x35, 1};
-    I2CAddr_t zLSBData{0x3B, 0x36, 1};
-    I2CAddr_t zMSBData{0x3B, 0x37, 1};
+    // TODO: Just use one I2CAddr_t and just change the register address
+    I2CAddr_t xLSBData{0x3B << 1, 0x32, 1};
+    I2CAddr_t xMSBData{0x3B << 1, 0x33, 1};
+    I2CAddr_t yLSBData{0x3B << 1, 0x34, 1};
+    I2CAddr_t yMSBData{0x3B << 1, 0x35, 1};
+    I2CAddr_t zLSBData{0x3B << 1, 0x36, 1};
+    I2CAddr_t zMSBData{0x3B << 1, 0x37, 1};
 };
 
 
