@@ -2,8 +2,8 @@
  * Purpose: Little File System
  * Author: Aaron Chan
  */
-#ifndef LAUNCH_CORE_FATFS_H
-#define LAUNCH_CORE_FATFS_H
+#ifndef LAUNCH_CORE_LITTLEFS_H
+#define LAUNCH_CORE_LITTLEFS_H
 
 #include <string.h>
 
@@ -14,8 +14,6 @@
 #include "hashmap/hashmap.h"
 
 namespace littlefs {
-
-
     class LittleFS : public FileSystem {
     public:
         /// @brief constructor
