@@ -124,7 +124,7 @@ void _sched_wakeup_tasks() {
 }
 
 /// @brief dispatch the next task
-void sched_dispatch() {
+void  sched_dispatch() {
     while(1) {
         // wakeup any sleeping tasks
         _sched_wakeup_tasks();

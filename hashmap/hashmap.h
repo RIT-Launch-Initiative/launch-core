@@ -112,8 +112,8 @@ protected:
                                             m_numBuckets(num_buckets),
                                             m_bucketSize(bucket_size),
                                             m_entries(entries),
-                                            m_used(used),
-                                            m_hash(hash) {
+                                            m_hash(hash),
+                                            m_used(used) {
         for(size_t i = 0; i < num_buckets * bucket_size; i++) {
             m_used[i] = false;
         }
@@ -121,13 +121,13 @@ protected:
 
 private:
     // size = num buckets X bucket size
-    hashmap_internal::entry_t<KEY, VALUE>* m_entries;
-    bool* m_used;
-
     size_t m_numBuckets;
     size_t m_bucketSize;
 
+    hashmap_internal::entry_t<KEY, VALUE>* m_entries;
     Hash<KEY>& m_hash;
+
+    bool* m_used;
 };
 
 namespace alloc {
@@ -153,8 +153,8 @@ public:
 
 private:
     hashmap_internal::entry_t<KEY, VALUE> m_internalEntries[NUM_BUCKETS * BUCKET_SIZE];
-    bool m_internalUsed[NUM_BUCKETS * BUCKET_SIZE];
     HASH m_internalHash;
+    bool m_internalUsed[NUM_BUCKETS * BUCKET_SIZE];
 };
 
 }

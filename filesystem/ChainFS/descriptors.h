@@ -34,8 +34,8 @@ typedef struct {
 /// @brief name descriptor
 typedef struct {
     header_t header;
-    uint32_t id;
-    char name[MAX_FILENAME_SIZE];
+    uint32_t data;                  // block number of first data descriptor
+    char name[MAX_FILENAME_SIZE];   // filename (NULL terminated)
 } name_descriptor_t;
 
 /// @brief data descriptor
@@ -45,7 +45,7 @@ typedef struct {
     uint32_t allocated;     // number of blocks allocated for this data
     uint32_t used;          // number of blocks used for file data
     uint32_t offset;        // number of bytes written in the last block
-    uint32_t id;            // unique file id
+    uint32_t next_block;    // block number where the next data descriptor lies
 } data_descriptor_t;
 
 /// @brief free desciptor
@@ -56,7 +56,8 @@ typedef struct {
 } free_descriptor_t;
 
 typedef union {
-    name_descriptor_t name_desc
+    header_t header_only;
+    name_descriptor_t name_desc;
     data_descriptor_t data_desc;
     free_descriptor_t free_desc;
 } descriptor_t;

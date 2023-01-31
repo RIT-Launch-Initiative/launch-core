@@ -3,3 +3,5 @@ CMakeLists.txt
 .idea/
 *.o
 *.out
+
+stm32*

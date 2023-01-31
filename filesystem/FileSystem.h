@@ -29,9 +29,10 @@ public:
     /// @brief open a file
     ///        Creates a new file if there isn't one already
     /// @param filename     the name of the file
+    /// @param fd           set to the file descriptor of the opened file
     /// @param new_file     set to true if a new file was created, false otherwise
     /// @return file descriptor, or -1 on error
-    virtual int open(const char* filename, bool* new_file = NULL) = 0;
+    virtual RetType open(const char* filename, int* fd, bool* new_file = NULL) = 0;
 
     /// @brief write to a file
     /// @param fd       descriptor to file to write to

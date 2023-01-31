@@ -7,7 +7,7 @@
 
 using namespace chainfs;
 
-LinuxBlockDevice block{"fake_fs", 512, 10};
+LinuxBlockDevice block{"fake_fs", 64, 10};
 ChainFS fs{block};
 
 uint32_t tick = 0;
@@ -34,17 +34,39 @@ RetType task_format() {
 RetType task() {
     RESUME();
 
-    RetType ret = CALL(fs.init());
+    RetType ret;
+
+    ret = CALL(fs.format());
+
+    if(RET_SUCCESS != ret) {
+        printf("failed to format filesystem\n");
+
+        RESET();
+        return ret;
+    }
+
+    ret = CALL(fs.init());
 
     if(ret != RET_SUCCESS) {
+        printf("failed to initialize filesystem\n");
+
         RESET();
         return ret;
     }
 
     // do other stuff like open files and the like
+    int fd;
+    ret = CALL(fs.open("file.txt", &fd));
+
+    if(ret != RET_SUCCESS) {
+        printf("failed to open file\n");
+
+        RESET();
+        return ret;
+    }
 
     RESET();
-    return ret;
+    return RET_ERROR; // just to take us off the scheduler
 }
 
 RetType open() {
