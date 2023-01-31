@@ -18,12 +18,12 @@
 
 
 typedef enum {
-    xLSBData = 0x32,
-    xMSBData = 0x33,
-    yLSBData = 0x34,
-    yMSBData = 0x35,
-    zLSBData = 0x36,
-    zMSBData = 0x37,
+    xLSBDataReg = 0x32,
+    xMSBDataReg = 0x33,
+    yLSBDataReg = 0x34,
+    yMSBDataReg = 0x35,
+    zLSBDataReg = 0x36,
+    zMSBDataReg = 0x37,
 
     deviceID = 0x00,
 } ADXL375_REG;
@@ -56,12 +56,14 @@ public:
         uint8_t msb = 0;
 
         // reading the data
+        i2cAddr.mem_addr = xLSBDataReg;
         RetType ret = CALL(m_i2c.read(i2cAddr, &lsb, 1));
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
         }
 
+        i2cAddr.mem_addr = xMSBDataReg;
         ret = CALL(m_i2c.read(i2cAddr, &msb, 1));
         if (ret != RET_SUCCESS) {
             RESET();
@@ -81,9 +83,11 @@ public:
         uint8_t msb = 0;
 
         // reading the data
+        i2cAddr.mem_addr = yLSBDataReg;
         RetType ret = CALL(m_i2c.read(i2cAddr, &lsb, 1));
         if (ret != RET_SUCCESS) return ret;
 
+        i2cAddr.mem_addr = yMSBDataReg;
         ret = CALL(m_i2c.read(i2cAddr, &msb, 1));
         if (ret != RET_SUCCESS) return ret;
 
@@ -100,12 +104,14 @@ public:
         uint8_t msb = 0;
 
         // reading the data
+        i2cAddr.mem_addr = zLSBDataReg;
         RetType ret = CALL(m_i2c.read(i2cAddr, &lsb, 1));
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
         }
 
+        i2cAddr.mem_addr = zMSBDataReg;
         ret = CALL(m_i2c.read(i2cAddr, &msb, 1));
         if (ret != RET_SUCCESS) {
             RESET();
