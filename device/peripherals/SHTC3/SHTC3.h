@@ -35,15 +35,24 @@ enum SHTC3_CMD {
 class SHTC3 {
    public:
     // TODO: Validate addr
-    SHTC3(I2CDevice *i2CDevice) : mI2C(i2CDevice), inLowPowerMode(true), addr({.dev_addr = SHTC3_I2C_ADDR, .mem_addr = 0, .mem_addr_size = 0}) {}
+    SHTC3(I2CDevice *i2CDevice) : mI2C(i2CDevice),
+                                  inLowPowerMode(true),
+                                  addr({.dev_addr = SHTC3_I2C_ADDR << 1,
+                                        .mem_addr = 0,
+                                        .mem_addr_size = 0}) {}
 
-    RetType init() {
+    RetType init(uint16_t *id_) {
         RESUME();
 
-        uint16_t id = 0;
-        RetType ret = CALL(getID(&id));
-        if (ret != RET_SUCCESS) return ret;
+        reset();
 
+        uint8_t id = 0;
+        *id_ = 0;
+        int stage = 0;
+        // RetType ret = CALL(getID(&id));
+        RetType ret = CALL(NateTestReadID(&id, &stage));
+        *id_ = static_cast<uint16_t>(id);
+        if (ret != RET_SUCCESS) return ret;
         if ((id & 0x083F) != 0x807) {
             return RET_ERROR;
         }
@@ -118,7 +127,8 @@ class SHTC3 {
         uint8_t command8[2] = {};
         uint16ToUint8(command16, command8);
 
-        // TODO: Set mem addrZ
+        addr.mem_addr = command16;
+        addr.mem_addr_size = 2;
 
         RetType ret = CALL(mI2C->write(addr, command8, 2));
         if (ret != RET_SUCCESS) return ret;
@@ -133,13 +143,44 @@ class SHTC3 {
         uint8_t command8[2] = {};
         uint16ToUint8(command16, command8);
 
-        // TODO: Set mem addr
+        addr.mem_addr = command16 << 1;
+        addr.mem_addr_size = 2;
 
         RetType ret = CALL(mI2C->write(addr, command8, 2));
         if (ret != RET_SUCCESS) return ret;
 
         ret = CALL(mI2C->read(addr, buff, numBytes));
         if (ret != RET_SUCCESS) return ret;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType NateTestReadID(uint8_t *id, int *stage) {
+        RESUME();
+
+        I2CAddr_t addr_ = {.dev_addr = SHTC3_I2C_ADDR << 1,
+                           .mem_addr = 0,
+                           .mem_addr_size = 2};
+
+        *stage = 0;
+
+        // start writing read id command
+        uint8_t *buf = (uint8_t *)malloc(2);
+        buf[0] = 0xEF;
+        buf[1] = 0xC8;
+
+        RetType ret = CALL(mI2C->write(addr_, buf, 2));
+
+        if (ret != RET_SUCCESS) return ret;
+        *stage = 1;
+
+        // start reading
+        id = (uint8_t *)malloc(2);
+        ret = CALL(mI2C->read(addr_, id, 2));
+
+        if (ret != RET_SUCCESS) return ret;
+        *stage = 2;
 
         RESET();
         return RET_SUCCESS;
