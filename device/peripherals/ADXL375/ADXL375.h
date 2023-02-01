@@ -6,7 +6,9 @@
 
 #ifndef LAUNCH_CORE_ADXL375_H
 #define LAUNCH_CORE_ADXL375_H
-#define ADXL375_DEV_ADDR 0x3B
+
+#define ADXL375_DEV_ADDR_PRIM 0x3B
+#define ADXL375_DEV_ADDR_SEC 0x53
 
 
 #include <stdlib.h>
@@ -129,7 +131,7 @@ public:
 private:
     I2CDevice &m_i2c;
     I2CAddr_t i2cAddr {
-        .dev_addr = ADXL375_DEV_ADDR << 1,
+        .dev_addr = ADXL375_DEV_ADDR_SEC << 1,
         .mem_addr = 0x00,
         .mem_addr_size = 1
     };
