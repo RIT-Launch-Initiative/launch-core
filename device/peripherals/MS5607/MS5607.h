@@ -49,16 +49,14 @@ enum COMMAND_T {
 
 class MS5607 {
 public:
-    MS5607(GPIODevice &diPin, GPIODevice &doPin) {}
+    MS5607(I2CDevice &i2cDevice) : mI2C(&i2cDevice) {}
 
     RetType init() {
-        RESUME();
 
         // TODO: See about getting chip ID here
-        RetType ret = CALL(reset());
+        RetType ret = reset();
         if (ret != RET_SUCCESS) return ret;
 
-        RESET();
         return ret;
     }
 
@@ -187,7 +185,7 @@ public:
 private:
     I2CDevice *mI2C;
     I2CAddr_t mAddr = {
-            .dev_addr = CONCAT(0b111011, 0), // TODO: Dont know CS pin value yet
+            .dev_addr = CONCAT(0b111011, 0) << 1, // TODO: Dont know CS pin value yet
             .mem_addr = 0,
             .mem_addr_size = 0,
     };
