@@ -47,6 +47,22 @@ public:
         return RET_SUCCESS;
     }
 
+    RetType readXYZ(int16_t *xAxis, int16_t *yAxis, int16_t *zAxis) {
+        RESUME();
+
+        RetType ret = readX(xAxis);
+        if (ret != RET_SUCCESS) return ret;
+
+        ret = readY(yAxis);
+        if (ret != RET_SUCCESS) return ret;
+
+        ret = readY(yAxis);
+        if (ret != RET_SUCCESS) return ret;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
     RetType readX(int16_t *xAxis) {
         RESUME();
         uint8_t lsb = 0;
