@@ -37,17 +37,9 @@ class SHTC3 {
     // TODO: Validate addr
     SHTC3(I2CDevice *i2CDevice) : mI2C(i2CDevice),
                                   inLowPowerMode(true),
-<<<<<<< HEAD
                                   addr({.dev_addr = SHTC3_I2C_ADDR << 1,
                                         .mem_addr = 0,
                                         .mem_addr_size = 0}) {}
-=======
-                                  addr({
-                                               .dev_addr = SHTC3_I2C_ADDR << 1,
-                                               .mem_addr = 0,
-                                               .mem_addr_size = 0
-                                       }) {}
->>>>>>> cdf72ba71df6081d3acf9824556b1cf75dec3e94
 
     RetType init(uint16_t *id_) {
         RESUME();
@@ -151,14 +143,8 @@ class SHTC3 {
         uint8_t command8[2] = {};
         uint16ToUint8(command16, command8);
 
-<<<<<<< HEAD
-        addr.mem_addr = command16 << 1;
-        addr.mem_addr_size = 2;
-=======
         addr.mem_addr = command16;
         addr.mem_addr_size = 2;
-
->>>>>>> cdf72ba71df6081d3acf9824556b1cf75dec3e94
 
         RetType ret = CALL(mI2C->write(addr, command8, 2));
         if (ret != RET_SUCCESS) return ret;
