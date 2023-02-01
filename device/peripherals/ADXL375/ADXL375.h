@@ -35,20 +35,15 @@ public:
     ADXL375(I2CDevice &i2c) : m_i2c(i2c) {}
 
     RetType init() {
-        RESUME();
         uint8_t id = 0;
 
-        RetType ret = CALL(m_i2c.read(i2cAddr, &id, 1));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
+        m_i2c.setAsync(false);
 
-        if (id != 0xE5) {
-            return RET_ERROR;
-        }
+        RetType ret = m_i2c.read(i2cAddr, &id, 1);
+        if (ret != RET_SUCCESS) return ret;
+        if (id != 0xE5) return RET_ERROR;
 
-        RESET();
+        m_i2c.setAsync(true);
         return RET_SUCCESS;
     }
 
