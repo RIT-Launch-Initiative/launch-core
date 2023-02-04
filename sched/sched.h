@@ -18,6 +18,7 @@
 #include "return.h"
 
 /// @brief task id, any tid < 0 is an error
+///        a tid equal to MAX_NUM_TASKS represents no task executing
 typedef int tid_t;
 
 /// @brief TID of currently dispatched task

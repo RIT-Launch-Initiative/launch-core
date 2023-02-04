@@ -74,7 +74,7 @@ tid_t sched_start(task_func_t func) {
             tasks[i].state = STATE_ACTIVE;              // set active
             tasks[i].stack.curr = tasks[i].stack.block; // reset stack
             tasks[i].func = func;
-            tasks[i].tid = i + 1;
+            tasks[i].tid = i;
             tasks[i].queued = true;
 
             // put it on the ready queue
