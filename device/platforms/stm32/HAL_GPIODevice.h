@@ -51,7 +51,7 @@ public:
             return ret;
         }
 
-        taskLock = sched_dispatched;
+        currentBlocked = sched_dispatched;
 
         if (!(val == 0 || val == 1)) {
             RESET();
@@ -60,7 +60,6 @@ public:
         }
 
         HAL_GPIO_WritePin(halGPIO, this->pin, static_cast<GPIO_PinState>(val));
-        BLOCK();
 
         currentBlocked = -1;
 
@@ -85,8 +84,6 @@ public:
 
         taskLock = sched_dispatched;
         *val = static_cast<int>(HAL_GPIO_ReadPin(halGPIO, pin));
-
-        BLOCK();
 
         currentBlocked = -1;
 

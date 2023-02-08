@@ -152,7 +152,7 @@ void  sched_dispatch() {
                 continue;
             } else {
                 // blocked or something else
-                // don't do anything, leave it off the ready queue
+                // don't do anything, leave it of   f the ready queue
                 task->queued = false;
                 continue;
             }
