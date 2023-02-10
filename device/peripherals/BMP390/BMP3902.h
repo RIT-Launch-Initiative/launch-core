@@ -17,46 +17,44 @@
 #include "device/I2CDevice.h"
 #include "device/TimerDevice.h"
 #include "sched/macros/call.h"
+#include "macros.h"
 #include "device/platforms/stm32/HAL_TimerDevice.h"
 
 
 class BMP390 {
 public:
-    BMP390(I2CDevice *i2cDev, TimerDevice *timer) : mI2C(i2cDev), mTimer(timer) {}
+    BMP390(I2CDevice &i2cDev) : mI2C(&i2cDev) {}
 
     /*************************************************************************************
      * Main Functionality
      *************************************************************************************/
     RetType init() {
+        RESUME();
         uint8_t chipID = 0;
 
         this->device.dummy_byte = 0;
 
         this->i2cAddr = {
                 .dev_addr = BMP3_ADDR_I2C_SEC << 1,
-                .mem_addr = BMP3_REG_CHIP_ID, // Try reading Chip ID
+                .mem_addr = BMP3_REG_CHIP_ID,
                 .mem_addr_size = 1,
         };
 
-        mI2C->setAsync(false);
+        RetType ret = CALL(mI2C->read(this->i2cAddr, &this->device.chip_id, 1));
+        if (this->device.chip_id != BMP390_CHIP_ID) return RET_ERROR;
 
-        RetType ret = mI2C->read(this->i2cAddr, &chipID, 1);
-        if (ret != RET_SUCCESS) goto initEnd;
+         if (chipID != BMP390_CHIP_ID)
 
-        if (chipID != BMP390_CHIP_ID) goto initEnd;
-        this->device.chip_id = chipID;
+        ret = CALL(softReset());
+        if (ret == RET_ERROR) return ret;
 
-        ret = softReset();
-        if (ret != RET_SUCCESS) goto initEnd;
+        ret = CALL(getCalibrationData());
+        if (ret == RET_ERROR) return ret;
 
-        ret = getCalibrationData();
-        if (ret != RET_SUCCESS) goto initEnd;
+        ret = CALL(initSettings());
+        if (ret == RET_ERROR) return ret;
 
-        ret = initSettings();
-        if (ret != RET_SUCCESS) goto initEnd;
-
-        initEnd:
-        mI2C->setAsync(true);
+        RESET();
         return ret;
     }
 
@@ -96,8 +94,7 @@ public:
             ret = setRegister(&regAddr, &resetCmd, 1);
             if (ret != RET_SUCCESS) goto softResetEnd;
 
-            mTimer->delay(2000);
-
+            // TODO: Sleep 2 seconds
             ret = getRegister(BMP3_REG_ERR, &cmdErrorStatus, 1);
             if (ret != RET_SUCCESS) goto softResetEnd;
 
@@ -265,7 +262,7 @@ public:
 
         if (lastSetMode != BMP3_MODE_SLEEP) {
             ret = sleep();
-            mTimer->delay(5000);
+            // TODO: Delay for 5 seconds
         }
 
         if (currMode == BMP3_MODE_NORMAL) {
@@ -385,7 +382,6 @@ private:
     uint8_t chipID;
     I2CDevice *mI2C;
     I2CAddr_t i2cAddr;
-    TimerDevice *mTimer;
 
 
     RetType initSettings() {
