@@ -58,11 +58,9 @@ public:
                 .mem_addr_size = 1
         };
 
-        mI2C->setAsync(false);
-
         // Check Chip ID
         uint8_t chipID;
-        RetType ret = readReg(LSM6DSL_ACC_GYRO_WHO_AM_I_REG, &chipID, 1, LSM6DSL_ACC_GYRO_WHO_AM_I_BIT_MASK);
+        RetType ret = CALL(readReg(LSM6DSL_ACC_GYRO_WHO_AM_I_REG, &chipID, 1, LSM6DSL_ACC_GYRO_WHO_AM_I_BIT_MASK));
         if (ret != RET_SUCCESS || LSM6DSL_ACC_GYRO_WHO_AM_I != chipID) return ret;
 
         // Enable reg addr automatically incremented during multi byte access with serial intf
@@ -94,7 +92,6 @@ public:
         ret = CALL(setGyroFullScale(2000.0f));
         if (ret != RET_SUCCESS) return ret;
 
-        mI2C->setAsync(true);
         accelLastODR = 104.0f;
         accelEnabled = true;
         gyroLastODR = 104.0f;

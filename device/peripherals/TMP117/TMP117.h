@@ -84,6 +84,8 @@ public:
     TMP117(I2CDevice *i2CDevice) : mI2C(i2CDevice) {}
 
     RetType init() {
+        RESUME();
+
         i2cAddr = {
                 .dev_addr = TMP_117_DEVICE_ADDR << 1,
                 .mem_addr = TMP117_DEVICE_ID,
@@ -91,8 +93,10 @@ public:
         };
 
         uint8_t buff;
-        RetType ret = mI2C->read(i2cAddr, &buff, 1);
+        RetType ret = CALL(mI2C->read(i2cAddr, &buff, 1));
 
+
+        RESET();
         return ret;
     }
 

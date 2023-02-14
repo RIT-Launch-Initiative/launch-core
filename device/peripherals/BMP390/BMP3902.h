@@ -15,10 +15,8 @@
 #include "sched/macros/reset.h"
 #include "device/SPIDevice.h"
 #include "device/I2CDevice.h"
-#include "device/TimerDevice.h"
 #include "sched/macros/call.h"
 #include "macros.h"
-#include "device/platforms/stm32/HAL_TimerDevice.h"
 
 
 class BMP390 {
@@ -42,8 +40,6 @@ public:
 
         RetType ret = CALL(mI2C->read(this->i2cAddr, &this->device.chip_id, 1));
         if (this->device.chip_id != BMP390_CHIP_ID) return RET_ERROR;
-
-         if (chipID != BMP390_CHIP_ID)
 
         ret = CALL(softReset());
         if (ret == RET_ERROR) return ret;
