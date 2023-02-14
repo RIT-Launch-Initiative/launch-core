@@ -77,24 +77,13 @@ public:
         m_blocked = sched_dispatched;
 
         // start the transfer
-        if (async) {
-            if (HAL_OK != HAL_I2C_Mem_Write_IT(m_i2c, addr.dev_addr, addr.mem_addr,
-                                               addr.mem_addr_size, buff, len)) {
-                return RET_ERROR;
-            }
-
-            // block and wait for the transfer to complete
-            BLOCK();
-        } else {
-            if (HAL_OK != HAL_I2C_Mem_Write(m_i2c, addr.dev_addr, addr.mem_addr,
-                                            addr.mem_addr_size, buff, len, 1000)) {
-                return RET_ERROR;
-            }
-
-
+        if (HAL_OK != HAL_I2C_Mem_Write_IT(m_i2c, addr.dev_addr, addr.mem_addr,
+                                           addr.mem_addr_size, buff, len)) {
+            return RET_ERROR;
         }
 
-
+        // block and wait for the transfer to complete
+        BLOCK();
 
         // mark the device as unblocked
         m_blocked = -1;
@@ -129,25 +118,14 @@ public:
         // and blocking the task
         m_blocked = sched_dispatched;
 
-
         // start the transfer
-        if (async) {
-            if (HAL_OK != HAL_I2C_Mem_Read_IT(m_i2c, addr.dev_addr, addr.mem_addr,
-                                              addr.mem_addr_size, buff, len)) {
-                return RET_ERROR;
-            }
-
-            // wait for the transfer to complete
-            BLOCK();
-        } else {
-            if (HAL_OK != HAL_I2C_Mem_Read(m_i2c, addr.dev_addr, addr.mem_addr,
-                                           addr.mem_addr_size, buff, len, 1000)) {
-                return RET_ERROR;
-            }
-
-
+        if (HAL_OK != HAL_I2C_Mem_Read_IT(m_i2c, addr.dev_addr, addr.mem_addr,
+                                          addr.mem_addr_size, buff, len)) {
+            return RET_ERROR;
         }
 
+        // wait for the transfer to complete
+        BLOCK();
 
         // mark the device as unblocked
         m_blocked = -1;
@@ -171,10 +149,6 @@ public:
         if (m_blocked != -1) {
             WAKE(m_blocked);
         }
-    }
-
-    void setAsync(bool asyncVal) {
-        this->async = asyncVal;
     }
 
 private:
