@@ -81,7 +81,7 @@ enum TMP117_HILO_ALERT_BIT {
 
 class TMP117 {
 public:
-    TMP117(I2CDevice *i2CDevice) : mI2C(i2CDevice) {}
+    TMP117(I2CDevice &i2CDevice) : mI2C(i2CDevice) {}
 
     RetType init() {
         RESUME();
@@ -93,7 +93,7 @@ public:
         };
 
         uint8_t buff;
-        RetType ret = CALL(mI2C->read(i2cAddr, &buff, 1));
+        RetType ret = CALL(mI2C.read(i2cAddr, &buff, 1));
 
 
         RESET();
@@ -520,7 +520,7 @@ public:
     }
 
 private:
-    I2CDevice *mI2C;
+    I2CDevice &mI2C;
     I2CAddr_t i2cAddr;
 
     int16_t uint8ToInt16(uint8_t *data) {
@@ -541,7 +541,7 @@ private:
         RESUME();
 
         i2cAddr.mem_addr = reg;
-        RetType ret = CALL(mI2C->read(i2cAddr, data, len));
+        RetType ret = CALL(mI2C.read(i2cAddr, data, len));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
@@ -552,7 +552,7 @@ private:
         RESUME();
 
         i2cAddr.mem_addr = reg;
-        RetType ret = CALL(mI2C->write(i2cAddr, data, len));
+        RetType ret = CALL(mI2C.write(i2cAddr, data, len));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
