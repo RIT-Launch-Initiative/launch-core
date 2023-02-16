@@ -74,7 +74,7 @@ tid_t sched_start(task_func_t func) {
             tasks[i].state = STATE_ACTIVE;              // set active
             tasks[i].stack.curr = tasks[i].stack.block; // reset stack
             tasks[i].func = func;
-            tasks[i].tid = i + 1;
+            tasks[i].tid = i;
             tasks[i].queued = true;
 
             // put it on the ready queue
@@ -124,7 +124,7 @@ void _sched_wakeup_tasks() {
 }
 
 /// @brief dispatch the next task
-void sched_dispatch() {
+void  sched_dispatch() {
     while(1) {
         // wakeup any sleeping tasks
         _sched_wakeup_tasks();

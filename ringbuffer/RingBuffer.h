@@ -23,9 +23,9 @@ public:
     /// @return the number of bytes pushed
     /// Will push at most 'len' bytes onto the buffer
     /// if overwrite is enabled, will guaranteed push 'len' bytes
-    size_t push(uint8_t* buff, size_t len) {
-        if(m_len + len > m_size) {
-            if(m_overwrite) {
+    size_t push(uint8_t *buff, size_t len) {
+        if (m_len + len > m_size) {
+            if (m_overwrite) {
                 // move the head back to make room
                 m_head = (len + m_tail) % m_size;
             } else {
@@ -38,7 +38,7 @@ public:
         }
 
         size_t i = 0;
-        while(i < len) {
+        while (i < len) {
             m_buff[m_tail] = buff[i];
             i++;
             m_tail = (m_tail + 1) % m_size;
@@ -51,9 +51,9 @@ public:
     /// @tparam T    the type of the object to push
     /// @param obj   the data to be pushed
     /// @return
-    template <typename T>
-    RetType push(T* obj) {
-        if(sizeof(T) != push(reinterpret_cast<uint8_t*>(obj), sizeof(T))) {
+    template<typename T>
+    RetType push(T *obj) {
+        if (sizeof(T) != push(reinterpret_cast<uint8_t *>(obj), sizeof(T))) {
             return RET_ERROR;
         }
 
@@ -66,13 +66,13 @@ public:
     /// @return the actual number of bytes popped
     /// Will pop at most 'len' bytes, but will pop less if there is less data
     /// in the buffer
-    size_t pop(uint8_t* buff, size_t len) {
+    size_t pop(uint8_t *buff, size_t len) {
         size_t i = 0;
-        while(i < len) {
+        while (i < len) {
             buff[i] = m_buff[m_head];
             i++;
             m_head = (m_head + 1) % m_size;
-            if(m_head == m_tail) {
+            if (m_head == m_tail) {
                 break;
             }
         }
@@ -85,9 +85,9 @@ public:
     /// @tparam T   the type to pop it as
     /// @param obj  the object to copy the data into
     /// @return
-    template <typename T>
-    RetType pop(T* obj) {
-        if(sizeof(T) != pop(reinterpret_cast<uint8_t*>(obj), sizeof(T))) {
+    template<typename T>
+    RetType pop(T *obj) {
+        if (sizeof(T) != pop(reinterpret_cast<uint8_t *>(obj), sizeof(T))) {
             return RET_ERROR;
         }
 
@@ -108,21 +108,20 @@ public:
 
 protected:
     /// @brief protected constructor, use alloc::RingBuffer to declare
-    RingBuffer(uint8_t* buff, size_t size, bool overwrite) :
-                                                            m_buff(buff),
-                                                            m_size(size),
-                                                            m_overwrite(overwrite),
-                                                            m_head(0),
-                                                            m_tail(0),
-                                                            m_len(0) {};
+    RingBuffer(uint8_t *buff, size_t size, bool overwrite) : m_head(0),
+                                                             m_tail(0),
+                                                             m_len(0),
+                                                             m_size(size),
+                                                             m_buff(buff),
+                                                             m_overwrite(overwrite) {};
 
 private:
     size_t m_head;
     size_t m_tail;
     size_t m_len;
 
-    uint8_t* m_buff;
     size_t m_size; // size of the buffer
+    uint8_t *m_buff;
 
     bool m_overwrite;
 };
@@ -133,15 +132,15 @@ namespace alloc {
 /// @tparam SIZE            the size in bytes of the buffer
 /// @tparam OVERWRITABLE    if the buffer is overwritable,
 ///                         e.g. writing past head moves the head over old data
-template <const size_t SIZE, const bool OVERWRITABLE>
-class RingBuffer : public ::RingBuffer {
-public:
-    /// @brief constructor
-    RingBuffer() : ::RingBuffer(m_internalBuff, SIZE, OVERWRITABLE) {};
+    template<const size_t SIZE, const bool OVERWRITABLE>
+    class RingBuffer : public ::RingBuffer {
+    public:
+        /// @brief constructor
+        RingBuffer() : ::RingBuffer(m_internalBuff, SIZE, OVERWRITABLE) {};
 
-private:
-    uint8_t m_internalBuff[SIZE];
-};
+    private:
+        uint8_t m_internalBuff[SIZE];
+    };
 
 }
 
