@@ -35,21 +35,20 @@ enum SHTC3_CMD {
 class SHTC3 {
    public:
     // TODO: Validate addr
-    SHTC3(I2CDevice *i2CDevice) : mI2C(i2CDevice),
+    SHTC3(I2CDevice &i2CDevice) : mI2C(i2CDevice),
                                   inLowPowerMode(true),
                                   addr({.dev_addr = SHTC3_I2C_ADDR << 1,
                                         .mem_addr = 0,
                                         .mem_addr_size = 0}) {}
 
-    RetType init(uint16_t *id) {
+    RetType init() {
         RESUME();
 
-        mI2C->setAsync(false);
-
-        RetType ret = CALL(getID(id));
+        static uint16_t id = 0;
+        RetType ret = CALL(getID(&id));
         if (ret != RET_SUCCESS) return ret;
 
-        if ((*id & 0x083F) != 0x807) {
+        if ((id & 0x083F) != 0x807) {
             return RET_ERROR;
         }
 
@@ -71,7 +70,7 @@ class SHTC3 {
         }
         if (ret != RET_SUCCESS) return ret;
 
-        ret = CALL(mI2C->read(addr, buff, sizeof(buff)));
+        ret = CALL(mI2C.read(addr, buff, sizeof(buff)));
         if (ret != RET_SUCCESS) return ret;
 
         if ((buff[2] != crc8(buff, 2)) || (buff[5] != crc8(buff + 3, 2))) {
@@ -123,29 +122,29 @@ class SHTC3 {
         uint8_t command8[2] = {};
         uint16ToUint8(command16, command8);
 
-        addr.mem_addr = 0x0;  // incorrect addr?
+        addr.mem_addr = command16;
         addr.mem_addr_size = 2;
 
-        RetType ret = CALL(mI2C->write(addr, command8, 2));
+        RetType ret = CALL(mI2C.write(addr, command8, 2));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
         return RET_SUCCESS;
     }
 
-    RetType readCommand(SHTC3_CMD command16, uint8_t *buff, uint8_t numBytes, uint16_t *id) {
+    RetType readCommand(SHTC3_CMD command16, uint8_t *buff, uint8_t numBytes) {
         RESUME();
 
         uint8_t command8[2] = {};
         uint16ToUint8(command16, command8);
 
-        addr.mem_addr = 0x0;  // incorrect addr?
+        addr.mem_addr = command16;
         addr.mem_addr_size = 2;
 
-        RetType ret = CALL(mI2C->write(addr, command8, 2));  // this command is not working
+        RetType ret = CALL(mI2C.write(addr, command8, 2));
         if (ret != RET_SUCCESS) return ret;
 
-        ret = CALL(mI2C->read(addr, buff, numBytes));
+        ret = CALL(mI2C.read(addr, buff, numBytes));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
@@ -156,7 +155,7 @@ class SHTC3 {
         RESUME();
 
         uint8_t data[3] = {};
-        RetType ret = CALL(readCommand(READ_ID_CMD, data, 3, id));
+        RetType ret = CALL(readCommand(READ_ID_CMD, data, 3));
         if (ret != RET_SUCCESS) return ret;
 
         *id = data[0];
@@ -172,7 +171,7 @@ class SHTC3 {
     }
 
    private:
-    I2CDevice *mI2C;
+    I2CDevice &mI2C;
     I2CAddr_t addr;
     bool inLowPowerMode;
 
