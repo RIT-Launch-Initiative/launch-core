@@ -115,7 +115,6 @@ class SHTC3 {
     RetType writeCommand(SHTC3_CMD command16) {
         RESUME();
 
-        
         addr.reg_addr = SHTC3_I2C_ADDR << 1
         RetType ret = CALL(mI2C->write(addr, (uint8_t *) command16, 2));
         if (ret != RET_SUCCESS) return ret;
@@ -143,13 +142,11 @@ class SHTC3 {
     RetType getID(uint16_t *id) {
         RESUME();
 
-        uint8_t data[3] = {};
-        RetType ret = CALL(readCommand(READ_ID_CMD, data, 3));
+        uint8_t data[2] = {};
+        RetType ret = CALL(readCommand(READ_ID_CMD, data, 2));
         if (ret != RET_SUCCESS) return ret;
 
-        *id = data[0];
-        *id <<= 8;
-        *id |= data[1];
+        *id = data[0] << 8 | data[1];
 
         RESET();
         return RET_SUCCESS;
