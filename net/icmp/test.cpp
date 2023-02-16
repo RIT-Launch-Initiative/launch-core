@@ -7,7 +7,8 @@
 
 class Echo : public NetworkLayer {
 public: 
-
+    
+    Echo() {};
     Echo(NetworkLayer& out) : m_out(out) {};
     
     RetType recieve(Packet& packet, sockinfo_t& info, NetworkLayer* caller) {
@@ -18,7 +19,7 @@ public:
         printf("dst ip address:%u ", dst);
 
         if (dst == src) {
-            RetType ret = CALL(m_out.transmit(packet, info, caller);
+            RetType ret = CALL(m_out.transmit(packet, info, caller));
             RESET();
             return ret;
         }
@@ -44,13 +45,9 @@ int main() {
     Loopback lo;
     Echo e;
 
-    ipv4::IPv4Addr_t addr2;
-    ipv4::IPv4Address(10, 10, 10, 6, &addr2)
     ipv4::IPv4Addr_t addr1;
     ipv4::IPv4Address(10, 10, 10, 5, &addr1);
     
-    ipv4::IPv4Addr_t subnet2;
-    ipv4::IPv4Address(255, 255, 255, 1, &subnet2);
     ipv4::IPv4Addr_t subnet1;
     ipv4::IPv4Address(255, 255, 255, 0, &subnet1);
     
@@ -64,16 +61,8 @@ int main() {
         return -1;
     }
 
-    uint8_t buff[50];
-    for(size_t i = 0; i < 50, i++) {
-        buff[i] = i;
-    }
 
     alloc::Packet<50, 100> packet;
-
-    if(RET_SUCCESS != packet.push(buff, 50)) {
-        printf("packet push failed");
-    }
 
     sockaddr_t dst;
     dst.ipv4_addr = addr1;
@@ -83,12 +72,14 @@ int main() {
     msg.dst = dst;
     msg.type = IPV4_UDP_SOCK;
 
+    if(RET_SUCCESS != ip.receive(packet, msg, NULL)) {
+        printf("failed recieve");
+        return -1;
+    }
 
+    if(RET_SUCCESS != ip.transmit(packet, msg, NULL)) {
+        printf("Transmit failed");
+        return -1;
+    }
 };
-
-
-
-
-
-
 
