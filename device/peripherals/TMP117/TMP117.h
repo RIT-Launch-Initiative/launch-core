@@ -14,7 +14,7 @@
 #include "sched/macros/reset.h"
 #include "sched/macros/call.h"
 
-
+#define TMP_117_DEVICE_ADDR 0x48
 #define DEVICE_ID_VALUE 0x0117
 #define TMP117_RESOLUTION 0.0078125f
 #define bitRead(value, bit) (((value) >> (bit)) & 0x01)
@@ -81,23 +81,19 @@ enum TMP117_HILO_ALERT_BIT {
 
 class TMP117 {
 public:
-    TMP117(I2CDevice *i2CDevice) : mI2C(i2CDevice), deviceAddr(0) {}
+    TMP117(I2CDevice *i2CDevice) : mI2C(i2CDevice) {}
 
     RetType init() {
-        RESUME();
-
         i2cAddr = {
-                .dev_addr = 0x48,
-                .mem_addr = 0x0F,
+                .dev_addr = TMP_117_DEVICE_ADDR << 1,
+                .mem_addr = TMP117_DEVICE_ID,
                 .mem_addr_size = 1
         };
 
         uint8_t buff;
         RetType ret = mI2C->read(i2cAddr, &buff, 1);
-        if (ret != RET_SUCCESS) return ret;
 
-        RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
 

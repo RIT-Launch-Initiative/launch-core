@@ -115,11 +115,9 @@ class SHTC3 {
     RetType writeCommand(SHTC3_CMD command16) {
         RESUME();
 
-        uint8_t command8[2] = {};
-        uint16ToUint8(command16, command8);
-
+        
         addr.reg_addr = SHTC3_I2C_ADDR << 1
-        RetType ret = CALL(mI2C->write(addr, command8, 2));
+        RetType ret = CALL(mI2C->write(addr, (uint8_t *) command16, 2));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
@@ -129,13 +127,9 @@ class SHTC3 {
     RetType readCommand(SHTC3_CMD command16, uint8_t *buff, uint8_t numBytes) {
         RESUME();
 
-        uint8_t command8[2] = {};
-        uint16ToUint8(command16, command8);
-
-        // TODO: Set mem addr
 
         addr.reg_addr = SHTC3_I2C_ADDR << 1
-        RetType ret = CALL(mI2C->write(addr, command8, 2));
+        RetType ret = CALL(mI2C->write(addr, (uint8_t *) command16, 2));
         if (ret != RET_SUCCESS) return ret;
 
         addr.reg_addr = (SHTC3_I2C_ADDR << 1) | 0x01
@@ -191,3 +185,4 @@ class SHTC3 {
 };
 
 #endif  // LAUNCH_CORE_SHTC3_H
+
