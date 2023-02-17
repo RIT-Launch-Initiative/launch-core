@@ -77,26 +77,27 @@ public:
 
 
     RetType softReset() {
+        RESUME();
 
         uint8_t cmdReadyStatus;
         uint8_t cmdErrorStatus;
         uint8_t regAddr = BMP3_REG_CMD;
         uint8_t resetCmd = BMP3_SOFT_RESET;
 
-        RetType ret = getRegister(BMP3_REG_SENS_STATUS, &cmdReadyStatus, 1);
-        if (ret != RET_SUCCESS) goto softResetEnd;
+        RetType ret = CALL(getRegister(BMP3_REG_SENS_STATUS, &cmdReadyStatus, 1));
+        if (ret != RET_SUCCESS) return ret;
 
         if ((cmdReadyStatus & BMP3_CMD_RDY)) {
             ret = setRegister(&regAddr, &resetCmd, 1);
-            if (ret != RET_SUCCESS) goto softResetEnd;
+            if (ret != RET_SUCCESS) return ret;
 
             // TODO: Sleep 2 seconds
             ret = getRegister(BMP3_REG_ERR, &cmdErrorStatus, 1);
-            if (ret != RET_SUCCESS) goto softResetEnd;
+            if (ret != RET_SUCCESS) return ret;
 
         }
 
-        softResetEnd:
+        RESET();
         return ret;
     }
 
@@ -231,45 +232,47 @@ public:
      *************************************************************************************/
 
     RetType setSensorSettings(uint32_t desiredSettings) {
+        RESUME();
 
-        RetType ret = setPowerControl(desiredSettings);
-        if (ret != RET_SUCCESS) goto setSensorSettingsEnd;
+        RetType ret = CALL(setPowerControl(desiredSettings));
+        if (ret != RET_SUCCESS) return ret;
 
-        ret = setODRFilter(desiredSettings);
-        if (ret != RET_SUCCESS) goto setSensorSettingsEnd;
+        ret = CALL(setODRFilter(desiredSettings));
+        if (ret != RET_SUCCESS) return ret;
 
-        ret = setIntCtrl(desiredSettings);
-        if (ret != RET_SUCCESS) goto setSensorSettingsEnd;
+        ret = CALL(setIntCtrl(desiredSettings));
+        if (ret != RET_SUCCESS) return ret;
 
-        ret = setAdvSettings(desiredSettings);
-        if (ret != RET_SUCCESS) goto setSensorSettingsEnd;
+        ret = CALL(setAdvSettings(desiredSettings));
+        if (ret != RET_SUCCESS) return ret;
 
-        setSensorSettingsEnd:
+        RESET();
         return ret;
     }
 
     RetType setOperatingMode() {
+        RESUME();
 
         uint8_t lastSetMode;
         uint8_t currMode = this->settings.op_mode;
 
-        RetType ret = (getOperatingMode(&lastSetMode));
-        if (ret != RET_SUCCESS) goto setOperatingModeEnd;
+        RetType ret = CALL(getOperatingMode(&lastSetMode));
+        if (ret != RET_SUCCESS) return ret;
 
         if (lastSetMode != BMP3_MODE_SLEEP) {
-            ret = sleep();
+            ret = CALL(sleep());
             // TODO: Delay for 5 seconds
         }
 
         if (currMode == BMP3_MODE_NORMAL) {
-            ret = setNormalMode();
+            ret = CALL(setNormalMode());
         } else if (currMode == BMP3_MODE_FORCED) {
-            ret = writePowerMode();
+            ret = CALL(writePowerMode());
         }
 
-        if (ret != RET_SUCCESS) goto setOperatingModeEnd;
+        if (ret != RET_SUCCESS) return ret;
 
-        setOperatingModeEnd:
+        RESET();
         return ret;
     }
 
@@ -381,6 +384,8 @@ private:
 
 
     RetType initSettings() {
+        RESUME();
+
         this->settings = {
                 .op_mode = BMP3_MODE_NORMAL,
                 .press_en = BMP3_ENABLE,
@@ -406,26 +411,27 @@ private:
         uint16_t settingsSel = BMP3_SEL_PRESS_EN | BMP3_SEL_TEMP_EN | BMP3_SEL_PRESS_OS |
                                BMP3_SEL_TEMP_OS | BMP3_SEL_ODR | BMP3_SEL_DRDY_EN;
 
-        RetType ret = setSensorSettings(settingsSel);
-        if (ret != RET_SUCCESS) goto initSettingsEnd;
+        RetType ret = CALL(setSensorSettings(settingsSel));
+        if (ret != RET_SUCCESS) return ret;
 
-        ret = setOperatingMode();
-        if (ret != RET_SUCCESS) goto initSettingsEnd;
+        ret = CALL(setOperatingMode());
+        if (ret != RET_SUCCESS) return ret;
 
 
-        initSettingsEnd:
+        RESET();
         return RET_SUCCESS;
     }
 
     RetType getCalibrationData() {
+        RESUME();
         uint8_t calibrationData[BMP3_LEN_CALIB_DATA] = {};
 
-        RetType ret = getRegister(BMP3_REG_CALIB_DATA, calibrationData, BMP3_LEN_CALIB_DATA);
-        if (ret != RET_SUCCESS) goto getCalibEnd;
+        RetType ret = CALL(getRegister(BMP3_REG_CALIB_DATA, calibrationData, BMP3_LEN_CALIB_DATA));
+        if (ret != RET_SUCCESS) return ret;
 
         parseCalibrationData(calibrationData);
 
-        getCalibEnd:
+        RESET();
         return ret;
     }
 
