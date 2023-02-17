@@ -40,11 +40,13 @@ class SHTC3 {
     RetType init() {
         RESUME();
 
-        uint16_t id = 0;
-        RetType ret = CALL(getID(&id));
+        RetType ret = CALL(reset());
         if (ret != RET_SUCCESS) return ret;
 
-        if ((id & 0x083F) != 0x807) {
+        ret = CALL(getID(&this->id));
+        if (ret != RET_SUCCESS) return ret;
+
+        if ((this->id & 0x083F) != 0x807) {
             return RET_ERROR;
         }
 
@@ -160,6 +162,7 @@ class SHTC3 {
     I2CDevice &mI2C;
     I2CAddr_t addr;
     bool inLowPowerMode;
+    uint16_t id;
 
     void uint16ToUint8(uint16_t data16, uint8_t *data8) {
         data8[0] = static_cast<uint8_t>(data16 >> 8);
