@@ -84,7 +84,7 @@ public:
         m_blocked = sched_dispatched;
 
         // start the write
-        if(HAL_OK != HAL_UART_Transmit_IT(m_uart, buff, len)) {
+        if(HAL_OK != HAL_UART_Transmit_IT(m_uart, const_cast<uint8_t *>(buff), len)) {
             return RET_ERROR;
         }
 
