@@ -145,7 +145,7 @@ class SHTC3 {
         RetType ret = CALL(mI2C.write(addr, command8, addr.mem_addr_size));
         if (ret != RET_SUCCESS) return ret;
 
-        addr.dev_addr = SHTC3_I2C_ADDR | 0x01;
+        addr.dev_addr = (SHTC3_I2C_ADDR << 1) | 0x01;  // we bitwise or here to set read flag
         ret = CALL(mI2C.read(addr, buff, numBytes));
         if (ret != RET_SUCCESS) return ret;
 
