@@ -6,7 +6,9 @@
 
 #ifndef LAUNCH_CORE_ADXL375_H
 #define LAUNCH_CORE_ADXL375_H
-#define ADXL375_DEV_ADDR 0x3B
+
+#define ADXL375_DEV_ADDR_PRIM 0x3B
+#define ADXL375_DEV_ADDR_SEC 0x53
 
 
 #include <stdlib.h>
@@ -34,17 +36,28 @@ public:
 
     RetType init() {
         RESUME();
+
         uint8_t id = 0;
 
         RetType ret = CALL(m_i2c.read(i2cAddr, &id, 1));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
+        if (ret != RET_SUCCESS) return ret;
+        if (id != 0xE5) return RET_ERROR;
 
-        if (id != 0xE5) {
-            return RET_ERROR;
-        }
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType readXYZ(int16_t *xAxis, int16_t *yAxis, int16_t *zAxis) {
+        RESUME();
+
+        RetType ret = readX(xAxis);
+        if (ret != RET_SUCCESS) return ret;
+
+        ret = readY(yAxis);
+        if (ret != RET_SUCCESS) return ret;
+
+        ret = readY(yAxis);
+        if (ret != RET_SUCCESS) return ret;
 
         RESET();
         return RET_SUCCESS;
@@ -129,7 +142,7 @@ public:
 private:
     I2CDevice &m_i2c;
     I2CAddr_t i2cAddr {
-        .dev_addr = ADXL375_DEV_ADDR << 1,
+        .dev_addr = ADXL375_DEV_ADDR_SEC << 1,
         .mem_addr = 0x00,
         .mem_addr_size = 1
     };

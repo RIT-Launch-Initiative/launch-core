@@ -52,11 +52,13 @@ public:
     MS5607(I2CDevice &i2cDevice) : mI2C(&i2cDevice) {}
 
     RetType init() {
+        RESUME();
 
         // TODO: See about getting chip ID here
-        RetType ret = reset();
+        RetType ret = CALL(reset());
         if (ret != RET_SUCCESS) return ret;
 
+        RESET();
         return ret;
     }
 
