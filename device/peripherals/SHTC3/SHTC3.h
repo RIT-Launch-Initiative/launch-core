@@ -35,7 +35,7 @@ enum SHTC3_CMD {
 class SHTC3 {
    public:
     // TODO: Validate addr
-    SHTC3(I2CDevice &i2CDevice) : mI2C(i2CDevice), inLowPowerMode(true), addr({.dev_addr = SHTC3_I2C_ADDR, .mem_addr = 0, .mem_addr_size = 2}) {}
+    SHTC3(I2CDevice &i2CDevice) : mI2C(i2CDevice), inLowPowerMode(true), addr({.dev_addr = SHTC3_I2C_ADDR << 1, .mem_addr = 0, .mem_addr_size = 2}) {}
 
     RetType init() {
         RESUME();
@@ -117,8 +117,15 @@ class SHTC3 {
     RetType writeCommand(SHTC3_CMD command16) {
         RESUME();
 
-        addr.dev_addr = SHTC3_I2C_ADDR << 1;
-        RetType ret = CALL(mI2C.write(addr, (uint8_t *) command16, 2));
+        addr.dev_addr = SHTC3_I2C_ADDR;
+        addr.mem_addr_size = 2;
+
+        uint8_t command8[2];
+        uint16ToUint8(command16, command8);
+        addr.mem_addr = command8;  // this MAY be incorrect, but it makes sense
+        // see datasheet table 11
+
+        RetType ret = CALL(mI2C.write(addr, command8, addr.mem_addr_size));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
@@ -128,12 +135,17 @@ class SHTC3 {
     RetType readCommand(SHTC3_CMD command16, uint8_t *buff, uint8_t numBytes) {
         RESUME();
 
+        addr.dev_addr = SHTC3_I2C_ADDR;
+        addr.mem_addr_size = 2;
 
-        addr.dev_addr = SHTC3_I2C_ADDR << 1;
-        RetType ret = CALL(mI2C.write(addr, (uint8_t *) command16, 2));
+        uint8_t command8[2];
+        uint16ToUint8(command16, command8);
+        addr.mem_addr = command8;
+
+        RetType ret = CALL(mI2C.write(addr, command8, addr.mem_addr_size));
         if (ret != RET_SUCCESS) return ret;
 
-        addr.dev_addr = (SHTC3_I2C_ADDR << 1) | 0x01;
+        addr.dev_addr = SHTC3_I2C_ADDR | 0x01;
         ret = CALL(mI2C.read(addr, buff, numBytes));
         if (ret != RET_SUCCESS) return ret;
 
@@ -185,4 +197,3 @@ class SHTC3 {
 };
 
 #endif  // LAUNCH_CORE_SHTC3_H
-
