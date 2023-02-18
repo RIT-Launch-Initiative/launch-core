@@ -62,7 +62,7 @@ RetType register_i2c_rx(I2C_HandleTypeDef* hi2c, CallbackDevice* dev, int num) {
 // the actual HAL I2C callback functions
 
 // transmit complete
-void HAL_I2C_TxCpltCallback(I2C_HandleTypeDef *hi2c) {
+void HAL_I2C_MemTxCpltCallback(I2C_HandleTypeDef *hi2c) {
     // lookup if there's a device registered for this I2C
     HALHandlers::dev_t* dev = HALHandlers::i2c_tx_map[hi2c];
 
@@ -73,7 +73,7 @@ void HAL_I2C_TxCpltCallback(I2C_HandleTypeDef *hi2c) {
 }
 
 // receive complete
-void HAL_I2C_RxCpltCallback(I2C_HandleTypeDef *hi2c) {
+void HAL_I2C_MemRxCpltCallback(I2C_HandleTypeDef *hi2c) {
     // lookup if there's a device registered for this I2C
     HALHandlers::dev_t* dev = HALHandlers::i2c_rx_map[hi2c];
 
