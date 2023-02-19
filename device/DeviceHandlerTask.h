@@ -13,6 +13,7 @@
 #define DEVICE_HANDLER_TASK_H
 
 #include "sched/macros.h"
+#include "device/Device.h"
 
 /// @brief handle a device, essentially calls the 'poll' function of 'dev'
 /// @param dev     a Device class pointer to the device to poll
@@ -21,7 +22,7 @@ void HandleDevice(void* dev) {
     RESUME();
 
     // returns blocked or yield to return back to the scheduler
-    RetType ret = CALL(dev->poll());
+    RetType ret = CALL(((Device*)dev)->poll());
 
     // in cases where we get an error, don't want to stop handling the device.
     // hopefully this doesn't happen, but if it does just pretend everything is
