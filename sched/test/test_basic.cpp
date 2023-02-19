@@ -10,12 +10,12 @@ uint32_t systime() {
     return tick;
 }
 
-RetType task1() {
+RetType task1(void*) {
     printf("task1\n");
     sched_sleep(sched_dispatched, 5);
 }
 
-RetType task2() {
+RetType task2(void*) {
     printf("task2\n");
     sched_sleep(sched_dispatched, 1);
 }
@@ -26,12 +26,12 @@ int main() {
         return -1;
     }
 
-    if(sched_start(&task1) < 0) {
+    if(sched_start(&task1, NULL) < 0) {
         printf("failed to start task1\n");
         return -1;
     }
 
-    if(sched_start(&task2) < 0) {
+    if(sched_start(&task2, NULL) < 0) {
         printf("failed to start task2\n");
         return -1;
     }
