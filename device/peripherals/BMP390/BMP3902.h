@@ -15,13 +15,15 @@
 #include "sched/macros/reset.h"
 #include "device/SPIDevice.h"
 #include "device/I2CDevice.h"
+#include "device/StreamDevice.h"
+
 #include "sched/macros/call.h"
 #include "macros.h"
 
 
 class BMP390 {
 public:
-    BMP390(I2CDevice &i2cDev) : mI2C(&i2cDev) {}
+    BMP390(I2CDevice &i2cDev, StreamDevice &uartDevice) : mI2C(&i2cDev), mUART(uartDevice) {}
 
     /*************************************************************************************
      * Main Functionality
@@ -40,16 +42,19 @@ public:
 
         RetType ret = CALL(mI2C->read(this->i2cAddr, &this->device.chip_id, 1));
         if (this->device.chip_id != BMP390_CHIP_ID) return RET_ERROR;
+        CALL(mUART.write((uint8_t *)"BMP390 Chip Read successful\r\n", 29));
 
         ret = CALL(softReset());
         if (ret == RET_ERROR) return ret;
+        CALL(mUART.write((uint8_t *)"BMP390 Soft Reset successful\r\n", 29));
 
         ret = CALL(getCalibrationData());
         if (ret == RET_ERROR) return ret;
+        CALL(mUART.write((uint8_t *)"BMP390 Calibration Data Read successful\r\n", 41));
 
         ret = CALL(initSettings());
         if (ret == RET_ERROR) return ret;
-
+       mUART.write((uint8_t *)"BMP390 Settings Init successful\r\n", 33);
         RESET();
         return ret;
     }
@@ -65,7 +70,7 @@ public:
         struct bmp3_uncomp_data uncompensatedData = {0};
 
         RetType ret = CALL(getRegister(BMP3_REG_DATA, regData, BMP3_LEN_P_T_DATA));
-        if (ret != RET_SUCCESS) goto getSensorDataEnd;
+        if (ret != RET_SUCCESS) return ret;
 
         parseSensorData(regData, &uncompensatedData);
         compensateData(&uncompensatedData, &this->device.calib_data);
@@ -88,11 +93,13 @@ public:
         if (ret != RET_SUCCESS) return ret;
 
         if ((cmdReadyStatus & BMP3_CMD_RDY)) {
-            ret = setRegister(&regAddr, &resetCmd, 1);
+            ret = CALL(setRegister(&regAddr, &resetCmd, 1));
             if (ret != RET_SUCCESS) return ret;
 
             // TODO: Sleep 2 seconds
-            ret = getRegister(BMP3_REG_ERR, &cmdErrorStatus, 1);
+            SLEEP(8000000);
+            SLEEP(8000000);
+            ret = CALL(getRegister(BMP3_REG_ERR, &cmdErrorStatus, 1));
             if (ret != RET_SUCCESS) return ret;
 
         }
@@ -136,15 +143,14 @@ public:
         RESUME();
 
         RetType ret = CALL(getSensorStatus(status));
-        if (ret != RET_SUCCESS) goto getStatusEnd;
+        if (ret != RET_SUCCESS) return ret;
 
         ret = CALL(getIntStatus(status));
-        if (ret != RET_SUCCESS) goto getStatusEnd;
+        if (ret != RET_SUCCESS) return ret;
 
         ret = CALL(getErrStatus(status));
-        if (ret != RET_SUCCESS) goto getStatusEnd;
+        if (ret != RET_SUCCESS) return ret;
 
-        getStatusEnd:
         RESET();
         return ret;
     }
@@ -155,7 +161,7 @@ public:
         uint8_t regAddr = BMP3_REG_SENS_STATUS;
         uint8_t regData;
         RetType ret = CALL(getRegister(regAddr, &regData, 1));
-        if (ret != RET_SUCCESS) goto getSensorStatusEnd;
+        if (ret != RET_SUCCESS) return ret;
 
 
         status->sensor.cmd_rdy = BMP3_GET_BITS(regData, BMP3_STATUS_CMD_RDY);
@@ -164,12 +170,11 @@ public:
 
         regAddr = BMP3_REG_EVENT;
         ret = CALL(getRegister(regAddr, &regData, 1));
-        if (ret != RET_SUCCESS) goto getSensorStatusEnd;
+        if (ret != RET_SUCCESS) return ret;
 
         status->pwr_on_rst = regData & 0x01;
 
-        getSensorStatusEnd:
-    RESET();
+        RESET();
         return ret;
     }
 
@@ -179,7 +184,7 @@ public:
         uint8_t regData;
 
         RetType ret = CALL(getRegister(BMP3_REG_INT_STATUS, &regData, 1));
-        if (ret != RET_SUCCESS) goto getIntStatusEnd;
+        if (ret != RET_SUCCESS) return ret;
 
 
         status->intr.fifo_wm = BMP3_GET_BITS_POS_0(regData, BMP3_INT_STATUS_FWTM);
@@ -187,8 +192,7 @@ public:
         status->intr.drdy = BMP3_GET_BITS(regData, BMP3_INT_STATUS_DRDY);
 
 
-        getIntStatusEnd:
-    RESET();
+        RESET();
         return ret;
     }
 
@@ -198,14 +202,13 @@ public:
         uint8_t regData;
 
         RetType ret = CALL(getRegister(BMP3_REG_ERR, &regData, 1));
-        if (ret != RET_SUCCESS) goto getErrStatus;
+        if (ret != RET_SUCCESS) return ret;
 
         status->err.fatal = BMP3_GET_BITS_POS_0(regData, BMP3_ERR_FATAL);
         status->err.cmd = BMP3_GET_BITS(regData, BMP3_ERR_CMD);
         status->err.conf = BMP3_GET_BITS(regData, BMP3_ERR_CONF);
 
-        getErrStatus:
-    RESET();
+        RESET();
         return ret;
     }
 
@@ -283,13 +286,12 @@ public:
         uint8_t operatingMode;
 
         RetType ret = CALL(getRegister(regAddr, &operatingMode, 1));
-        if (ret != RET_SUCCESS) goto sleepEnd;
+        if (ret != RET_SUCCESS) return ret;
 
         operatingMode = operatingMode & (~BMP3_OP_MODE_MSK);
         ret = CALL(setRegister(&regAddr, &operatingMode, 1));
-        if (ret != RET_SUCCESS) goto sleepEnd;
+        if (ret != RET_SUCCESS) return ret;
 
-        sleepEnd:
         RESET();
         return RET_SUCCESS;
     }
@@ -302,14 +304,13 @@ public:
         uint8_t configErrorStatus;
         RetType ret = writePowerMode();
         ret = getRegister(BMP3_REG_ERR, &configErrorStatus, 1);
-        if (ret != RET_SUCCESS) goto setNormalModeEnd;
+        if (ret != RET_SUCCESS) return ret;
 
 
         if (configErrorStatus & BMP3_ERR_CMD) {
             ret = RET_ERROR;
         }
 
-        setNormalModeEnd:
         RESET();
         return ret;
     }
@@ -322,14 +323,14 @@ public:
         uint8_t operatingMode = this->settings.op_mode;
 
         RetType ret = CALL(getRegister(regAddr, &tempOpMode, 1));
-        if (ret != RET_SUCCESS) goto writePowerModeEnd;
+        if (ret != RET_SUCCESS) return ret;
 
         tempOpMode = BMP3_SET_BITS(tempOpMode, BMP3_OP_MODE, operatingMode);
         ret = CALL(setRegister(&regAddr, &tempOpMode, 1));
-        if (ret != RET_SUCCESS) goto writePowerModeEnd;
+        if (ret != RET_SUCCESS) return ret;
 
         writePowerModeEnd:
-    RESET();
+        RESET();
         return RET_SUCCESS;
 
     }
@@ -381,6 +382,8 @@ private:
     uint8_t chipID;
     I2CDevice *mI2C;
     I2CAddr_t i2cAddr;
+    StreamDevice &mUART;
+
 
 
     RetType initSettings() {
@@ -424,7 +427,7 @@ private:
 
     RetType getCalibrationData() {
         RESUME();
-        uint8_t calibrationData[BMP3_LEN_CALIB_DATA] = {};
+        static uint8_t calibrationData[BMP3_LEN_CALIB_DATA] = {}; // Must be static! Hard fault from invalid memory access otherwise
 
         RetType ret = CALL(getRegister(BMP3_REG_CALIB_DATA, calibrationData, BMP3_LEN_CALIB_DATA));
         if (ret != RET_SUCCESS) return ret;
@@ -438,6 +441,7 @@ private:
 
     RetType setRegister(uint8_t *regAddress, const uint8_t *regData, uint32_t len) {
         RESUME();
+        CALL(mUART.write((uint8_t *)"Set Register Called\r\n", 23));
 
         uint8_t temporaryBuffer[len * 2];
         uint8_t regAddrCount;
@@ -454,9 +458,9 @@ private:
 
 
         RetType ret = CALL(mI2C->write(this->i2cAddr, temporaryBuffer, temporaryLen));
-        if (ret != RET_SUCCESS) goto setRegEnd;
+        if (ret != RET_SUCCESS) return ret;
+        CALL(mUART.write((uint8_t *)"Set Register Returned\r\n", 23));
 
-        setRegEnd:
         RESET();
         return ret;
     }
@@ -475,12 +479,13 @@ private:
         RESUME();
         this->i2cAddr.mem_addr = regAddress;
 
+        CALL(mUART.write((uint8_t *)"Get Register Called\r\n", 21));
         RetType ret = CALL(mI2C->read(this->i2cAddr, regData, len));
-        if (ret != RET_SUCCESS) goto getRegEnd;
+        if (ret != RET_SUCCESS) return ret;
 
+        CALL(mUART.write((uint8_t *)"Get Register Returned\r\n", 23));
 
-        getRegEnd:
-    RESET();
+        RESET();
         return ret;
     }
 
@@ -652,7 +657,7 @@ private:
         uint8_t regData = 0;
 
         RetType ret = CALL(getRegister(regAddr, &regData, 1));
-        if (ret != RET_SUCCESS) goto setPowerControlEnd;
+        if (ret != RET_SUCCESS) return ret;
 
         if (desiredSettings & BMP3_SEL_PRESS_EN) {
             regData = BMP3_SET_BITS_POS_0(regData, BMP3_PRESS_EN, this->settings.press_en);
@@ -663,10 +668,9 @@ private:
         }
 
         ret = CALL(setRegister(&regAddr, &regData, 1));
-        if (ret != RET_SUCCESS) goto setPowerControlEnd;
+        if (ret != RET_SUCCESS) return ret;
 
-        setPowerControlEnd:
-    RESET();
+        RESET();
         return ret;
     }
 
@@ -679,7 +683,7 @@ private:
         struct bmp3_odr_filter_settings osrSettings = settings.odr_filter;
 
         RetType ret = CALL(getRegister(BMP3_REG_OSR, regData, 4));
-        if (ret != RET_SUCCESS) goto setODRFilterEnd;
+        if (ret != RET_SUCCESS) return ret;
 
         if (areSettingsChanged((BMP3_SEL_PRESS_OS | BMP3_SEL_TEMP_OS), desiredSettings)) {
             if (desiredSettings & (BMP3_SEL_PRESS_OS | BMP3_SEL_TEMP_OS)) {
@@ -716,14 +720,13 @@ private:
 
         if (settings.op_mode == BMP3_MODE_NORMAL) {
             ret = validateOsrOdr() == TRUE ? RET_SUCCESS : RET_ERROR;
-            if (ret != RET_SUCCESS) goto setODRFilterEnd;
+            if (ret != RET_SUCCESS) return ret;
         }
 
         ret = CALL(setRegister(regAddr, regData, len));
-        if (ret != RET_SUCCESS) goto setODRFilterEnd;
+        if (ret != RET_SUCCESS) return ret;
 
-        setODRFilterEnd:
-    RESET();
+         RESET();
         return ret;
     }
 
@@ -735,7 +738,7 @@ private:
         bmp3_int_ctrl_settings intSettings = this->settings.int_settings;
 
         RetType ret = CALL(getRegister(regAddr, &regData, 1));
-        if (ret != RET_SUCCESS) goto setIntCtrlEnd;
+        if (ret != RET_SUCCESS) return ret;
 
 
         if (desiredSettings & BMP3_SEL_OUTPUT_MODE) {
@@ -756,7 +759,7 @@ private:
         }
 
         ret = CALL(setRegister(&regAddr, &regData, 1));
-        if (ret != RET_SUCCESS) goto setIntCtrlEnd;
+        if (ret != RET_SUCCESS) return ret;
 
         setIntCtrlEnd:
     RESET();
@@ -771,7 +774,7 @@ private:
         uint8_t regData = 0;
 
         RetType ret = CALL(getRegister(regAddr, &regData, 1));
-        if (ret != RET_SUCCESS) goto setAdvSettingsEnd;
+        if (ret != RET_SUCCESS) return ret;
 
         if (desiredSettings & BMP3_SEL_I2C_WDT_EN) {
             regData = BMP3_SET_BITS(regData, BMP3_I2C_WDT_EN, advSettings.i2c_wdt_en);
@@ -782,11 +785,10 @@ private:
         }
 
         ret = CALL(setRegister(&regAddr, &regData, 1));
-        if (ret != RET_SUCCESS) goto setAdvSettingsEnd;
+        if (ret != RET_SUCCESS) return ret;
 
 
-        setAdvSettingsEnd:
-    RESET();
+        RESET();
         return ret;
     }
 
@@ -794,12 +796,11 @@ private:
         RESUME();
 
         RetType ret = CALL(getRegister(BMP3_REG_PWR_CTRL, opMode, 1));
-        if (ret != RET_SUCCESS) goto getOpModeEnd;
+        if (ret != RET_SUCCESS) return ret;
 
         *opMode = BMP3_GET_BITS(*opMode, BMP3_OP_MODE);
 
-        getOpModeEnd:
-    RESET();
+        RESET();
         return ret;
     }
 
