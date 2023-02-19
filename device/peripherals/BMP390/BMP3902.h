@@ -59,11 +59,7 @@ public:
         return ret;
     }
 
-    bmp3_data getSensorData() {
-        return this->data;
-    }
-
-    RetType pullSensorData(double *pressure, double *temperature) {
+    RetType getSensorData(double *pressure, double *temperature) {
         RESUME();
 
         uint8_t regData[BMP3_LEN_P_T_DATA] = {0};
