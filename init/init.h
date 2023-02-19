@@ -39,7 +39,7 @@ void PollDevice(void* dev) {
     return ret;
 }
 
-
+/// Argument passed to the init task
 typedef struct {
     DeviceMap* dev_map;     // platform device map
     task_func_t* tasks;     // list of tasks to
