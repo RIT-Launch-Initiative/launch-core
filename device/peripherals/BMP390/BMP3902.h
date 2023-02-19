@@ -45,9 +45,11 @@ public:
 
         ret = CALL(softReset());
         if (ret == RET_ERROR) return ret;
+        CALL(mUART.write((uint8_t *)"BMP390 Soft Reset successful\r\n", 28));
 
         ret = CALL(getCalibrationData());
         if (ret == RET_ERROR) return ret;
+        CALL(mUART.write((uint8_t *)"BMP390 Calibration successful\r\n", 31));
 
         ret = CALL(initSettings());
         if (ret == RET_ERROR) return ret;
@@ -82,10 +84,10 @@ public:
     RetType softReset() {
         RESUME();
 
-        uint8_t cmdReadyStatus;
-        uint8_t cmdErrorStatus;
-        uint8_t regAddr = BMP3_REG_CMD;
-        uint8_t resetCmd = BMP3_SOFT_RESET;
+        static uint8_t cmdReadyStatus;
+        static uint8_t cmdErrorStatus;
+        static uint8_t regAddr = BMP3_REG_CMD;
+        static uint8_t resetCmd = BMP3_SOFT_RESET;
 
         RetType ret = CALL(getRegister(BMP3_REG_SENS_STATUS, &cmdReadyStatus, 1));
         if (ret != RET_SUCCESS) return ret;
@@ -407,7 +409,7 @@ private:
                 }
         };
 
-        uint16_t settingsSel = BMP3_SEL_PRESS_EN | BMP3_SEL_TEMP_EN | BMP3_SEL_PRESS_OS |
+        static uint16_t settingsSel = BMP3_SEL_PRESS_EN | BMP3_SEL_TEMP_EN | BMP3_SEL_PRESS_OS |
                                BMP3_SEL_TEMP_OS | BMP3_SEL_ODR | BMP3_SEL_DRDY_EN;
 
         RetType ret = CALL(setSensorSettings(settingsSel));
