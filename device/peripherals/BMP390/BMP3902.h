@@ -63,7 +63,7 @@ public:
         return this->data;
     }
 
-    RetType pullSensorData() {
+    RetType pullSensorData(double *pressure, double *temperature) {
         RESUME();
 
         uint8_t regData[BMP3_LEN_P_T_DATA] = {0};
@@ -75,7 +75,9 @@ public:
         parseSensorData(regData, &uncompensatedData);
         compensateData(&uncompensatedData, &this->device.calib_data);
 
-        getSensorDataEnd:
+        this->data.pressure = uncompensatedData.pressure;
+        this->data.temperature = uncompensatedData.temperature;
+
         RESET();
         return RET_SUCCESS;
     }
