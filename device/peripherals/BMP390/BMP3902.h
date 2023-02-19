@@ -42,19 +42,16 @@ public:
 
         RetType ret = CALL(mI2C->read(this->i2cAddr, &this->device.chip_id, 1));
         if (this->device.chip_id != BMP390_CHIP_ID) return RET_ERROR;
-        CALL(mUART.write((uint8_t *)"BMP390 Chip Read successful\r\n", 29));
 
         ret = CALL(softReset());
         if (ret == RET_ERROR) return ret;
-        CALL(mUART.write((uint8_t *)"BMP390 Soft Reset successful\r\n", 29));
 
         ret = CALL(getCalibrationData());
         if (ret == RET_ERROR) return ret;
-        CALL(mUART.write((uint8_t *)"BMP390 Calibration Data Read successful\r\n", 41));
 
         ret = CALL(initSettings());
         if (ret == RET_ERROR) return ret;
-       mUART.write((uint8_t *)"BMP390 Settings Init successful\r\n", 33);
+        CALL(mUART.write((uint8_t *)"BMP390 Settings Init successful\r\n", 33));
         RESET();
         return ret;
     }
@@ -62,17 +59,20 @@ public:
     RetType getSensorData(double *pressure, double *temperature) {
         RESUME();
 
-        uint8_t regData[BMP3_LEN_P_T_DATA] = {0};
-        struct bmp3_uncomp_data uncompensatedData = {0};
+        static uint8_t regData[BMP3_LEN_P_T_DATA] = {0};
+        static struct bmp3_uncomp_data uncompensatedData = {0};
 
+        CALL(mUART.write((uint8_t *)"BMP390 Data Read called\r\n", 25));
         RetType ret = CALL(getRegister(BMP3_REG_DATA, regData, BMP3_LEN_P_T_DATA));
         if (ret != RET_SUCCESS) return ret;
+
+        CALL(mUART.write((uint8_t *)"BMP390 Data Read successful\r\n", 29));
 
         parseSensorData(regData, &uncompensatedData);
         compensateData(&uncompensatedData, &this->device.calib_data);
 
-        this->data.pressure = uncompensatedData.pressure;
-        this->data.temperature = uncompensatedData.temperature;
+        *pressure = this->data.pressure;
+        *temperature = this->data.temperature;
 
         RESET();
         return RET_SUCCESS;
@@ -95,8 +95,6 @@ public:
             if (ret != RET_SUCCESS) return ret;
 
             // TODO: Sleep 2 seconds
-            SLEEP(8000000);
-            SLEEP(8000000);
             ret = CALL(getRegister(BMP3_REG_ERR, &cmdErrorStatus, 1));
             if (ret != RET_SUCCESS) return ret;
 
