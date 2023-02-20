@@ -96,7 +96,7 @@ public:
             ret = CALL(setRegister(&regAddr, &resetCmd, 1));
             if (ret != RET_SUCCESS) return ret;
 
-            // TODO: Sleep 2 seconds
+            SLEEP(2000);
             ret = CALL(getRegister(BMP3_REG_ERR, &cmdErrorStatus, 1));
             if (ret != RET_SUCCESS) return ret;
 
@@ -262,7 +262,7 @@ public:
 
         if (lastSetMode != BMP3_MODE_SLEEP) {
             ret = CALL(sleep());
-            // TODO: Delay for 5 seconds
+            SLEEP(5000);
         }
 
         if (currMode == BMP3_MODE_NORMAL) {
