@@ -232,20 +232,38 @@ public:
      * Settings
      *************************************************************************************/
 
+    bool areSettingsChanged(uint32_t subSettings, uint32_t desiredSettings) {
+        return (subSettings & desiredSettings) != 0;
+    }
+
     RetType setSensorSettings(uint32_t desiredSettings) {
         RESUME();
 
-        RetType ret = CALL(setPowerControl(desiredSettings));
-        if (ret != RET_SUCCESS) return ret;
+        RetType ret;
 
-        ret = CALL(setODRFilter(desiredSettings));
-        if (ret != RET_SUCCESS) return ret;
+        // Power Control Settings
+        if (areSettingsChanged(BMP3_POWER_CNTL, desiredSettings)) {
+            ret = CALL(setPowerControl(desiredSettings));
+            if (ret != RET_SUCCESS) return ret;
+        }
 
-        ret = CALL(setIntCtrl(desiredSettings));
-        if (ret != RET_SUCCESS) return ret;
+        // Oversampling, ODR and Filter Settings
+        if (areSettingsChanged(BMP3_ODR_FILTER, desiredSettings)) {
+            ret = CALL(setODRFilter(desiredSettings));
+            if (ret != RET_SUCCESS) return ret;
+        }
 
-        ret = CALL(setAdvSettings(desiredSettings));
-        if (ret != RET_SUCCESS) return ret;
+        // Interrupt Control Settings
+        if (areSettingsChanged(BMP3_INT_CTRL, desiredSettings)) {
+            ret = CALL(setIntCtrl(desiredSettings));
+            if (ret != RET_SUCCESS) return ret;
+        }
+
+        // Advanced Settings
+        if (areSettingsChanged(BMP3_ADV_SETT, desiredSettings)) {
+            ret = CALL(setAdvSettings(desiredSettings));
+            if (ret != RET_SUCCESS) return ret;
+        }
 
         RESET();
         return ret;
