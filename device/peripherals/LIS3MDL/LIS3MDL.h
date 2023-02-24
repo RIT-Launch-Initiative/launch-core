@@ -16,16 +16,16 @@
 class LIS3MDL {
 public:
     LIS3MDL(I2CDevice &i2cDevice) : mI2C(&i2cDevice) {}
+
     RetType init() {
         RESUME();
 
-        i2cAddr.mem_addr = LIS3MDL_WHO_AM_I;
         uint8_t whoAmI = 0;
-        RetType ret = CALL(mI2C->read(i2cAddr, &whoAmI, 1));
+        RetType ret = CALL(readReg(LIS3MDL_WHO_AM_I, &whoAmI, 1));
         if (ret != RET_SUCCESS) return ret;
 
         if (whoAmI != LIS3MDL_ID) return RET_ERROR;
-        
+
         RESET();
         return RET_SUCCESS;
     }
@@ -35,7 +35,7 @@ public:
 
         i2cAddr.mem_addr = reg;
 
-        RetType ret = CALL(mI2C->read(addr, data, len);
+        RetType ret = CALL(mI2C->read(i2cAddr, data, len);
 
         RESET();
         return RET_SUCCESS;
@@ -45,65 +45,56 @@ public:
     RetType writeReg(void *handle, uint8_t reg, const uint8_t *data, uint16_t len) {
         RESUME();
 
-        RetType ret = CALL(mI2C->write(addr, data, len));
+        i2cAddr.mem_addr = reg;
+        RetType ret = CALL(mI2C->write(i2cAddr, data, len));
 
         RESET();
         return RET_SUCCESS;
     };
 
 
-    RetType fs4ToGauss(int16_t lsb, float_t *gauss) {
-        RESUME();
-
-        *gauss = lis3mdl_from_fs4_to_gauss(lsb);
-
-        RESET();
-        return RET_SUCCESS;
+    float fs4ToGauss(int16_t lsb) {
+        return lsb / 6842.0f;
     }
 
-    RetType fs8ToGauss(int16_t lsb, float_t *gauss) {
-        RESUME();
-
-        *gauss = lis3mdl_from_fs8_to_gauss(lsb);
-
-        RESET();
-        return RET_SUCCESS;
+    float fs8ToGauss(int16_t lsb) {
+        return lsb / 3421.0f;
     }
 
-    RetType fs12ToGauss(int16_t lsb, float_t *gauss) {
-        RESUME();
-
-        *gauss = lis3mdl_from_fs12_to_gauss(lsb);
-
-        RESET();
-        return RET_SUCCESS;
+    float fs12ToGauss(int16_t lsb) {
+        return lsb / 2281.0f;
     }
 
-    RetType fs16ToGauss(int16_t lsb, float_t *gauss) {
-        RESUME();
-
-        *gauss = lis3mdl_from_fs16_to_gauss(lsb);
-
-        RESET();
-        return RET_SUCCESS;
+    float fs16ToGauss(int16_t lsb) {
+        return lsb / 1711.0f;
     }
 
-    RetType lsbToGauss(int16_t lsb, float_t *gauss) {
-        RESUME();
-
-        *gauss = lis3mdl_from_lsb_to_celsius(lsb);
-
-        RESET();
-        return RET_SUCCESS;
+    float lsbToCelsius(int16_t lsb) {
+        return (lsb / 8.0f) + 25.0f;
     }
 
     RetType setDataRate(lis3mdl_om_t val) {
         RESUME();
 
-        int32_t result = lis3mdl_data_rate_set(&device, val);
+        lis3mdl_ctrl_reg1_t ctrlReg1;
+        lis3mdl_ctrl_reg4_t ctrlReg4;
+
+        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG1, (uint8_t *) &ctrlReg1, 1));
+        if (ret != RET_SUCCESS) return ret;
+
+        ctrlReg1.om = val;
+        ret = CALL(readReg(LIS3MDL_CTRL_REG4, (uint8_t *) &ctrlReg4, 1));
+        if (ret != RET_SUCCESS) return ret;
+
+        ret = CALL(writeReg(LIS3MDL_CTRL_REG1, (uint8_t *) &ctrlReg1, 1));
+        if (ret != RET_SUCCESS) return ret;
+
+        ctrlReg4.omz = val;
+        ret = CALL(writeReg(LIS3MDL_CTRL_REG4, (uint8_t *) &ctrlReg4, 1));
+        if (ret != RET_SUCCESS) return ret;
 
         RESET();
-        return result == 0 ? RET_SUCCESS : RET_ERROR;
+        return ret;
     }
 
     RetType getDataRate(lis3mdl_om_t *val) {
@@ -599,10 +590,10 @@ public:
 private:
     I2CDevice &mI2C;
     I2CAddr_t i2cAddr = {
-                .dev_addr = LIS3MDL_I2C_ADD_L,
-                .mem_addr = 0x00,
-                .mem_addr_size = sizeof(uint8_t),
-                };
+            .dev_addr = LIS3MDL_I2C_ADD_L,
+            .mem_addr = 0x00,
+            .mem_addr_size = sizeof(uint8_t),
+    };
 };
 
 
