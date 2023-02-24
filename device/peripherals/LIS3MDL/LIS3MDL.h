@@ -8,7 +8,6 @@
 #define LAUNCH_CORE_LIS3MDL_H
 
 #include "device/I2CDevice.h"
-#include "device/SPIDevice.h"
 #include "sched/macros/resume.h"
 #include "sched/macros/reset.h"
 #include "lis3mdl_reg.h"
@@ -34,7 +33,7 @@ public:
     RetType readReg(void *handle, uint8_t reg, uint8_t *data, uint16_t len) {
         RESUME();
 
-        i2cAddr.mem_addr = reg; 
+        i2cAddr.mem_addr = reg;
 
         RetType ret = CALL(mI2C->read(addr, data, len);
 
@@ -45,8 +44,8 @@ public:
 
     RetType writeReg(void *handle, uint8_t reg, const uint8_t *data, uint16_t len) {
         RESUME();
-        
-        RetType ret = CALL(mI2C->write(addr, const_cast<uint8_t *>(data), len));
+
+        RetType ret = CALL(mI2C->write(addr, data, len));
 
         RESET();
         return RET_SUCCESS;
@@ -604,8 +603,6 @@ private:
                 .mem_addr = 0x00,
                 .mem_addr_size = sizeof(uint8_t),
                 };
-    
-    stmdev_ctx_t device;
 };
 
 
