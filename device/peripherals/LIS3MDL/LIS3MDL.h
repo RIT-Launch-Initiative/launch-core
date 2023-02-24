@@ -110,32 +110,19 @@ public:
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
-        return result == 0 ? RET_SUCCESS : RET_ERROR;
+        return ret;
     }
-
-    RetType getTempMeas(uint8_t *val) {
-        RESUME();
-
-        int32_t result = lis3mdl_temperature_meas_get(&device, val);
-
-        RESET();
-        return result == 0 ? RET_SUCCESS : RET_ERROR;
-    }
-
 
     RetType setFullScale(lis3mdl_fs_t val) {
         RESUME();
 
-        int32_t result = lis3mdl_full_scale_set(&device, val);
+        lis3mdl_ctrl_reg2_t ctrlReg2;
 
-        RESET();
-        return result == 0 ? RET_SUCCESS : RET_ERROR;
-    }
+        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG2, static_cast<uint8_t *>(&ctrlReg2), 1));
+        if (ret != RET_SUCCESS) return ret;
 
-    RetType getFullScale(lis3mdl_fs_t *val) {
-        RESUME();
-
-        int32_t result = lis3mdl_full_scale_get(&device, val);
+        ctrlReg2.fs = val;
+        ret = CALL(writeReg(LIS3MDL_CTRL_REG2, static_cast<uint8_t *>(&ctrlReg2), 1));
 
         RESET();
         return result == 0 ? RET_SUCCESS : RET_ERROR;
@@ -144,7 +131,13 @@ public:
     RetType setOperatingMode(lis3mdl_md_t val) {
         RESUME();
 
-        int32_t result = lis3mdl_operating_mode_set(&device, val);
+        lis3mdl_ctrl_reg3_t ctrlReg3;
+
+        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG3, static_cast<uint8_t *>(&ctrlReg3), 1));
+        if (ret != RET_SUCCESS) return ret;
+
+        ctrlReg3.md = val;
+        ret = CALL(writeReg(LIS3MDL_CTRL_REG3, static_cast<uint8_t *>(&ctrlReg3), 1));
 
         RESET();
         return result == 0 ? RET_SUCCESS : RET_ERROR;
