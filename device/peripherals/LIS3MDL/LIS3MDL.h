@@ -97,19 +97,17 @@ public:
         return ret;
     }
 
-    RetType getDataRate(lis3mdl_om_t *val) {
-        RESUME();
-
-        int32_t result = lis3mdl_data_rate_get(&device, val);
-
-        RESET();
-        return result == 0 ? RET_SUCCESS : RET_ERROR;
-    }
-
     RetType setTempMeas(uint8_t val) {
         RESUME();
 
-        int32_t result = lis3mdl_temperature_meas_set(&device, val);
+        lis3mdl_ctrl_reg1_t ctrlReg1;
+
+        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG1, static_cast<uint8_t *>(&ctrlReg1), 1));
+        if (ret != RET_SUCCESS) return ret;
+
+        ctrlReg1.temp_en = val;
+        ret = CALL(writeReg(LIS3MDL_CTRL_REG1, static_cast<uint8_t *>(&ctrlReg1), 1));
+        if (ret != RET_SUCCESS) return ret;
 
         RESET();
         return result == 0 ? RET_SUCCESS : RET_ERROR;
@@ -598,3 +596,5 @@ private:
 
 
 #endif //LAUNCH_CORE_LIS3MDL_H
+
+
