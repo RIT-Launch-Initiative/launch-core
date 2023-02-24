@@ -14,56 +14,43 @@
 #include "lis3mdl_reg.h"
 #include "sched/macros/call.h"
 
-enum COMM_MODE { // Please just use I2C for now
-    SPI,
-    I2C
-};
-
 class LIS3MDL {
 public:
-    LIS3MDL(uint8_t chipID, void *pInterface, stmdev_mdelay_ptr delayFptr,
-            SPIDevice *spiDev = nullptr, I2CDevice *i2cDev = nullptr) :
-            device({
-                           .mdelay = delayFptr
-                   }) {
-        mSPI = spiDev;
-        mI2C = i2cDev;
-    }
-
-    RetType init(COMM_MODE mode) {
+    LIS3MDL(I2CDevice &i2cDevice) : mI2C(&i2cDevice) {}
+    RetType init() {
         RESUME();
 
-        switch (mode) {
-            case SPI:
-                device.write_reg = spiWrite;
-                device.read_reg = spiRead;
-            case I2C:
-                device.write_reg = i2cWrite;
-                device.read_reg = i2cRead;
-                break;
-        }
+        i2cAddr.mem_addr = LIS3MDL_WHO_AM_I;
+        uint8_t whoAmI = 0;
+        RetType ret = CALL(mI2C->read(i2cAddr, &whoAmI, 1));
+        if (ret != RET_SUCCESS) return ret;
 
+        if (whoAmI != LIS3MDL_ID) return RET_ERROR;
+        
         RESET();
         return RET_SUCCESS;
     }
 
-    RetType readRegister(uint8_t reg, uint8_t *data, uint16_t len) {
+    RetType readReg(void *handle, uint8_t reg, uint8_t *data, uint16_t len) {
         RESUME();
 
-        int32_t result = lis3mdl_read_reg(&device, reg, data, len);
+        i2cAddr.mem_addr = reg; 
+
+        RetType ret = CALL(mI2C->read(addr, data, len);
 
         RESET();
-        return result == 0 ? RET_SUCCESS : RET_ERROR;
-    }
+        return RET_SUCCESS;
 
-    RetType writeRegister(uint8_t reg, uint8_t *data, uint16_t len) {
+    };
+
+    RetType writeReg(void *handle, uint8_t reg, const uint8_t *data, uint16_t len) {
         RESUME();
-
-        int32_t result = lis3mdl_write_reg(&device, reg, data, len);
+        
+        RetType ret = CALL(mI2C->write(addr, const_cast<uint8_t *>(data), len));
 
         RESET();
-        return result == 0 ? RET_SUCCESS : RET_ERROR;
-    }
+        return RET_SUCCESS;
+    };
 
 
     RetType fs4ToGauss(int16_t lsb, float_t *gauss) {
@@ -611,40 +598,14 @@ public:
 
 
 private:
-    static I2CDevice *mI2C;
-    static SPIDevice *mSPI;
+    I2CDevice &mI2C;
+    I2CAddr_t i2cAddr = {
+                .dev_addr = LIS3MDL_I2C_ADD_L,
+                .mem_addr = 0x00,
+                .mem_addr_size = sizeof(uint8_t),
+                };
+    
     stmdev_ctx_t device;
-
-    static int32_t i2cRead(void *handle, uint8_t reg, uint8_t *data, uint16_t len) {
-        RESUME();
-
-        I2CAddr_t addr = {
-                .dev_addr = LIS3MDL_I2C_ADD_L,
-                .mem_addr = reg,
-                .mem_addr_size = sizeof(uint8_t),
-        };
-
-        RetType ret = CALL(mI2C->read(addr, const_cast<uint8_t *>(data), len));
-
-        RESET();
-        return ret == RET_SUCCESS ? 0 : -1;
-
-    };
-
-    static int32_t i2cWrite(void *handle, uint8_t reg, const uint8_t *data, uint16_t len) {
-        RESUME();
-
-        I2CAddr_t addr = {
-                .dev_addr = LIS3MDL_I2C_ADD_L,
-                .mem_addr = reg,
-                .mem_addr_size = sizeof(uint8_t),
-        };
-
-        RetType ret = CALL(mI2C->write(addr, const_cast<uint8_t *>(data), len));
-
-        RESET();
-        return ret == RET_SUCCESS ? 0 : -1;
-    };
 };
 
 
