@@ -1,5 +1,5 @@
 /**
- * Facade for using LIS3MDL sensor driver with launch-core scheduler
+ * LLIS3MDL sensor driver integrated with launch-core scheduler
  *
  * @author Aaron Chan
  */
@@ -73,6 +73,11 @@ public:
         return (lsb / 8.0f) + 25.0f;
     }
 
+    /**
+     * Sets the output data rate
+     * @param val Modify the value of the OM field in the CTRL_REG1 register
+     * @return
+     */
     RetType setDataRate(lis3mdl_om_t val) {
         RESUME();
 
@@ -97,6 +102,11 @@ public:
         return ret;
     }
 
+    /**
+     * Enables or disables temperature measurements
+     * @param val Value of temperature measurement enable bit in CTRL_REG1 register
+     * @return
+     */
     RetType setTempMeas(uint8_t val) {
         RESUME();
 
@@ -113,6 +123,12 @@ public:
         return ret;
     }
 
+    /**
+     * Sets the full scale of the magnetometer
+     *
+     * @param val Modify the value of the FS field in the CTRL_REG2 register
+     * @return
+     */
     RetType setFullScale(lis3mdl_fs_t val) {
         RESUME();
 
@@ -128,6 +144,11 @@ public:
         return result == 0 ? RET_SUCCESS : RET_ERROR;
     }
 
+    /**
+     * Sets the operating mode of the magnetometer
+     * @param val The value of the MD field in the CTRL_REG3 register
+     * @return
+     */
     RetType setOperatingMode(lis3mdl_md_t val) {
         RESUME();
 
@@ -140,49 +161,40 @@ public:
         ret = CALL(writeReg(LIS3MDL_CTRL_REG3, static_cast<uint8_t *>(&ctrlReg3), 1));
 
         RESET();
-        return result == 0 ? RET_SUCCESS : RET_ERROR;
+        return ret;
     }
 
-    RetType getOperatingMode(lis3mdl_md_t *val) {
+    /**
+     * Sets the power mode of the magnetometer
+     * @param val Value of the LP field in the CTRL_REG3 register
+     *            1 = low power mode   0 = normal mode
+     * @return
+     */
+    RetType setPowerMode(uint8_t val) {
         RESUME();
 
-        int32_t result = lis3mdl_operating_mode_get(&device, val);
+        lis3mdl_ctrl_reg3_t ctrlReg3;
+
+        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG3, static_cast<uint8_t *>(&ctrlReg3), 1));
+        if (ret != RET_SUCCESS) return ret;
+
+        ctrlReg3.lp = val;
+        ret = CALL(writeReg(LIS3MDL_CTRL_REG3, static_cast<uint8_t *>(&ctrlReg3), 1));
 
         RESET();
-        return result == 0 ? RET_SUCCESS : RET_ERROR;
-    }
-
-    RetType setLowPower(uint8_t val) {
-        RESUME();
-
-        int32_t result = lis3mdl_fast_low_power_set(&device, val);
-
-        RESET();
-        return result == 0 ? RET_SUCCESS : RET_ERROR;
-    }
-
-    RetType getLowPower(uint8_t *val) {
-        RESUME();
-
-        int32_t result = lis3mdl_fast_low_power_get(&device, val);
-
-        RESET();
-        return result == 0 ? RET_SUCCESS : RET_ERROR;
+        return ret;
     }
 
     RetType setBlockDataUpdate(uint8_t val) {
         RESUME();
 
-        int32_t result = lis3mdl_block_data_update_set(&device, val);
+        lis3mdl_ctrl_reg4_t ctrlReg4;
 
-        RESET();
-        return result == 0 ? RET_SUCCESS : RET_ERROR;
-    }
+        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG4, static_cast<uint8_t *>(&ctrlReg4), 1));
+        if (ret != RET_SUCCESS) return ret;
 
-    RetType getBlockDataUpdate(uint8_t *val) {
-        RESUME();
-
-        int32_t result = lis3mdl_block_data_update_get(&device, val);
+        ctrlReg4.bdu = val;
+        ret = CALL(writeReg(LIS3MDL_CTRL_REG4, static_cast<uint8_t *>(&ctrlReg4), 1));
 
         RESET();
         return result == 0 ? RET_SUCCESS : RET_ERROR;
@@ -197,28 +209,10 @@ public:
         return result == 0 ? RET_SUCCESS : RET_ERROR;
     }
 
-    RetType getHighPartCycle(uint8_t *val) {
-        RESUME();
-
-        int32_t result = lis3mdl_high_part_cycle_get(&device, val);
-
-        RESET();
-        return result == 0 ? RET_SUCCESS : RET_ERROR;
-    }
-
     RetType setSelfTest(uint8_t val) {
         RESUME();
 
         int32_t result = lis3mdl_self_test_set(&device, val);
-
-        RESET();
-        return result == 0 ? RET_SUCCESS : RET_ERROR;
-    }
-
-    RetType getSelfTest(uint8_t *val) {
-        RESUME();
-
-        int32_t result = lis3mdl_self_test_get(&device, val);
 
         RESET();
         return result == 0 ? RET_SUCCESS : RET_ERROR;
@@ -233,28 +227,10 @@ public:
         return result == 0 ? RET_SUCCESS : RET_ERROR;
     }
 
-    RetType getReset(uint8_t *val) {
-        RESUME();
-
-        int32_t result = lis3mdl_reset_get(&device, val);
-
-        RESET();
-        return result == 0 ? RET_SUCCESS : RET_ERROR;
-    }
-
     RetType setBoot(uint8_t val) {
         RESUME();
 
         int32_t result = lis3mdl_boot_set(&device, val);
-
-        RESET();
-        return result == 0 ? RET_SUCCESS : RET_ERROR;
-    }
-
-    RetType getBoot(uint8_t *val) {
-        RESUME();
-
-        int32_t result = lis3mdl_boot_get(&device, val);
 
         RESET();
         return result == 0 ? RET_SUCCESS : RET_ERROR;
@@ -269,28 +245,10 @@ public:
         return result == 0 ? RET_SUCCESS : RET_ERROR;
     }
 
-    RetType getDataFormat(lis3mdl_ble_t *val) {
-        RESUME();
-
-        int32_t result = lis3mdl_data_format_get(&device, val);
-
-        RESET();
-        return result == 0 ? RET_SUCCESS : RET_ERROR;
-    }
-
     RetType setConfig(lis3mdl_int_cfg_t *val) { // Possible error made by the library?
         RESUME();
 
         int32_t result = lis3mdl_int_config_set(&device, val);
-
-        RESET();
-        return result == 0 ? RET_SUCCESS : RET_ERROR;
-    }
-
-    RetType getConfig(lis3mdl_int_cfg_t *val) {
-        RESUME();
-
-        int32_t result = lis3mdl_int_config_get(&device, val);
 
         RESET();
         return result == 0 ? RET_SUCCESS : RET_ERROR;
