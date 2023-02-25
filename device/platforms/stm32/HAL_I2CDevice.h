@@ -196,7 +196,7 @@ private:
 
     // semaphore
     BlockingSemaphore m_lock;
-    BlockingSemaphore interrupt_flag;
+    Semaphore interrupt_flag;
 
     bool async = true;
 };
