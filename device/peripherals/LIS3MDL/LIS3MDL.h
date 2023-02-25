@@ -29,8 +29,40 @@ public:
         RESET();
         return RET_SUCCESS;
     }
+    
+    RetType getRawMagnetic(int16_t *val) {
+        RESUME();
 
-    RetType readReg(void *handle, uint8_t reg, uint8_t *data, uint16_t len) {
+        uint8_t data[6];
+        RetType ret = CALL(readReg(LIS3MDL_OUT_X_L, data, 6));
+        if (ret != RET_SUCCESS) return ret;
+
+        val[0] = (int16_t) data[1];
+        val[0] = (val[0] * 256) + (int16_t) data[0];
+        val[1] = (int16_t) data[3];
+        val[1] = (val[1] * 256) + (int16_t) data[2];
+        val[2] = (int16_t) data[5];
+        val[2] = (val[2] * 256) + (int16_t) data[4];
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getRawTemp(int16_t* val) {
+        RESUME();
+
+        uint8_t data[2];
+        RetType ret = CALL(readReg(LIS3MDL_TEMP_OUT_L, data, 2));
+        if (ret != RET_SUCCESS) return ret;
+
+        val[0] = (int16_t) data[1];
+        val[0] = (val[0] * 256) + (int16_t) data[0];
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType readReg(uint8_t reg, uint8_t *data, uint16_t len) {
         RESUME();
 
         i2cAddr.mem_addr = reg;
@@ -42,7 +74,7 @@ public:
 
     };
 
-    RetType writeReg(void *handle, uint8_t reg, const uint8_t *data, uint16_t len) {
+    RetType writeReg(uint8_t reg, const uint8_t *data, uint16_t len) {
         RESUME();
 
         i2cAddr.mem_addr = reg;
@@ -202,8 +234,15 @@ public:
 
     RetType setHighPartCycle(uint8_t val) {
         RESUME();
-
-        int32_t result = lis3mdl_high_part_cycle_set(&device, val);
+        
+        RetType ret = CALL(writeReg(LIS3MDL_CTRL_REG5, &val, 1));
+        if (ret != RET_SUCCESS) return ret;
+        
+        if (val == 0) {
+            lis3mdl_ctrl_reg5_t ctrlReg5;
+            ret = CALL(readReg(LIS3MDL_CTRL_REG5, static_cast<uint8_t *>(&ctrlReg5), 1));
+            if (ret != RET_SUCCESS) return ret;
+        }
 
         RESET();
         return result == 0 ? RET_SUCCESS : RET_ERROR;
