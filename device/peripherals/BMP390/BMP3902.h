@@ -670,6 +670,7 @@ private:
         RetType ret = CALL(getRegister(BMP3_REG_OSR, regData, 4));
         if (ret != RET_SUCCESS) return ret;
 
+        // OSR Data
         if (areSettingsChanged((BMP3_SEL_PRESS_OS | BMP3_SEL_TEMP_OS), desiredSettings)) {
             if (desiredSettings & (BMP3_SEL_PRESS_OS | BMP3_SEL_TEMP_OS)) {
                 if (desiredSettings & BMP3_SEL_PRESS_OS) {
@@ -685,6 +686,7 @@ private:
             }
         }
 
+        // ODR Data
         if (areSettingsChanged(BMP3_SEL_ODR, desiredSettings)) {
             if (settings.odr_filter.odr > BMP3_ODR_0_001_HZ) {
                 settings.odr_filter.odr = BMP3_ODR_0_001_HZ;
@@ -696,6 +698,7 @@ private:
             len++;
         }
 
+        // Filter Data
         if (areSettingsChanged(BMP3_SEL_IIR_FILTER, desiredSettings)) {
             regData[len] = BMP3_SET_BITS(regData[3], BMP3_IIR_FILTER, settings.odr_filter.iir_filter);
 
@@ -703,11 +706,13 @@ private:
             len++;
         }
 
+        // OSR ODR Validation
         if (settings.op_mode == BMP3_MODE_NORMAL) {
             ret = validateOsrOdr() == TRUE ? RET_SUCCESS : RET_ERROR;
             if (ret != RET_SUCCESS) return ret;
         }
 
+        // Burst Write
         ret = CALL(setRegister(regAddr, regData, len));
         if (ret != RET_SUCCESS) return ret;
 
