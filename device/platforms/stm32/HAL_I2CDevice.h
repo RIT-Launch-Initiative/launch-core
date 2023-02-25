@@ -52,6 +52,7 @@ public:
 
     /// @brief poll this device
     RetType poll() {
+        RESUME();
         // Check if a task is blocked on this device
         if (m_blocked != -1) {
             // check if the transfer is complete
@@ -67,6 +68,7 @@ public:
             }
         }
 
+        RESET();
         return RET_SUCCESS;
     }
 
