@@ -18,7 +18,7 @@ public:
     HALI2CDevice(const char *name, I2C_HandleTypeDef *hi2c) : I2CDevice(name),
                                                               m_blocked(-1),
                                                               m_i2c(hi2c),
-                                                              m_lock(1) {};
+                                                              m_lock(1), interrupt_flag(1) {};
 
 
     /// @brief initialize
