@@ -19,6 +19,8 @@
 
 #include "sched/macros/call.h"
 #include "macros.h"
+#include "stm32f4xx_hal_uart.h"
+extern UART_HandleTypeDef huart2;
 
 
 class BMP390 {
@@ -45,15 +47,15 @@ public:
 
         ret = CALL(softReset());
         if (ret == RET_ERROR) return ret;
-        CALL(mUART.write((uint8_t *) "BMP390 Soft Reset successful\r\n", 28));
+        // CALL(mUART.write((uint8_t *) "BMP390 Soft Reset successful\r\n", 28));
 
         ret = CALL(getCalibrationData());
         if (ret == RET_ERROR) return ret;
-        CALL(mUART.write((uint8_t *) "BMP390 Calibration successful\r\n", 31));
+        // CALL(mUART.write((uint8_t *) "BMP390 Calibration successful\r\n", 31));
 
         ret = CALL(initSettings());
         if (ret == RET_ERROR) return ret;
-        CALL(mUART.write((uint8_t *) "BMP390 Settings Init successful\r\n", 33));
+        // CALL(mUART.write((uint8_t *) "BMP390 Settings Init successful\r\n", 33));
         RESET();
         return ret;
     }
@@ -64,11 +66,11 @@ public:
         static uint8_t regData[BMP3_LEN_P_T_DATA] = {0};
         static struct bmp3_uncomp_data uncompensatedData = {0};
 
-        CALL(mUART.write((uint8_t *) "BMP390 Data Read called\r\n", 25));
+        // CALL(mUART.write((uint8_t *) "BMP390 Data Read called\r\n", 25));
         RetType ret = CALL(getRegister(BMP3_REG_DATA, regData, BMP3_LEN_P_T_DATA));
         if (ret != RET_SUCCESS) return ret;
 
-        CALL(mUART.write((uint8_t *) "BMP390 Data Read successful\r\n", 29));
+        // CALL(mUART.write((uint8_t *) "BMP390 Data Read successful\r\n", 29));
 
         parseSensorData(regData, &uncompensatedData);
         compensateData(&uncompensatedData, &this->device.calib_data);
@@ -240,18 +242,22 @@ public:
 
         // Oversampling, ODR and Filter Settings
         if (areSettingsChanged(BMP3_ODR_FILTER, desiredSettings)) {
-            ret = CALL(setODRFilter(desiredSettings));
+            ret = CALL(setODRFilter(desiredSettings)); // TODO: Might be causing issues
             if (ret != RET_SUCCESS) return ret;
         }
 
         // Interrupt Control Settings
         if (areSettingsChanged(BMP3_INT_CTRL, desiredSettings)) {
+            // CALL(mUART.write((uint8_t*)"Interrupt Settings\r\n", 20));
+
             ret = CALL(setIntCtrl(desiredSettings));
             if (ret != RET_SUCCESS) return ret;
         }
 
+//            // CALL(mUART.write((uint8_t*)"Interrupt Settings\r\n", 20));
         // Advanced Settings
         if (areSettingsChanged(BMP3_ADV_SETT, desiredSettings)) {
+            // CALL(mUART.write((uint8_t*)"Advanced Settings\r\n", 19));
             ret = CALL(setAdvSettings(desiredSettings));
             if (ret != RET_SUCCESS) return ret;
         }
@@ -389,8 +395,8 @@ private:
         RetType ret = CALL(setSensorSettings(settingsSel));
         if (ret != RET_SUCCESS) return ret;
 
-        ret = CALL(setOperatingMode());
-        if (ret != RET_SUCCESS) return ret;
+//        ret = CALL(setOperatingMode());
+//        if (ret != RET_SUCCESS) return ret;
 
 
         RESET();
@@ -413,13 +419,13 @@ private:
     RetType setRegister(uint8_t regAddress, uint8_t *regData, uint32_t len) {
         RESUME();
 
-        CALL(mUART.write((uint8_t *) "Set Register Called\r\n", 23));
+        // CALL(mUART.write((uint8_t *) "Set Register Called\r\n", 23));
 
         this->i2cAddr.mem_addr = regAddress;
 
         RetType ret = CALL(mI2C->write(this->i2cAddr, regData, len));
         if (ret != RET_SUCCESS) return ret;
-        CALL(mUART.write((uint8_t *) "Set Register Returned\r\n", 23));
+        // CALL(mUART.write((uint8_t *) "Set Register Returned\r\n", 23));
 
         RESET();
         return ret;
@@ -428,7 +434,7 @@ private:
 
     RetType setRegister(uint8_t const *regAddress, const uint8_t *regData, uint32_t len) {
         RESUME();
-        CALL(mUART.write((uint8_t *) "Set Burst Register Called\r\n", 29));
+        // CALL(mUART.write((uint8_t *) "Set Burst Register Called\r\n", 29));
 
         uint8_t temporaryBuffer[len * 2];
         uint8_t regAddrCount;
@@ -446,7 +452,7 @@ private:
 
         RetType ret = CALL(mI2C->write(this->i2cAddr, temporaryBuffer, temporaryLen));
         if (ret != RET_SUCCESS) return ret;
-        CALL(mUART.write((uint8_t *) "Set Register Returned\r\n", 23));
+        // CALL(mUART.write((uint8_t *) "Set Register Returned\r\n", 23));
 
         RESET();
         return ret;
@@ -466,11 +472,11 @@ private:
         RESUME();
         this->i2cAddr.mem_addr = regAddress;
 
-        CALL(mUART.write((uint8_t *) "Get Register Called\r\n", 21));
+        // CALL(mUART.write((uint8_t *) "Get Register Called\r\n", 21));
         RetType ret = CALL(mI2C->read(this->i2cAddr, regData, len));
         if (ret != RET_SUCCESS) return ret;
 
-        CALL(mUART.write((uint8_t *) "Get Register Returned\r\n", 23));
+        // CALL(mUART.write((uint8_t *) "Get Register Returned\r\n", 23));
 
         RESET();
         return ret;
@@ -756,6 +762,8 @@ private:
         RESUME();
 
         static uint8_t regData = 0;
+
+        // CALL(mUART.write((uint8_t*)"Advanced Settings\r\n", 19));
 
         RetType ret = CALL(getRegister(BMP3_REG_IF_CONF, &regData, 1));
         if (ret != RET_SUCCESS) return ret;

@@ -65,15 +65,17 @@ inline uint32_t sched_time() {
 
 /// @brief start a task on the scheduler
 /// @param func     the function to start runnning at
+/// @param arg      the argument to pass the task everytime it's executed
 /// @return the started task task id, or -1 on error
-tid_t sched_start(task_func_t func) {
+tid_t sched_start(task_func_t func, void* arg) {
     // find an unused task structure
     for(tid_t i = 0; i < MAX_NUM_TASKS; i++) {
         if(STATE_UNALLOCATED == tasks[i].state) {
             // we found one!
             tasks[i].state = STATE_ACTIVE;              // set active
-            tasks[i].stack.curr = tasks[i].stack.block; // reset stack
+            // tasks[i].stack.curr = tasks[i].stack.block; // reset stack
             tasks[i].func = func;
+            tasks[i].arg = arg;
             tasks[i].tid = i;
             tasks[i].queued = true;
 
@@ -160,7 +162,7 @@ void  sched_dispatch() {
 
         // dispatch the task
         sched_dispatched = task->tid;
-        if(RET_ERROR == task->func()) {
+        if(RET_ERROR == task->func(task->arg)) {
             // don't put back on the ready queue
             // free this task
             task->state = STATE_UNALLOCATED;
@@ -234,29 +236,29 @@ void sched_block(tid_t tid) {
     task->state = STATE_BLOCKED;
 }
 
-/// @brief save a variable to a task
-template <typename T>
-void sched_save(tid_t tid, T* var) {
-    task_t* task = &(tasks[tid]); // TODO potential memory error, tid not bounds checked
-    stack_t* stack = &(task->stack);
-
-    // TODO no error checking for saving
-    // if you save too much, it will start overwriting memory
-
-    uint8_t* data = (uint8_t*)(var);
-    // TODO this is basically memcpy, but don't want to be dependent on libc yet
-    for(size_t i = 0; i < sizeof(T); i++) {
-        *(stack->curr) = data[i];
-        stack->curr++;
-    }
-}
-
-/// @brief restore a variable from a task
-template <typename T>
-T* sched_restore(tid_t tid) {
-    task_t* task = &(tasks[tid]); // TODO potential memory error, tid not bounds checked
-    stack_t* stack = &(task->stack);
-
-    stack->curr -= sizeof(T);
-    return (T*)(stack->curr + sizeof(T));
-}
+// /// @brief save a variable to a task
+// template <typename T>
+// void sched_save(tid_t tid, T* var) {
+//     task_t* task = &(tasks[tid]); // TODO potential memory error, tid not bounds checked
+//     stack_t* stack = &(task->stack);
+//
+//     // TODO no error checking for saving
+//     // if you save too much, it will start overwriting memory
+//
+//     uint8_t* data = (uint8_t*)(var);
+//     // TODO this is basically memcpy, but don't want to be dependent on libc yet
+//     for(size_t i = 0; i < sizeof(T); i++) {
+//         *(stack->curr) = data[i];
+//         stack->curr++;
+//     }
+// }
+//
+// /// @brief restore a variable from a task
+// template <typename T>
+// T* sched_restore(tid_t tid) {
+//     task_t* task = &(tasks[tid]); // TODO potential memory error, tid not bounds checked
+//     stack_t* stack = &(task->stack);
+//
+//     stack->curr -= sizeof(T);
+//     return (T*)(stack->curr + sizeof(T));
+// }

@@ -18,7 +18,7 @@ public:
     HALI2CDevice(const char *name, I2C_HandleTypeDef *hi2c) : I2CDevice(name),
                                                               m_blocked(-1),
                                                               m_i2c(hi2c),
-                                                              m_lock(1) {};
+                                                              m_lock(1), interrupt_flag(1) {};
 
 
     /// @brief initialize
@@ -52,7 +52,23 @@ public:
 
     /// @brief poll this device
     RetType poll() {
-        // for now does nothing
+        RESUME();
+        // Check if a task is blocked on this device
+        if (m_blocked != -1) {
+            // check if the transfer is complete
+            RetType ret = CALL(interrupt_flag.acquire());
+            if (ret != RET_SUCCESS) {
+                return ret;
+            }
+
+            WAKE(m_blocked);
+            ret = CALL(interrupt_flag.release());
+            if (ret != RET_SUCCESS) {
+                return ret;
+            }
+        }
+
+        RESET();
         return RET_SUCCESS;
     }
 
@@ -82,16 +98,23 @@ public:
             return RET_ERROR;
         }
 
+        ret = CALL(m_lock.release());
+        if (ret != RET_SUCCESS) {
+            return ret;
+        }
+
+        ret = CALL(interrupt_flag.acquire());
+        if (ret != RET_SUCCESS) {
+            CALL(interrupt_flag.release());
+            return ret;
+        }
+
         // block and wait for the transfer to complete
         BLOCK();
 
         // mark the device as unblocked
         m_blocked = -1;
 
-        ret = CALL(m_lock.release());
-        if (ret != RET_SUCCESS) {
-            return ret;
-        }
 
         RESET();
         return RET_SUCCESS;
@@ -119,10 +142,19 @@ public:
         m_blocked = sched_dispatched;
 
         // start the transfer
+        ret = CALL(interrupt_flag.acquire());
+        if (ret != RET_SUCCESS) {
+            return ret;
+        }
+
+
         if (HAL_OK != HAL_I2C_Mem_Read_IT(m_i2c, addr.dev_addr, addr.mem_addr,
                                           addr.mem_addr_size, buff, len)) {
+            CALL(interrupt_flag.release());
             return RET_ERROR;
         }
+
+
 
         // wait for the transfer to complete
         BLOCK();
@@ -145,10 +177,10 @@ public:
     /// @brief called by I2C handler asynchronously
     void callback(int) {
         // don't care if it was tx or rx, for now
-
-        if (m_blocked != -1) {
-            WAKE(m_blocked);
-        }
+            if (m_blocked != -1) {
+                // Release interrupt flag for poll to wake up the task
+                interrupt_flag.release();
+            }
     }
 
 private:
@@ -164,6 +196,7 @@ private:
 
     // semaphore
     BlockingSemaphore m_lock;
+    BlockingSemaphore interrupt_flag;
 
     bool async = true;
 };
