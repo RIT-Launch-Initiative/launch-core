@@ -31,7 +31,7 @@ RetType task_format() {
     return ret;
 }
 
-RetType task() {
+RetType task(void*) {
     RESUME();
 
     RetType ret;
@@ -80,7 +80,7 @@ int main() {
         return -1;
     }
 
-    if(-1 == sched_start(&task)) {
+    if(-1 == sched_start(&task, NULL)) {
         printf("failed to start task\r\n");
         return -1;
     }

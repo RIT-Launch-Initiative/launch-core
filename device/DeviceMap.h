@@ -41,32 +41,19 @@ public:
         return NULL;
     }
 
-    /// @brief initialize all devices added to the map
-    /// @return error if any errors are returned, all devices are still initialized
-    virtual RetType init() {
-        RetType ret = RET_SUCCESS;
-
-        for(size_t i = 0; i < m_count; i++) {
-            if(RET_SUCCESS != m_devices[i]->init()) {
-                ret = RET_ERROR;
-            }
+    /// @brief iterate through devices in the map, getting the next device.
+    ///        Once all devices are returned through subsequent calls, NULL is
+    ///        returned. The next call after NULL is returned will be the first
+    ///        device in the map.
+    /// @return the pointer to the next device, or NULL if all have been read
+    Device* next() {
+        // we've read to the end
+        if(i == m_count) {
+            i = 0;
+            return NULL;
         }
 
-        return ret;
-    }
-
-    /// @brief poll all the devices in the table
-    /// @return error if any devices errored, will still poll all devices
-    virtual RetType poll() {
-        RetType ret = RET_SUCCESS;
-
-        for(size_t i = 0; i < m_count; i++) {
-            if(RET_SUCCESS != m_devices[i]->poll()) {
-                ret = RET_ERROR;
-            }
-        }
-
-        return ret;
+        return m_devices[i++];
     }
 
     #ifdef DEBUG\
@@ -91,7 +78,7 @@ protected:
                                                         m_size(size),
                                                         m_count(0) {};
 
-    /// @brief add a socket device to the map
+    /// @brief add a device to the map
     ///        this should be called by derived classes to setup the map in 'init'
     /// @param name     the name of the device
     /// @param dev      the device to add
@@ -122,6 +109,9 @@ protected:
 
     // count of devices in the table
     size_t m_count;
+
+    // iterator in device list
+    size_t i;
 };
 
 namespace alloc {
