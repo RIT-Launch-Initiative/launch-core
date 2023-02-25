@@ -98,8 +98,14 @@ public:
             return RET_ERROR;
         }
 
+        ret = CALL(m_lock.release());
+        if (ret != RET_SUCCESS) {
+            return ret;
+        }
+
         ret = CALL(interrupt_flag.acquire());
         if (ret != RET_SUCCESS) {
+            CALL(interrupt_flag.release());
             return ret;
         }
 
@@ -109,10 +115,6 @@ public:
         // mark the device as unblocked
         m_blocked = -1;
 
-        ret = CALL(m_lock.release());
-        if (ret != RET_SUCCESS) {
-            return ret;
-        }
 
         RESET();
         return RET_SUCCESS;
@@ -140,15 +142,19 @@ public:
         m_blocked = sched_dispatched;
 
         // start the transfer
-        if (HAL_OK != HAL_I2C_Mem_Read_IT(m_i2c, addr.dev_addr, addr.mem_addr,
-                                          addr.mem_addr_size, buff, len)) {
-            return RET_ERROR;
-        }
-
         ret = CALL(interrupt_flag.acquire());
         if (ret != RET_SUCCESS) {
             return ret;
         }
+
+
+        if (HAL_OK != HAL_I2C_Mem_Read_IT(m_i2c, addr.dev_addr, addr.mem_addr,
+                                          addr.mem_addr_size, buff, len)) {
+            CALL(interrupt_flag.release());
+            return RET_ERROR;
+        }
+
+
 
         // wait for the transfer to complete
         BLOCK();
@@ -173,7 +179,7 @@ public:
         // don't care if it was tx or rx, for now
             if (m_blocked != -1) {
                 // Release interrupt flag for poll to wake up the task
-                CALL(interrupt_flag.release());
+                interrupt_flag.release();
             }
     }
 
