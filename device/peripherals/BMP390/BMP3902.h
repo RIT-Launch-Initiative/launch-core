@@ -395,8 +395,8 @@ private:
         RetType ret = CALL(setSensorSettings(settingsSel));
         if (ret != RET_SUCCESS) return ret;
 
-//        ret = CALL(setOperatingMode());
-//        if (ret != RET_SUCCESS) return ret;
+        ret = CALL(setOperatingMode());
+        if (ret != RET_SUCCESS) return ret;
 
 
         RESET();
