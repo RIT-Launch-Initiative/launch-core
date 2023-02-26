@@ -1,6 +1,7 @@
 #ifndef HAL_I2C_DEVICE_H
 #define HAL_I2C_DEVICE_H
 
+#include <stdatomic.h>
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_i2c.h"
 
@@ -197,8 +198,6 @@ private:
     // semaphore
     BlockingSemaphore m_lock;
     Semaphore interrupt_flag;
-
-    bool async = true;
 };
 
 #endif

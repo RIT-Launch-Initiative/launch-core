@@ -66,11 +66,8 @@ public:
         static uint8_t regData[BMP3_LEN_P_T_DATA] = {0};
         static struct bmp3_uncomp_data uncompensatedData = {0};
 
-        // CALL(mUART.write((uint8_t *) "BMP390 Data Read called\r\n", 25));
         RetType ret = CALL(getRegister(BMP3_REG_DATA, regData, BMP3_LEN_P_T_DATA));
         if (ret != RET_SUCCESS) return ret;
-
-        // CALL(mUART.write((uint8_t *) "BMP390 Data Read successful\r\n", 29));
 
         parseSensorData(regData, &uncompensatedData);
         compensateData(&uncompensatedData, &this->device.calib_data);
@@ -248,16 +245,12 @@ public:
 
         // Interrupt Control Settings
         if (areSettingsChanged(BMP3_INT_CTRL, desiredSettings)) {
-            // CALL(mUART.write((uint8_t*)"Interrupt Settings\r\n", 20));
-
             ret = CALL(setIntCtrl(desiredSettings));
             if (ret != RET_SUCCESS) return ret;
         }
 
-//            // CALL(mUART.write((uint8_t*)"Interrupt Settings\r\n", 20));
         // Advanced Settings
         if (areSettingsChanged(BMP3_ADV_SETT, desiredSettings)) {
-            // CALL(mUART.write((uint8_t*)"Advanced Settings\r\n", 19));
             ret = CALL(setAdvSettings(desiredSettings));
             if (ret != RET_SUCCESS) return ret;
         }
@@ -405,7 +398,7 @@ private:
 
     RetType getCalibrationData() {
         RESUME();
-        static uint8_t calibrationData[BMP3_LEN_CALIB_DATA] = {}; // Must be static! Hard fault from invalid memory access otherwise
+        static uint8_t calibrationData[BMP3_LEN_CALIB_DATA] = {};
 
         RetType ret = CALL(getRegister(BMP3_REG_CALIB_DATA, calibrationData, BMP3_LEN_CALIB_DATA));
         if (ret != RET_SUCCESS) return ret;
@@ -623,8 +616,8 @@ private:
         double tempData1;
         double tempData2;
 
-        tempData1 = static_cast<double>(uncompTemp - calibData->quantized_calib_data.par_t1);
-        tempData2 = static_cast<double>(tempData1 * calibData->quantized_calib_data.par_t2);
+        tempData1 = uncompTemp - calibData->quantized_calib_data.par_t1;
+        tempData2 = tempData1 * calibData->quantized_calib_data.par_t2;
 
         /* Update the compensated temperature in calib structure since this is
          * needed for pressure calculation */
@@ -678,43 +671,22 @@ private:
 
         // OSR Data
         if (areSettingsChanged((BMP3_SEL_PRESS_OS | BMP3_SEL_TEMP_OS), desiredSettings)) {
-            if (desiredSettings & (BMP3_SEL_PRESS_OS | BMP3_SEL_TEMP_OS)) {
-                if (desiredSettings & BMP3_SEL_PRESS_OS) {
-                    regData[len] = BMP3_SET_BITS_POS_0(regData[0], BMP3_PRESS_OS, settings.odr_filter.press_os);
-                }
-
-                if (desiredSettings & BMP3_SEL_TEMP_OS) {
-                    regData[len] = BMP3_SET_BITS(regData[0], BMP3_TEMP_OS, settings.odr_filter.temp_os);
-                }
-
-                regAddr[len] = BMP3_REG_OSR;
-                len++;
-            }
+            fillOSRData(desiredSettings, regAddr, regData, &len);
         }
 
         // ODR Data
         if (areSettingsChanged(BMP3_SEL_ODR, desiredSettings)) {
-            if (settings.odr_filter.odr > BMP3_ODR_0_001_HZ) {
-                settings.odr_filter.odr = BMP3_ODR_0_001_HZ;
-            }
-
-            regData[len] = BMP3_SET_BITS_POS_0(regData[1], BMP3_ODR, settings.odr_filter.odr);
-
-            regAddr[len] = BMP3_REG_ODR;
-            len++;
+            fillOdrData(regAddr, regData, &len);
         }
 
         // Filter Data
         if (areSettingsChanged(BMP3_SEL_IIR_FILTER, desiredSettings)) {
-            regData[len] = BMP3_SET_BITS(regData[3], BMP3_IIR_FILTER, settings.odr_filter.iir_filter);
-
-            regAddr[len] = BMP3_REG_CONFIG;
-            len++;
+            fillFilterData(regAddr, regData, &len);
         }
 
         // OSR ODR Validation
         if (settings.op_mode == BMP3_MODE_NORMAL) {
-            ret = validateOsrOdr() == TRUE ? RET_SUCCESS : RET_ERROR;
+            ret = validateOsrOdr() ? RET_SUCCESS : RET_ERROR;
             if (ret != RET_SUCCESS) return ret;
         }
 
@@ -724,6 +696,55 @@ private:
 
         RESET();
         return ret;
+    }
+
+    void fillOSRData(uint32_t desiredSettings, uint8_t *addr, uint8_t *regData, uint8_t *len) {
+        if (desiredSettings & (BMP3_SEL_PRESS_OS | BMP3_SEL_TEMP_OS)) {
+            /* Pressure over sampling settings check */
+            if (desiredSettings & BMP3_SEL_PRESS_OS) {
+                /* Set the pressure over sampling settings in the
+                 * register variable */
+                regData[*len] = BMP3_SET_BITS_POS_0(regData[0], BMP3_PRESS_OS,
+                                                    settings.odr_filter.press_os);
+            }
+
+            /* Temperature over sampling settings check */
+            if (desiredSettings & BMP3_SEL_TEMP_OS) {
+                /* Set the temperature over sampling settings in the
+                 * register variable */
+                regData[*len] = BMP3_SET_BITS(regData[0], BMP3_TEMP_OS, settings.odr_filter.temp_os);
+            }
+
+            /* 0x1C is the register address of over sampling register */
+            addr[*len] = BMP3_REG_OSR;
+            (*len)++;
+        }
+    }
+
+     void fillOdrData(uint8_t *addr, uint8_t *regData, uint8_t *len) {
+         /* Limit the ODR to 0.001525879 Hz*/
+         if (settings.odr_filter.odr > BMP3_ODR_0_001_HZ) {
+             settings.odr_filter.odr = BMP3_ODR_0_001_HZ;
+         }
+
+         /* Set the ODR settings in the register variable */
+         regData[*len] =
+                 BMP3_SET_BITS_POS_0(regData[1], BMP3_ODR, settings.odr_filter.odr);
+
+         /* 0x1D is the register address of output data rate register */
+         addr[*len] = BMP3_REG_ODR;
+         (*len)++;
+     }
+
+
+    void fillFilterData(uint8_t *addr, uint8_t *regData, uint8_t *len) {
+
+        /* Set the iir settings in the register variable */
+        regData[*len] = BMP3_SET_BITS(regData[3], BMP3_IIR_FILTER, settings.odr_filter.iir_filter);
+
+        /* 0x1F is the register address of iir filter register */
+        addr[*len] = BMP3_REG_CONFIG;
+        (*len)++;
     }
 
     RetType setIntCtrl(uint32_t desiredSettings) {
@@ -757,6 +778,7 @@ private:
         RESET();
         return ret;
     }
+
 
     RetType setAdvSettings(uint32_t desiredSettings) {
         RESUME();
