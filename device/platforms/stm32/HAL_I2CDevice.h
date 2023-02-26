@@ -1,7 +1,6 @@
 #ifndef HAL_I2C_DEVICE_H
 #define HAL_I2C_DEVICE_H
 
-#include <stdatomic.h>
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_i2c.h"
 
@@ -53,23 +52,14 @@ public:
 
     /// @brief poll this device
     RetType poll() {
-        RESUME();
         // Check if a task is blocked on this device
         if (m_blocked != -1) {
             // check if the transfer is complete
-            RetType ret = CALL(interrupt_flag.acquire());
-            if (ret != RET_SUCCESS) {
-                return ret;
-            }
-
+            interrupt_flag.acquire();
             WAKE(m_blocked);
-            ret = CALL(interrupt_flag.release());
-            if (ret != RET_SUCCESS) {
-                return ret;
-            }
+            interrupt_flag.release();
         }
 
-        RESET();
         return RET_SUCCESS;
     }
 
@@ -94,19 +84,16 @@ public:
         m_blocked = sched_dispatched;
 
         // start the transfer
+        interrupt_flag.acquire();
+
         if (HAL_OK != HAL_I2C_Mem_Write_IT(m_i2c, addr.dev_addr, addr.mem_addr,
                                            addr.mem_addr_size, buff, len)) {
+            interrupt_flag.release();
             return RET_ERROR;
         }
 
         ret = CALL(m_lock.release());
         if (ret != RET_SUCCESS) {
-            return ret;
-        }
-
-        ret = CALL(interrupt_flag.acquire());
-        if (ret != RET_SUCCESS) {
-            CALL(interrupt_flag.release());
             return ret;
         }
 
@@ -143,19 +130,12 @@ public:
         m_blocked = sched_dispatched;
 
         // start the transfer
-        ret = CALL(interrupt_flag.acquire());
-        if (ret != RET_SUCCESS) {
-            return ret;
-        }
-
-
+        interrupt_flag.acquire();
         if (HAL_OK != HAL_I2C_Mem_Read_IT(m_i2c, addr.dev_addr, addr.mem_addr,
                                           addr.mem_addr_size, buff, len)) {
-            CALL(interrupt_flag.release());
+            interrupt_flag.release();
             return RET_ERROR;
         }
-
-
 
         // wait for the transfer to complete
         BLOCK();
