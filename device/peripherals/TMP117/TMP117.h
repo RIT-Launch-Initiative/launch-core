@@ -95,7 +95,6 @@ public:
         uint8_t buff;
         RetType ret = CALL(mI2C.read(i2cAddr, &buff, 1));
 
-
         RESET();
         return ret;
     }

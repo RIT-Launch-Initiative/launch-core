@@ -55,7 +55,22 @@ public:
 
         ret = CALL(initSettings());
         if (ret == RET_ERROR) return ret;
-        // CALL(mUART.write((uint8_t *) "BMP390 Settings Init successful\r\n", 33));
+
+        RESET();
+        return ret;
+    }
+
+    RetType getSettings(bmp3_settings *retSettings) {
+        RESUME();
+
+        static uint8_t settingsData[BMP3_LEN_GEN_SETT];
+
+
+        RetType ret = CALL(getRegister(BMP3_REG_INT_CTRL, settingsData, BMP3_LEN_GEN_SETT));
+        if (ret != RET_SUCCESS) return ret;
+
+        parse_sett_data(settingsData, retSettings);
+
         RESET();
         return ret;
     }
@@ -268,8 +283,12 @@ public:
         RetType ret = CALL(getOperatingMode(&lastSetMode));
         if (ret != RET_SUCCESS) return ret;
 
+//        ret = CALL(getSettings(&this->settings));
+
         if (lastSetMode != BMP3_MODE_SLEEP) {
             ret = CALL(sleep());
+            if (ret != RET_SUCCESS) return ret;
+
             SLEEP(5000);
         }
 
@@ -278,7 +297,6 @@ public:
         } else if (currMode == BMP3_MODE_FORCED) {
             ret = CALL(writePowerMode());
         }
-
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
@@ -293,8 +311,10 @@ public:
         RetType ret = CALL(getRegister(BMP3_REG_PWR_CTRL, &operatingMode, 1));
         if (ret != RET_SUCCESS) return ret;
 
-        operatingMode = operatingMode & (~BMP3_OP_MODE_MSK);
+        operatingMode = operatingMode & (~(BMP3_OP_MODE_MSK));
+
         ret = CALL(setRegister(BMP3_REG_PWR_CTRL, &operatingMode, 1));
+
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
@@ -360,6 +380,7 @@ private:
     RetType initSettings() {
         RESUME();
 
+        CALL(mUART.write((uint8_t*)"Initializing settings...\r\n", 26));
         this->settings = {
                 .op_mode = BMP3_MODE_NORMAL,
                 .press_en = BMP3_ENABLE,
@@ -382,10 +403,9 @@ private:
                 }
         };
 
-        static uint16_t settingsSel = BMP3_SEL_PRESS_EN | BMP3_SEL_TEMP_EN | BMP3_SEL_PRESS_OS |
-                                      BMP3_SEL_TEMP_OS | BMP3_SEL_ODR | BMP3_SEL_DRDY_EN;
 
-        RetType ret = CALL(setSensorSettings(settingsSel));
+        RetType ret = CALL(setSensorSettings(BMP3_SEL_PRESS_EN | BMP3_SEL_TEMP_EN | BMP3_SEL_PRESS_OS | BMP3_SEL_TEMP_OS | BMP3_SEL_ODR |
+                   BMP3_SEL_DRDY_EN));
         if (ret != RET_SUCCESS) return ret;
 
         ret = CALL(setOperatingMode());
@@ -412,13 +432,11 @@ private:
     RetType setRegister(uint8_t regAddress, uint8_t *regData, uint32_t len) {
         RESUME();
 
-        // CALL(mUART.write((uint8_t *) "Set Register Called\r\n", 23));
 
         this->i2cAddr.mem_addr = regAddress;
 
         RetType ret = CALL(mI2C->write(this->i2cAddr, regData, len));
         if (ret != RET_SUCCESS) return ret;
-        // CALL(mUART.write((uint8_t *) "Set Register Returned\r\n", 23));
 
         RESET();
         return ret;
@@ -784,8 +802,6 @@ private:
         RESUME();
 
         static uint8_t regData = 0;
-
-        // CALL(mUART.write((uint8_t*)"Advanced Settings\r\n", 19));
 
         RetType ret = CALL(getRegister(BMP3_REG_IF_CONF, &regData, 1));
         if (ret != RET_SUCCESS) return ret;

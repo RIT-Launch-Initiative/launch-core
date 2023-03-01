@@ -378,8 +378,8 @@ static int8_t null_ptr_check(const struct bmp3_dev *dev);
  * @param[in] reg_data    : Register data to be parsed.
  * @param[in] settings    : Structure instance of bmp3_settings
  */
-static void parse_sett_data(const uint8_t *reg_data,
-                            struct bmp3_settings *settings);
+//static void parse_sett_data(const uint8_t *reg_data,
+//                            struct bmp3_settings *settings);
 
 /*!
  * @brief This internal API parse the power control(power mode, pressure enable
@@ -1717,7 +1717,7 @@ static void interleave_reg_addr(const uint8_t *reg_addr, uint8_t *temp_buff,
  * and temperature enable), over sampling, ODR, filter, interrupt control and
  * advance settings and store in the device structure.
  */
-static void parse_sett_data(const uint8_t *reg_data,
+void parse_sett_data(const uint8_t *reg_data,
                             struct bmp3_settings *settings) {
     /* Parse interrupt control settings and store in device structure */
     parse_int_ctrl_settings(&reg_data[0], &settings->int_settings);

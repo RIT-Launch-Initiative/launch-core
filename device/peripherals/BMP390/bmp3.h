@@ -545,7 +545,8 @@ int8_t bmp3_fifo_flush(struct bmp3_dev *dev);
  * @retval <0 -> Error
  */
 int8_t bmp3_get_status(struct bmp3_status *status, struct bmp3_dev *dev);
-
+void parse_sett_data(const uint8_t *reg_data,
+                            struct bmp3_settings *settings);
 #ifdef __cplusplus
 }
 #endif /* End of CPP guard */
