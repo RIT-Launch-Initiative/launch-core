@@ -20,10 +20,9 @@ public:
     RetType init() {
         RESUME();
 
-        uint8_t whoAmI = 0;
+        static uint8_t whoAmI = 0;
         RetType ret = CALL(readReg(LIS3MDL_WHO_AM_I, &whoAmI, 1));
         if (ret != RET_SUCCESS) return ret;
-
         if (whoAmI != LIS3MDL_ID) return RET_ERROR;
 
         RESET();
@@ -63,22 +62,30 @@ public:
     }
 
     RetType readReg(uint8_t reg, uint8_t *data, uint16_t len) {
-        RESUME();
+        static bool _init = false;\
+            static void* _current[static_cast<int>(MAX_NUM_TASKS) + 1];\
+            if(!_init) {\
+                for(int i = 0; i < static_cast<int>(MAX_NUM_TASKS) + 1; i++) {\
+                    _current[i] = &&_start;\
+                }\
+                _init = true;\
+            }\
+            goto *(_current[static_cast<int>(sched_dispatched)]);\
+            _start:\
 
         i2cAddr.mem_addr = reg;
-
-        RetType ret = CALL(mI2C.read(i2cAddr, data, len));
+        RetType ret = CALL(mI2C->read(i2cAddr, data, len));
+        if (ret != RET_SUCCESS) return ret;
 
         RESET();
         return RET_SUCCESS;
-
     };
 
     RetType writeReg(uint8_t reg, uint8_t *data, uint16_t len) {
         RESUME();
 
         i2cAddr.mem_addr = reg;
-        RetType ret = CALL(mI2C.write(i2cAddr, data, len));
+        RetType ret = CALL(mI2C->write(i2cAddr, data, len));
 
         RESET();
         return RET_SUCCESS;
@@ -391,7 +398,7 @@ public:
 
 
 private:
-    I2CDevice &mI2C;
+    I2CDevice *mI2C;
     I2CAddr_t i2cAddr = {
             .dev_addr = 0x1C << 1,
             .mem_addr = 0x00,
