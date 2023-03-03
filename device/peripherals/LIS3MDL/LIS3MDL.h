@@ -41,10 +41,10 @@ public:
      * @param temp
      * @return
      */
-    RetType pullSensorData(float *magX, float *magY, float *magZ, int16_t* temp) {
+    RetType pullSensorData(float *magX, float *magY, float *magZ, float* temp) {
         RESUME();
 
-        static int16_t rawMagneticData[3] = {};
+        static int16_t rawMagneticData[3];
         RetType ret = CALL(getRawMagnetic(rawMagneticData));
         if (ret != RET_SUCCESS) return ret;
 
@@ -52,9 +52,10 @@ public:
         *magY = 1000 * fs16ToGauss(rawMagneticData[1]);
         *magZ = 1000 * fs16ToGauss(rawMagneticData[2]);
 
-
-        ret = CALL(getRawTemp(temp));
+        static int16_t rawTemp;
+        ret = CALL(getRawTemp(&rawTemp));
         if (ret != RET_SUCCESS) return ret;
+        *temp = lsbToCelsius(rawTemp);
 
         RESET();
         return RET_SUCCESS;
@@ -434,8 +435,10 @@ private:
     RetType initSettings() {
         RESUME();
 
+        RetType ret = CALL(reset(PROPERTY_ENABLE));
+
         // Enable Block Update
-        RetType ret = CALL(setBlockDataUpdate(PROPERTY_ENABLE));
+        ret = CALL(setBlockDataUpdate(PROPERTY_ENABLE));
         if (ret != RET_SUCCESS) return ret;
 
         // Set ODR
@@ -449,8 +452,6 @@ private:
         // Enable temp sensing
         ret = CALL(setTempMeas(PROPERTY_ENABLE));
         if (ret != RET_SUCCESS) return ret;
-
-
 
         // Set to continuous mode
         ret = CALL(setOperatingMode(LIS3MDL_CONTINUOUS_MODE));
