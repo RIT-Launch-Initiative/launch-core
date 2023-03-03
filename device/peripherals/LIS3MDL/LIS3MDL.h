@@ -25,6 +25,22 @@ public:
         if (ret != RET_SUCCESS) return ret;
         if (whoAmI != LIS3MDL_ID) return RET_ERROR;
 
+        ret = CALL(initSettings());
+        if (ret != RET_SUCCESS) return ret;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType pullSensorData(int16_t *magnetic, int16_t* temp) {
+        RESUME();
+
+        RetType ret = CALL(getRawMagnetic(magnetic));
+        if (ret != RET_SUCCESS) return ret;
+
+        ret = CALL(getRawTemp(temp));
+        if (ret != RET_SUCCESS) return ret;
+
         RESET();
         return RET_SUCCESS;
     }
@@ -32,16 +48,17 @@ public:
     RetType getRawMagnetic(int16_t *val) {
         RESUME();
 
-        uint8_t data[6];
-        RetType ret = CALL(readReg(LIS3MDL_OUT_X_L, data, 6));
+        static uint8_t buff[6];
+        RetType ret = CALL(readReg(LIS3MDL_OUT_X_L, buff, 6));
         if (ret != RET_SUCCESS) return ret;
 
-        val[0] = (int16_t) data[1];
-        val[0] = (val[0] * 256) + (int16_t) data[0];
-        val[1] = (int16_t) data[3];
-        val[1] = (val[1] * 256) + (int16_t) data[2];
-        val[2] = (int16_t) data[5];
-        val[2] = (val[2] * 256) + (int16_t) data[4];
+        // TODO: Below calculations cause a hardfault
+//        val[0] = (int16_t) data[1];
+//        val[0] = (val[0] * 256) + (int16_t) data[0];
+//        val[1] = (int16_t) data[3];
+//        val[1] = (val[1] * 256) + (int16_t) data[2];
+//        val[2] = (int16_t) data[5];
+//        val[2] = (val[2] * 256) + (int16_t) data[4];
 
         RESET();
         return RET_SUCCESS;
@@ -50,7 +67,7 @@ public:
     RetType getRawTemp(int16_t *val) {
         RESUME();
 
-        uint8_t data[2];
+        static uint8_t data[2];
         RetType ret = CALL(readReg(LIS3MDL_TEMP_OUT_L, data, 2));
         if (ret != RET_SUCCESS) return ret;
 
@@ -62,16 +79,7 @@ public:
     }
 
     RetType readReg(uint8_t reg, uint8_t *data, uint16_t len) {
-        static bool _init = false;\
-            static void* _current[static_cast<int>(MAX_NUM_TASKS) + 1];\
-            if(!_init) {\
-                for(int i = 0; i < static_cast<int>(MAX_NUM_TASKS) + 1; i++) {\
-                    _current[i] = &&_start;\
-                }\
-                _init = true;\
-            }\
-            goto *(_current[static_cast<int>(sched_dispatched)]);\
-            _start:\
+        RESUME();
 
         i2cAddr.mem_addr = reg;
         RetType ret = CALL(mI2C->read(i2cAddr, data, len));
@@ -85,7 +93,10 @@ public:
         RESUME();
 
         i2cAddr.mem_addr = reg;
+
         RetType ret = CALL(mI2C->write(i2cAddr, data, len));
+        if (ret != RET_SUCCESS) return ret;
+
 
         RESET();
         return RET_SUCCESS;
@@ -237,8 +248,8 @@ public:
 
         RESET();
         return RET_SUCCESS;
-
     }
+
 
     RetType setHighPartCycle(uint8_t val) {
         RESUME();
@@ -404,6 +415,37 @@ private:
             .mem_addr = 0x00,
             .mem_addr_size = sizeof(uint8_t),
     };
+
+    RetType initSettings() {
+        RESUME();
+
+        // Enable Block Update
+        RetType ret = CALL(setBlockDataUpdate(PROPERTY_ENABLE));
+        if (ret != RET_SUCCESS) return ret;
+
+        // Set ODR
+        ret = CALL(setDataRate(LIS3MDL_HP_1Hz25));
+        if (ret != RET_SUCCESS) return ret;
+
+        // Set FS
+        ret = CALL(setFullScale(LIS3MDL_16_GAUSS));
+        if (ret != RET_SUCCESS) return ret;
+
+        // Enable temp sensing
+        ret = CALL(setTempMeas(PROPERTY_ENABLE));
+        if (ret != RET_SUCCESS) return ret;
+
+
+
+        // Set to continuous mode
+        ret = CALL(setOperatingMode(LIS3MDL_CONTINUOUS_MODE));
+        if (ret != RET_SUCCESS) return ret;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+
 };
 
 
