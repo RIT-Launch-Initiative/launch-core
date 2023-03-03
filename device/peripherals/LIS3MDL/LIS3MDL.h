@@ -45,6 +45,8 @@ public:
         RESUME();
 
         static int16_t rawMagneticData[3];
+        static int16_t rawTemp;
+
         RetType ret = CALL(getRawMagnetic(rawMagneticData));
         if (ret != RET_SUCCESS) return ret;
 
@@ -52,7 +54,6 @@ public:
         *magY = 1000 * fs16ToGauss(rawMagneticData[1]);
         *magZ = 1000 * fs16ToGauss(rawMagneticData[2]);
 
-        static int16_t rawTemp;
         ret = CALL(getRawTemp(&rawTemp));
         if (ret != RET_SUCCESS) return ret;
         *temp = lsbToCelsius(rawTemp);
@@ -73,8 +74,8 @@ public:
         val[0] = (val[0] * 256) + (int16_t) buff[0];
         val[1] = (int16_t) buff[3];
         val[1] = (val[1] * 256) + (int16_t) buff[2];
-//        val[2] = (int16_t) buff[5];
-//        val[2] = (val[2] * 256) + (int16_t) buff[4];
+        val[2] = (int16_t) buff[5];
+        val[2] = (val[2] * 256) + (int16_t) buff[4];
 
         RESET();
         return RET_SUCCESS;
@@ -84,11 +85,11 @@ public:
         RESUME();
 
         static uint8_t data[2];
-        RetType ret = CALL(readReg(LIS3MDL_TEMP_OUT_L, data, 2));
+        RetType ret = CALL(readReg(LIS3MDL_TEMP_OUT_L, (uint8_t *) data, 2));
         if (ret != RET_SUCCESS) return ret;
 
-        val[0] = (int16_t) data[1];
-        val[0] = (val[0] * 256) + (int16_t) data[0];
+        *val = (int16_t) data[1];
+        *val = (*val * 256) + (int16_t) data[0];
 
         RESET();
         return RET_SUCCESS;
@@ -176,7 +177,7 @@ public:
     RetType setTempMeas(uint8_t val) {
         RESUME();
 
-        lis3mdl_ctrl_reg1_t ctrlReg1;
+        static lis3mdl_ctrl_reg1_t ctrlReg1;
 
         RetType ret = CALL(readReg(LIS3MDL_CTRL_REG1, reinterpret_cast<uint8_t *>(&ctrlReg1), 1));
         if (ret != RET_SUCCESS) return ret;
