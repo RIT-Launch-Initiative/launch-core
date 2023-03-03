@@ -32,11 +32,26 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType pullSensorData(int16_t *magnetic, int16_t* temp) {
+    /**
+     * Gets the calculated sensor data
+     *
+     * @param magX
+     * @param magY
+     * @param magZ
+     * @param temp
+     * @return
+     */
+    RetType pullSensorData(float *magX, float *magY, float *magZ, int16_t* temp) {
         RESUME();
 
-        RetType ret = CALL(getRawMagnetic(magnetic));
+        static int16_t rawMagneticData[3] = {};
+        RetType ret = CALL(getRawMagnetic(rawMagneticData));
         if (ret != RET_SUCCESS) return ret;
+
+        *magX = 1000 * fs16ToGauss(rawMagneticData[0]);
+        *magY = 1000 * fs16ToGauss(rawMagneticData[1]);
+        *magZ = 1000 * fs16ToGauss(rawMagneticData[2]);
+
 
         ret = CALL(getRawTemp(temp));
         if (ret != RET_SUCCESS) return ret;
@@ -53,12 +68,12 @@ public:
         if (ret != RET_SUCCESS) return ret;
 
         // TODO: Below calculations cause a hardfault
-//        val[0] = (int16_t) data[1];
-//        val[0] = (val[0] * 256) + (int16_t) data[0];
-//        val[1] = (int16_t) data[3];
-//        val[1] = (val[1] * 256) + (int16_t) data[2];
-//        val[2] = (int16_t) data[5];
-//        val[2] = (val[2] * 256) + (int16_t) data[4];
+        val[0] = (int16_t) buff[1];
+        val[0] = (val[0] * 256) + (int16_t) buff[0];
+        val[1] = (int16_t) buff[3];
+        val[1] = (val[1] * 256) + (int16_t) buff[2];
+//        val[2] = (int16_t) buff[5];
+//        val[2] = (val[2] * 256) + (int16_t) buff[4];
 
         RESET();
         return RET_SUCCESS;
