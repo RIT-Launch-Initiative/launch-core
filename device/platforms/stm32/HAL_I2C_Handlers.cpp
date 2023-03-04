@@ -3,9 +3,11 @@
 
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_i2c.h"
+#include "stm32f4xx_hal_uart.h"
 
 #include "device/platforms/stm32/HAL_Handlers.h"
 #include "hashmap/hashmap.h"
+extern UART_HandleTypeDef huart2;
 
 namespace HALHandlers {
 
@@ -65,7 +67,7 @@ RetType register_i2c_rx(I2C_HandleTypeDef* hi2c, CallbackDevice* dev, int num) {
 void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *hi2c) {
     // lookup if there's a device registered for this I2C
     HALHandlers::dev_t* dev = HALHandlers::i2c_tx_map[hi2c];
-
+    HAL_UART_Transmit(&huart2, (uint8_t*)"TxCplt\r\n", 8, 1000);
     // if there's a device, call it's callback function
     if(dev) {
         dev->dev->callback(dev->num);
@@ -85,7 +87,9 @@ void HAL_I2C_MemTxCpltCallback(I2C_HandleTypeDef *hi2c) {
 // receive complete
 void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c) {
     // lookup if there's a device registered for this I2C
-    HALHandlers::dev_t* dev = HALHandlers::i2c_tx_map[hi2c];
+    HALHandlers::dev_t* dev = HALHandlers::i2c_rx_map[hi2c];
+
+    HAL_UART_Transmit(&huart2, (uint8_t*)"RxCplt\r\n", 8, 1000);
 
     // if there's a device, call it's callback function
     if(dev) {

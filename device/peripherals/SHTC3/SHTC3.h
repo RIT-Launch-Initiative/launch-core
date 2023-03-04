@@ -50,9 +50,9 @@ public:
         ret = CALL(getID(&this->id));
         if (ret != RET_SUCCESS) return ret;
 
-        if ((this->id & 0x083F) != 0x807) {
-            return RET_ERROR;
-        }
+//        if ((this->id & 0x083F) != 0x807) {
+//            return RET_ERROR;
+//        }
 
 //        if (inLowPowerMode) {
 //            ret = CALL(writeCommand(LOW_POW_MEAS_TEMP));
