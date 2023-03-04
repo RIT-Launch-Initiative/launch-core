@@ -65,8 +65,8 @@ public:
 
     RetType readX(int16_t *xAxis) {
         RESUME();
-        uint8_t lsb = 0;
-        uint8_t msb = 0;
+        static uint8_t lsb = 0;
+        static uint8_t msb = 0;
 
         // reading the data
         i2cAddr.mem_addr = xLSBDataReg;
@@ -92,8 +92,8 @@ public:
 
     RetType readY(int16_t *yAxis) {
         RESUME();
-        uint8_t lsb = 0;
-        uint8_t msb = 0;
+        static uint8_t lsb = 0;
+        static uint8_t msb = 0;
 
         // reading the data
         i2cAddr.mem_addr = yLSBDataReg;
@@ -113,8 +113,8 @@ public:
 
     RetType readZ(int16_t *zAxis) {
         RESUME();
-        uint8_t lsb = 0;
-        uint8_t msb = 0;
+        static uint8_t lsb = 0;
+        static uint8_t msb = 0;
 
         // reading the data
         i2cAddr.mem_addr = zLSBDataReg;
