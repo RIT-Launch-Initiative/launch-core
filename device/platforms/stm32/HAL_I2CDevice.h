@@ -107,7 +107,7 @@ public:
         return RET_SUCCESS;
     }
 
-    /// @brief transmit to an I2C device
+    /// @brief write to an I2C device register
     /// @param addr     the I2C address to write to
     /// @param buff     the buffer to write
     /// @param len      the size of 'buff' in bytes
