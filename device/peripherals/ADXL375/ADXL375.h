@@ -9,6 +9,7 @@
 
 #define ADXL375_DEV_ADDR_PRIM 0x3B
 #define ADXL375_DEV_ADDR_SEC 0x53
+#define ADXL375_REG_BW_RATE 0x2C
 
 
 #include <stdlib.h>
@@ -30,6 +31,20 @@ typedef enum {
     deviceID = 0x00,
 } ADXL375_REG;
 
+// TODO: Define possible configurations (i.e data rates)
+typedef enum {
+    ADXL375_DR_3200HZ = 0x0F,
+    ADXL375_DR_1600HZ = 0x0E,
+    ADXL375_DR_800HZ = 0x0D,
+    ADXL375_DR_400HZ = 0x0C,
+    ADXL375_DR_200HZ = 0x0B,
+    ADXL375_DR_100HZ = 0x0A,
+    ADXL375_DR_50HZ = 0x09,
+    ADXL375_DR_25HZ = 0x08,
+    ADXL375_DR_12HZ5 = 0x07,
+    ADXL375_DR_6HZ25 = 0x06,
+} ADXL375_DATA_RATE;
+
 class ADXL375 {
 public:
     ADXL375(I2CDevice &i2c) : m_i2c(i2c) {}
@@ -42,6 +57,8 @@ public:
         RetType ret = CALL(m_i2c.read(i2cAddr, &id, 1));
         if (ret != RET_SUCCESS) return ret;
         if (id != 0xE5) return RET_ERROR;
+
+        // TODO: Call the 2 new functions
 
         RESET();
         return RET_SUCCESS;
@@ -138,6 +155,12 @@ public:
 
     }
 
+    // TODO: Set Data Rate Function
+    RetType setDataRate(){
+        i2cAddr.mem_addr = ADXL375_REG_BW_RATE;
+    }
+
+    // TODO: Set Operating Mode Function
 
 private:
     I2CDevice &m_i2c;
