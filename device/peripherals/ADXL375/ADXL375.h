@@ -37,7 +37,7 @@ public:
     RetType init() {
         RESUME();
 
-        uint8_t id = 0;
+        static uint8_t id = 0;
 
         RetType ret = CALL(m_i2c.read(i2cAddr, &id, 1));
         if (ret != RET_SUCCESS) return ret;
