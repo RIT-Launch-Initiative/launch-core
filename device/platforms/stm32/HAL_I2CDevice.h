@@ -63,12 +63,12 @@ public:
         return RET_SUCCESS;
     }
 
-    /// @brief write to the I2C
+    /// @brief transmit to an I2C device
     /// @param addr     the I2C address to write to
     /// @param buff     the buffer to write
     /// @param len      the size of 'buff' in bytes
     /// @return
-    RetType write(I2CAddr_t &addr, uint8_t *buff, size_t len) {
+    RetType transmit(I2CAddr_t &addr, uint8_t *buff, size_t len) {
         RESUME();
 
         // block and wait for the device to be available
@@ -86,8 +86,7 @@ public:
         // start the transfer
         interrupt_flag.acquire();
 
-        if (HAL_OK != HAL_I2C_Mem_Write_IT(m_i2c, addr.dev_addr, addr.mem_addr,
-                                           addr.mem_addr_size, buff, len)) {
+        if (HAL_OK != HAL_I2C_Master_Transmit_IT(m_i2c, addr.dev_addr, buff, len)) {
             interrupt_flag.release();
             return RET_ERROR;
         }
@@ -108,7 +107,51 @@ public:
         return RET_SUCCESS;
     }
 
-    /// @brief read from the I2C
+    /// @brief write to the I2C register
+    /// @param addr     the I2C address to write to
+    /// @param buff     the buffer to write
+    /// @param len      the size of 'buff' in bytes
+    /// @return
+    RetType receive(I2CAddr_t &addr, uint8_t *buff, size_t len) {
+        RESUME();
+
+        // block and wait for the device to be available
+        RetType ret = CALL(m_lock.acquire());
+        if (ret != RET_SUCCESS) {
+            // some error
+            return ret;
+        }
+
+        // mark this task as blocked BEFORE we call the interrupt function
+        // we want to make sure there is no race condition b/w processing the ISR
+        // and blocking the task
+        m_blocked = sched_dispatched;
+
+        // start the transfer
+        interrupt_flag.acquire();
+
+        if (HAL_OK != HAL_I2C_Master_Receive_IT(m_i2c, addr.dev_addr, buff, len)) {
+            interrupt_flag.release();
+            return RET_ERROR;
+        }
+
+        ret = CALL(m_lock.release());
+        if (ret != RET_SUCCESS) {
+            return ret;
+        }
+
+        // block and wait for the transfer to complete
+        BLOCK();
+
+        // mark the device as unblocked
+        m_blocked = -1;
+
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    /// @brief read from the I2C register
     ///        blocks until enough data is ready
     /// @param addr     the I2C address to read from
     /// @param buff     the buffer to read into
