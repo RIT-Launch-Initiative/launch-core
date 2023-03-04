@@ -6,11 +6,11 @@
 #ifndef LAUNCH_CORE_SHTC3_H
 #define LAUNCH_CORE_SHTC3_H
 
-#include "return.h"
-#include "sched/macros/resume.h"
-#include "sched/macros/reset.h"
 #include "device/I2CDevice.h"
+#include "return.h"
 #include "sched/macros/call.h"
+#include "sched/macros/reset.h"
+#include "sched/macros/resume.h"
 
 #define SHTC3_I2C_ADDR 0x70
 
@@ -32,29 +32,35 @@ enum SHTC3_CMD {
     LOW_POW_MEAS_HUM_STRETCH = 0x44DE,
 };
 
-
 class SHTC3 {
 public:
-    // TODO: Validate addr
-    SHTC3(I2CDevice *i2CDevice) : mI2C(i2CDevice),
-                                  inLowPowerMode(true),
-                                  addr({
-                                               .dev_addr = SHTC3_I2C_ADDR << 1,
-                                               .mem_addr = 0,
-                                               .mem_addr_size = 0
-                                       }) {}
+    SHTC3(I2CDevice &i2CDevice) : mI2C(i2CDevice), inLowPowerMode(false),
+                                  addr({.dev_addr = SHTC3_I2C_ADDR << 1, .mem_addr = 0, .mem_addr_size = 2}) {}
 
     RetType init() {
         RESUME();
 
-        uint16_t id = 0;
-        RetType ret = CALL(getID(&id));
+        RetType ret = CALL(toggleSleep(false));
+        if (ret != RET_SUCCESS) return ret;
+
+        ret = CALL(reset());
         if (ret != RET_SUCCESS) return ret;
 
 
-        if ((id & 0x083F) != 0x807) {
+        ret = CALL(getID(&this->id));
+        if (ret != RET_SUCCESS) return ret;
+
+        if ((this->id & 0x083F) != 0x807) {
             return RET_ERROR;
         }
+
+//        if (inLowPowerMode) {
+//            ret = CALL(writeCommand(LOW_POW_MEAS_TEMP));
+//            SLEEP(1000);
+//        } else {
+//            ret = CALL(writeCommand(NORMAL_POW_MEAS_TEMP));
+//            SLEEP(13000);
+//        }
 
         RESET();
         return RET_SUCCESS;
@@ -63,45 +69,48 @@ public:
     RetType getHumidityAndTemp(float *temperature, float *humidity) {
         RESUME();
 
-        RetType ret;
-        uint8_t buff[6];
-        if (inLowPowerMode) {
-            ret = CALL(writeCommand(LOW_POW_MEAS_TEMP));
-            // TODO: Call a delay of 1
-        } else {
-            ret = CALL(writeCommand(NORMAL_POW_MEAS_TEMP));
-            // TODO: Call a delay of 13
-        }
-        if (ret != RET_SUCCESS) return ret;
+        uint16_t rawTemp;
+        uint16_t rawHumidity;
 
-        ret = CALL(mI2C->read(addr, buff, sizeof(buff)));
-        if (ret != RET_SUCCESS) return ret;
+        // Find a way to init write access
 
-        if ((buff[2] != crc8(buff, 2)) || (buff[5] != crc8(buff + 3, 2))) {
-            return RET_ERROR;
+        ret = CALL(writeCommand(NORMAL_POW_MEAS_HUM_STRETCH));
+
+        if(error == NO_ERROR) {
+            // Start a read
+
+//            Read the first 2 bytes for temp
+//            Then another 2 for humidity
         }
 
-        int32_t calcTemp = static_cast<int32_t>((static_cast<uint32_t>(buff[0]) << 8) | buff[1]);
-        calcTemp = ((4375 * calcTemp) >> 14) - 4500;
-        *temperature = static_cast<float>(calcTemp) / 100.0f;
+        // Stop write access here
 
-        uint32_t calcHum = (static_cast<uint32_t>(buff[3]) << 8) | buff[4];
-        calcHum = (625 * calcHum) >> 12;
-        *humidity = static_cast<float>(calcHum) / 100.0f;
+        *humidity = calcHumidity(rawHumidity);
+        *temperature = calcTemp(rawTemp);
+
+        return error;
 
         RESET();
         return RET_SUCCESS;
     }
 
+    static float calcTemp(uint16_t rawValue){
+        return 175 * static_cast<float>(rawValue) / 65536.0f - 45.0f;
+    }
+
+    static float calcHumidity(uint16_t rawValue){
+        return 100 * static_cast<float>(rawValue) / 65536.0f;
+    }
+
     RetType toggleSleep(bool setSleep) {
         RESUME();
 
-        RetType ret;
+        static RetType ret;
         if (setSleep) {
             ret = CALL(writeCommand(SLEEP_CMD));
         } else {
             ret = CALL(writeCommand(WAKEUP_CMD));
-            // TODO: Delay for 200 microsecs in the future
+            SLEEP(1);
         }
 
         if (ret != RET_SUCCESS) return ret;
@@ -116,20 +125,23 @@ public:
         RetType ret = CALL(writeCommand(RESET_CMD));
         if (ret != RET_SUCCESS) return ret;
 
+        SLEEP(100);
+
         RESET();
         return RET_SUCCESS;
     }
 
+    RetType startWrite() {
+
+    }
+
     RetType writeCommand(SHTC3_CMD command16) {
         RESUME();
+        addr.dev_addr = (SHTC3_I2C_ADDR << 1);
+        addr.mem_addr = command16;  // this MAY be incorrect, but it makes sense
+        // see datasheet table 11
 
-        uint8_t command8[2] = {};
-        uint16ToUint8(command16, command8);
-
-        addr.mem_addr = command16;
-        addr.mem_addr_size = 2;
-
-        RetType ret = CALL(mI2C->write(addr, command8, 2));
+        RetType ret = CALL(mI2C.write(addr, {}, 0));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
@@ -139,17 +151,13 @@ public:
     RetType readCommand(SHTC3_CMD command16, uint8_t *buff, uint8_t numBytes) {
         RESUME();
 
-        uint8_t command8[2] = {};
-        uint16ToUint8(command16, command8);
-
         addr.mem_addr = command16;
-        addr.mem_addr_size = 2;
 
-
-        RetType ret = CALL(mI2C->write(addr, command8, 2));
+        RetType ret = CALL(mI2C.write(addr, {}, 0));
         if (ret != RET_SUCCESS) return ret;
 
-        ret = CALL(mI2C->read(addr, buff, numBytes));
+        addr.dev_addr = (SHTC3_I2C_ADDR << 1) | 0x01;  // we bitwise or here to set read flag
+        ret = CALL(mI2C.read(addr, buff, numBytes));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
@@ -159,13 +167,11 @@ public:
     RetType getID(uint16_t *id) {
         RESUME();
 
-        uint8_t data[3] = {};
-        RetType ret = CALL(readCommand(READ_ID_CMD, data, 3));
+        static uint8_t data[2] = {};
+        RetType ret = CALL(readCommand(READ_ID_CMD, data, 2));
         if (ret != RET_SUCCESS) return ret;
 
-        *id = data[0];
-        *id <<= 8;
-        *id |= data[1];
+        *id = data[0] << 8 | data[1];
 
         RESET();
         return RET_SUCCESS;
@@ -177,9 +183,10 @@ public:
 
 
 private:
-    I2CDevice *mI2C;
+    I2CDevice &mI2C;
     I2CAddr_t addr;
     bool inLowPowerMode;
+    uint16_t id;
 
     void uint16ToUint8(uint16_t data16, uint8_t *data8) {
         data8[0] = static_cast<uint8_t>(data16 >> 8);
@@ -203,4 +210,4 @@ private:
 };
 
 
-#endif //LAUNCH_CORE_SHTC3_H
+#endif  // LAUNCH_CORE_SHTC3_H
