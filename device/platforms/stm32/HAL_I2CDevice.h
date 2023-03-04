@@ -130,7 +130,7 @@ public:
         // start the transfer
         interrupt_flag.acquire();
 
-        if (HAL_OK != HAL_I2C_Mem_Write_IT(m_i2c, addr.dev_addr, buff, len)) {
+        if (HAL_OK != HAL_I2C_Mem_Write_IT(m_i2c, addr.dev_addr, addr.mem_addr, addr.mem_addr_size, buff, len)) {
             interrupt_flag.release();
             return RET_ERROR;
         }
