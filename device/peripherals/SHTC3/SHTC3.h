@@ -72,23 +72,19 @@ public:
         uint16_t rawTemp;
         uint16_t rawHumidity;
 
-        // Find a way to init write access
+        RetType ret = CALL(writeCommand(NORMAL_POW_MEAS_HUM_STRETCH));
 
-        ret = CALL(writeCommand(NORMAL_POW_MEAS_HUM_STRETCH));
+        uint8_t buffer[2] = {};
 
-        if(error == NO_ERROR) {
-            // Start a read
-
-//            Read the first 2 bytes for temp
-//            Then another 2 for humidity
-        }
-
-        // Stop write access here
-
+        ret = CALL(mI2C.read(addr, buffer, 2));
+        if (ret != RET_SUCCESS) return ret;
+        rawHumidity = (buffer[0] << 8) | buffer[1];
         *humidity = calcHumidity(rawHumidity);
-        *temperature = calcTemp(rawTemp);
 
-        return error;
+        ret = CALL(mI2C.read(addr, buffer, 2));
+        if (ret != RET_SUCCESS) return ret;
+        rawTemp = (buffer[0] << 8) | buffer[1];
+        *temperature = calcTemp(rawTemp);
 
         RESET();
         return RET_SUCCESS;
@@ -138,10 +134,8 @@ public:
     RetType writeCommand(SHTC3_CMD command16) {
         RESUME();
         addr.dev_addr = (SHTC3_I2C_ADDR << 1);
-        addr.mem_addr = command16;  // this MAY be incorrect, but it makes sense
-        // see datasheet table 11
 
-        RetType ret = CALL(mI2C.write(addr, {}, 0));
+        RetType ret = CALL(mI2C.transmit(addr, reinterpret_cast<uint8_t*>(&command16), 0));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
@@ -151,13 +145,11 @@ public:
     RetType readCommand(SHTC3_CMD command16, uint8_t *buff, uint8_t numBytes) {
         RESUME();
 
-        addr.mem_addr = command16;
-
-        RetType ret = CALL(mI2C.write(addr, {}, 0));
+        RetType ret = CALL(mI2C.transmit(addr, reinterpret_cast<uint8_t*>(&command16), 0));
         if (ret != RET_SUCCESS) return ret;
 
         addr.dev_addr = (SHTC3_I2C_ADDR << 1) | 0x01;  // we bitwise or here to set read flag
-        ret = CALL(mI2C.read(addr, buff, numBytes));
+        ret = CALL(mI2C.receive(addr, buff, numBytes));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
@@ -177,9 +169,9 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType setPowerMode(bool lowPowerMode) {
-        this->inLowPowerMode = lowPowerMode;
-    }
+//    RetType setPowerMode(bool lowPowerMode) {
+//        this->inLowPowerMode = lowPowerMode;
+//    }
 
 
 private:
