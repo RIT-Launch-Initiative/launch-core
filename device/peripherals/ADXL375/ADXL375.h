@@ -50,13 +50,13 @@ public:
     RetType readXYZ(int16_t *xAxis, int16_t *yAxis, int16_t *zAxis) {
         RESUME();
 
-        RetType ret = readX(xAxis);
+        RetType ret = CALL(readX(xAxis));
         if (ret != RET_SUCCESS) return ret;
 
-        ret = readY(yAxis);
+        ret = CALL(readY(yAxis));
         if (ret != RET_SUCCESS) return ret;
 
-        ret = readY(yAxis);
+        ret = CALL(readZ(zAxis));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
