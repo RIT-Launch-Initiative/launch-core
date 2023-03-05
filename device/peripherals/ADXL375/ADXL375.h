@@ -45,6 +45,12 @@ typedef enum {
     ADXL375_DR_6HZ25 = 0x06,
 } ADXL375_DATA_RATE;
 
+typedef enum{
+    ADXL375_MEASURING_MODE = 0x08,
+    ADLX375_SLEEP_MODE = 0x04,
+    ADLX375_AUTOSLEEP_MODE = 0x10,
+} ADXL375_OP_MODE;
+
 class ADXL375 {
 public:
     ADXL375(I2CDevice &i2c) : m_i2c(i2c) {}
@@ -155,12 +161,22 @@ public:
 
     }
 
-    // TODO: Set Data Rate Function
-    RetType setDataRate(){
+    RetType setDataRate(ADXL375_DATA_RATE dataRate) {
+        RESUME();
         i2cAddr.mem_addr = ADXL375_REG_BW_RATE;
+        RetType ret = CALL(m_i2c.write(i2cAddr, &dataRate, 1));
+        RESET();
+        return ret;
     }
 
     // TODO: Set Operating Mode Function
+    RetType setOperatingMode(ADXL375_OP_MODE opMode){
+        RESUME();
+        i2cAddr.mem_addr = ADXL375_REG_BW_RATE;
+        RetType ret = CALL(m_i2c.write(i2cAddr, &opMode, 1));
+        RESET();
+        return ret;
+    }
 
 private:
     I2CDevice &m_i2c;
