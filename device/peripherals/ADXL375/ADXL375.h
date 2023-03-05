@@ -10,6 +10,7 @@
 #define ADXL375_DEV_ADDR_PRIM 0x3B
 #define ADXL375_DEV_ADDR_SEC 0x53
 #define ADXL375_REG_BW_RATE 0x2C
+#define ADXL375_POWER_CTL 0x2D
 
 
 #include <stdlib.h>
@@ -31,7 +32,6 @@ typedef enum {
     deviceID = 0x00,
 } ADXL375_REG;
 
-// TODO: Define possible configurations (i.e data rates)
 typedef enum {
     ADXL375_DR_3200HZ = 0x0F,
     ADXL375_DR_1600HZ = 0x0E,
@@ -64,7 +64,11 @@ public:
         if (ret != RET_SUCCESS) return ret;
         if (id != 0xE5) return RET_ERROR;
 
-        // TODO: Call the 2 new functions
+        ret = CALL(setDataRate(ADXL375_DR_400HZ));
+        if (ret != RET_SUCCESS) return ret;
+
+        ret = CALL(setOperatingMode(ADXL375_MEASURING_MODE));
+        if (ret != RET_SUCCESS) return ret;
 
         RESET();
         return RET_SUCCESS;
@@ -161,19 +165,28 @@ public:
 
     }
 
-    RetType setDataRate(ADXL375_DATA_RATE dataRate) {
+    RetType wakeup() {
         RESUME();
-        i2cAddr.mem_addr = ADXL375_REG_BW_RATE;
-        RetType ret = CALL(m_i2c.write(i2cAddr, &dataRate, 1));
+
+        i2cAddr.mem_addr = ADXL375_POWER_CTL;
+        RetType ret = CALL(m_i2c.write(i2cAddr, reinterpret_cast<uint8_t*>(0x08), 1));
+
         RESET();
         return ret;
     }
 
-    // TODO: Set Operating Mode Function
-    RetType setOperatingMode(ADXL375_OP_MODE opMode){
+    RetType setDataRate(ADXL375_DATA_RATE dataRate) {
         RESUME();
         i2cAddr.mem_addr = ADXL375_REG_BW_RATE;
-        RetType ret = CALL(m_i2c.write(i2cAddr, &opMode, 1));
+        RetType ret = CALL(m_i2c.write(i2cAddr, reinterpret_cast<uint8_t*>(&dataRate), 1));
+        RESET();
+        return ret;
+    }
+
+    RetType setOperatingMode(ADXL375_OP_MODE opMode){
+        RESUME();
+        i2cAddr.mem_addr = ADXL375_POWER_CTL;
+        RetType ret = CALL(m_i2c.write(i2cAddr, reinterpret_cast<uint8_t*>(&opMode), 1));
         RESET();
         return ret;
     }
