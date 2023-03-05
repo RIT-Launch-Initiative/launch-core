@@ -68,14 +68,50 @@ public:
 
         static uint8_t id = 0;
 
+        static int16_t xAvg;
+        static int16_t yAvg;
+        static int16_t zAvg;
+
+
         RetType ret = CALL(m_i2c.read(i2cAddr, &id, 1));
         if (ret != RET_SUCCESS) return ret;
         if (id != 0xE5) return RET_ERROR;
 
-        ret = CALL(setDataRate(ADXL375_DR_400HZ));
+        ret = CALL(setDataRate(ADXL375_DR_6HZ25));
         if (ret != RET_SUCCESS) return ret;
 
         ret = CALL(setOperatingMode(ADXL375_MEASURING_MODE));
+        if (ret != RET_SUCCESS) return ret;
+
+        SLEEP(100);
+
+
+//        for (int i = 0; i < 10; i++) {
+//
+//            xAvg += x;
+//            yAvg += y;
+//            zAvg += z;
+//        }
+//
+//        xAvg /= 10;
+//        yAvg /= 10;
+//        zAvg /= 10;
+
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType calibrate() {
+        RESUME();
+
+        static int16_t x;
+        static int16_t y;
+        static int16_t z;
+
+        RetType ret = CALL(readXYZ(&x, &y, &z));
+        if (ret != RET_SUCCESS) return ret;
+        ret = CALL(setOffset(400, 23, 28));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
@@ -85,14 +121,15 @@ public:
     RetType readXYZ(int16_t *xAxis, int16_t *yAxis, int16_t *zAxis) {
         RESUME();
 
-        RetType ret = CALL(readX(xAxis));
+        static uint8_t buff[6] = {0};
+        i2cAddr.mem_addr = xLSBDataReg;
+
+        RetType ret = CALL(m_i2c.read(i2cAddr, buff, 6));
         if (ret != RET_SUCCESS) return ret;
 
-        ret = CALL(readY(yAxis));
-        if (ret != RET_SUCCESS) return ret;
-
-        ret = CALL(readZ(zAxis));
-        if (ret != RET_SUCCESS) return ret;
+        *xAxis = ((buff[1] << 8) | buff[0]) * -1;
+        *yAxis = ((buff[3] << 8) | buff[2]) * -1;
+        *zAxis = ((buff[5] << 8) | buff[4]) * -1;
 
         RESET();
         return RET_SUCCESS;
@@ -195,6 +232,31 @@ public:
         RESUME();
         i2cAddr.mem_addr = ADXL375_POWER_CTL;
         RetType ret = CALL(m_i2c.write(i2cAddr, reinterpret_cast<uint8_t*>(&opMode), 1));
+        RESET();
+        return ret;
+    }
+
+    RetType setOffset(int16_t xOffset, int16_t yOffset, int16_t zOffset) {
+        RESUME();
+
+        static uint8_t xOffBuff[2] = {static_cast<uint8_t>(xOffset & 0xFF), static_cast<uint8_t>((xOffset >> 8) & 0xFF)};
+        static uint8_t yOffBuff[2] = {static_cast<uint8_t>(yOffset & 0xFF), static_cast<uint8_t>((yOffset >> 8) & 0xFF)};
+        static uint8_t zOffBuff[2] = {static_cast<uint8_t>(zOffset & 0xFF), static_cast<uint8_t>((zOffset >> 8) & 0xFF)};
+
+
+        i2cAddr.mem_addr = offsetXReg;
+        RetType ret = CALL(m_i2c.write(i2cAddr, xOffBuff, 2));
+        if (ret != RET_SUCCESS) return ret;
+
+        i2cAddr.mem_addr = offsetYReg;
+        ret = CALL(m_i2c.write(i2cAddr, yOffBuff, 2));
+        if (ret != RET_SUCCESS) return ret;
+
+        i2cAddr.mem_addr = offsetZReg;
+        ret = CALL(m_i2c.write(i2cAddr, zOffBuff, 2));
+        if (ret != RET_SUCCESS) return ret;
+
+
         RESET();
         return ret;
     }
