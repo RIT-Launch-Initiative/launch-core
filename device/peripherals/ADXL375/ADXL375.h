@@ -11,6 +11,9 @@
 #define ADXL375_DEV_ADDR_SEC 0x53
 #define ADXL375_REG_BW_RATE 0x2C
 #define ADXL375_POWER_CTL 0x2D
+#define ADXL375_REG_DATA_FORMAT 0x31
+
+#define ADXL375_XYZ_READ_SCALE_FACTOR   49
 
 
 #include <stdlib.h>
@@ -29,6 +32,10 @@ typedef enum {
     zLSBDataReg = 0x36,
     zMSBDataReg = 0x37,
 
+    offsetXReg = 0x1E,
+    offsetYReg = 0x1F,
+    offsetZReg = 0x20,
+
     deviceID = 0x00,
 } ADXL375_REG;
 
@@ -45,11 +52,12 @@ typedef enum {
     ADXL375_DR_6HZ25 = 0x06,
 } ADXL375_DATA_RATE;
 
-typedef enum{
+typedef enum {
     ADXL375_MEASURING_MODE = 0x08,
     ADLX375_SLEEP_MODE = 0x04,
     ADLX375_AUTOSLEEP_MODE = 0x10,
 } ADXL375_OP_MODE;
+
 
 class ADXL375 {
 public:
