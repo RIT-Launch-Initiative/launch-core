@@ -109,8 +109,30 @@ public:
         static int16_t y;
         static int16_t z;
 
-        RetType ret = CALL(readXYZ(&x, &y, &z));
+        static int16_t xOff;
+        static int16_t yOff;
+        static int16_t zOff;
+
+        static int16_t xOn;
+        static int16_t yOn;
+        static int16_t zOn;
+
+        for (int i = 0; i < 10; i++) {
+            ret = CALL(readXYZ(&x, &y, &z));
+            if (ret != RET_SUCCESS) return ret;
+
+            xOff += x;
+            yOff += y;
+            zOff += z;
+        }
+
+        xOff /= 10;
+        yOff /= 10;
+        zOff /= 10;
+
+        ret = CALL(selfTest(&xOn, &yOn, &zOn));
         if (ret != RET_SUCCESS) return ret;
+
         ret = CALL(setOffset(400, 23, 28));
         if (ret != RET_SUCCESS) return ret;
 
@@ -130,6 +152,19 @@ public:
         *xAxis = ((buff[1] << 8) | buff[0]) * -1;
         *yAxis = ((buff[3] << 8) | buff[2]) * -1;
         *zAxis = ((buff[5] << 8) | buff[4]) * -1;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType readXYZRaw(int16_t *xAxis, int16_t *yAxis, int16_t *zAxis) {
+        RESUME();
+
+        static uint8_t buff[6] = {0};
+        i2cAddr.mem_addr = xLSBDataReg;
+
+        RetType ret = CALL(m_i2c.read(i2cAddr, buff, 6));
+        if (ret != RET_SUCCESS) return ret;
 
         RESET();
         return RET_SUCCESS;
