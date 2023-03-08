@@ -85,57 +85,6 @@ public:
 
         SLEEP(100);
 
-
-//        for (int i = 0; i < 10; i++) {
-//
-//            xAvg += x;
-//            yAvg += y;
-//            zAvg += z;
-//        }
-//
-//        xAvg /= 10;
-//        yAvg /= 10;
-//        zAvg /= 10;
-
-
-        RESET();
-        return RET_SUCCESS;
-    }
-
-    RetType calibrate() {
-        RESUME();
-
-        static int16_t x;
-        static int16_t y;
-        static int16_t z;
-
-        static int16_t xOff;
-        static int16_t yOff;
-        static int16_t zOff;
-
-        static int16_t xOn;
-        static int16_t yOn;
-        static int16_t zOn;
-
-        for (int i = 0; i < 10; i++) {
-            ret = CALL(readXYZ(&x, &y, &z));
-            if (ret != RET_SUCCESS) return ret;
-
-            xOff += x;
-            yOff += y;
-            zOff += z;
-        }
-
-        xOff /= 10;
-        yOff /= 10;
-        zOff /= 10;
-
-        ret = CALL(selfTest(&xOn, &yOn, &zOn));
-        if (ret != RET_SUCCESS) return ret;
-
-        ret = CALL(setOffset(400, 23, 28));
-        if (ret != RET_SUCCESS) return ret;
-
         RESET();
         return RET_SUCCESS;
     }
@@ -152,19 +101,6 @@ public:
         *xAxis = ((buff[1] << 8) | buff[0]) * -1;
         *yAxis = ((buff[3] << 8) | buff[2]) * -1;
         *zAxis = ((buff[5] << 8) | buff[4]) * -1;
-
-        RESET();
-        return RET_SUCCESS;
-    }
-
-    RetType readXYZRaw(int16_t *xAxis, int16_t *yAxis, int16_t *zAxis) {
-        RESUME();
-
-        static uint8_t buff[6] = {0};
-        i2cAddr.mem_addr = xLSBDataReg;
-
-        RetType ret = CALL(m_i2c.read(i2cAddr, buff, 6));
-        if (ret != RET_SUCCESS) return ret;
 
         RESET();
         return RET_SUCCESS;
@@ -309,45 +245,6 @@ private:
             .mem_addr = 0x00,
             .mem_addr_size = 1
     };
-
-    RetType selfTest(int16_t *xAvg, int16_t *yAvg, int16_t *zAvg) {
-        RESUME();
-
-        static uint8_t dataFormat = 0;
-        static int16_t x = 0;
-        static int16_t y = 0;
-        static int16_t z = 0;
-
-        i2cAddr.mem_addr = ADXL375_REG_DATA_FORMAT;
-        RetType ret = CALL(m_i2c.read(i2cAddr, &dataFormat, 1));
-        if (ret != RET_SUCCESS) return ret;
-
-        dataFormat |= (1 << 7);
-        ret = CALL(m_i2c.write(i2cAddr, &dataFormat, 1));
-        if (ret != RET_SUCCESS) return ret;
-
-        for (int i = 0; i < 10; i++) {
-            ret = CALL(readXYZ(&x, &y, &z));
-            if (ret != RET_SUCCESS) return ret;
-
-            *xAvg += x;
-            *yAvg += y;
-            *zAvg += z;
-        }
-
-        *xAvg /= 10;
-        *yAvg /= 10;
-        *zAvg /= 10;
-
-        dataFormat &= ~(1 << 7);
-        ret = CALL(m_i2c.write(i2cAddr, &dataFormat, 1));
-        if (ret != RET_SUCCESS) return ret;
-
-        RESET();
-        return RET_SUCCESS;
-    }
-
-
 };
 
 
