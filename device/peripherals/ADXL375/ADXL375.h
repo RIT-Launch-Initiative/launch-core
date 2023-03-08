@@ -101,6 +101,22 @@ public:
         return RET_SUCCESS;
     }
 
+    RetType readXYZFloat(float *xAxis, float *yAxis, float *zAxis) {
+        RESUME();
+
+        static int16_t xRaw;
+        static int16_t yRaw;
+        static int16_t zRaw;
+
+        RetType ret = CALL(readXYZRaw(&xRaw, &yRaw, &zRaw));
+        *xAxis = xRaw * ADXL375_MG2G_MULTIPLIER * ADXL375_GRAVITY;
+        *yAxis = yRaw * ADXL375_MG2G_MULTIPLIER * ADXL375_GRAVITY;
+        *zAxis = zRaw * ADXL375_MG2G_MULTIPLIER * ADXL375_GRAVITY;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
 
     RetType readXYZRaw(int16_t *xAxis, int16_t *yAxis, int16_t *zAxis) {
         RESUME();
