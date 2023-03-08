@@ -12,9 +12,9 @@
 #define ADXL375_REG_BW_RATE 0x2C
 #define ADXL375_POWER_CTL 0x2D
 #define ADXL375_REG_DATA_FORMAT 0x31
-
-#define ADXL375_XYZ_READ_SCALE_FACTOR   49
-
+#define ADXL375_XYZ_READ_SCALE_FACTOR 49
+#define ADXL375_MG2G_MULTIPLIER 0.049
+#define ADXL375_GRAVITY 9.80665F
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -90,6 +90,19 @@ public:
     }
 
     RetType readXYZ(int16_t *xAxis, int16_t *yAxis, int16_t *zAxis) {
+        RESUME();
+
+        RetType ret = CALL(readXYZRaw(xAxis, yAxis, zAxis));
+        *xAxis *= ADXL375_MG2G_MULTIPLIER * ADXL375_GRAVITY;
+        *yAxis *= ADXL375_MG2G_MULTIPLIER * ADXL375_GRAVITY;
+        *zAxis *= ADXL375_MG2G_MULTIPLIER * ADXL375_GRAVITY;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+
+    RetType readXYZRaw(int16_t *xAxis, int16_t *yAxis, int16_t *zAxis) {
         RESUME();
 
         static uint8_t buff[6] = {0};
