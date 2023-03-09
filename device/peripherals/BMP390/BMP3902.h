@@ -20,6 +20,7 @@
 #include "sched/macros/call.h"
 #include "macros.h"
 #include "stm32f4xx_hal_uart.h"
+
 extern UART_HandleTypeDef huart2;
 
 
@@ -30,7 +31,7 @@ public:
     /*************************************************************************************
      * Main Functionality
      *************************************************************************************/
-    RetType init() {
+    RetType init(bool is388 = true) {
         RESUME();
         uint8_t chipID = 0;
 
@@ -43,7 +44,7 @@ public:
         };
 
         RetType ret = CALL(mI2C->read(this->i2cAddr, &this->device.chip_id, 1));
-        if (this->device.chip_id != BMP390_CHIP_ID) return RET_ERROR;
+        if (this->device.chip_id != (is388 ? BMP3_CHIP_ID : BMP390_CHIP_ID)) return RET_ERROR;
 
         ret = CALL(softReset());
         if (ret == RET_ERROR) return ret;
@@ -277,13 +278,12 @@ public:
     RetType setOperatingMode() {
         RESUME();
 
-        uint8_t lastSetMode;
-        uint8_t currMode = this->settings.op_mode;
+        static uint8_t lastSetMode;
+        static uint8_t currMode = this->settings.op_mode;
 
         RetType ret = CALL(getOperatingMode(&lastSetMode));
         if (ret != RET_SUCCESS) return ret;
 
-//        ret = CALL(getSettings(&this->settings));
 
         if (lastSetMode != BMP3_MODE_SLEEP) {
             ret = CALL(sleep());
@@ -293,6 +293,7 @@ public:
         }
 
         if (currMode == BMP3_MODE_NORMAL) {
+            HAL_UART_Transmit(&huart2, (uint8_t *) "NORMAL MODE\r\n", 13, 100);
             ret = CALL(setNormalMode());
         } else if (currMode == BMP3_MODE_FORCED) {
             ret = CALL(writePowerMode());
@@ -323,11 +324,12 @@ public:
 
     RetType setNormalMode() {
         RESUME();
+        static uint8_t configErrorStatus;
 
-        if (validateOsrOdr() != RET_SUCCESS) return RET_ERROR;
+        RetType ret = CALL(validateNormalModeSettings());
+        if (ret != RET_SUCCESS) return ret;
 
-        uint8_t configErrorStatus;
-        RetType ret = CALL(writePowerMode());
+        ret = CALL(writePowerMode());
         if (ret != RET_SUCCESS) return ret;
 
         ret = CALL(getRegister(BMP3_REG_ERR, &configErrorStatus, 1));
@@ -338,7 +340,18 @@ public:
         }
 
         RESET();
-        return ret;
+        return RET_SUCCESS;
+    }
+
+    RetType validateNormalModeSettings() {
+        RESUME();
+
+        RetType ret = CALL(getODRFilterSettings());
+        if (ret != RET_SUCCESS) return ret;
+        if (!validateOsrOdr()) return RET_ERROR;
+
+        RESET();
+        return RET_SUCCESS;
     }
 
     RetType writePowerMode() {
@@ -367,6 +380,39 @@ public:
         return result == BMP3_OK ? RET_SUCCESS : RET_ERROR;
     }
 
+    RetType getODRFilterSettings() {
+        RESUME();
+
+        static uint8_t regData[4];
+        RetType ret = CALL(getRegister(BMP3_REG_OSR, regData, 4));
+        if (ret != RET_SUCCESS) return ret;
+
+        parseODRFilterSettings(regData);
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    void parseODRFilterSettings(const uint8_t *regData) {
+        uint8_t index = 0;
+
+        settings.odr_filter.press_os = BMP3_GET_BITS_POS_0(regData[index], BMP3_PRESS_OS);
+        settings.odr_filter.temp_os = BMP3_GET_BITS(regData[index], BMP3_TEMP_OS);
+
+        index++;
+        settings.odr_filter.odr = BMP3_GET_BITS_POS_0(regData[index], BMP3_ODR);
+
+        index = index + 2;
+        settings.odr_filter.iir_filter = BMP3_GET_BITS(regData[index], BMP3_IIR_FILTER);
+
+        uint8_t uartBuffer[100];
+        size_t size = snprintf((char *) uartBuffer, 100, "Press OS: %d\r\nTemp OS: %d\r\nODR: %d\r\nIIR Filter: %d\r\n",
+                               settings.odr_filter.press_os, settings.odr_filter.temp_os, settings.odr_filter.odr,
+                               settings.odr_filter.iir_filter);
+
+        HAL_UART_Transmit(&huart2, uartBuffer, size, 100);
+    }
+
 private:
     bmp3_dev device = {};
     bmp3_data data = {};
@@ -380,7 +426,7 @@ private:
     RetType initSettings() {
         RESUME();
 
-        CALL(mUART.write((uint8_t*)"Initializing settings...\r\n", 26));
+        CALL(mUART.write((uint8_t *) "Initializing settings...\r\n", 26));
         this->settings = {
                 .op_mode = BMP3_MODE_NORMAL,
                 .press_en = BMP3_ENABLE,
@@ -404,8 +450,9 @@ private:
         };
 
 
-        RetType ret = CALL(setSensorSettings(BMP3_SEL_PRESS_EN | BMP3_SEL_TEMP_EN | BMP3_SEL_PRESS_OS | BMP3_SEL_TEMP_OS | BMP3_SEL_ODR |
-                   BMP3_SEL_DRDY_EN));
+        RetType ret = CALL(setSensorSettings(
+                BMP3_SEL_PRESS_EN | BMP3_SEL_TEMP_EN | BMP3_SEL_PRESS_OS | BMP3_SEL_TEMP_OS | BMP3_SEL_ODR |
+                BMP3_SEL_DRDY_EN));
         if (ret != RET_SUCCESS) return ret;
 
         ret = CALL(setOperatingMode());
@@ -739,20 +786,20 @@ private:
         }
     }
 
-     void fillOdrData(uint8_t *addr, uint8_t *regData, uint8_t *len) {
-         /* Limit the ODR to 0.001525879 Hz*/
-         if (settings.odr_filter.odr > BMP3_ODR_0_001_HZ) {
-             settings.odr_filter.odr = BMP3_ODR_0_001_HZ;
-         }
+    void fillOdrData(uint8_t *addr, uint8_t *regData, uint8_t *len) {
+        /* Limit the ODR to 0.001525879 Hz*/
+        if (settings.odr_filter.odr > BMP3_ODR_0_001_HZ) {
+            settings.odr_filter.odr = BMP3_ODR_0_001_HZ;
+        }
 
-         /* Set the ODR settings in the register variable */
-         regData[*len] =
-                 BMP3_SET_BITS_POS_0(regData[1], BMP3_ODR, settings.odr_filter.odr);
+        /* Set the ODR settings in the register variable */
+        regData[*len] =
+                BMP3_SET_BITS_POS_0(regData[1], BMP3_ODR, settings.odr_filter.odr);
 
-         /* 0x1D is the register address of output data rate register */
-         addr[*len] = BMP3_REG_ODR;
-         (*len)++;
-     }
+        /* 0x1D is the register address of output data rate register */
+        addr[*len] = BMP3_REG_ODR;
+        (*len)++;
+    }
 
 
     void fillFilterData(uint8_t *addr, uint8_t *regData, uint8_t *len) {
@@ -871,7 +918,7 @@ private:
         float partialOut;
 #else
         uint8_t base = 2;
-            uint32_t partial_out;
+        uint32_t partial_out;
 #endif /* BMP3_FLOAT_COMPENSATION */
         partialOut = pow(base, settings.odr_filter.temp_os);
         return static_cast<uint32_t>(BMP3_SETTLE_TIME_TEMP + partialOut * BMP3_ADC_CONV_TIME);
@@ -881,7 +928,6 @@ private:
         uint32_t measT = 234;
         uint32_t measTP = 0;
 
-        /* Sampling period corresponding to ODR in microseconds  */
         uint32_t odr[18] = {5000, 10000, 20000, 40000, 80000,
                             160000, 320000, 640000, 1280000, 2560000,
                             5120000, 10240000, 20480000, 40960000, 81920000,
@@ -903,6 +949,7 @@ private:
 
         return measT < odr[settings.odr_filter.odr];
     }
+
 };
 
 
