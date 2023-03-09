@@ -1,13 +1,12 @@
 /**
  * Facade for the BMP390 API that utilizes the scheduler
  *
+ * TODO: Update remaining functions. Mostly initialization and sensor readings implemented only for now
  * @author Aaron Chan
  */
 
 #ifndef LAUNCH_CORE_BMP390_H
 #define LAUNCH_CORE_BMP390_H
-
-#define INTERRUPT_WAIT_TIME 25000
 
 #include "device/peripherals/BMP390/bmp3.h"
 #include "return.h"
