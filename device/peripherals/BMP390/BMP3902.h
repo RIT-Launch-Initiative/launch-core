@@ -15,18 +15,14 @@
 #include "sched/macros/reset.h"
 #include "device/SPIDevice.h"
 #include "device/I2CDevice.h"
-#include "device/StreamDevice.h"
 
 #include "sched/macros/call.h"
 #include "macros.h"
-#include "stm32f4xx_hal_uart.h"
-
-extern UART_HandleTypeDef huart2;
 
 
 class BMP390 {
 public:
-    BMP390(I2CDevice &i2cDev, StreamDevice &uartDevice) : mI2C(&i2cDev), mUART(uartDevice) {}
+    BMP390(I2CDevice &i2cDev) : mI2C(&i2cDev) {}
 
     /*************************************************************************************
      * Main Functionality
@@ -48,11 +44,9 @@ public:
 
         ret = CALL(softReset());
         if (ret == RET_ERROR) return ret;
-        // CALL(mUART.write((uint8_t *) "BMP390 Soft Reset successful\r\n", 28));
 
         ret = CALL(getCalibrationData());
         if (ret == RET_ERROR) return ret;
-        // CALL(mUART.write((uint8_t *) "BMP390 Calibration successful\r\n", 31));
 
         ret = CALL(initSettings());
         if (ret == RET_ERROR) return ret;
@@ -293,7 +287,6 @@ public:
         }
 
         if (currMode == BMP3_MODE_NORMAL) {
-            HAL_UART_Transmit(&huart2, (uint8_t *) "NORMAL MODE\r\n", 13, 100);
             ret = CALL(setNormalMode());
         } else if (currMode == BMP3_MODE_FORCED) {
             ret = CALL(writePowerMode());
@@ -410,7 +403,6 @@ public:
                                settings.odr_filter.press_os, settings.odr_filter.temp_os, settings.odr_filter.odr,
                                settings.odr_filter.iir_filter);
 
-        HAL_UART_Transmit(&huart2, uartBuffer, size, 100);
     }
 
 private:
@@ -420,13 +412,11 @@ private:
     uint8_t chipID;
     I2CDevice *mI2C;
     I2CAddr_t i2cAddr;
-    StreamDevice &mUART;
 
 
     RetType initSettings() {
         RESUME();
 
-        CALL(mUART.write((uint8_t *) "Initializing settings...\r\n", 26));
         this->settings = {
                 .op_mode = BMP3_MODE_NORMAL,
                 .press_en = BMP3_ENABLE,
@@ -492,7 +482,6 @@ private:
 
     RetType setRegister(uint8_t const *regAddress, const uint8_t *regData, uint32_t len) {
         RESUME();
-        // CALL(mUART.write((uint8_t *) "Set Burst Register Called\r\n", 29));
 
         uint8_t temporaryBuffer[len * 2];
         uint8_t regAddrCount;
@@ -510,7 +499,6 @@ private:
 
         RetType ret = CALL(mI2C->write(this->i2cAddr, temporaryBuffer, temporaryLen));
         if (ret != RET_SUCCESS) return ret;
-        // CALL(mUART.write((uint8_t *) "Set Register Returned\r\n", 23));
 
         RESET();
         return ret;
@@ -530,11 +518,8 @@ private:
         RESUME();
         this->i2cAddr.mem_addr = regAddress;
 
-        // CALL(mUART.write((uint8_t *) "Get Register Called\r\n", 21));
         RetType ret = CALL(mI2C->read(this->i2cAddr, regData, len));
         if (ret != RET_SUCCESS) return ret;
-
-        // CALL(mUART.write((uint8_t *) "Get Register Returned\r\n", 23));
 
         RESET();
         return ret;
