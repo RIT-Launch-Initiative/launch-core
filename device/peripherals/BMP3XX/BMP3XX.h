@@ -54,7 +54,7 @@ public:
         return ret;
     }
 
-    RetType getSensorData(double *pressure, double *temperature) {
+    RetType getPressureAndTemp(double *pressure, double *temperature) {
         RESUME();
 
         static uint8_t regData[BMP3_LEN_P_T_DATA] = {0};
