@@ -1,14 +1,14 @@
 /**
- * Facade for the BMP390 API that utilizes the scheduler
+ * Facade for the BMP3 API that utilizes the scheduler
  *
  * TODO: Update remaining functions. Mostly initialization and sensor readings implemented only for now
  * @author Aaron Chan
  */
 
-#ifndef LAUNCH_CORE_BMP390_H
-#define LAUNCH_CORE_BMP390_H
+#ifndef LAUNCH_CORE_BMP3XX_H
+#define LAUNCH_CORE_BMP3XX_H
 
-#include "device/peripherals/BMP390/bmp3.h"
+#include "device/peripherals/BMP3XX/bmp3_defs.h"
 #include "return.h"
 #include "sched/macros/resume.h"
 #include "sched/macros/reset.h"
@@ -19,9 +19,9 @@
 #include "macros.h"
 
 
-class BMP390 {
+class BMP3XX {
 public:
-    BMP390(I2CDevice &i2cDev) : mI2C(&i2cDev) {}
+    BMP3XX(I2CDevice &i2cDev) : mI2C(&i2cDev) {}
 
     /*************************************************************************************
      * Main Functionality
@@ -49,21 +49,6 @@ public:
 
         ret = CALL(initSettings());
         if (ret == RET_ERROR) return ret;
-
-        RESET();
-        return ret;
-    }
-
-    RetType getSettings(bmp3_settings *retSettings) {
-        RESUME();
-
-        static uint8_t settingsData[BMP3_LEN_GEN_SETT];
-
-
-        RetType ret = CALL(getRegister(BMP3_REG_INT_CTRL, settingsData, BMP3_LEN_GEN_SETT));
-        if (ret != RET_SUCCESS) return ret;
-
-        parse_sett_data(settingsData, retSettings);
 
         RESET();
         return ret;
@@ -111,37 +96,6 @@ public:
 
         RESET();
         return ret;
-    }
-
-    /*************************************************************************************
-     * FIFO
-     *************************************************************************************/
-
-    RetType getFifoData(struct bmp3_fifo_data *fifo, const struct bmp3_fifo_settings *fifoSettings) {
-        RESUME();
-
-        int8_t result = bmp3_get_fifo_data(fifo, fifoSettings, &this->device);
-
-        RESET();
-        return result == BMP3_OK ? RET_SUCCESS : RET_ERROR;
-    }
-
-    RetType getFifoLength(uint16_t *fifoLength) {
-        RESUME();
-
-        int8_t result = bmp3_get_fifo_length(fifoLength, &this->device);
-
-        RESET();
-        return result == BMP3_OK ? RET_SUCCESS : RET_ERROR;
-    }
-
-    RetType getFifoWatermark(uint16_t *watermarkLength) {
-        RESUME();
-
-        int8_t result = bmp3_get_fifo_watermark(watermarkLength, &this->device);
-
-        RESET();
-        return result == BMP3_OK ? RET_SUCCESS : RET_ERROR;
     }
 
     RetType getStatus(struct bmp3_status *status) {
@@ -212,24 +166,6 @@ public:
 
         RESET();
         return ret;
-    }
-
-    RetType extractFifoData(struct bmp3_data *data, struct bmp3_fifo_data *fifoData) {
-        RESUME();
-
-        int8_t result = bmp3_extract_fifo_data(data, fifoData, &this->device);
-
-        RESET();
-        return result == BMP3_OK ? RET_SUCCESS : RET_ERROR;
-    }
-
-    RetType flushFifo() {
-        RESUME();
-
-        int8_t result = bmp3_fifo_flush(&this->device);
-
-        RESET();
-        return result == BMP3_OK ? RET_SUCCESS : RET_ERROR;
     }
 
     /*************************************************************************************
@@ -363,15 +299,6 @@ public:
 
     }
 
-    RetType getPowerMode(uint8_t *opMode) {
-        RESUME();
-
-        int8_t result = bmp3_get_op_mode(opMode, &this->device);
-
-        RESET();
-        return result == BMP3_OK ? RET_SUCCESS : RET_ERROR;
-    }
-
     RetType getODRFilterSettings() {
         RESUME();
 
@@ -385,24 +312,7 @@ public:
         return RET_SUCCESS;
     }
 
-    void parseODRFilterSettings(const uint8_t *regData) {
-        uint8_t index = 0;
 
-        settings.odr_filter.press_os = BMP3_GET_BITS_POS_0(regData[index], BMP3_PRESS_OS);
-        settings.odr_filter.temp_os = BMP3_GET_BITS(regData[index], BMP3_TEMP_OS);
-
-        index++;
-        settings.odr_filter.odr = BMP3_GET_BITS_POS_0(regData[index], BMP3_ODR);
-
-        index = index + 2;
-        settings.odr_filter.iir_filter = BMP3_GET_BITS(regData[index], BMP3_IIR_FILTER);
-
-        uint8_t uartBuffer[100];
-        size_t size = snprintf((char *) uartBuffer, 100, "Press OS: %d\r\nTemp OS: %d\r\nODR: %d\r\nIIR Filter: %d\r\n",
-                               settings.odr_filter.press_os, settings.odr_filter.temp_os, settings.odr_filter.odr,
-                               settings.odr_filter.iir_filter);
-
-    }
 
 private:
     bmp3_dev device = {};
@@ -595,22 +505,6 @@ private:
                 ((double) reg_calib_data->par_p11 / temp);
     }
 
-
-    void parseSensorData(const uint8_t *reg_data, struct bmp3_uncomp_data *uncomp_data) {
-        uint32_t data_xlsb;
-        uint32_t data_lsb;
-        uint32_t data_msb;
-
-        data_xlsb = static_cast<uint32_t>(reg_data[0]);
-        data_lsb = static_cast<uint32_t>(reg_data[1]) << 8;
-        data_msb = static_cast<uint32_t>(reg_data[2]) << 16;
-        uncomp_data->pressure = data_msb | data_lsb | data_xlsb;
-
-        data_xlsb = static_cast<uint32_t>(reg_data[3]);
-        data_lsb = static_cast<uint32_t>(reg_data[4]) << 8;
-        data_msb = static_cast<uint32_t>(reg_data[5]) << 16;
-        uncomp_data->temperature = data_msb | data_lsb | data_xlsb;
-    }
 
     void compensateData(bmp3_uncomp_data *uncompData, bmp3_calib_data *calibrationData) {
         compensateTemperature(&this->data.temperature, uncompData, calibrationData);
@@ -934,7 +828,60 @@ private:
         return measT < odr[settings.odr_filter.odr];
     }
 
+    void parseSensorData(const uint8_t *reg_data, struct bmp3_uncomp_data *uncomp_data) {
+        uint32_t data_xlsb;
+        uint32_t data_lsb;
+        uint32_t data_msb;
+
+        data_xlsb = static_cast<uint32_t>(reg_data[0]);
+        data_lsb = static_cast<uint32_t>(reg_data[1]) << 8;
+        data_msb = static_cast<uint32_t>(reg_data[2]) << 16;
+        uncomp_data->pressure = data_msb | data_lsb | data_xlsb;
+
+        data_xlsb = static_cast<uint32_t>(reg_data[3]);
+        data_lsb = static_cast<uint32_t>(reg_data[4]) << 8;
+        data_msb = static_cast<uint32_t>(reg_data[5]) << 16;
+        uncomp_data->temperature = data_msb | data_lsb | data_xlsb;
+    }
+
+    void parseSettings(const uint8_t *reg_data) {
+        parseIntCtrlSettings(&reg_data[0]);
+        parseAdvancedSettings(&reg_data[1]);
+        parsePowerCtrlSettings(&reg_data[2]);
+        parseODRFilterSettings(&reg_data[3]);
+    }
+
+    void parseIntCtrlSettings(const uint8_t *reg_data) {
+        settings.int_settings.output_mode = BMP3_GET_BITS_POS_0(*reg_data, BMP3_INT_OUTPUT_MODE);
+        settings.int_settings.level = BMP3_GET_BITS(*reg_data, BMP3_INT_LEVEL);
+        settings.int_settings.latch = BMP3_GET_BITS(*reg_data, BMP3_INT_LATCH);
+        settings.int_settings.drdy_en = BMP3_GET_BITS(*reg_data, BMP3_INT_DRDY_EN);
+    }
+
+    void parseAdvancedSettings(const uint8_t *reg_data) {
+        settings.adv_settings.i2c_wdt_en = BMP3_GET_BITS(*reg_data, BMP3_I2C_WDT_EN);
+        settings.adv_settings.i2c_wdt_sel = BMP3_GET_BITS(*reg_data, BMP3_I2C_WDT_SEL);
+    }
+
+    void parsePowerCtrlSettings(const uint8_t *reg_data) {
+        settings.op_mode = BMP3_GET_BITS(*reg_data, BMP3_OP_MODE);
+        settings.press_en = BMP3_GET_BITS_POS_0(*reg_data, BMP3_PRESS_EN);
+        settings.temp_en = BMP3_GET_BITS(*reg_data, BMP3_TEMP_EN);
+    }
+
+    void parseODRFilterSettings(const uint8_t *regData) {
+        uint8_t index = 0;
+
+        settings.odr_filter.press_os = BMP3_GET_BITS_POS_0(regData[index], BMP3_PRESS_OS);
+        settings.odr_filter.temp_os = BMP3_GET_BITS(regData[index], BMP3_TEMP_OS);
+
+        index++;
+        settings.odr_filter.odr = BMP3_GET_BITS_POS_0(regData[index], BMP3_ODR);
+
+        index = index + 2;
+        settings.odr_filter.iir_filter = BMP3_GET_BITS(regData[index], BMP3_IIR_FILTER);
+    }
 };
 
 
-#endif //LAUNCH_CORE_BMP390_H
+#endif //LAUNCH_CORE_BMP3XX_H
