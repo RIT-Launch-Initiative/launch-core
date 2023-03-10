@@ -54,9 +54,9 @@ public:
     /// @brief poll this device
     RetType poll() {
         // acquire the lock to access the ISR flag
-        m_isr_lock.acquire()
+        m_isr_lock.acquire();
 
-        if(m_isr_flag) {
+        if (m_isr_flag) {
             // an interrupt occurred
 
             // reset the flag
@@ -73,7 +73,7 @@ public:
             }
         } else {
             // nothing to see here
-            m_isr_lock.release()
+            m_isr_lock.release();
         }
 
         return RET_SUCCESS;
