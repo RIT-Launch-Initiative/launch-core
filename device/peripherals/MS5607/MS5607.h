@@ -54,12 +54,11 @@ public:
     RetType init() {
         RESUME();
 
-        // TODO: See about getting chip ID here
         RetType ret = CALL(reset());
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
-        return ret;
+        return RET_SUCCESS;
     }
 
     RetType reset() {
@@ -113,12 +112,12 @@ public:
         RESUME();
 
         // Read Calibration Data
-        uint16_t pressureSens = 0;
-        uint16_t pressureOffset = 0;
-        uint16_t pressureSensTempCo = 0;
-        uint16_t pressureOffsetTempCo = 0;
-        uint16_t tempRef = 0;
-        uint16_t tempSens = 0;
+        static uint16_t pressureSens = 0;
+        static uint16_t pressureOffset = 0;
+        static uint16_t pressureSensTempCo = 0;
+        static uint16_t pressureOffsetTempCo = 0;
+        static uint16_t tempRef = 0;
+        static uint16_t tempSens = 0;
 
         RetType ret;
         uint8_t data[2];
@@ -130,9 +129,9 @@ public:
         }
 
         // Read Digital Values
-        uint8_t conversionData[3] = {};
-        uint32_t digitalPressure;
-        uint32_t digitalTemperature;
+        static uint8_t conversionData[3] = {};
+        static uint32_t digitalPressure;
+        static uint32_t digitalTemperature;
 
         ret = CALL(conversion(CONVERT_D1_4096, conversionData));
         if (ret != RET_SUCCESS) return ret;
@@ -187,7 +186,7 @@ public:
 private:
     I2CDevice *mI2C;
     I2CAddr_t mAddr = {
-            .dev_addr = CONCAT(0b111011, 0) << 1, // TODO: Dont know CS pin value yet
+            .dev_addr = 0x77 << 1,
             .mem_addr = 0,
             .mem_addr_size = 0,
     };
