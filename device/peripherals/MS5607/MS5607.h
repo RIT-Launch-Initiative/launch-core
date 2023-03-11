@@ -66,7 +66,7 @@ public:
 
         uint8_t resetCommand = RESET_COMMAND;
 
-        RetType ret = CALL(mI2C->write(mAddr, &resetCommand, 1));
+        RetType ret = CALL(mI2C->write(mAddr, &resetCommand, 1, 10));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();

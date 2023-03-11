@@ -21,7 +21,7 @@ public:
         RESUME();
 
         static uint8_t whoAmI = 0;
-        RetType ret = CALL(readReg(LIS3MDL_WHO_AM_I, &whoAmI, 1));
+        RetType ret = CALL(readReg(LIS3MDL_WHO_AM_I, &whoAmI, 1, 50));
         if (ret != RET_SUCCESS) return ret;
         if (whoAmI != LIS3MDL_ID) return RET_ERROR;
 
@@ -95,23 +95,23 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType readReg(uint8_t reg, uint8_t *data, uint16_t len) {
+    RetType readReg(uint8_t reg, uint8_t *data, uint16_t len, uint32_t timeout = 0) {
         RESUME();
 
         i2cAddr.mem_addr = reg;
-        RetType ret = CALL(mI2C->read(i2cAddr, data, len));
+        RetType ret = CALL(mI2C->read(i2cAddr, data, len, timeout));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
         return RET_SUCCESS;
     };
 
-    RetType writeReg(uint8_t reg, uint8_t *data, uint16_t len) {
+    RetType writeReg(uint8_t reg, uint8_t *data, uint16_t len, uint32_t timeout = 0) {
         RESUME();
 
         i2cAddr.mem_addr = reg;
 
-        RetType ret = CALL(mI2C->write(i2cAddr, data, len));
+        RetType ret = CALL(mI2C->write(i2cAddr, data, len, timeout));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();

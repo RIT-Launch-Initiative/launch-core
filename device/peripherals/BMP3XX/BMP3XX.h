@@ -38,7 +38,7 @@ public:
                 .mem_addr_size = 1,
         };
 
-        RetType ret = CALL(mI2C->read(this->i2cAddr, &this->device.chip_id, 1));
+        RetType ret = CALL(mI2C->read(this->i2cAddr, &this->device.chip_id, 1, 50));
         if (this->device.chip_id != (is388 ? BMP3_CHIP_ID : BMP390_CHIP_ID)) return RET_ERROR;
 
         ret = CALL(softReset());
