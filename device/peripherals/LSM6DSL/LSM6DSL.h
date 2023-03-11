@@ -61,36 +61,37 @@ public:
         // Check Chip ID
         static uint8_t chipID;
         RetType ret = CALL(readReg(LSM6DSL_ACC_GYRO_WHO_AM_I_REG, &chipID, 1, LSM6DSL_ACC_GYRO_WHO_AM_I_BIT_MASK));
-        if (ret != RET_SUCCESS || LSM6DSL_ACC_GYRO_WHO_AM_I != chipID) return ret;
+        if (ret != RET_SUCCESS) return ret;
+        if (chipID != LSM6DSL_ACC_GYRO_WHO_AM_I) return RET_ERROR;
 
         // Enable reg addr automatically incremented during multi byte access with serial intf
         ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL3_C, LSM6DSL_ACC_GYRO_IF_INC_ENABLED, 1, LSM6DSL_ACC_GYRO_IF_INC_MASK));
         if (ret != RET_SUCCESS) return ret;
 
         // Enable BDU
-//        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL3_C, LSM6DSL_ACC_GYRO_BDU_BLOCK_UPDATE, 1, LSM6DSL_ACC_GYRO_BDU_MASK));
-//        if (ret != RET_SUCCESS) return ret;
-//
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL3_C, LSM6DSL_ACC_GYRO_BDU_BLOCK_UPDATE, 1, LSM6DSL_ACC_GYRO_BDU_MASK));
+        if (ret != RET_SUCCESS) return ret;
+
 //        // FIFO Mode Select
-//        ret = CALL(
-//                writeReg(LSM6DSL_ACC_GYRO_FIFO_CTRL5, LSM6DSL_ACC_GYRO_FIFO_MODE_BYPASS, 1,
-//                         LSM6DSL_ACC_GYRO_FIFO_MODE_MASK));
-//        if (ret != RET_SUCCESS) return ret;
-//
+        ret = CALL(
+                writeReg(LSM6DSL_ACC_GYRO_FIFO_CTRL5, LSM6DSL_ACC_GYRO_FIFO_MODE_BYPASS, 1,
+                         LSM6DSL_ACC_GYRO_FIFO_MODE_MASK));
+        if (ret != RET_SUCCESS) return ret;
+
 //        // Output Data Rate Selection
-//        ret = CALL(
-//                writeReg(LSM6DSL_ACC_GYRO_FIFO_CTRL5, LSM6DSL_ACC_GYRO_ODR_XL_POWER_DOWN,
-//                         1, LSM6DSL_ACC_GYRO_ODR_FIFO_MASK));
-//        if (ret != RET_SUCCESS) return ret;
-//
-//        ret = CALL(setAccelFullScale(2.0f));
-//        if (ret != RET_SUCCESS) return ret;
-//
-//        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL2_G, LSM6DSL_ACC_GYRO_ODR_G_POWER_DOWN, 1, LSM6DSL_ACC_GYRO_IF_INC_MASK));
-//        if (ret != RET_SUCCESS) return ret;
-//
-//        ret = CALL(setGyroFullScale(2000.0f));
-//        if (ret != RET_SUCCESS) return ret;
+        ret = CALL(
+                writeReg(LSM6DSL_ACC_GYRO_FIFO_CTRL5, LSM6DSL_ACC_GYRO_ODR_XL_POWER_DOWN,
+                         1, LSM6DSL_ACC_GYRO_ODR_FIFO_MASK));
+        if (ret != RET_SUCCESS) return ret;
+
+        ret = CALL(setAccelFullScale(2.0f));
+        if (ret != RET_SUCCESS) return ret;
+
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL2_G, LSM6DSL_ACC_GYRO_ODR_G_POWER_DOWN, 1, LSM6DSL_ACC_GYRO_IF_INC_MASK));
+        if (ret != RET_SUCCESS) return ret;
+
+        ret = CALL(setGyroFullScale(2000.0f));
+        if (ret != RET_SUCCESS) return ret;
 
         accelLastODR = 104.0f;
         accelEnabled = true;
