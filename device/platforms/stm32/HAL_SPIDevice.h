@@ -86,7 +86,7 @@ public:
     /// @param buff     the buffer to write
     /// @param len      the size of 'buff' in bytes
     /// @return
-    RetType write(uint8_t *buff, size_t len) {
+    RetType write(uint8_t *buff, size_t len, uint32_t timeout) {
         RESUME();
 
         // block waiting for the device to be free to use
@@ -106,8 +106,23 @@ public:
             return RET_ERROR;
         }
 
-        // block until the transmit is complete
-        BLOCK();
+        // block and wait for the transfer to complete
+        bool timed_out;
+        if (0 == timeout) {
+            BLOCK();
+            timed_out = false;
+        } else {
+            SLEEP(timeout);
+
+            // if the ISR didn't occur, the operation timed out
+            // 'm_blocked' is only reset in poll, so if it's still the task TID
+            // the interrupt never occurred before this task woke up
+            if (m_blocked != -1) {
+                timed_out = true;
+            } else {
+                timed_out = false;
+            }
+        }
 
         // mark the device as unblocked
         m_blocked = -1;
@@ -128,7 +143,7 @@ public:
     /// @param buff     the buffer to read into
     /// @param len      the number of bytes to read
     /// @return
-    RetType read(uint8_t *buff, size_t len) {
+    RetType read(uint8_t *buff, size_t len, uint32_t timeout) {
         RESUME();
 
         // block waiting for the device to be available
@@ -148,8 +163,23 @@ public:
             return RET_ERROR;
         }
 
-        // block waiting for our read to complete
-        BLOCK();
+        // block and wait for the transfer to complete
+        bool timed_out;
+        if (0 == timeout) {
+            BLOCK();
+            timed_out = false;
+        } else {
+            SLEEP(timeout);
+
+            // if the ISR didn't occur, the operation timed out
+            // 'm_blocked' is only reset in poll, so if it's still the task TID
+            // the interrupt never occurred before this task woke up
+            if (m_blocked != -1) {
+                timed_out = true;
+            } else {
+                timed_out = false;
+            }
+        }
 
         // mark the device as unblocked
         m_blocked = -1;
@@ -185,8 +215,23 @@ public:
             return RET_ERROR;
         }
 
-        // block waiting for our read to complete
-        BLOCK();
+        // block and wait for the transfer to complete
+        bool timed_out;
+        if (0 == timeout) {
+            BLOCK();
+            timed_out = false;
+        } else {
+            SLEEP(timeout);
+
+            // if the ISR didn't occur, the operation timed out
+            // 'm_blocked' is only reset in poll, so if it's still the task TID
+            // the interrupt never occurred before this task woke up
+            if (m_blocked != -1) {
+                timed_out = true;
+            } else {
+                timed_out = false;
+            }
+        }
 
         // mark the device as unblocked
         m_blocked = -1;
