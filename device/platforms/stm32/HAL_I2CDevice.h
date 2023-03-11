@@ -101,7 +101,6 @@ public:
 
         // start the transfer
         if (HAL_OK != HAL_I2C_Master_Transmit_IT(m_i2c, addr.dev_addr, buff, len)) {
-            interrupt_flag.release();
             return RET_ERROR;
         }
 
