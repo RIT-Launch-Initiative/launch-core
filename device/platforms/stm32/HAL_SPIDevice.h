@@ -55,7 +55,30 @@ public:
     /// @brief poll this device
     /// @return
     RetType poll() {
-        // for now does nothing
+        // acquire the lock to access the ISR flag
+        m_isr_lock.acquire();
+
+        if (m_isr_flag) {
+            // an interrupt occurred
+
+            // reset the flag
+            m_isr_flag = 0;
+
+            // release the lock around the ISR flag
+            m_isr_lock.release();
+
+            // if a task was blocked waiting for completion of this ISR, wake it up
+            if (m_blocked != -1) {
+                WAKE(m_blocked);
+
+                // set this task as woken
+                m_blocked = -1;
+            }
+        } else {
+            // nothing to see here
+            m_isr_lock.release();
+        }
+
         return RET_SUCCESS;
     }
 
@@ -142,7 +165,7 @@ public:
         return ret;
     }
 
-    RetType write_read(uint8_t* write_buff, size_t write_len, uint8_t* read_buff, size_t read_len) {
+    RetType write_read(uint8_t *write_buff, size_t write_len, uint8_t *read_buff, size_t read_len) {
         RESUME();
 
         // block waiting for the device to be available
@@ -158,21 +181,15 @@ public:
         m_blocked = sched_dispatched;
 
         // start the transfer
-        if (async) {
-            if (HAL_OK != HAL_SPI_TransmitReceive_IT(m_spi, write_buff, read_buff, write_len)) {
-                return RET_ERROR;
-            }
-
-            // block waiting for our read to complete
-            BLOCK();
-
-            // mark the device as unblocked
-            m_blocked = -1;
-        } else {
-            if (HAL_OK != HAL_SPI_TransmitReceive(m_spi, write_buff, read_buff, write_len, 1000)) {
-                return RET_ERROR;
-            }
+        if (HAL_OK != HAL_SPI_TransmitReceive_IT(m_spi, write_buff, read_buff, write_len)) {
+            return RET_ERROR;
         }
+
+        // block waiting for our read to complete
+        BLOCK();
+
+        // mark the device as unblocked
+        m_blocked = -1;
         // we can unblock someone else if they were waiting
         ret = CALL(m_lock.release());
         if (ret != RET_SUCCESS) {
@@ -182,11 +199,6 @@ public:
 
         RESET();
         return ret;
-    }
-
-
-    void setAsync(bool isAsync) {
-        this->async = isAsync;
     }
 
     /// @brief called by SPI handler asynchronously
@@ -214,7 +226,9 @@ private:
     static const int TX_NUM = 0;
     static const int RX_NUM = 1;
 
-    bool async;
+    // Flag when an interrupt has occurred
+    Semaphore m_isr_lock;
+    uint8_t m_isr_flag;
 };
 
 #endif
