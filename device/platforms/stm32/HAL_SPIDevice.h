@@ -21,7 +21,9 @@ public:
     HALSPIDevice(const char *name, SPI_HandleTypeDef *hspi) : SPIDevice(name),
                                                               m_spi(hspi),
                                                               m_blocked(-1),
-                                                              m_lock(1) {};
+                                                              m_lock(1),
+                                                              m_isr_lock(1),
+                                                              m_isr_flag(0){};
 
     /// @brief initialize
     RetType init() {
@@ -248,12 +250,15 @@ public:
 
     /// @brief called by SPI handler asynchronously
     void callback(int) {
-        // don't care if it was tx or rx, for now
+        // all this does is set a flag
+        // the interrupt is actually "handled" in 'poll'
 
-        if (m_blocked != -1) {
-            // wake up the task that's blocked
-            WAKE(m_blocked);
-        }
+        m_isr_lock.acquire();
+
+        // this is less of a flag and more of a count, but is only read as a flag
+        m_isr_flag++;
+
+        m_isr_lock.release();
     }
 
 private:
