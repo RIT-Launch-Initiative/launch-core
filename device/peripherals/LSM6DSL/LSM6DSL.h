@@ -106,7 +106,7 @@ public:
      * Acceleration Functions
      **********************************************************/
 
-    RetType getAccelAxes(int32_t *accelData) {
+    RetType getAccelAxes(int32_t *accelX, int32_t *accelY, int32_t *accelZ) {
         RESUME();
 
         int16_t rawData[3];
@@ -118,10 +118,9 @@ public:
         ret = CALL(getAccelSens(&sens));
         if (ret != RET_SUCCESS) return ret;
 
-
-        for (int i = 0; i < 3; i++) {
-            accelData[i] = static_cast<int32_t>(rawData[i] * sens);
-        }
+        *accelX = static_cast<int32_t>(rawData[0] * sens);
+        *accelY = static_cast<int32_t>(rawData[1] * sens);
+        *accelZ = static_cast<int32_t>(rawData[2] * sens);
 
         RESET();
         return RET_SUCCESS;
@@ -130,9 +129,9 @@ public:
     RetType getAccelAxesRaw(int16_t *accelData) {
         RESUME();
 
-        uint8_t regValue[6] = {};
+        static uint8_t regValue[6] = {};
 
-        int accelDataIndex;
+        static int accelDataIndex;
         for (int i = 0; i < 3; i++) {
             for (int j = 0; i < 3; i++) {
                 RetType ret = CALL(readReg(LSM6DSL_ACC_GYRO_OUTX_L_XL + accelDataIndex, reinterpret_cast<uint8_t *>(&accelData[accelDataIndex]), 1));
@@ -141,7 +140,6 @@ public:
                 accelDataIndex++;
             }
         }
-
 
         accelData[0] = static_cast<int16_t>(regValue[1] << 8) + static_cast<int16_t>(regValue[0]);
         accelData[1] = static_cast<int16_t>(regValue[3] << 8) + static_cast<int16_t>(regValue[2]);
