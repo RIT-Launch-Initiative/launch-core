@@ -103,6 +103,24 @@ public:
      * Acceleration Functions
      **********************************************************/
 
+    RetType getAccelAxesMS2(int32_t *accelX, int32_t *accelY, int32_t *accelZ) {
+        RESUME();
+
+        RetType ret = CALL(getAccelAxes(accelX, accelY, accelZ));
+        if (ret != RET_SUCCESS) return ret;
+
+        *accelX *= 9.80665f;
+        *accelY *= 9.80665f;
+        *accelZ *= 9.80665f;
+
+        *accelX /= 1000;
+        *accelY /= 1000;
+        *accelZ /= 1000;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
     RetType getAccelAxes(int32_t *accelX, int32_t *accelY, int32_t *accelZ) {
         RESUME();
 
