@@ -102,8 +102,8 @@ public:
         m_blocked = sched_dispatched;
 
         // start the transfer
-        if (HAL_OK != HAL_I2C_Master_Transmit_IT(m_i2c, addr.dev_addr,
-                                                            buff, len)) {
+
+        if (HAL_OK != HAL_I2C_Master_Transmit_IT(m_i2c, addr.dev_addr, buff, len)) {
             return RET_ERROR;
         }
 
