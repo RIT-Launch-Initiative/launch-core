@@ -24,14 +24,6 @@ static const uint16_t IPV6_PROTO = 0x86DD;
 static const uint16_t ARP_PROTO  = 0x0806;
 static const uint16_t EXP_PROTO  = 0x0101;
 
-// maps socket types to protocol numbers
-static const uint16_t ETH_PROTO[NUM_SOCK_TYPES] =
-{
-    IPV4_PROTO,     // IPV4_UDP_SOCK
-    IPV4_PROTO,     // RAW_IPV4_UDP_SOCK
-    EXP_PROTO       // PACKET_SOCK
-};
-
 // outputs CRC32 Frame Check Sequence in network order
 // Uses Ethernet polynomial
 // CRC algorithm and table from Rocksoft

@@ -53,7 +53,6 @@ int main() {
     ipv4::IPv4Addr_t addr1;
     ipv4::IPv4Address(10, 10, 10, 5, &addr1);
 
-
     ipv4::IPv4Addr_t subnet1;
     ipv4::IPv4Address(255, 255, 255, 0, &subnet1);
 
@@ -93,7 +92,6 @@ int main() {
 
     sockinfo_t msg;
     msg.dst = dst;
-    msg.type = IPV4_UDP_SOCK;
 
     if (RET_SUCCESS != udp.transmit(packet, msg, &b)) {
         printf("failed to transmit packet (first pass)\n");

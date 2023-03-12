@@ -18,19 +18,10 @@ typedef struct {
     uint16_t udp_port;
 } sockaddr_t;
 
-// socket types
-typedef enum {
-    IPV4_UDP_SOCK = 0,      // IPv4 and UDP
-    RAW_IPV4_UDP_SOCK,      // user needs to provide UDP header, sent over IPv4
-    PACKET_SOCK,            // only adds link layer header, dst address must be provided, src will be ignored if 0
-    NUM_SOCK_TYPES
-} socktype_t;
-
-    // describes a packet sent/received over a socket
+// describes a packet sent/received over a socket
 typedef struct {
     sockaddr_t src;
     sockaddr_t dst;
-    socktype_t type;
 } sockinfo_t;
 
 

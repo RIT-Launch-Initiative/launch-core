@@ -17,8 +17,6 @@
 #include "net/socket/socket.h"
 #include "net/ipv4/IPv4Router.h"
 
-class IPv4UDPStack;
-
 /// @brief IPv4/UDP address
 typedef struct {
     uint32_t addr;  // IPv4 address
@@ -48,12 +46,6 @@ class IPv4UDPStack {
 public:
     /// @brief constructor
     IPv4UDPStack() {};
-
-    /// address type for IPv4 / UDP sockets
-    typedef struct {
-        uint32_t addr;  // IPv4 address (big endian)
-        uint16_t port;  // UDP port
-    } addr_t;
 
     /// @brief get a socket from the stack
     /// @return a ponter to the socket, or NULL on error
@@ -93,6 +85,12 @@ private:
 
     // UDP Router
     UDPRouter m_udp;
+
+    // Ethernet layer
+    EthLayer m_eth;
+
+    // Device layer
+    NetworkLayer& m_dev;
 };
 
 #endif

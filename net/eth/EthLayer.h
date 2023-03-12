@@ -10,21 +10,28 @@ class EthLayer : public NetworkLayer {
 public:
     /// @brief constructor
     /// @param mac      the MAC address of the device
-    /// @param in       the network layer to forward received packets to
-    /// @param out      the network layer to transmit packets to
+    /// @param lower    the network layer outgoing packets should be forwaded to
+    ///                 and incoming packets come from
+    /// @param upper    the network layer outgoing packets come from and
+    ///                 incoming packets should be forwarded to
+    /// @param protocol the protocol of packets passed from 'in'
     /// @param add_fcs  true if the FCS should be calculated and added to
     ///                 outgoing packets
     EthLayer(uint8_t mac[6],
-             NetworkLayer& in,
-             NetworkLayer& out,
-             bool add_fcs = false) : m_in(in), m_out(out), m_fcs(fcs) {
+             NetworkLayer& lower,
+             NetworkLayer& upper,
+             uint16_t protocol,
+             bool add_fcs = false) : m_lower(lower), m_upper(upper), m_fcs(fcs) {
+
         for(size_t i = 0; i < 6; i++) {
             m_mac[i] = mac[i];
         }
+
+        m_proto = hton16(protocol);
     }
 
     /// @brief receive a packet
-    ///        drops packet if dst is not this device's MAC or a broadcast/multicast
+    ///        drops packet if dst is not this layers MAC or a broadcast/multicast
     /// @return
     RetType receive(Packet& packet, sockinfo_t& info, NetworkLayer*) {
         RESUME();
@@ -63,7 +70,7 @@ public:
             }
 
             if(RET_SUCCESS == packet.skip_read(sizeof(EthHeader_t))) {
-                ret = CALL(m_in.receive(packet, info, this));
+                ret = CALL(m_upper.receive(packet, info, this));
             }
         }
 
@@ -86,9 +93,9 @@ public:
             hdr.dst[i] = info.dst.mac[i];
         }
 
-        hdr->ethertype = hton16(ETH_PROTO[info.type]);
+        hdr->ethertype = m_proto;
 
-        RetType ret = CALL(m_out.transmit(packet, info, this));
+        RetType ret = CALL(m_lower.transmit(packet, info, this));
 
         RESET();
         return ret;
@@ -107,7 +114,7 @@ public:
         }
 
         // pass the packet along
-        RetType ret = CALL(m_out.transmit(packet, info, this));
+        RetType ret = CALL(m_lower.transmit2(packet, info, this));
 
         RESET();
         return ret;
@@ -116,8 +123,10 @@ public:
 private:
     uint8_t m_mac[6];
 
-    NetworkLayer& m_in;
-    NetworkLayer& m_out;
+    NetworkLayer& m_lower;
+    NetworkLayer& m_upper;
+
+    uint16_t m_proto;
 
     bool m_fcs;
 };
