@@ -29,6 +29,10 @@ public:
     /// @return 'true' on success, 'false' on error
     virtual bool push(T obj) = 0;
 
+    /// @brief create an object at the end of the queue and get a pointer to it
+    /// @return the object, or NULL on error
+    virtual T* push() = 0;
+
     /// @brief pop an object off the queue, if there is one to pop
     /// @return
     virtual void pop() = 0;

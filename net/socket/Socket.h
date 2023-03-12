@@ -30,22 +30,22 @@ typedef struct {
 template <typename ADDR>
 class Socket {
 public:
-    /// @brief constructor
-    Socket() {};
-
     /// @brief initialize
     /// @return
     virtual RetType init() = 0;
 
     /// @brief bind a socket to send/receive from an address
     /// this may mean different things depending on the socket type
+    /// @return
     virtual RetType bind(ADDR& addr) = 0;
 
-    /// @brief get how much data can be read without blocking
-    virtual size_t available() = 0;
-
     /// @brief get the Maximum Transmit Unit for this socket
+    /// @return the MTU, in bytes
     virtual size_t mtu() = 0;
+
+    /// @brief get how much data can be read without blocking
+    /// @return units vary by socket type
+    virtual size_t available() = 0;
 
     /// @brief send a packet over this socket
     /// @return
@@ -53,6 +53,7 @@ public:
 
     /// @brief receive a packet over this socket
     /// source address of the packet will be filled into 'src'
+    /// @return
     virtual RetType recv(uint8_t* buff, size_t len, ADDR& src) = 0;
 };
 

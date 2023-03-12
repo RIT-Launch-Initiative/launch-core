@@ -19,6 +19,7 @@
 namespace ipv4 {
 
 // number of routes and layers that can be stored
+// TODO don't hardcode this!
 // TODO template with alloc::IPv4Router
 static const size_t SIZE = 25;
 

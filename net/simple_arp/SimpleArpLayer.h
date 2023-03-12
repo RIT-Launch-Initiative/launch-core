@@ -39,8 +39,8 @@ public:
     RetType transmit(Packet& packet, sockinfo_t& info, NetworkLayer*) {
         RESUME();
 
-        info.dst.mac[0] = 0x6c;
-        info.dst.mac[1] = 0x69;
+        info.dst.mac[0] = FIXED_MAC_1;
+        info.dst.mac[1] = FIXED_MAC_2;
 
         uint32_t& ip = info.dst.ipv4_addr;
         info.dst.mac[2] = ip;
@@ -64,6 +64,9 @@ public:
         RESET();
         return ret;
     }
+
+    static const uint8_t FIXED_MAC_1 = 0x6c;
+    static const uint8_t FIXED_MAC_2 = 0x69;
 
 private:
     NetworkLayer& m_lower;
