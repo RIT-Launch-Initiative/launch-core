@@ -5,11 +5,13 @@
 #include "net/eth/eth.h"
 #include "sched/macros.h"
 
+using namespace eth;
+
 /// @brief Ethernet (layer 2) layer
 class EthLayer : public NetworkLayer {
 public:
     /// @brief constructor
-    /// @param mac      the MAC address of the device
+    /// @param mac_X    the MAC address of the device a:b:c:d:e:f
     /// @param lower    the network layer outgoing packets should be forwaded to
     ///                 and incoming packets come from
     /// @param upper    the network layer outgoing packets come from and
@@ -17,15 +19,19 @@ public:
     /// @param protocol the protocol of packets passed from 'in'
     /// @param add_fcs  true if the FCS should be calculated and added to
     ///                 outgoing packets
-    EthLayer(uint8_t mac[6],
+    EthLayer(uint8_t mac_a, uint8_t mac_b, uint8_t mac_c,
+             uint8_t mac_d, uint8_t mac_e, uint8_t mac_f,
              NetworkLayer& lower,
              NetworkLayer& upper,
              uint16_t protocol,
-             bool add_fcs = false) : m_lower(lower), m_upper(upper), m_fcs(fcs) {
+             bool add_fcs = false) : m_lower(lower), m_upper(upper), m_fcs(add_fcs) {
 
-        for(size_t i = 0; i < 6; i++) {
-            m_mac[i] = mac[i];
-        }
+        m_mac[0] = mac_a;
+        m_mac[1] = mac_b;
+        m_mac[2] = mac_c;
+        m_mac[3] = mac_d;
+        m_mac[4] = mac_e;
+        m_mac[5] = mac_f;
 
         m_proto = hton16(protocol);
     }
@@ -36,7 +42,7 @@ public:
     RetType receive(Packet& packet, sockinfo_t& info, NetworkLayer*) {
         RESUME();
 
-        EthHeader_t* hdr = packet.ptr<EthHeader_t>();
+        EthHeader_t* hdr = packet.read_ptr<EthHeader_t>();
 
         if(hdr == NULL) {
             return RET_ERROR;
@@ -89,8 +95,8 @@ public:
         }
 
         for(size_t i = 0; i < 6; i++) {
-            hdr.src[i] = m_mac[i];
-            hdr.dst[i] = info.dst.mac[i];
+            hdr->src[i] = m_mac[i];
+            hdr->dst[i] = info.dst.mac[i];
         }
 
         hdr->ethertype = m_proto;

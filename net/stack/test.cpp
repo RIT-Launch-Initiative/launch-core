@@ -1,9 +1,9 @@
+#include <stdlib.h>
 #include <stdio.h>
 
-#include "net/ipv4/IPv4Router.h"
-#include "net/udp/UDPRouter.h"
-#include "net/loopback/Loopback.h"
-#include "net/simple_arp/SimpleArpLayer.h"
+#include "net/stack/IPv4UDPStack.h"
+#include "net/network_layer/NetworkLayer.h"
+
 
 // network layer that absorbs all packets and just prints them out
 class Blackhole : public NetworkLayer {
@@ -46,65 +46,64 @@ public:
 };
 
 int main() {
-    ipv4::IPv4Router ip;
-    Loopback lo;
-    Blackhole b;
+    uint8_t msg[5] = {'h', 'e', 'l', 'l', 'o'};
+    size_t len = 5;
+    uint8_t buff[5];
 
-    ipv4::IPv4Addr_t addr1;
-    ipv4::IPv4Address(10, 10, 10, 5, &addr1);
+    Blackhole blackhole;
 
-    ipv4::IPv4Addr_t subnet1;
-    ipv4::IPv4Address(255, 255, 255, 0, &subnet1);
+    IPv4UDPStack stack{10, 10, 10, 1,\
+                       255,255,255,0,
+                       blackhole};
 
-    if (RET_SUCCESS != ip.add_route(addr1, subnet1, lo)) {
-        printf("failed to add loopback route\n");
-        return -1;
-    }
-
-    auto udp = udp::UDPRouter(ip);
-
-    if (RET_SUCCESS != udp.subscribe_port(b, 8000)) {
-        printf("Failed to bind layer to UDP port");
-        return -1;
-    }
-
-    if (RET_SUCCESS != ip.add_protocol(ipv4::UDP_PROTO, udp)) {
-        printf("failed to add protocol\n");
-        return -1;
+    if(RET_SUCCESS != stack.init()) {
+        printf("failed to initialize network stack\n");
+        exit(1);
     }
 
 
-    uint8_t buff[50];
-    for (size_t i = 0; i < 50; i++) {
-        buff[i] = i;
+    IPv4UDPSocket* sock = stack.get_socket();
+    if(NULL == sock) {
+        printf("failed to get network socket from stack\n");
+        exit(1);
     }
 
-    alloc::Packet<50, 100> packet;
+    udp_ip4_addr_t addr;
+    addr.ip[0] = addr.ip[1] = addr.ip[2] = addr.ip[3] = 0;
+    addr.port = 8000;
 
-    if (RET_SUCCESS != packet.push(buff, 50)) {
-        printf("failed to push to packet\n");
-        return -1;
+    if(RET_SUCCESS != sock->bind(addr)) {
+        printf("failed to bind socket\n");
+        exit(1);
     }
 
-    sockaddr_t dst;
-    dst.ipv4_addr = addr1;
-    dst.udp_port = 8000;
-
-    sockinfo_t msg;
-    msg.dst = dst;
-
-    if (RET_SUCCESS != udp.transmit(packet, msg, &b)) {
-        printf("failed to transmit packet (first pass)\n");
-        return -1;
+    addr.ip[0] = 127;
+    addr.ip[1] = 0;
+    addr.ip[2] = 0;
+    addr.ip[3] = 1;
+    addr.port = 8000;
+    if(RET_SUCCESS != sock->send(msg, len, addr)) {
+        printf("failed to send message on socket\n");
+        exit(1);
     }
 
-    // the stack is responsible for resetting the headers
-    packet.seek_header();
-
-    if (RET_SUCCESS != udp.transmit2(packet, msg, &b)) {
-        printf("failed to transmit packet (second pass)\n");
-        return -1;
+    if(RET_SUCCESS != sock->recv(buff, 5, addr)) {
+        printf("failed to receive message on socket\n");
+        exit(1);
     }
 
-    printf("done\n");
+    printf("received: '%c %c %c %c %c' on port %u\n", buff[0], buff[1], buff[2], \
+                                                      buff[3], buff[4], addr.port);
+
+    addr.ip[0] = 10;
+    addr.ip[1] = 10;
+    addr.ip[2] = 10;
+    addr.ip[3] = 1;
+    addr.port = 8000;
+    if(RET_SUCCESS != sock->send(msg, len, addr)) {
+        printf("failed to send message on socket\n");
+        exit(1);
+    }
+
+    stack.free_socket(sock);
 }

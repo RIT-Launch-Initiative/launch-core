@@ -30,14 +30,14 @@ typedef struct {
 template <typename ADDR>
 class Socket {
 public:
-    /// @brief initialize
-    /// @return
-    virtual RetType init() = 0;
-
     /// @brief bind a socket to send/receive from an address
     /// this may mean different things depending on the socket type
     /// @return
     virtual RetType bind(ADDR& addr) = 0;
+
+    /// @brief unbind a socket
+    /// @return
+    virtual RetType unbind() = 0;
 
     /// @brief get the Maximum Transmit Unit for this socket
     /// @return the MTU, in bytes

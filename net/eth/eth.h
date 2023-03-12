@@ -35,7 +35,7 @@ static inline uint32_t calculate_fcs(uint8_t* data, size_t len) {
 
     uint32_t crc = CRC_INIT;
 
-    for(size_t i = 0; i < len; i++)
+    for(size_t i = 0; i < len; i++) {
         crc = crctable[(crc ^ data[i]) & 0xFFL] ^ (crc >> 8);
     }
     crc = crc ^ XO_ROT;
