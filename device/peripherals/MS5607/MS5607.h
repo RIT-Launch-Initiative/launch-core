@@ -59,10 +59,10 @@ public:
         RetType ret = CALL(reset());
         if (ret != RET_SUCCESS) return ret;
 
+        SLEEP(280); // 2.8ms delay for register reload
 
         ret = CALL(readPROM(data, 0));
         if (ret != RET_SUCCESS) return ret;
-
         pressureSens = (data[0] << 8) | data[1];
 
         ret = CALL(readPROM(data, 2));
@@ -105,6 +105,8 @@ public:
         *temp = calculateTemp(tempVal);
         *pressure = calculateTempCompPressure(pressureVal, *temp);
 
+        calcTempCompensation(temp, pressure);
+
         RESET();
         return RET_SUCCESS;
     }
@@ -140,10 +142,10 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType readPROM(uint8_t *data, uint8_t ) {
+    RetType readPROM(uint8_t *data, uint8_t offset) {
         RESUME();
 
-        RetType ret = CALL(mI2C->write(mAddr, reinterpret_cast<uint8_t*>(PROM_READ), 2));
+        RetType ret = CALL(mI2C->write(mAddr, reinterpret_cast<uint8_t*>(PROM_READ + offset), 2));
         if (ret != RET_SUCCESS) return ret;
 
         ret = CALL(mI2C->read(mAddr, data, 2));
@@ -160,12 +162,10 @@ public:
 
         RetType ret = CALL(conversion(CONVERT_D1_4096, data));
         if (ret != RET_SUCCESS) return ret;
-
         *pressure = (data[0] << 16) | (data[1] << 8) | data[2];
 
         ret = CALL(conversion(CONVERT_D2_4096, data));
         if (ret != RET_SUCCESS) return ret;
-
         *temp = (data[0] << 16) | (data[1] << 8) | data[2];
 
         RESET();
@@ -176,9 +176,8 @@ public:
         // dT = D2 - TREF = D2 - C5 * 2^8
         int32_t tempDiff = digitalTemp - tempRef;
         // TEMP = 20°C + dT * TEMPSENS =2000 + dT * C6 / 223
-        int32_t actualTemp = 2000 + tempDiff * tempSens;
+        return 2000 + tempDiff * tempSens;
 
-        return actualTemp;
     }
 
     int32_t calculateTempCompPressure(uint32_t digitalPressure, int32_t tempDiff) const {
