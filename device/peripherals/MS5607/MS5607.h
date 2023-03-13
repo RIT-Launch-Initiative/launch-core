@@ -93,6 +93,22 @@ public:
         return ret;
     }
 
+    RetType getPressureTemp(int32_t *pressure, int32_t *temp) {
+        RESUME();
+
+        static uint32_t pressureVal;
+        static uint32_t tempVal;
+
+        RetType ret = CALL(readDigitalVals(&pressureVal, &tempVal));
+        if (ret != RET_SUCCESS) return ret;
+
+        *temp = calculateTemp(tempVal);
+        *pressure = calculateTempCompPressure(pressureVal, *temp);
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
     RetType reset() {
         RESUME();
 
@@ -137,40 +153,41 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType calcPressureTemp(int32_t *pressure, int32_t *temp) {
+    RetType readDigitalVals(uint32_t *pressure, uint32_t *temp) {
         RESUME();
 
-        // Read Digital Values
-        static uint8_t conversionData[3] = {};
-        static uint32_t digitalPressure;
-        static uint32_t digitalTemperature;
+        static uint8_t data[3];
 
-        RetType ret = CALL(conversion(CONVERT_D1_4096, conversionData));
+        RetType ret = CALL(conversion(CONVERT_D1_4096, data));
         if (ret != RET_SUCCESS) return ret;
-        digitalPressure = (conversionData[0] << 16) | (conversionData[1] << 8) | conversionData[2];
 
-        ret = CALL(conversion(CONVERT_D2_4096, conversionData));
+        *pressure = (data[0] << 16) | (data[1] << 8) | data[2];
+
+        ret = CALL(conversion(CONVERT_D2_4096, data));
         if (ret != RET_SUCCESS) return ret;
-        digitalTemperature = (conversionData[0] << 16) | (conversionData[1] << 8) | conversionData[2];
 
-
-        // Calculate temperature
-        int32_t tempDiff = digitalTemperature - tempRef; // dT = D2 - TREF = D2 - C5 * 2^8
-        int32_t actualTemp = 20 + digitalTemperature * tempSens; // TEMP = 20°C + dT * TEMPSENS =2000 + dT * C6 / 223
-
-        // Calculate temperature compensated pressure
-        int64_t actualTempOffset =
-                offsetT1 + pressureOffsetTempCo * tempDiff; // OFF = OFFT1 + TCO * dT = C2 * 2^17 +(C4 *dT) / 26
-        int64_t actualTempSens =
-                sensitivityT1 + pressureSensTempCo * tempDiff; // SENS = SENST1+ TCS* dT= C1 * 2 16 + (C3 * dT )/ 27
-        int32_t tempCompPressure = digitalPressure * actualTempSens -
-                                   actualTempOffset; // P = D1 * SENS - OFF = (D1 * SENS / 2 21 - OFF) / 2^15
-
-        *pressure = tempCompPressure;
-        *temp = actualTemp;
+        *temp = (data[0] << 16) | (data[1] << 8) | data[2];
 
         RESET();
         return RET_SUCCESS;
+    }
+
+    int32_t calculateTemp(uint32_t digitalTemp) const {
+        // dT = D2 - TREF = D2 - C5 * 2^8
+        int32_t tempDiff = digitalTemp - tempRef;
+        // TEMP = 20°C + dT * TEMPSENS =2000 + dT * C6 / 223
+        int32_t actualTemp = 2000 + tempDiff * tempSens;
+
+        return actualTemp;
+    }
+
+    int32_t calculateTempCompPressure(uint32_t digitalPressure, int32_t tempDiff) const {
+        // OFF = OFFT1 + TCO * dT = C2 * 2^17 +(C4 *dT) / 26
+        int64_t actualTempOffset = offsetT1 + pressureOffsetTempCo * tempDiff;
+        // SENS = SENST1+ TCS* dT= C1 * 2 16 + (C3 * dT )/ 27
+        int64_t actualTempSens = sensitivityT1 + pressureSensTempCo * tempDiff;
+        // P = D1 * SENS - OFF = (D1 * SENS / 2 21 - OFF) / 2^15
+        return digitalPressure * actualTempSens - actualTempOffset;
     }
 
     void calcTempCompensation(int32_t *temperature, int32_t *tempOffset) {
