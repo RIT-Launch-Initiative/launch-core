@@ -58,15 +58,13 @@ public:
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     RetType reset() {
         RESUME();
 
-        uint8_t resetCommand = RESET_COMMAND;
-
-        RetType ret = CALL(mI2C->write(mAddr, &resetCommand, 1));
+        RetType ret = CALL(mI2C->write(mAddr, reinterpret_cast<uint8_t*>(RESET_COMMAND), 1, 10));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
@@ -79,7 +77,7 @@ public:
             return RET_ERROR;
         }
 
-        uint8_t command = cmd;
+        static uint8_t command = cmd;
         RetType ret = CALL(mI2C->write(mAddr, &command, 1));
         if (ret != RET_SUCCESS) return ret;
 
@@ -97,8 +95,7 @@ public:
     RetType readPROM(uint8_t *data) {
         RESUME();
 
-        uint8_t command = PROM_READ;
-        RetType ret = CALL(mI2C->write(mAddr, &command, 1));
+        RetType ret = CALL(mI2C->write(mAddr, reinterpret_cast<uint8_t*>(PROM_READ), 1));
         if (ret != RET_SUCCESS) return ret;
 
         ret = CALL(mI2C->read(mAddr, data, 2));
@@ -120,7 +117,7 @@ public:
         static uint16_t tempSens = 0;
 
         RetType ret;
-        uint8_t data[2];
+        static uint8_t data[2];
         for (uint8_t i = 1; i < 7; i++) {
             ret = CALL(readPROM(data));
             if (ret != RET_SUCCESS) {
@@ -188,7 +185,7 @@ private:
     I2CAddr_t mAddr = {
             .dev_addr = 0x77 << 1,
             .mem_addr = 0,
-            .mem_addr_size = 0,
+            .mem_addr_size = 1,
     };
 
     int64_t offsetT1;
