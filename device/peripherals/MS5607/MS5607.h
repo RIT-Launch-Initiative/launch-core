@@ -55,7 +55,6 @@ public:
         RESUME();
 
         static uint8_t data[2];
-
         RetType ret = CALL(reset());
         if (ret != RET_SUCCESS) return ret;
 

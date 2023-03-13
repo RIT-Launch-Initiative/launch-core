@@ -21,7 +21,9 @@ public:
     HALSPIDevice(const char *name, SPI_HandleTypeDef *hspi) : SPIDevice(name),
                                                               m_spi(hspi),
                                                               m_blocked(-1),
-                                                              m_lock(1) {};
+                                                              m_lock(1),
+                                                              m_isr_lock(1),
+                                                              m_isr_flag(0){};
 
     /// @brief initialize
     RetType init() {
@@ -55,7 +57,30 @@ public:
     /// @brief poll this device
     /// @return
     RetType poll() {
-        // for now does nothing
+        // acquire the lock to access the ISR flag
+        m_isr_lock.acquire();
+
+        if (m_isr_flag) {
+            // an interrupt occurred
+
+            // reset the flag
+            m_isr_flag = 0;
+
+            // release the lock around the ISR flag
+            m_isr_lock.release();
+
+            // if a task was blocked waiting for completion of this ISR, wake it up
+            if (m_blocked != -1) {
+                WAKE(m_blocked);
+
+                // set this task as woken
+                m_blocked = -1;
+            }
+        } else {
+            // nothing to see here
+            m_isr_lock.release();
+        }
+
         return RET_SUCCESS;
     }
 
@@ -63,7 +88,7 @@ public:
     /// @param buff     the buffer to write
     /// @param len      the size of 'buff' in bytes
     /// @return
-    RetType write(uint8_t *buff, size_t len) {
+    RetType write(uint8_t *buff, size_t len, uint32_t timeout) {
         RESUME();
 
         // block waiting for the device to be free to use
@@ -83,8 +108,23 @@ public:
             return RET_ERROR;
         }
 
-        // block until the transmit is complete
-        BLOCK();
+        // block and wait for the transfer to complete
+        bool timed_out;
+        if (0 == timeout) {
+            BLOCK();
+            timed_out = false;
+        } else {
+            SLEEP(timeout);
+
+            // if the ISR didn't occur, the operation timed out
+            // 'm_blocked' is only reset in poll, so if it's still the task TID
+            // the interrupt never occurred before this task woke up
+            if (m_blocked != -1) {
+                timed_out = true;
+            } else {
+                timed_out = false;
+            }
+        }
 
         // mark the device as unblocked
         m_blocked = -1;
@@ -105,7 +145,7 @@ public:
     /// @param buff     the buffer to read into
     /// @param len      the number of bytes to read
     /// @return
-    RetType read(uint8_t *buff, size_t len) {
+    RetType read(uint8_t *buff, size_t len, uint32_t timeout) {
         RESUME();
 
         // block waiting for the device to be available
@@ -125,8 +165,23 @@ public:
             return RET_ERROR;
         }
 
-        // block waiting for our read to complete
-        BLOCK();
+        // block and wait for the transfer to complete
+        bool timed_out;
+        if (0 == timeout) {
+            BLOCK();
+            timed_out = false;
+        } else {
+            SLEEP(timeout);
+
+            // if the ISR didn't occur, the operation timed out
+            // 'm_blocked' is only reset in poll, so if it's still the task TID
+            // the interrupt never occurred before this task woke up
+            if (m_blocked != -1) {
+                timed_out = true;
+            } else {
+                timed_out = false;
+            }
+        }
 
         // mark the device as unblocked
         m_blocked = -1;
@@ -142,7 +197,7 @@ public:
         return ret;
     }
 
-    RetType write_read(uint8_t* write_buff, size_t write_len, uint8_t* read_buff, size_t read_len) {
+    RetType write_read(uint8_t *write_buff, size_t write_len, uint8_t *read_buff, size_t read_len) {
         RESUME();
 
         // block waiting for the device to be available
@@ -158,21 +213,30 @@ public:
         m_blocked = sched_dispatched;
 
         // start the transfer
-        if (async) {
-            if (HAL_OK != HAL_SPI_TransmitReceive_IT(m_spi, write_buff, read_buff, write_len)) {
-                return RET_ERROR;
-            }
+        if (HAL_OK != HAL_SPI_TransmitReceive_IT(m_spi, write_buff, read_buff, write_len)) {
+            return RET_ERROR;
+        }
 
-            // block waiting for our read to complete
+        // block and wait for the transfer to complete
+        bool timed_out;
+        if (0 == timeout) {
             BLOCK();
-
-            // mark the device as unblocked
-            m_blocked = -1;
+            timed_out = false;
         } else {
-            if (HAL_OK != HAL_SPI_TransmitReceive(m_spi, write_buff, read_buff, write_len, 1000)) {
-                return RET_ERROR;
+            SLEEP(timeout);
+
+            // if the ISR didn't occur, the operation timed out
+            // 'm_blocked' is only reset in poll, so if it's still the task TID
+            // the interrupt never occurred before this task woke up
+            if (m_blocked != -1) {
+                timed_out = true;
+            } else {
+                timed_out = false;
             }
         }
+
+        // mark the device as unblocked
+        m_blocked = -1;
         // we can unblock someone else if they were waiting
         ret = CALL(m_lock.release());
         if (ret != RET_SUCCESS) {
@@ -184,19 +248,17 @@ public:
         return ret;
     }
 
-
-    void setAsync(bool isAsync) {
-        this->async = isAsync;
-    }
-
     /// @brief called by SPI handler asynchronously
     void callback(int) {
-        // don't care if it was tx or rx, for now
+        // all this does is set a flag
+        // the interrupt is actually "handled" in 'poll'
 
-        if (m_blocked != -1) {
-            // wake up the task that's blocked
-            WAKE(m_blocked);
-        }
+        m_isr_lock.acquire();
+
+        // this is less of a flag and more of a count, but is only read as a flag
+        m_isr_flag++;
+
+        m_isr_lock.release();
     }
 
 private:
@@ -214,7 +276,9 @@ private:
     static const int TX_NUM = 0;
     static const int RX_NUM = 1;
 
-    bool async;
+    // Flag when an interrupt has occurred
+    Semaphore m_isr_lock;
+    uint8_t m_isr_flag;
 };
 
 #endif

@@ -45,7 +45,6 @@ public:
     }
 
     /// @brief create an object at the end of the queue and get a pointer to it
-    /// NOTE: this is more functionality than the standard queue
     /// @return the object, or NULL on error
     T* push() {
         Node<T>* node = m_pool.alloc();

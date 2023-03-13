@@ -42,7 +42,7 @@ void PollDevice(void* dev) {
 /// Argument passed to the init task
 typedef struct {
     DeviceMap* dev_map;     // platform device map
-    task_func_t* tasks;     // list of tasks to
+    task_func_t* tasks;     // list of tasks to initialize and poll
     void** args;            // list of arguments passed to these tasks
     size_t num_tasks;       // number of tasks passed in the list
 } init_arg_t;

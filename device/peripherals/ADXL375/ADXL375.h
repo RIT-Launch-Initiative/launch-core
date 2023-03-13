@@ -73,7 +73,7 @@ public:
         static int16_t zAvg;
 
 
-        RetType ret = CALL(m_i2c.read(i2cAddr, &id, 1));
+        RetType ret = CALL(m_i2c.read(i2cAddr, &id, 1, 50));
         if (ret != RET_SUCCESS) return ret;
         if (id != 0xE5) return RET_ERROR;
 
