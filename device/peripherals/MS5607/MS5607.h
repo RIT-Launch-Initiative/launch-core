@@ -54,8 +54,40 @@ public:
     RetType init() {
         RESUME();
 
+        static uint8_t data[2];
+
         RetType ret = CALL(reset());
         if (ret != RET_SUCCESS) return ret;
+
+
+        ret = CALL(readPROM(data, 0));
+        if (ret != RET_SUCCESS) return ret;
+
+        pressureSens = (data[0] << 8) | data[1];
+
+        ret = CALL(readPROM(data, 1));
+        if (ret != RET_SUCCESS) return ret;
+        pressureOffset = (data[0] << 8) | data[1];
+
+        ret = CALL(readPROM(data, 2));
+        if (ret != RET_SUCCESS) return ret;
+        tempSens = (data[0] << 8) | data[1];
+
+        ret = CALL(readPROM(data, 3));
+        if (ret != RET_SUCCESS) return ret;
+        pressureSensTempCo = (data[0] << 8) | data[1];
+
+        ret = CALL(readPROM(data, 4));
+        if (ret != RET_SUCCESS) return ret;
+        pressureOffsetTempCo = (data[0] << 8) | data[1];
+
+        ret = CALL(readPROM(data, 5));
+        if (ret != RET_SUCCESS) return ret;
+        tempRef = (data[0] << 8) | data[1];
+
+        ret = CALL(readPROM(data, 6));
+        if (ret != RET_SUCCESS) return ret;
+        tempSens = (data[0] << 8) | data[1];
 
         RESET();
         return ret;
@@ -92,7 +124,7 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType readPROM(uint8_t *data) {
+    RetType readPROM(uint8_t *data, uint8_t ) {
         RESUME();
 
         RetType ret = CALL(mI2C->write(mAddr, reinterpret_cast<uint8_t*>(PROM_READ), 1));
@@ -108,29 +140,12 @@ public:
     RetType calcPressureTemp(int32_t *pressure, int32_t *temp) {
         RESUME();
 
-        // Read Calibration Data
-        static uint16_t pressureSens = 0;
-        static uint16_t pressureOffset = 0;
-        static uint16_t pressureSensTempCo = 0;
-        static uint16_t pressureOffsetTempCo = 0;
-        static uint16_t tempRef = 0;
-        static uint16_t tempSens = 0;
-
-        RetType ret;
-        static uint8_t data[2];
-        for (uint8_t i = 1; i < 7; i++) {
-            ret = CALL(readPROM(data));
-            if (ret != RET_SUCCESS) {
-                return ret;
-            }
-        }
-
         // Read Digital Values
         static uint8_t conversionData[3] = {};
         static uint32_t digitalPressure;
         static uint32_t digitalTemperature;
 
-        ret = CALL(conversion(CONVERT_D1_4096, conversionData));
+        RetType ret = CALL(conversion(CONVERT_D1_4096, conversionData));
         if (ret != RET_SUCCESS) return ret;
         digitalPressure = (conversionData[0] << 16) | (conversionData[1] << 8) | conversionData[2];
 
@@ -187,6 +202,13 @@ private:
             .mem_addr = 0,
             .mem_addr_size = 1,
     };
+
+    uint16_t pressureSens = 0;
+    uint16_t pressureOffset = 0;
+    uint16_t pressureSensTempCo = 0;
+    uint16_t pressureOffsetTempCo = 0;
+    uint16_t tempRef = 0;
+    uint16_t tempSens = 0;
 
     int64_t offsetT1;
     int64_t sensitivityT1;
