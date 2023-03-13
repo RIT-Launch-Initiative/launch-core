@@ -86,7 +86,7 @@ public:
     RetType reset() {
         RESUME();
 
-        RetType ret = CALL(mI2C->write(mAddr, reinterpret_cast<uint8_t*>(RESET_COMMAND), 1, 10));
+        RetType ret = CALL(mI2C->transmit(mAddr, reinterpret_cast<uint8_t*>(RESET_COMMAND), 1, 10));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
@@ -165,7 +165,7 @@ private:
     RetType conversion(COMMAND_T osr) {
         RESUME();
 
-        RetType ret = CALL(mI2C->write(mAddr, reinterpret_cast<uint8_t*>(osr), 1, 10));
+        RetType ret = CALL(mI2C->transmit(mAddr, reinterpret_cast<uint8_t*>(osr), 1, 10));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
@@ -180,7 +180,7 @@ private:
         RetType ret = CALL(conversion(CONVERT_D1_256));
         if (ret != RET_SUCCESS) return ret;
 
-        ret = CALL(mI2C->write(mAddr, reinterpret_cast<uint8_t*>(0x00), 1));
+        ret = CALL(mI2C->transmit(mAddr, reinterpret_cast<uint8_t*>(0x00), 1));
         if (ret != RET_SUCCESS) return ret;
 
         ret = CALL(mI2C->receive(mAddr, data, 3));
@@ -189,7 +189,7 @@ private:
         ret = CALL(conversion(CONVERT_D2_256));
         if (ret != RET_SUCCESS) return ret;
 
-        ret = CALL(mI2C->write(mAddr, reinterpret_cast<uint8_t*>(0x00), 1));
+        ret = CALL(mI2C->transmit(mAddr, reinterpret_cast<uint8_t*>(0x00), 1));
         if (ret != RET_SUCCESS) return ret;
 
         ret = CALL(mI2C->receive(mAddr, data, 3));
