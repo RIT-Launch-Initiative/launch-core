@@ -54,39 +54,12 @@ public:
     RetType init() {
         RESUME();
 
-        static uint8_t data[2];
         RetType ret = CALL(reset());
         if (ret != RET_SUCCESS) return ret;
 
         SLEEP(280); // 2.8ms delay for register reload
-
-        ret = CALL(readPROM(data, 0));
+        ret = CALL(readCalibration());
         if (ret != RET_SUCCESS) return ret;
-        pressureSens = (data[0] << 8) | data[1];
-
-        ret = CALL(readPROM(data, 2));
-        if (ret != RET_SUCCESS) return ret;
-        pressureOffset = (data[0] << 8) | data[1];
-
-        ret = CALL(readPROM(data, 4));
-        if (ret != RET_SUCCESS) return ret;
-        tempSens = (data[0] << 8) | data[1];
-
-        ret = CALL(readPROM(data, 6));
-        if (ret != RET_SUCCESS) return ret;
-        pressureSensTempCo = (data[0] << 8) | data[1];
-
-        ret = CALL(readPROM(data, 8));
-        if (ret != RET_SUCCESS) return ret;
-        pressureOffsetTempCo = (data[0] << 8) | data[1];
-
-        ret = CALL(readPROM(data, 10));
-        if (ret != RET_SUCCESS) return ret;
-        tempRef = (data[0] << 8) | data[1];
-
-        ret = CALL(readPROM(data, 12));
-        if (ret != RET_SUCCESS) return ret;
-        tempSens = (data[0] << 8) | data[1];
 
         RESET();
         return ret;
@@ -120,22 +93,57 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType conversion(COMMAND_T cmd, uint8_t *data) {
+
+private:
+    I2CDevice *mI2C;
+    I2CAddr_t mAddr = {
+            .dev_addr = 0x77 << 1,
+            .mem_addr = 0,
+            .mem_addr_size = 1,
+    };
+
+    uint16_t pressureSens = 0;
+    uint16_t pressureOffset = 0;
+    uint16_t pressureSensTempCo = 0;
+    uint16_t pressureOffsetTempCo = 0;
+    uint16_t tempRef = 0;
+    uint16_t tempSens = 0;
+
+    int64_t offsetT1;
+    int64_t sensitivityT1;
+
+
+    RetType readCalibration() {
         RESUME();
-        if ((cmd == RESET_COMMAND) || (cmd == ADC_READ) || (cmd == PROM_READ)) {
-            return RET_ERROR;
-        }
 
-        static uint8_t command = cmd;
-        RetType ret = CALL(mI2C->write(mAddr, &command, 1));
+        static uint8_t data[2];
+        RetType ret = CALL(readPROM(data, 0));
         if (ret != RET_SUCCESS) return ret;
+        pressureSens = (data[0] << 8) | data[1];
 
-        command = ADC_READ;
-        ret = CALL(mI2C->write(mAddr, &command, 1));
+        ret = CALL(readPROM(data, 2));
         if (ret != RET_SUCCESS) return ret;
+        pressureOffset = (data[0] << 8) | data[1];
 
-        ret = CALL(mI2C->read(mAddr, data, 3));
+        ret = CALL(readPROM(data, 4));
         if (ret != RET_SUCCESS) return ret;
+        tempSens = (data[0] << 8) | data[1];
+
+        ret = CALL(readPROM(data, 6));
+        if (ret != RET_SUCCESS) return ret;
+        pressureSensTempCo = (data[0] << 8) | data[1];
+
+        ret = CALL(readPROM(data, 8));
+        if (ret != RET_SUCCESS) return ret;
+        pressureOffsetTempCo = (data[0] << 8) | data[1];
+
+        ret = CALL(readPROM(data, 10));
+        if (ret != RET_SUCCESS) return ret;
+        tempRef = (data[0] << 8) | data[1];
+
+        ret = CALL(readPROM(data, 12));
+        if (ret != RET_SUCCESS) return ret;
+        tempSens = (data[0] << 8) | data[1];
 
         RESET();
         return RET_SUCCESS;
@@ -144,10 +152,20 @@ public:
     RetType readPROM(uint8_t *data, uint8_t offset) {
         RESUME();
 
-        RetType ret = CALL(mI2C->write(mAddr, reinterpret_cast<uint8_t*>(PROM_READ + offset), 2));
+        RetType ret = CALL(mI2C->transmit(mAddr, reinterpret_cast<uint8_t*>(PROM_READ + offset), 2));
         if (ret != RET_SUCCESS) return ret;
 
-        ret = CALL(mI2C->read(mAddr, data, 2));
+        ret = CALL(mI2C->receive(mAddr, data, 2));
+        if (ret != RET_SUCCESS) return ret;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType conversion(COMMAND_T osr) {
+        RESUME();
+
+        RetType ret = CALL(mI2C->write(mAddr, reinterpret_cast<uint8_t*>(osr), 1, 10));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
@@ -159,11 +177,22 @@ public:
 
         static uint8_t data[3];
 
-        RetType ret = CALL(conversion(CONVERT_D1_4096, data));
+        RetType ret = CALL(conversion(CONVERT_D1_256));
         if (ret != RET_SUCCESS) return ret;
+
+        ret = CALL(mI2C->write(mAddr, reinterpret_cast<uint8_t*>(0x00), 1));
+        if (ret != RET_SUCCESS) return ret;
+
+        ret = CALL(mI2C->receive(mAddr, data, 3));
         *pressure = (data[0] << 16) | (data[1] << 8) | data[2];
 
-        ret = CALL(conversion(CONVERT_D2_4096, data));
+        ret = CALL(conversion(CONVERT_D2_256));
+        if (ret != RET_SUCCESS) return ret;
+
+        ret = CALL(mI2C->write(mAddr, reinterpret_cast<uint8_t*>(0x00), 1));
+        if (ret != RET_SUCCESS) return ret;
+
+        ret = CALL(mI2C->receive(mAddr, data, 3));
         if (ret != RET_SUCCESS) return ret;
         *temp = (data[0] << 16) | (data[1] << 8) | data[2];
 
@@ -209,24 +238,6 @@ public:
         *tempOffset -= SENS2;
     }
 
-
-private:
-    I2CDevice *mI2C;
-    I2CAddr_t mAddr = {
-            .dev_addr = 0x77 << 1,
-            .mem_addr = 0,
-            .mem_addr_size = 1,
-    };
-
-    uint16_t pressureSens = 0;
-    uint16_t pressureOffset = 0;
-    uint16_t pressureSensTempCo = 0;
-    uint16_t pressureOffsetTempCo = 0;
-    uint16_t tempRef = 0;
-    uint16_t tempSens = 0;
-
-    int64_t offsetT1;
-    int64_t sensitivityT1;
 };
 
 #endif //LAUNCH_CORE_MS5607_H
