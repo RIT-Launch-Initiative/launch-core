@@ -65,27 +65,27 @@ public:
 
         pressureSens = (data[0] << 8) | data[1];
 
-        ret = CALL(readPROM(data, 1));
+        ret = CALL(readPROM(data, 2));
         if (ret != RET_SUCCESS) return ret;
         pressureOffset = (data[0] << 8) | data[1];
 
-        ret = CALL(readPROM(data, 2));
+        ret = CALL(readPROM(data, 4));
         if (ret != RET_SUCCESS) return ret;
         tempSens = (data[0] << 8) | data[1];
 
-        ret = CALL(readPROM(data, 3));
+        ret = CALL(readPROM(data, 6));
         if (ret != RET_SUCCESS) return ret;
         pressureSensTempCo = (data[0] << 8) | data[1];
 
-        ret = CALL(readPROM(data, 4));
+        ret = CALL(readPROM(data, 8));
         if (ret != RET_SUCCESS) return ret;
         pressureOffsetTempCo = (data[0] << 8) | data[1];
 
-        ret = CALL(readPROM(data, 5));
+        ret = CALL(readPROM(data, 10));
         if (ret != RET_SUCCESS) return ret;
         tempRef = (data[0] << 8) | data[1];
 
-        ret = CALL(readPROM(data, 6));
+        ret = CALL(readPROM(data, 12));
         if (ret != RET_SUCCESS) return ret;
         tempSens = (data[0] << 8) | data[1];
 
@@ -127,7 +127,7 @@ public:
     RetType readPROM(uint8_t *data, uint8_t ) {
         RESUME();
 
-        RetType ret = CALL(mI2C->write(mAddr, reinterpret_cast<uint8_t*>(PROM_READ), 1));
+        RetType ret = CALL(mI2C->write(mAddr, reinterpret_cast<uint8_t*>(PROM_READ), 2));
         if (ret != RET_SUCCESS) return ret;
 
         ret = CALL(mI2C->read(mAddr, data, 2));
