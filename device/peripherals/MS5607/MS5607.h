@@ -31,6 +31,7 @@ typedef enum {
 
 enum COMMAND_T {
     RESET_COMMAND = 0x1E,
+
     CONVERT_D1_256 = 0x40,
     CONVERT_D1_512 = 0x42,
     CONVERT_D1_1024 = 0x44,
@@ -47,6 +48,14 @@ enum COMMAND_T {
     PROM_READ = 0xA0, // TODO: Goes to 0xAE based on b4-6 Ad2, Ad1, Ad0.
 };
 
+typedef enum {
+    MS5607_OSR_256 = 0,
+    MS5607_OSR_512 = 1,
+    MS5607_OSR_1024 = 2,
+    MS5607_OSR_2048 = 3,
+    MS5607_OSR_4096 = 4,
+} MS5607_OSR_T;
+
 class MS5607 {
 public:
     MS5607(I2CDevice &i2cDevice) : mI2C(&i2cDevice) {}
@@ -60,6 +69,8 @@ public:
         SLEEP(280); // 2.8ms delay for register reload
         ret = CALL(readCalibration());
         if (ret != RET_SUCCESS) return ret;
+
+        setConv(MS5607_OSR_256);
 
         RESET();
         return ret;
@@ -101,6 +112,11 @@ private:
             .mem_addr = 0,
             .mem_addr_size = 1,
     };
+
+    uint16_t d1Conversion = 0x40;
+    uint16_t d2Conversion = 0x50;
+    uint16_t conversionDelay = 0;
+
 
     uint16_t pressureSens = 0;
     uint16_t pressureOffset = 0;
@@ -152,10 +168,8 @@ private:
     RetType readPROM(uint8_t *data, uint8_t offset) {
         RESUME();
 
-        RetType ret = CALL(mI2C->transmit(mAddr, reinterpret_cast<uint8_t*>(PROM_READ + offset), 2));
-        if (ret != RET_SUCCESS) return ret;
-
-        ret = CALL(mI2C->receive(mAddr, data, 2));
+        data[0] = PROM_READ + offset;
+        RetType ret = CALL(mI2C->transmitReceive(mAddr, data, 1, 2, 10));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
@@ -165,7 +179,7 @@ private:
     RetType conversion(COMMAND_T osr) {
         RESUME();
 
-        RetType ret = CALL(mI2C->transmit(mAddr, reinterpret_cast<uint8_t*>(osr), 1, 10));
+        RetType ret = CALL(mI2C->transmit(mAddr, reinterpret_cast<uint8_t*>(osr), 1));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
@@ -179,20 +193,18 @@ private:
 
         RetType ret = CALL(conversion(CONVERT_D1_256));
         if (ret != RET_SUCCESS) return ret;
+        SLEEP(1);
 
-        ret = CALL(mI2C->transmit(mAddr, reinterpret_cast<uint8_t*>(0x00), 1));
-        if (ret != RET_SUCCESS) return ret;
-
-        ret = CALL(mI2C->receive(mAddr, data, 3));
+        data[0] = 0x00;
+        ret = CALL(mI2C->transmitReceive(mAddr, data, 1, 3));
         *pressure = (data[0] << 16) | (data[1] << 8) | data[2];
 
         ret = CALL(conversion(CONVERT_D2_256));
         if (ret != RET_SUCCESS) return ret;
+        SLEEP(1);
 
-        ret = CALL(mI2C->transmit(mAddr, reinterpret_cast<uint8_t*>(0x00), 1));
-        if (ret != RET_SUCCESS) return ret;
-
-        ret = CALL(mI2C->receive(mAddr, data, 3));
+        data[0] = 0x00;
+        ret = CALL(mI2C->transmitReceive(mAddr, data, 1, 3));
         if (ret != RET_SUCCESS) return ret;
         *temp = (data[0] << 16) | (data[1] << 8) | data[2];
 
@@ -236,6 +248,41 @@ private:
         *temperature -= T2;
         *tempOffset -= OFF2;
         *tempOffset -= SENS2;
+    }
+
+    void setConv(MS5607_OSR_T osr) {
+        switch (osr) {
+            case MS5607_OSR_256:
+                d1Conversion = CONVERT_D1_256;
+                d2Conversion = CONVERT_D2_256;
+                conversionDelay = 1;
+                break;
+            case MS5607_OSR_512:
+                d1Conversion = CONVERT_D1_512;
+                d2Conversion = CONVERT_D2_512;
+                conversionDelay = 3;
+                break;
+            case MS5607_OSR_1024:
+                d1Conversion = CONVERT_D1_1024;
+                d2Conversion = CONVERT_D2_1024;
+                conversionDelay = 4;
+                break;
+            case MS5607_OSR_2048:
+                d1Conversion = CONVERT_D1_2048;
+                d2Conversion = CONVERT_D2_2048;
+                conversionDelay = 6;
+                break;
+            case MS5607_OSR_4096:
+                d1Conversion = CONVERT_D1_4096;
+                d2Conversion = CONVERT_D2_4096;
+                conversionDelay = 10;
+                break;
+            default:
+                d1Conversion = CONVERT_D1_256;
+                d2Conversion = CONVERT_D2_256;
+                conversionDelay = 1;
+                break;
+        }
     }
 
 };
