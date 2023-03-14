@@ -14,10 +14,6 @@
 #include "sched/macros.h"
 #include "sync/BlockingSemaphore.h"
 
-#include "stm32f4xx_hal_uart.h"
-
-extern UART_HandleTypeDef huart2;
-
 /// @brief I2C device controller
 class HALI2CDevice : public I2CDevice, public CallbackDevice {
 public:
