@@ -9,6 +9,10 @@
 #include "sched/macros.h"
 #include "sync/BlockingSemaphore.h"
 
+#include "stm32f4xx_hal_uart.h"
+
+extern UART_HandleTypeDef huart2;
+
 /// @brief I2C device controller
 class HALI2CDevice : public I2CDevice, public CallbackDevice {
 public:
@@ -66,7 +70,7 @@ public:
             m_isr_lock.release();
 
             // if a task was blocked waiting for completion of this ISR, wake it up
-            if(m_blocked != -1) {
+            if (m_blocked != -1) {
                 WAKE(m_blocked);
 
                 // set this task as woken
@@ -86,7 +90,7 @@ public:
     /// @param len      the size of 'buff' in bytes
     /// @return
     RetType transmit(I2CAddr_t &addr, uint8_t *buff,
-                                    size_t len, uint32_t timeout) {
+                     size_t len, uint32_t timeout) {
         RESUME();
 
         // block and wait for the device to be available
@@ -102,14 +106,13 @@ public:
         m_blocked = sched_dispatched;
 
         // start the transfer
-
         if (HAL_OK != HAL_I2C_Master_Transmit_IT(m_i2c, addr.dev_addr, buff, len)) {
             return RET_ERROR;
         }
 
         // block and wait for the transfer to complete
         bool timed_out;
-        if(0 == timeout) {
+        if (0 == timeout) {
             BLOCK();
             timed_out = false;
         } else {
@@ -118,7 +121,7 @@ public:
             // if the ISR didn't occur, the operation timed out
             // 'm_blocked' is only reset in poll, so if it's still the task TID
             // the interrupt never occurred before this task woke up
-            if(m_blocked != -1) {
+            if (m_blocked != -1) {
                 timed_out = true;
             } else {
                 timed_out = false;
@@ -133,7 +136,7 @@ public:
 
         RESET();
 
-        if(timed_out) {
+        if (timed_out) {
             return RET_ERROR;
         }
 
@@ -146,7 +149,7 @@ public:
     /// @param len      the size of 'buff' in bytes
     /// @return
     RetType write(I2CAddr_t &addr, uint8_t *buff,
-                                size_t len, uint32_t timeout) {
+                  size_t len, uint32_t timeout) {
         RESUME();
 
         // block and wait for the device to be available
@@ -163,13 +166,13 @@ public:
 
         // start the transfer
         if (HAL_OK != HAL_I2C_Mem_Write_IT(m_i2c, addr.dev_addr, addr.mem_addr,
-                                               addr.mem_addr_size, buff, len)) {
+                                           addr.mem_addr_size, buff, len)) {
             return RET_ERROR;
         }
 
         // block and wait for the transfer to complete
         bool timed_out;
-        if(0 == timeout) {
+        if (0 == timeout) {
             BLOCK();
             timed_out = false;
         } else {
@@ -178,7 +181,7 @@ public:
             // if the ISR didn't occur, the operation timed out
             // 'm_blocked' is only reset in poll, so if it's still the task TID
             // the interrupt never occurred before this task woke up
-            if(m_blocked != -1) {
+            if (m_blocked != -1) {
                 timed_out = true;
             } else {
                 timed_out = false;
@@ -193,20 +196,21 @@ public:
 
         RESET();
 
-        if(timed_out) {
+        if (timed_out) {
             return RET_ERROR;
         }
 
         return RET_SUCCESS;
     }
 
-    /// @brief write to the I2C register
-    /// @param addr     the I2C address to write to
-    /// @param buff     the buffer to write
-    /// @param len      the size of 'buff' in bytes
+    /// @brief receive from the I2C slave
+    ///        blocks until enough data is ready
+    /// @param addr     the I2C address to read from
+    /// @param buff     the buffer to read into
+    /// @param len      the number of bytes to read
     /// @return
     RetType receive(I2CAddr_t &addr, uint8_t *buff,
-                                size_t len, uint32_t timeout) {
+                    size_t len, uint32_t timeout) {
         RESUME();
 
         // block and wait for the device to be available
@@ -222,14 +226,13 @@ public:
         m_blocked = sched_dispatched;
 
         // start the transfer
-        if (HAL_OK != HAL_I2C_Master_Receive_IT(m_i2c, addr.dev_addr,
-                                                            buff, len)) {
+        if (HAL_OK != HAL_I2C_Master_Receive_IT(m_i2c, addr.dev_addr, buff, len)) {
             return RET_ERROR;
         }
 
         // block and wait for the transfer to complete
         bool timed_out;
-        if(0 == timeout) {
+        if (0 == timeout) {
             BLOCK();
             timed_out = false;
         } else {
@@ -238,7 +241,7 @@ public:
             // if the ISR didn't occur, the operation timed out
             // 'm_blocked' is only reset in poll, so if it's still the task TID
             // the interrupt never occurred before this task woke up
-            if(m_blocked != -1) {
+            if (m_blocked != -1) {
                 timed_out = true;
             } else {
                 timed_out = false;
@@ -253,12 +256,13 @@ public:
 
         RESET();
 
-        if(timed_out) {
+        if (timed_out) {
             return RET_ERROR;
         }
 
         return RET_SUCCESS;
     }
+
 
     /// @brief read from the I2C register
     ///        blocks until enough data is ready
@@ -267,7 +271,7 @@ public:
     /// @param len      the number of bytes to read
     /// @return
     RetType read(I2CAddr_t &addr, uint8_t *buff,
-                            size_t len, uint32_t timeout) {
+                 size_t len, uint32_t timeout) {
         RESUME();
 
         // block and wait for the device to be available
@@ -290,7 +294,7 @@ public:
 
         // block and wait for the transfer to complete
         bool timed_out;
-        if(0 == timeout) {
+        if (0 == timeout) {
             BLOCK();
             timed_out = false;
         } else {
@@ -299,7 +303,7 @@ public:
             // if the ISR didn't occur, the operation timed out
             // 'm_blocked' is only reset in poll, so if it's still the task TID
             // the interrupt never occurred before this task woke up
-            if(m_blocked != -1) {
+            if (m_blocked != -1) {
                 timed_out = true;
             } else {
                 timed_out = false;
@@ -314,15 +318,89 @@ public:
 
         RESET();
 
-        if(timed_out) {
+        if (timed_out) {
             return RET_ERROR;
         }
 
         return RET_SUCCESS;
     }
 
+    /// @brief Request a transfer from the I2C slave
+    /// @param addr     the I2C address to read from
+    /// @param buff     the buffer to send command and store data in
+    /// @param inLen    the number of bytes to send
+    /// @param outLen   the number of bytes to receive
+    /// @return
+    RetType transmitReceive(I2CAddr_t &addr, uint8_t *buff,
+                            size_t inLen, size_t outLen, uint32_t timeout) {
+        RESUME();
+
+        // block and wait for the device to be available
+        RetType ret = CALL(m_lock.acquire());
+        if (ret != RET_SUCCESS) {
+            // some error
+            return ret;
+        }
+
+        // mark this task as blocked BEFORE we call the interrupt function
+        // we want to make sure there is no race condition b/w processing the ISR
+        // and blocking the task
+        m_blocked = sched_dispatched;
+
+        // start the transfer
+        if (HAL_OK != HAL_I2C_Master_Transmit_IT(m_i2c, addr.dev_addr, buff, inLen)) {
+            return RET_ERROR;
+        }
 
 
+        bool timed_out;
+        if (0 == timeout) {
+            BLOCK();
+            timed_out = false;
+        } else {
+            SLEEP(timeout);
+
+            // if the ISR didn't occur, the operation timed out
+            // 'm_blocked' is only reset in poll, so if it's still the task TID
+            // the interrupt never occurred before this task woke up
+            if (m_blocked != -1) {
+                timed_out = true;
+            } else {
+                timed_out = false;
+            }
+        }
+
+        if (HAL_OK != HAL_I2C_Master_Receive_IT(m_i2c, addr.dev_addr, buff, outLen)) {
+            return RET_ERROR;
+        }
+
+        // block and wait for the transfer to complete
+        if (0 == timeout) {
+            BLOCK();
+            timed_out = false;
+        } else {
+            SLEEP(timeout);
+
+            // if the ISR didn't occur, the operation timed out
+            // 'm_blocked' is only reset in poll, so if it's still the task TID
+            // the interrupt never occurred before this task woke up
+            if (m_blocked != -1) {
+                timed_out = true;
+            } else {
+                timed_out = false;
+            }
+        }
+
+        // release the lock so the next waiter can use the device
+        ret = CALL(m_lock.release());
+        if (ret != RET_SUCCESS) {
+            return ret;
+        }
+
+        RESET();
+
+        return RET_SUCCESS;
+    }
 
     /// @brief called by I2C handler asynchronously
     void callback(int) {
