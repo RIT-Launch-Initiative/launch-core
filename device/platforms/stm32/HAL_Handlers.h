@@ -3,12 +3,19 @@
 #ifndef HAL_HANDLERS_H
 #define HAL_HANDLERS_H
 
+#ifdef STM32F446xx
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_uart.h"
 #include "stm32f4xx_hal_i2c.h"
 #include "stm32f4xx_hal_spi.h"
 #include "stm32f4xx_hal_gpio.h"
-
+#elif
+#include "stm32l4xx_hal.h"
+#include "stm32l4xx_hal_uart.h"
+#include "stm32l4xx_hal_i2c.h"
+#include "stm32l4xx_hal_spi.h"
+#include "stm32l4xx_hal_gpio.h"
+#endif
 
 #include "return.h"
 #include "device/Device.h"
