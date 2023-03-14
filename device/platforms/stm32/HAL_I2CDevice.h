@@ -1,15 +1,15 @@
 #ifndef HAL_I2C_DEVICE_H
 #define HAL_I2C_DEVICE_H
 
-#include "stm32l4xx_hal.h"
-#include "stm32l4xx_hal_i2c.h"
+#include "stm32f4xx_hal.h"
+#include "stm32f4xx_hal_i2c.h"
 
 #include "device/I2CDevice.h"
 #include "device/platforms/stm32/HAL_Handlers.h"
 #include "sched/macros.h"
 #include "sync/BlockingSemaphore.h"
 
-#include "stm32l4xx_hal_uart.h"
+#include "stm32f4xx_hal_uart.h"
 
 extern UART_HandleTypeDef huart2;
 
