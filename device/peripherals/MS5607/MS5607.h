@@ -76,7 +76,11 @@ public:
         return ret;
     }
 
-    RetType getPressureTemp(int32_t *pressure, int32_t *temp) {
+    float getAltitude(float pressure, float temp) {
+        return 153.84615 * (pow(pressure / 1013.25f, 0.1903f) - 1) * (temp + 273.15);
+    }
+
+    RetType getPressureTemp(float *pressure, float *temp) {
         RESUME();
 
         static uint32_t pressureVal;
@@ -87,9 +91,12 @@ public:
 
         int32_t dT;
 
-        *temp = calculateTemp(tempVal, &dT);
-        *pressure = calculateTempCompPressure(pressureVal, dT);
-        calcTempCompensation(temp, pressure);
+        int32_t calcTemp = calculateTemp(tempVal, &dT);
+        int32_t calcPressure = calculateTempCompPressure(pressureVal, dT);
+        calcTempCompensation(&calcTemp, &calcPressure);
+
+        *pressure = calcPressure / 100.0f;
+        *temp = calcTemp / 100.0f;
 
         RESET();
         return RET_SUCCESS;
@@ -98,7 +105,7 @@ public:
     RetType reset() {
         RESUME();
 
-        RetType ret = CALL(mI2C->transmit(mAddr, reinterpret_cast<uint8_t*>(RESET_COMMAND), 1, 10));
+        RetType ret = CALL(mI2C->transmit(mAddr, reinterpret_cast<uint8_t *>(RESET_COMMAND), 1, 10));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
@@ -212,11 +219,11 @@ private:
     }
 
     int32_t calculateTempCompPressure(uint32_t digitalPressure, int32_t tempDiff) const {
-        // OFF = OFFT1 + TCO *dT = C2 *217 +(C4 *dT )/ 26
+        // OFF = OFFT1 + TCO *dT = C2 *217 + (C4 * dT) / 2^6
         int32_t off = pressureOffset * 131072 + (pressureOffsetTempCo * tempDiff) / 64;
-        // SENS = SENST1+ TCS* dT= C1 * 2 16 + (C3 * dT )/ 27
+        // SENS = SENST1 + TCS * dT= C1 * 2^16 + (C3 * dT) / 2^7
         int32_t sens = pressureSens * 65536 + (pressureSensTempCo * tempDiff) / 128;
-        // P = D1 * SENS - OFF = (D1 * SENS / 2 21 - OFF) / 2 15
+        // P = D1 * SENS - OFF = (D1 * SENS / 2^21 - OFF) / 2^15
         return ((digitalPressure * sens / 2097152) - off) / 32768;
     }
 
