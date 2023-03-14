@@ -137,6 +137,11 @@ public:
         }
 
         RESET();
+
+        if (timed_out) {
+            return RET_ERROR;
+        }
+
         return RET_SUCCESS;
     }
 
@@ -194,10 +199,15 @@ public:
         }
 
         RESET();
+
+        if (timed_out) {
+            return RET_ERROR;
+        }
+
         return ret;
     }
 
-    RetType write_read(uint8_t *write_buff, size_t write_len, uint8_t *read_buff, size_t read_len) {
+    RetType write_read(uint8_t *write_buff, size_t write_len, uint8_t *read_buff, size_t read_len, uint32_t timeout) {
         RESUME();
 
         // block waiting for the device to be available
@@ -245,6 +255,11 @@ public:
         }
 
         RESET();
+
+        if (timed_out) {
+            return RET_ERROR;
+        }
+
         return ret;
     }
 
