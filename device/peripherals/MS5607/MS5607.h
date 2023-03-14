@@ -85,9 +85,10 @@ public:
         RetType ret = CALL(readDigitalVals(&pressureVal, &tempVal));
         if (ret != RET_SUCCESS) return ret;
 
-        *temp = calculateTemp(tempVal);
-        *pressure = calculateTempCompPressure(pressureVal, *temp);
+        int32_t dT;
 
+        *temp = calculateTemp(tempVal, &dT);
+        *pressure = calculateTempCompPressure(pressureVal, dT);
         calcTempCompensation(temp, pressure);
 
         RESET();
@@ -123,10 +124,6 @@ private:
     uint16_t pressureOffsetTempCo = 0;
     uint16_t tempRef = 0;
     uint16_t tempSens = 0;
-
-    int64_t offsetT1;
-    int64_t sensitivityT1;
-
 
     RetType readCalibration() {
         RESUME();
@@ -207,20 +204,20 @@ private:
         return RET_SUCCESS;
     }
 
-    int32_t calculateTemp(uint32_t digitalTemp) const {
+    int32_t calculateTemp(uint32_t digitalTemp, int32_t *tempDiff) const {
         // dT = D2 - TREF = D2 - C5 * 2^8
-        int32_t tempDiff = digitalTemp - (tempRef * 256);
+        *tempDiff = digitalTemp - (tempRef * 256);
         // TEMP = 20°C + dT * TEMPSENS =2000 + dT * C6 / 2^23
-        return 2000 + tempDiff * tempSens / 8388608;
+        return 2000 + *tempDiff * tempSens / 8388608;
     }
 
     int32_t calculateTempCompPressure(uint32_t digitalPressure, int32_t tempDiff) const {
-        // OFF = OFFT1 + TCO * dT = C2 * 2^17 +(C4 *dT) / 26
-        int64_t actualTempOffset = offsetT1 + pressureOffsetTempCo * tempDiff;
+        // OFF = OFFT1 + TCO *dT = C2 *217 +(C4 *dT )/ 26
+        int32_t off = pressureOffset * 131072 + (pressureOffsetTempCo * tempDiff) / 64;
         // SENS = SENST1+ TCS* dT= C1 * 2 16 + (C3 * dT )/ 27
-        int64_t actualTempSens = sensitivityT1 + pressureSensTempCo * tempDiff;
-        // P = D1 * SENS - OFF = (D1 * SENS / 2 21 - OFF) / 2^15
-        return digitalPressure * actualTempSens - actualTempOffset;
+        int32_t sens = pressureSens * 65536 + (pressureSensTempCo * tempDiff) / 128;
+        // P = D1 * SENS - OFF = (D1 * SENS / 2 21 - OFF) / 2 15
+        return ((digitalPressure * sens / 2097152) - off) / 32768;
     }
 
     void calcTempCompensation(int32_t *temperature, int32_t *tempOffset) {
