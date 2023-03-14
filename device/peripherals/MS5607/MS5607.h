@@ -19,13 +19,13 @@
 
 typedef enum {
     FACTORY_DATA_ADDR = 0,
-    COEFFICIENT_ONE_ADDR = 1,
-    COEFFICIENT_TWO_ADDR = 2,
-    COEFFICIENT_THREE_ADDR = 3,
-    COEFFICIENT_FOUR_ADDR = 4,
-    COEFFICIENT_FIVE_ADDR = 5,
-    COEFFICIENT_SIX_ADDR = 6,
-    SERIAL_CRC_ADDR = 7,
+    COEFFICIENT_ONE_ADDR = 2,
+    COEFFICIENT_TWO_ADDR = 4,
+    COEFFICIENT_THREE_ADDR = 6,
+    COEFFICIENT_FOUR_ADDR = 8,
+    COEFFICIENT_FIVE_ADDR = 10,
+    COEFFICIENT_SIX_ADDR = 12,
+    SERIAL_CRC_ADDR = 14,
 } PROM_ADDR_T;
 
 
@@ -45,7 +45,7 @@ enum COMMAND_T {
     CONVERT_D2_4096 = 0x58,
 
     ADC_READ = 0x00,
-    PROM_READ = 0xA0, // TODO: Goes to 0xAE based on b4-6 Ad2, Ad1, Ad0.
+    PROM_READ = 0xA0,
 };
 
 typedef enum {
@@ -113,10 +113,9 @@ private:
             .mem_addr_size = 1,
     };
 
-    uint16_t d1Conversion = 0x40;
-    uint16_t d2Conversion = 0x50;
+    uint8_t d1Conversion = 0x40;
+    uint8_t d2Conversion = 0x50;
     uint16_t conversionDelay = 0;
-
 
     uint16_t pressureSens = 0;
     uint16_t pressureOffset = 0;
@@ -133,31 +132,27 @@ private:
         RESUME();
 
         static uint8_t data[2];
-        RetType ret = CALL(readPROM(data, 0));
+        RetType ret = CALL(readPROM(data, COEFFICIENT_ONE_ADDR));
         if (ret != RET_SUCCESS) return ret;
         pressureSens = (data[0] << 8) | data[1];
 
-        ret = CALL(readPROM(data, 2));
+        ret = CALL(readPROM(data, COEFFICIENT_TWO_ADDR));
         if (ret != RET_SUCCESS) return ret;
         pressureOffset = (data[0] << 8) | data[1];
 
-        ret = CALL(readPROM(data, 4));
-        if (ret != RET_SUCCESS) return ret;
-        tempSens = (data[0] << 8) | data[1];
-
-        ret = CALL(readPROM(data, 6));
+        ret = CALL(readPROM(data, COEFFICIENT_THREE_ADDR));
         if (ret != RET_SUCCESS) return ret;
         pressureSensTempCo = (data[0] << 8) | data[1];
 
-        ret = CALL(readPROM(data, 8));
+        ret = CALL(readPROM(data, COEFFICIENT_FOUR_ADDR));
         if (ret != RET_SUCCESS) return ret;
         pressureOffsetTempCo = (data[0] << 8) | data[1];
 
-        ret = CALL(readPROM(data, 10));
+        ret = CALL(readPROM(data, COEFFICIENT_FIVE_ADDR));
         if (ret != RET_SUCCESS) return ret;
         tempRef = (data[0] << 8) | data[1];
 
-        ret = CALL(readPROM(data, 12));
+        ret = CALL(readPROM(data, COEFFICIENT_SIX_ADDR));
         if (ret != RET_SUCCESS) return ret;
         tempSens = (data[0] << 8) | data[1];
 
@@ -169,18 +164,20 @@ private:
         RESUME();
 
         data[0] = PROM_READ + offset;
-        RetType ret = CALL(mI2C->transmitReceive(mAddr, data, 1, 2, 10));
+        RetType ret = CALL(mI2C->transmitReceive(mAddr, data, 1, 2, 50));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
         return RET_SUCCESS;
     }
 
-    RetType conversion(COMMAND_T osr) {
+    RetType conversion(bool isD1) {
         RESUME();
 
-        RetType ret = CALL(mI2C->transmit(mAddr, reinterpret_cast<uint8_t*>(osr), 1));
+        RetType ret = CALL(mI2C->transmit(mAddr, isD1 ? &d1Conversion : &d2Conversion, 1));
         if (ret != RET_SUCCESS) return ret;
+
+        SLEEP(conversionDelay);
 
         RESET();
         return RET_SUCCESS;
@@ -191,20 +188,18 @@ private:
 
         static uint8_t data[3];
 
-        RetType ret = CALL(conversion(CONVERT_D1_256));
+        RetType ret = CALL(conversion(true));
         if (ret != RET_SUCCESS) return ret;
-        SLEEP(1);
 
-        data[0] = 0x00;
-        ret = CALL(mI2C->transmitReceive(mAddr, data, 1, 3));
+        data[0] = ADC_READ;
+        ret = CALL(mI2C->transmitReceive(mAddr, data, 1, 3, 50));
         *pressure = (data[0] << 16) | (data[1] << 8) | data[2];
 
-        ret = CALL(conversion(CONVERT_D2_256));
+        ret = CALL(conversion(false));
         if (ret != RET_SUCCESS) return ret;
-        SLEEP(1);
 
-        data[0] = 0x00;
-        ret = CALL(mI2C->transmitReceive(mAddr, data, 1, 3));
+        data[0] = ADC_READ;
+        ret = CALL(mI2C->transmitReceive(mAddr, data, 1, 3, 50));
         if (ret != RET_SUCCESS) return ret;
         *temp = (data[0] << 16) | (data[1] << 8) | data[2];
 
@@ -214,10 +209,9 @@ private:
 
     int32_t calculateTemp(uint32_t digitalTemp) const {
         // dT = D2 - TREF = D2 - C5 * 2^8
-        int32_t tempDiff = digitalTemp - tempRef;
-        // TEMP = 20°C + dT * TEMPSENS =2000 + dT * C6 / 223
-        return 2000 + tempDiff * tempSens;
-
+        int32_t tempDiff = digitalTemp - (tempRef * 256);
+        // TEMP = 20°C + dT * TEMPSENS =2000 + dT * C6 / 2^23
+        return 2000 + tempDiff * tempSens / 8388608;
     }
 
     int32_t calculateTempCompPressure(uint32_t digitalPressure, int32_t tempDiff) const {
