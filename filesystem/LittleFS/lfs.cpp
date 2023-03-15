@@ -141,13 +141,13 @@ static RetType lfs_bd_cmp(lfs_t *lfs, const lfs_cache_t *pcache, lfs_cache_t *rc
 
 #ifndef LFS_READONLY
 
-static int lfs_bd_flush(lfs_t *lfs,
-                        lfs_cache_t *pcache, lfs_cache_t *rcache, bool validate) {
+static RetType lfs_bd_flush(lfs_t *lfs, lfs_cache_t *pcache, lfs_cache_t *rcache, bool validate) {
+    RESUME();
+
     if (pcache->block != LFS_BLOCK_NULL && pcache->block != LFS_BLOCK_INLINE) {
         LFS_ASSERT(pcache->block < lfs->cfg->block_count);
         lfs_size_t diff = lfs_alignup(pcache->size, lfs->cfg->prog_size);
-        int err = lfs->cfg->prog(lfs->cfg, pcache->block,
-                                 pcache->off, pcache->buffer, diff);
+        RetType ret = CALL(lfs->cfg->prog(lfs->cfg, pcache->block,pcache->off, pcache->buffer, diff));
         LFS_ASSERT(err <= 0);
         if (err) {
             return err;
@@ -156,22 +156,24 @@ static int lfs_bd_flush(lfs_t *lfs,
         if (validate) {
             // check data on disk
             lfs_cache_drop(lfs, rcache);
-            int res = lfs_bd_cmp(lfs,
-                                 NULL, rcache, diff,
-                                 pcache->block, pcache->off, pcache->buffer, diff);
+            static int res;
+            RetType ret = CALL(lfs_bd_cmp(lfs, NULL, rcache, diff, pcache->block, pcache->off, pcache->buffer, diff, &res));
+            if (ret != RET_SUCCESS) return ret;
+
             if (res < 0) {
-                return res;
+                return RET_ERROR;
             }
 
             if (res != LFS_CMP_EQ) {
-                return LFS_ERR_CORRUPT;
+                return RET_ERROR; // Corrupt
             }
         }
 
         lfs_cache_zero(lfs, pcache);
     }
 
-    return 0;
+    RESET();
+    return RET_SUCCESS;
 }
 
 #endif
