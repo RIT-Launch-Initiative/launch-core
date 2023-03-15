@@ -41,10 +41,7 @@ static inline void lfs_cache_zero(lfs_t *lfs, lfs_cache_t *pcache) {
     pcache->block = LFS_BLOCK_NULL;
 }
 
-static RetType lfs_bd_read(lfs_t *lfs,
-                       const lfs_cache_t *pcache, lfs_cache_t *rcache, lfs_size_t hint,
-                       lfs_block_t block, lfs_off_t off,
-                       void *buffer, lfs_size_t size) {
+static RetType lfs_bd_read(lfs_t *lfs, const lfs_cache_t *pcache, lfs_cache_t *rcache, lfs_size_t hint, lfs_block_t block, lfs_off_t off, void *buffer, lfs_size_t size, int* res) {
     RESUME();
 
     static uint8_t *data = buffer;
@@ -114,31 +111,32 @@ static RetType lfs_bd_read(lfs_t *lfs,
     return RET_SUCCESS;
 }
 
-static int lfs_bd_cmp(lfs_t *lfs,
-                      const lfs_cache_t *pcache, lfs_cache_t *rcache, lfs_size_t hint,
-                      lfs_block_t block, lfs_off_t off,
-                      const void *buffer, lfs_size_t size) {
-    const uint8_t *data = buffer;
-    lfs_size_t diff = 0;
+static RetType lfs_bd_cmp(lfs_t *lfs, const lfs_cache_t *pcache, lfs_cache_t *rcache, lfs_size_t hint, lfs_block_t block, lfs_off_t off, const void *buffer, lfs_size_t size, int *res) {
+    RESUME();
 
-    for (lfs_off_t i = 0; i < size; i += diff) {
+    static const uint8_t *data = buffer;
+    static lfs_size_t diff = 0;
+    static lfs_off_t i = 0;
+    for (; i < size; i += diff) {
         uint8_t dat[8];
 
         diff = lfs_min(size - i, sizeof(dat));
-        int res = lfs_bd_read(lfs,
-                              pcache, rcache, hint - i,
-                              block, off + i, &dat, diff);
-        if (res) {
-            return res;
-        }
+        RetType ret = CALL(lfs_bd_read(lfs, pcache, rcache, hint - i, block, off + i, &dat, diff));
+        if (ret != RET_SUCCESS) return ret;
 
-        res = memcmp(dat, data + i, diff);
-        if (res) {
-            return res < 0 ? LFS_CMP_LT : LFS_CMP_GT;
+        *res = memcmp(dat, data + i, diff);
+        if (res) { // TODO: Validate. Unsure right now
+            *res = *res < 0 ? LFS_CMP_LT : LFS_CMP_GT;
+            RESET();
+            return RET_SUCCESS;
         }
     }
 
-    return LFS_CMP_EQ;
+    i = 0;
+
+    RESET();
+    *res = LFS_CMP_EQ;
+    return RET_SUCCESS;
 }
 
 #ifndef LFS_READONLY
