@@ -244,10 +244,15 @@ static RetType lfs_bd_prog(lfs_t *lfs, lfs_cache_t *pcache, lfs_cache_t *rcache,
 #ifndef LFS_READONLY
 
 static int lfs_bd_erase(lfs_t *lfs, lfs_block_t block) {
-    LFS_ASSERT(block < lfs->cfg->block_count);
-    int err = lfs->cfg->erase(lfs->cfg, block);
-    LFS_ASSERT(err <= 0);
-    return err;
+    RESUME();
+
+    if (block < lfs->cfg->block_count) return RET_ERROR;
+
+    RetType ret = CALL(lfs->cfg->erase(lfs->cfg, block));
+    if (ret != RET_SUCCESS) return ret;
+
+    RESET();
+    return RET_SUCCESS;
 }
 
 #endif
