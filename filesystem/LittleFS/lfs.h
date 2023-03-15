@@ -8,6 +8,8 @@
 #ifndef LFS_H
 #define LFS_H
 
+#define LFS_NO_MALLOC  // Guarantee we never use malloc for embedded flight software
+
 #include <stdint.h>
 #include <stdbool.h>
 #include "lfs_util.h"
