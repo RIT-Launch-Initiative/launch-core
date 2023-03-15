@@ -14,6 +14,7 @@
 #include <stdbool.h>
 #include "lfs_util.h"
 #include "return.h"
+#include "sched/macros.h"
 
 #ifdef __cplusplus
 extern "C"
