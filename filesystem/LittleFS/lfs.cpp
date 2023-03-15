@@ -41,7 +41,7 @@ static inline void lfs_cache_zero(lfs_t *lfs, lfs_cache_t *pcache) {
     pcache->block = LFS_BLOCK_NULL;
 }
 
-static RetType lfs_bd_read(lfs_t *lfs, const lfs_cache_t *pcache, lfs_cache_t *rcache, lfs_size_t hint, lfs_block_t block, lfs_off_t off, void *buffer, lfs_size_t size, int* res) {
+static RetType lfs_bd_read(lfs_t *lfs, const lfs_cache_t *pcache, lfs_cache_t *rcache, lfs_size_t hint, lfs_block_t block, lfs_off_t off, void *buffer, lfs_size_t size) {
     RESUME();
 
     static uint8_t *data = buffer;
@@ -103,7 +103,7 @@ static RetType lfs_bd_read(lfs_t *lfs, const lfs_cache_t *pcache, lfs_cache_t *r
         rcache->block = block;
         rcache->off = lfs_aligndown(off, lfs->cfg->read_size);
         rcache->size = lfs_min(lfs_min(lfs_alignup(off + hint, lfs->cfg->read_size), lfs->cfg->block_size) - rcache->off, lfs->cfg->cache_size);
-        RetType ret = lfs->cfg->read(lfs->cfg, rcache->block, rcache->off, rcache->buffer, rcache->size);
+        RetType ret = CALL(lfs->cfg->read(lfs->cfg, rcache->block, rcache->off, rcache->buffer, rcache->size));
         if (ret != RET_SUCCESS) return ret;
     }
 
@@ -636,12 +636,12 @@ static int lfs_alloc(lfs_t *lfs, lfs_block_t *block) {
 #endif
 
 /// Metadata pair and directory operations ///
-static lfs_stag_t lfs_dir_getslice(lfs_t *lfs, const lfs_mdir_t *dir,
-                                   lfs_tag_t gmask, lfs_tag_t gtag,
-                                   lfs_off_t goff, void *gbuffer, lfs_size_t gsize) {
-    lfs_off_t off = dir->off;
-    lfs_tag_t ntag = dir->etag;
-    lfs_stag_t gdiff = 0;
+static RetType lfs_dir_getslice(lfs_t *lfs, const lfs_mdir_t *dir, lfs_tag_t gmask, lfs_tag_t gtag, lfs_off_t goff, void *gbuffer, lfs_size_t gsize, lfs_stag_t *result) {
+    RESUME();
+
+    static lfs_off_t off = dir->off;
+    static lfs_tag_t ntag = dir->etag;
+    static lfs_stag_t gdiff = 0;
 
     if (lfs_gstate_hasmovehere(&lfs->gdisk, dir->pair) &&
         lfs_tag_id(gmask) != 0 &&
@@ -653,23 +653,19 @@ static lfs_stag_t lfs_dir_getslice(lfs_t *lfs, const lfs_mdir_t *dir,
     // iterate over dir block backwards (for faster lookups)
     while (off >= sizeof(lfs_tag_t) + lfs_tag_dsize(ntag)) {
         off -= lfs_tag_dsize(ntag);
-        lfs_tag_t tag = ntag;
-        int err = lfs_bd_read(lfs,
-                              NULL, &lfs->rcache, sizeof(ntag),
-                              dir->pair[0], off, &ntag, sizeof(ntag));
-        if (err) {
-            return err;
-        }
+        static lfs_tag_t tag = ntag;
+
+        RetType ret = CALL(lfs_bd_read(lfs, NULL, &lfs->rcache, sizeof(ntag), dir->pair[0], off, &ntag, sizeof(ntag)));
+        if (ret != RET_SUCCESS) return ret;
 
         ntag = (lfs_frombe32(ntag) ^ tag) & 0x7fffffff;
 
         if (lfs_tag_id(gmask) != 0 &&
             lfs_tag_type1(tag) == LFS_TYPE_SPLICE &&
             lfs_tag_id(tag) <= lfs_tag_id(gtag - gdiff)) {
-            if (tag == (LFS_MKTAG(LFS_TYPE_CREATE, 0, 0) |
-                        (LFS_MKTAG(0, 0x3ff, 0) & (gtag - gdiff)))) {
+            if (tag == (LFS_MKTAG(LFS_TYPE_CREATE, 0, 0) | (LFS_MKTAG(0, 0x3ff, 0) & (gtag - gdiff)))) {
                 // found where we were created
-                return LFS_ERR_NOENT;
+                return RET_ERROR; // No entry
             }
 
             // move around splices
@@ -677,48 +673,47 @@ static lfs_stag_t lfs_dir_getslice(lfs_t *lfs, const lfs_mdir_t *dir,
         }
 
         if ((gmask & tag) == (gmask & (gtag - gdiff))) {
-            if (lfs_tag_isdelete(tag)) {
-                return LFS_ERR_NOENT;
-            }
+            if (lfs_tag_isdelete(tag)) return RET_ERROR; // No entry
 
-            lfs_size_t diff = lfs_min(lfs_tag_size(tag), gsize);
-            err = lfs_bd_read(lfs,
-                              NULL, &lfs->rcache, diff,
-                              dir->pair[0], off + sizeof(tag) + goff, gbuffer, diff);
-            if (err) {
-                return err;
-            }
+            static lfs_size_t diff = lfs_min(lfs_tag_size(tag), gsize);
+            ret = CALL(lfs_bd_read(lfs, NULL, &lfs->rcache, diff, dir->pair[0], off + sizeof(tag) + goff, gbuffer, diff));
+            if (ret != RET_SUCCESS) return ret;
 
             memset((uint8_t *) gbuffer + diff, 0, gsize - diff);
 
-            return tag + gdiff;
+            *result = tag + gdiff;
+            RESET();
+            return RET_SUCCESS;
         }
     }
 
-    return LFS_ERR_NOENT;
+    RESET();
+    return RET_ERROR; // No entry
 }
 
-static lfs_stag_t lfs_dir_get(lfs_t *lfs, const lfs_mdir_t *dir,
-                              lfs_tag_t gmask, lfs_tag_t gtag, void *buffer) {
-    return lfs_dir_getslice(lfs, dir,
-                            gmask, gtag,
-                            0, buffer, lfs_tag_size(gtag));
+static RetType lfs_dir_get(lfs_t *lfs, const lfs_mdir_t *dir,
+                              lfs_tag_t gmask, lfs_tag_t gtag, void *buffer, lfs_stag_t *result) {
+    RESUME();
+
+    RetType ret = CALL(lfs_dir_getslice(lfs, dir, gmask, gtag, 0, buffer, lfs_tag_size(gtag), result));
+    if (ret != RET_SUCCESS) return ret;
+
+    RESET();
+    return RET_SUCCESS;
 }
 
-static int lfs_dir_getread(lfs_t *lfs, const lfs_mdir_t *dir,
-                           const lfs_cache_t *pcache, lfs_cache_t *rcache, lfs_size_t hint,
-                           lfs_tag_t gmask, lfs_tag_t gtag,
-                           lfs_off_t off, void *buffer, lfs_size_t size) {
-    uint8_t *data = buffer;
+static int lfs_dir_getread(lfs_t *lfs, const lfs_mdir_t *dir, const lfs_cache_t *pcache, lfs_cache_t *rcache, lfs_size_t hint, lfs_tag_t gmask, lfs_tag_t gtag, lfs_off_t off, void *buffer, lfs_size_t size) {
+    RESUME();
+
+    static uint8_t *data = buffer;
     if (off + size > lfs->cfg->block_size) {
-        return LFS_ERR_CORRUPT;
+        return RET_ERROR; // Corrupt
     }
 
     while (size > 0) {
-        lfs_size_t diff = size;
+        static lfs_size_t diff = size;
 
-        if (pcache && pcache->block == LFS_BLOCK_INLINE &&
-            off < pcache->off + pcache->size) {
+        if (pcache && pcache->block == LFS_BLOCK_INLINE && off < pcache->off + pcache->size) {
             if (off >= pcache->off) {
                 // is already in pcache?
                 diff = lfs_min(diff, pcache->size - (off - pcache->off));
@@ -756,14 +751,16 @@ static int lfs_dir_getread(lfs_t *lfs, const lfs_mdir_t *dir,
         rcache->off = lfs_aligndown(off, lfs->cfg->read_size);
         rcache->size = lfs_min(lfs_alignup(off + hint, lfs->cfg->read_size),
                                lfs->cfg->cache_size);
-        int err = lfs_dir_getslice(lfs, dir, gmask, gtag,
-                                   rcache->off, rcache->buffer, rcache->size);
-        if (err < 0) {
-            return err;
-        }
+        static int err;
+        RetType ret = CALL(lfs_dir_getslice(lfs, dir, gmask, gtag,
+                                   rcache->off, rcache->buffer, rcache->size, &err));
+
+        if (ret != RET_SUCCESS) return ret;
+        if (err < 0) return RET_ERROR;
     }
 
-    return 0;
+    RESET();
+    return RET_SUCCESS;
 }
 
 #ifndef LFS_READONLY
@@ -1272,14 +1269,14 @@ static int lfs_dir_fetch(lfs_t *lfs,
                                     (lfs_tag_t) -1, (lfs_tag_t) -1, NULL, NULL, NULL);
 }
 
-static int lfs_dir_getgstate(lfs_t *lfs, const lfs_mdir_t *dir,
+static RetType lfs_dir_getgstate(lfs_t *lfs, const lfs_mdir_t *dir,
                              lfs_gstate_t *gstate) {
-    lfs_gstate_t temp;
-    lfs_stag_t res = lfs_dir_get(lfs, dir, LFS_MKTAG(0x7ff, 0, 0),
-                                 LFS_MKTAG(LFS_TYPE_MOVESTATE, 0, sizeof(temp)), &temp);
-    if (res < 0 && res != LFS_ERR_NOENT) {
-        return res;
-    }
+    static lfs_gstate_t temp;
+    static lfs_stag_t res;
+
+    RetType ret = CALL(lfs_dir_get(lfs, dir, LFS_MKTAG(0x7ff, 0, 0), LFS_MKTAG(LFS_TYPE_MOVESTATE, 0, sizeof(temp)), &temp, &res));
+    if (ret != RET_SUCCESS) return ret;
+    if (res < 0 && res != LFS_ERR_NOENT) return RET_ERROR;
 
     if (res != LFS_ERR_NOENT) {
         // xor together to find resulting gstate
@@ -1287,11 +1284,11 @@ static int lfs_dir_getgstate(lfs_t *lfs, const lfs_mdir_t *dir,
         lfs_gstate_xor(gstate, &temp);
     }
 
-    return 0;
+    RESET();
+    return RET_SUCCESS;
 }
 
-static int lfs_dir_getinfo(lfs_t *lfs, lfs_mdir_t *dir,
-                           uint16_t id, struct lfs_info *info) {
+static int lfs_dir_getinfo(lfs_t *lfs, lfs_mdir_t *dir, uint16_t id, struct lfs_info *info) {
     if (id == 0x3ff) {
         // special case for root
         strcpy(info->name, "/");
@@ -1299,17 +1296,15 @@ static int lfs_dir_getinfo(lfs_t *lfs, lfs_mdir_t *dir,
         return 0;
     }
 
-    lfs_stag_t tag = lfs_dir_get(lfs, dir, LFS_MKTAG(0x780, 0x3ff, 0),
-                                 LFS_MKTAG(LFS_TYPE_NAME, id, lfs->name_max + 1), info->name);
-    if (tag < 0) {
-        return (int) tag;
-    }
+    static lfs_stag_t tag;
+    RetType ret = CALL(lfs_dir_get(lfs, dir, LFS_MKTAG(0x780, 0x3ff, 0), LFS_MKTAG(LFS_TYPE_NAME, id, lfs->name_max + 1), info->name, &tag));
+    if (tag < 0) return (int) tag;
 
     info->type = lfs_tag_type3(tag);
 
-    struct lfs_ctz ctz;
-    tag = lfs_dir_get(lfs, dir, LFS_MKTAG(0x700, 0x3ff, 0),
-                      LFS_MKTAG(LFS_TYPE_STRUCT, id, sizeof(ctz)), &ctz);
+    static struct lfs_ctz ctz;
+    tag = CALL(lfs_dir_get(lfs, dir, LFS_MKTAG(0x700, 0x3ff, 0),
+                      LFS_MKTAG(LFS_TYPE_STRUCT, id, sizeof(ctz)), &ctz));
     if (tag < 0) {
         return (int) tag;
     }
