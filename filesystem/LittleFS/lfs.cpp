@@ -180,39 +180,35 @@ static RetType lfs_bd_flush(lfs_t *lfs, lfs_cache_t *pcache, lfs_cache_t *rcache
 
 #ifndef LFS_READONLY
 
-static int lfs_bd_sync(lfs_t *lfs,
-                       lfs_cache_t *pcache, lfs_cache_t *rcache, bool validate) {
+static RetType lfs_bd_sync(lfs_t *lfs, lfs_cache_t *pcache, lfs_cache_t *rcache, bool validate) {
+    RESUME();
     lfs_cache_drop(lfs, rcache);
 
-    int err = lfs_bd_flush(lfs, pcache, rcache, validate);
-    if (err) {
-        return err;
-    }
+    RetType ret = CALL(lfs_bd_flush(lfs, pcache, rcache, validate));
+    if (ret != RET_SUCCESS) return ret;
 
-    err = lfs->cfg->sync(lfs->cfg);
-    LFS_ASSERT(err <= 0);
-    return err;
+    ret = CALL(lfs->cfg->sync(lfs->cfg));
+    if (ret != RET_SUCCESS) return ret;
+
+    RESET();
+    return RET_SUCCESS
 }
 
 #endif
 
 #ifndef LFS_READONLY
 
-static int lfs_bd_prog(lfs_t *lfs,
-                       lfs_cache_t *pcache, lfs_cache_t *rcache, bool validate,
-                       lfs_block_t block, lfs_off_t off,
-                       const void *buffer, lfs_size_t size) {
-    const uint8_t *data = buffer;
+static RetType lfs_bd_prog(lfs_t *lfs, lfs_cache_t *pcache, lfs_cache_t *rcache, bool validate, lfs_block_t block, lfs_off_t off, const void *buffer, lfs_size_t size) {
+    RESUME();
+
+    static const uint8_t *data = buffer;
     LFS_ASSERT(block == LFS_BLOCK_INLINE || block < lfs->cfg->block_count);
     LFS_ASSERT(off + size <= lfs->cfg->block_size);
 
     while (size > 0) {
-        if (block == pcache->block &&
-            off >= pcache->off &&
-            off < pcache->off + lfs->cfg->cache_size) {
+        if (block == pcache->block && off >= pcache->off && off < pcache->off + lfs->cfg->cache_size) {
             // already fits in pcache?
-            lfs_size_t diff = lfs_min(size,
-                                      lfs->cfg->cache_size - (off - pcache->off));
+            static lfs_size_t diff = lfs_min(size, lfs->cfg->cache_size - (off - pcache->off));
             memcpy(&pcache->buffer[off - pcache->off], data, diff);
 
             data += diff;
@@ -222,10 +218,8 @@ static int lfs_bd_prog(lfs_t *lfs,
             pcache->size = lfs_max(pcache->size, off - pcache->off);
             if (pcache->size == lfs->cfg->cache_size) {
                 // eagerly flush out pcache if we fill up
-                int err = lfs_bd_flush(lfs, pcache, rcache, validate);
-                if (err) {
-                    return err;
-                }
+                RetType ret = CALL(lfs_bd_flush(lfs, pcache, rcache, validate));
+                if (ret != RET_SUCCESS) return ret;
             }
 
             continue;
@@ -241,7 +235,8 @@ static int lfs_bd_prog(lfs_t *lfs,
         pcache->size = 0;
     }
 
-    return 0;
+    RESET();
+    return RET_SUCCESS;
 }
 
 #endif
