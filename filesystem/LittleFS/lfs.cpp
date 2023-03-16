@@ -7,7 +7,8 @@
  */
 #include "lfs.h"
 #include "lfs_util.h"
-
+#include <string.h>
+#include <stdio.h>
 
 // some constants used throughout the code
 #define LFS_BLOCK_NULL ((lfs_block_t)-1)
@@ -1349,16 +1350,18 @@ static int lfs_dir_find_match(void *data,
     return LFS_CMP_EQ;
 }
 
-static lfs_stag_t lfs_dir_find(lfs_t *lfs, lfs_mdir_t *dir,
-                               const char **path, uint16_t *id) {
+static RetType lfs_dir_find(lfs_t *lfs, lfs_mdir_t *dir,
+                               const char **path, uint16_t *id, lfs_stag_t *result) {
+    RESUME();
     // we reduce path to a single name if we can find it
-    const char *name = *path;
+    static const char *name = *path;
     if (id) {
         *id = 0x3ff;
     }
 
     // default to root dir
-    lfs_stag_t tag = LFS_MKTAG(LFS_TYPE_DIR, 0x3ff, 0);
+    static lfs_stag_t tag;
+    tag = LFS_MKTAG(LFS_TYPE_DIR, 0x3ff, 0);
     dir->tail[0] = lfs->root[0];
     dir->tail[1] = lfs->root[1];
 
@@ -1366,19 +1369,20 @@ static lfs_stag_t lfs_dir_find(lfs_t *lfs, lfs_mdir_t *dir,
         nextname:
         // skip slashes
         name += strspn(name, "/");
-        lfs_size_t namelen = strcspn(name, "/");
+        static lfs_size_t namelen = strcspn(name, "/");
 
         // skip '.' and root '..'
-        if ((namelen == 1 && memcmp(name, ".", 1) == 0) ||
-            (namelen == 2 && memcmp(name, "..", 2) == 0)) {
+        if ((namelen == 1 && memcmp(name, ".", 1) == 0) || (namelen == 2 && memcmp(name, "..", 2) == 0)) {
             name += namelen;
             goto nextname;
         }
 
         // skip if matched by '..' in name
-        const char *suffix = name + namelen;
-        lfs_size_t sufflen;
-        int depth = 1;
+        static const char *suffix = name + namelen;
+        static lfs_size_t sufflen;
+        static int depth;
+        depth = 1;
+
         while (true) {
             suffix += strspn(suffix, "/");
             sufflen = strcspn(suffix, "/");
@@ -1401,7 +1405,8 @@ static lfs_stag_t lfs_dir_find(lfs_t *lfs, lfs_mdir_t *dir,
 
         // found path
         if (name[0] == '\0') {
-            return tag;
+            RESET();
+            return RET_SUCCESS;
         }
 
         // update what we've found so far
@@ -1409,16 +1414,15 @@ static lfs_stag_t lfs_dir_find(lfs_t *lfs, lfs_mdir_t *dir,
 
         // only continue if we hit a directory
         if (lfs_tag_type3(tag) != LFS_TYPE_DIR) {
-            return LFS_ERR_NOTDIR;
+            RESET();
+            return RET_ERROR; // Not a directory
         }
 
         // grab the entry data
         if (lfs_tag_id(tag) != 0x3ff) {
-            lfs_stag_t res = lfs_dir_get(lfs, dir, LFS_MKTAG(0x700, 0x3ff, 0),
-                                         LFS_MKTAG(LFS_TYPE_STRUCT, lfs_tag_id(tag), 8), dir->tail);
-            if (res < 0) {
-                return res;
-            }
+            RetType ret = CALL(lfs_dir_get(lfs, dir, LFS_MKTAG(0x700, 0x3ff, 0), LFS_MKTAG(LFS_TYPE_STRUCT, lfs_tag_id(tag), 8), dir->tail, result));
+            if (ret != RET_SUCCESS) return RET_ERROR;
+
             lfs_pair_fromle32(dir->tail);
         }
 
@@ -1432,7 +1436,8 @@ static lfs_stag_t lfs_dir_find(lfs_t *lfs, lfs_mdir_t *dir,
                                      lfs_dir_find_match, &(struct lfs_dir_find_match) {
                             lfs, name, namelen});
             if (tag < 0) {
-                return tag;
+                RESET();
+                return RET_ERROR;
             }
 
             if (tag) {
@@ -1440,7 +1445,8 @@ static lfs_stag_t lfs_dir_find(lfs_t *lfs, lfs_mdir_t *dir,
             }
 
             if (!dir->split) {
-                return LFS_ERR_NOENT;
+                RESET();
+                return RET_ERROR;
             }
         }
 
