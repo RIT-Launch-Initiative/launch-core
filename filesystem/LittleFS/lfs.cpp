@@ -1024,10 +1024,7 @@ static int lfs_dir_traverse(lfs_t *lfs,
 
 #endif
 
-static lfs_stag_t lfs_dir_fetchmatch(lfs_t *lfs,
-                                     lfs_mdir_t *dir, const lfs_block_t pair[2],
-                                     lfs_tag_t fmask, lfs_tag_t ftag, uint16_t *id,
-                                     int (*cb)(void *data, lfs_tag_t tag, const void *buffer), void *data) {
+static lfs_stag_t lfs_dir_fetchmatch(lfs_t *lfs, lfs_mdir_t *dir, const lfs_block_t pair[2], lfs_tag_t fmask, lfs_tag_t ftag, uint16_t *id, int (*cb)(void *data, lfs_tag_t tag, const void *buffer), void *data) {
     // we can find tag very efficiently during a fetch, since we're already
     // scanning the entire directory
     lfs_stag_t besttag = -1;
@@ -1041,20 +1038,19 @@ static lfs_stag_t lfs_dir_fetchmatch(lfs_t *lfs,
     // find the block with the most recent revision
     uint32_t revs[2] = {0, 0};
     int r = 0;
-    for (int i = 0; i < 2; i++) {
-        int err = lfs_bd_read(lfs,
-                              NULL, &lfs->rcache, sizeof(revs[i]),
-                              pair[i], 0, &revs[i], sizeof(revs[i]));
+    static int i;
+    for (i = 0; i < 2; i++) {
+        RetType ret = CALL(lfs_bd_read(lfs, NULL, &lfs->rcache, sizeof(revs[i]), pair[i], 0, &revs[i], sizeof(revs[i])));
         revs[i] = lfs_fromle32(revs[i]);
         if (err && err != LFS_ERR_CORRUPT) {
             return err;
         }
 
-        if (err != LFS_ERR_CORRUPT &&
-            lfs_scmp(revs[i], revs[(i + 1) % 2]) > 0) {
+        if (err != LFS_ERR_CORRUPT && lfs_scmp(revs[i], revs[(i + 1) % 2]) > 0) {
             r = i;
         }
     }
+    i = 0;
 
     dir->pair[0] = pair[(r + 0) % 2];
     dir->pair[1] = pair[(r + 1) % 2];
@@ -1262,12 +1258,10 @@ static lfs_stag_t lfs_dir_fetchmatch(lfs_t *lfs,
     return LFS_ERR_CORRUPT;
 }
 
-static int lfs_dir_fetch(lfs_t *lfs,
-                         lfs_mdir_t *dir, const lfs_block_t pair[2]) {
+static int lfs_dir_fetch(lfs_t *lfs, lfs_mdir_t *dir, const lfs_block_t pair[2]) {
     // note, mask=-1, tag=-1 can never match a tag since this
     // pattern has the invalid bit set
-    return (int) lfs_dir_fetchmatch(lfs, dir, pair,
-                                    (lfs_tag_t) -1, (lfs_tag_t) -1, NULL, NULL, NULL);
+    return (int) lfs_dir_fetchmatch(lfs, dir, pair, (lfs_tag_t) -1, (lfs_tag_t) -1, NULL, NULL, NULL);
 }
 
 static RetType lfs_dir_getgstate(lfs_t *lfs, const lfs_mdir_t *dir,
@@ -1278,7 +1272,6 @@ static RetType lfs_dir_getgstate(lfs_t *lfs, const lfs_mdir_t *dir,
     RetType ret = CALL(lfs_dir_get(lfs, dir, LFS_MKTAG(0x7ff, 0, 0), LFS_MKTAG(LFS_TYPE_MOVESTATE, 0, sizeof(temp)), &temp, &res));
     if (ret != RET_SUCCESS) return ret;
     if (res < 0 && res != LFS_ERR_NOENT) return RET_ERROR;
-
     if (res != LFS_ERR_NOENT) {
         // xor together to find resulting gstate
         lfs_gstate_fromle32(&temp);
@@ -2563,28 +2556,27 @@ static int lfs_rawmkdir(lfs_t *lfs, const char *path) {
 
 #endif
 
-static int lfs_dir_rawopen(lfs_t *lfs, lfs_dir_t *dir, const char *path) {
-    lfs_stag_t tag = lfs_dir_find(lfs, &dir->m, &path, NULL);
-    if (tag < 0) {
-        return tag;
-    }
+static RetType lfs_dir_rawopen(lfs_t *lfs, lfs_dir_t *dir, const char *path) {
+    RESUME();
 
-    if (lfs_tag_type3(tag) != LFS_TYPE_DIR) {
-        return LFS_ERR_NOTDIR;
-    }
+    static lfs_stag_t tag;
+    RetType ret = CALL(lfs_dir_find(lfs, &dir->m, &path, NULL, &tag));
+    if (tag < 0) return RET_ERROR;
 
-    lfs_block_t pair[2];
+    if (lfs_tag_type3(tag) != LFS_TYPE_DIR) return RET_ERROR; // Not a directory
+
+    static lfs_block_t pair[2];
     if (lfs_tag_id(tag) == 0x3ff) {
         // handle root dir separately
         pair[0] = lfs->root[0];
         pair[1] = lfs->root[1];
     } else {
         // get dir pair from parent
-        lfs_stag_t res = lfs_dir_get(lfs, &dir->m, LFS_MKTAG(0x700, 0x3ff, 0),
-                                     LFS_MKTAG(LFS_TYPE_STRUCT, lfs_tag_id(tag), 8), pair);
-        if (res < 0) {
-            return res;
-        }
+        static lfs_stag_t res;
+        ret = CALL(lfs_dir_get(lfs, &dir->m, LFS_MKTAG(0x700, 0x3ff, 0), LFS_MKTAG(LFS_TYPE_STRUCT, lfs_tag_id(tag), 8), pair, &res));
+        if (ret != RET_SUCCESS) return RET_ERROR;
+        if (res < 0) return RET_ERROR;
+
         lfs_pair_fromle32(pair);
     }
 
