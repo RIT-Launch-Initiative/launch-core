@@ -91,7 +91,7 @@ public:
 
         HAL_GPIO_WritePin(m_gpio, this->m_pin, static_cast<GPIO_PinState>(val));
 
-        ret = CALL(taskLock.release());
+        ret = CALL(m_lock.release());
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
@@ -104,10 +104,6 @@ public:
     RetType get(uint32_t *val) override {
         RESUME();
 
-        if (!(val == 0 || val == 1)) {
-            return RET_ERROR;
-        }
-
         RetType ret = CALL(m_lock.acquire());
         if(RET_SUCCESS != ret) {
             RESET();
@@ -118,7 +114,7 @@ public:
 
         *val = static_cast<int>(HAL_GPIO_ReadPin(m_gpio, m_pin));
 
-        ret = CALL(taskLock.release());
+        ret = CALL(m_lock.release());
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
