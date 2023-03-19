@@ -338,7 +338,6 @@ public:
             return RET_ERROR;
         }
 
-
         bool timed_out;
         if (0 == timeout) {
             BLOCK();
@@ -384,6 +383,9 @@ public:
         }
 
         RESET();
+        if(timed_out) {
+            return RET_ERROR;
+        }
 
         return RET_SUCCESS;
     }
