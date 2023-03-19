@@ -13,6 +13,8 @@
 #include "lis3mdl_reg.h"
 #include "sched/macros/call.h"
 
+int print_uart(const char* fmt, ...);
+
 class LIS3MDL {
 public:
     LIS3MDL(I2CDevice &i2cDevice) : mI2C(&i2cDevice) {}
@@ -22,14 +24,26 @@ public:
 
         static uint8_t whoAmI = 0;
         RetType ret = CALL(readReg(LIS3MDL_WHO_AM_I, &whoAmI, 1, 50));
-        if (ret != RET_SUCCESS) return ret;
-        if (whoAmI != LIS3MDL_ID) return RET_ERROR;
+        if (ret == RET_ERROR) {
+//        	print_uart("Failed to read WHOAMI\r\n");
+        	RESET();
+        	return RET_ERROR;
+        }
+
+        if (whoAmI != LIS3MDL_ID) {
+//        	print_uart("Incorrect WHOAMI\r\n");
+        	RESET();
+        	return RET_ERROR;
+        }
 
         ret = CALL(initSettings());
-        if (ret != RET_SUCCESS) return ret;
+
+        if (ret == RET_ERROR) {
+//        	print_uart("Failed to initialize settings\r\n");
+        }
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     /**
