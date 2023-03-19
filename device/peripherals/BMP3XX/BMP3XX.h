@@ -28,8 +28,6 @@ public:
      *************************************************************************************/
     RetType init(bool is388 = true) {
         RESUME();
-        uint8_t chipID = 0;
-
         this->device.dummy_byte = 0;
 
         this->i2cAddr = {
@@ -393,7 +391,6 @@ private:
         RESUME();
 
         uint8_t temporaryBuffer[len * 2];
-        uint8_t regAddrCount;
         size_t temporaryLen = len;
 
         temporaryBuffer[0] = regData[0];
