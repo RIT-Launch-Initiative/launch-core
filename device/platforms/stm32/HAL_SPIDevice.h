@@ -1,9 +1,15 @@
 #ifndef HAL_SPI_DEVICE_H
 #define HAL_SPI_DEVICE_H
 
+#ifdef STM32F446xx
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_spi.h"
 #include "stm32f4xx_hal_gpio.h"
+#elif STM32L476xx
+#include "stm32l4xx_hal.h"
+#include "stm32l4xx_hal_spi.h"
+#include "stm32l4xx_hal_gpio.h"
+#endif
 
 #include "device/SPIDevice.h"
 #include "device/platforms/stm32/HAL_Handlers.h"
@@ -137,6 +143,11 @@ public:
         }
 
         RESET();
+
+        if (timed_out) {
+            return RET_ERROR;
+        }
+
         return RET_SUCCESS;
     }
 
@@ -194,10 +205,15 @@ public:
         }
 
         RESET();
+
+        if (timed_out) {
+            return RET_ERROR;
+        }
+
         return ret;
     }
 
-    RetType write_read(uint8_t *write_buff, size_t write_len, uint8_t *read_buff, size_t read_len) {
+    RetType write_read(uint8_t *write_buff, size_t write_len, uint8_t *read_buff, size_t read_len, uint32_t timeout) {
         RESUME();
 
         // block waiting for the device to be available
@@ -245,6 +261,11 @@ public:
         }
 
         RESET();
+
+        if (timed_out) {
+            return RET_ERROR;
+        }
+
         return ret;
     }
 

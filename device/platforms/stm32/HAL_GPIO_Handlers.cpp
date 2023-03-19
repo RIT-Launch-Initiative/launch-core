@@ -6,7 +6,12 @@
 
 #include "hashmap/hashmap.h"
 #include "device/platforms/stm32/HAL_Handlers.h"
+
+#ifdef STM32F446xx
 #include "stm32f446xx.h"
+#elif STM32L476xx
+#include "stm32l476xx.h"
+#endif
 
 namespace HALHandlers {
     static alloc::Hashmap<GPIO_TypeDef *, CallbackDevice *, MAX_GPIO_DEVICES, MAX_GPIO_DEVICES> gpioMap;

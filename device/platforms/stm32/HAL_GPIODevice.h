@@ -7,10 +7,15 @@
 #ifndef LAUNCH_CORE_HALGPIODEVICE_H
 #define LAUNCH_CORE_HALGPIODEVICE_H
 
+#ifdef STM32F446xx
 #include "stm32f4xx_hal_gpio.h"
 #include "stm32f4xx_hal_def.h"
 #include "stm32f446xx.h"
-
+#elif STM32L476xx
+#include "stm32l4xx_hal_gpio.h"
+#include "stm32l4xx_hal_def.h"
+#include "stm32l476xx.h"
+#endif
 
 #include "device/GPIODevice.h"
 #include "HAL_Handlers.h"

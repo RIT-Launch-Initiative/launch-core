@@ -88,7 +88,6 @@ public:
         RESUME();
         uint32_t deviceID = 0;
 
-        spiDevice.setAsync(false);
         RetType ret = CALL(readID(&deviceID));
         if (ret != RET_SUCCESS) return ret;
 
