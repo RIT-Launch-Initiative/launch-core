@@ -168,10 +168,9 @@ void sched_sleep(tid_t tid, uint32_t time) {
     if(NULL != task->sleep_loc) {
         sleep_q.remove(task->sleep_loc);
         // new sleep_loc set later
-    }
-
+    // NOTE: this can be an else because a task cannot be on more than one queue at once
+    } else if(NULL != task->ready_loc) {
     // if the task is on the ready queue, remove it
-    if(NULL != task->ready_loc) {
         ready_q.remove(task->ready_loc);
         task->ready_loc = NULL;
     }

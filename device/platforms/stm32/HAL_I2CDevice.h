@@ -95,9 +95,7 @@ public:
             return ret;
         }
 
-        // mark this task as blocked BEFORE we call the interrupt function
-        // we want to make sure there is no race condition b/w processing the ISR
-        // and blocking the task
+        // mark this task as blocked
         m_blocked = sched_dispatched;
 
         // start the transfer
@@ -154,9 +152,7 @@ public:
             return ret;
         }
 
-        // mark this task as blocked BEFORE we call the interrupt function
-        // we want to make sure there is no race condition b/w processing the ISR
-        // and blocking the task
+        // mark this task as blocked
         m_blocked = sched_dispatched;
 
         // start the transfer
@@ -214,9 +210,7 @@ public:
             return ret;
         }
 
-        // mark this task as blocked BEFORE we call the interrupt function
-        // we want to make sure there is no race condition b/w processing the ISR
-        // and blocking the task
+        // mark this task as blocked
         m_blocked = sched_dispatched;
 
         // start the transfer
@@ -275,9 +269,7 @@ public:
             return ret;
         }
 
-        // mark this task as blocked BEFORE we call the interrupt function
-        // we want to make sure there is no race condition b/w processing the ISR
-        // and blocking the task
+        // mark this task as blocked
         m_blocked = sched_dispatched;
 
         // start the transfer

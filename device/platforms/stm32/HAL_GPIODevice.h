@@ -25,21 +25,19 @@
 class HALGPIODevice : public GPIODevice, public CallbackDevice {
 public:
 
-    HALGPIODevice(const char *name, GPIO_TypeDef *halGPIO, uint16_t pin) : GPIODevice(name),
-                                                                           taskLock(1),
-                                                                           halGPIO(halGPIO),
-                                                                           currentBlocked(-1),
-                                                                           pin(pin) {};
+    HALGPIODevice(const char *name, GPIO_TypeDef *halGPIO, uint16_t pin) :
+                                                            GPIODevice(name),
+                                                            m_lock(1),
+                                                            m_gpio(halGPIO),
+                                                            m_blocked(-1),
+                                                            m_pin(pin),
+                                                            m_isr_flag(0) {};
 
     RetType init() override {
-        return HALHandlers::register_gpio(halGPIO, this);
+        return HALHandlers::register_gpio(m_gpio, this);
     }
 
     RetType obtain() override {
-        return RET_SUCCESS;
-    }
-
-    RetType poll() override {
         return RET_SUCCESS;
     }
 
@@ -47,26 +45,51 @@ public:
         return RET_SUCCESS;
     }
 
+    RetType poll() override {
+        // disable interrupts to protect access to 'm_isr_flag'
+        __disable_irq();
+
+        if (m_isr_flag) {
+            // an interrupt occurred
+
+            // reset the flag
+            m_isr_flag = 0;
+
+            // re-enable interrupts
+            __enable_irq();
+
+            // if a task was blocked waiting for completion of this ISR, wake it up
+            if(m_blocked != -1) {
+                WAKE(m_blocked);
+
+                // set this task as woken
+                m_blocked = -1;
+            }
+        } else {
+            // re-enable interrupts immediately
+            __enable_irq();
+        }
+
+        return RET_SUCCESS;
+    }
+
+
     RetType set(uint32_t val) override {
         RESUME();
 
-        RetType ret = CALL(taskLock.acquire());
-        if (ret != RET_SUCCESS) {
+        if (!(val == 0 || val == 1)) {
+            return RET_ERROR;
+        }
+
+        RetType ret = CALL(m_lock.acquire());
+        if(RET_SUCCESS != ret) {
             RESET();
             return ret;
         }
 
-        currentBlocked = sched_dispatched;
+        m_blocked = sched_dispatched;
 
-        if (!(val == 0 || val == 1)) {
-            RESET();
-
-            return RET_ERROR;
-        }
-
-        HAL_GPIO_WritePin(halGPIO, this->pin, static_cast<GPIO_PinState>(val));
-
-        currentBlocked = -1;
+        HAL_GPIO_WritePin(m_gpio, this->m_pin, static_cast<GPIO_PinState>(val));
 
         ret = CALL(taskLock.release());
         if (ret != RET_SUCCESS) {
@@ -81,16 +104,19 @@ public:
     RetType get(uint32_t *val) override {
         RESUME();
 
-        RetType ret = CALL(taskLock.acquire());
-        if (ret != RET_SUCCESS) {
+        if (!(val == 0 || val == 1)) {
+            return RET_ERROR;
+        }
+
+        RetType ret = CALL(m_lock.acquire());
+        if(RET_SUCCESS != ret) {
             RESET();
             return ret;
         }
 
-        taskLock = sched_dispatched;
-        *val = static_cast<int>(HAL_GPIO_ReadPin(halGPIO, pin));
+        m_blocked = sched_dispatched;
 
-        currentBlocked = -1;
+        *val = static_cast<int>(HAL_GPIO_ReadPin(m_gpio, m_pin));
 
         ret = CALL(taskLock.release());
         if (ret != RET_SUCCESS) {
@@ -103,16 +129,15 @@ public:
     }
 
     void callback(int) override {
-        if (currentBlocked != -1) WAKE(currentBlocked);
+        m_isr_flag = 1;
     }
 
 private:
-    BlockingSemaphore taskLock;
-    GPIO_TypeDef *halGPIO;
-    tid_t currentBlocked;
-    uint16_t pin;
-
-    static const int REG_NUM = 0;
+    BlockingSemaphore m_lock;
+    GPIO_TypeDef* m_gpio;
+    tid_t m_blocked;
+    uint16_t m_pin;
+    uint8_t m_isr_flag;
 };
 
 #endif //LAUNCH_CORE_HALGPIODEVICE_H
