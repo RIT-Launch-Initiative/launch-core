@@ -77,12 +77,13 @@ tid_t sched_start(task_func_t func, void* arg) {
             tasks[i].func = func;
             tasks[i].arg = arg;
             tasks[i].tid = i;
-            tasks[i].queued = true;
+            tasks[i].sleep_loc = NULL;
 
-            // put it on the ready queue
-            // NOTE: we assume this never fails, since the queue size
-            //       is the same as the maximum number of tasks
-            ready_q.push(&tasks[i]);
+            // put the allocated task on the ready queue
+            // NOTE: we assume we never fail to place a task on the ready queue.
+            //       this is valid because the queue is the same size as the
+            //       number of tasks allocated.
+            tasks[i].ready_loc = ready_q.push(&(tasks[i]));
 
             return i;
         }
@@ -105,19 +106,16 @@ void _sched_wakeup_tasks() {
         task_t* task = *task_p;
 
         if(get_time() > task->wake_time) {
-            // pop off the sleep queue
+            // pop it off the sleep queue
             sleep_q.pop();
 
             // set active
             task->state = STATE_ACTIVE;
-            task->queued = true;
             task->sleep_loc = NULL;
 
-            // enqueue
-            // we can do this because a task is never on both the
-            // ready queue and the sleep queue
-            ready_q.push(task);
-            // NOTE: we again assume we can always push
+            // put it on the ready queue
+            // NOTE: we assume we can always push to the ready queue
+            task->ready_loc = ready_q.push(task);;
         } else {
             // this task is the earliest task we need to wake up and it isn't time yet
             return;
@@ -140,25 +138,7 @@ void  sched_dispatch() {
 
         ready_q.pop();
         task_t* task = *task_p;
-
-        // NOTE: this a 'lazy' scheduler, when task state changes the task
-        //       stays on the ready queue and is popped when ready
-        if(STATE_ACTIVE != task->state) {
-            if(STATE_SLEEPING == task->state) {
-                // this task was slept while it was on the ready queue
-                task->queued = false;
-
-                task->sleep_loc = task_p;
-                sleep_q.push(task);
-                // NOTE: we again assume we can always push
-                continue;
-            } else {
-                // blocked or something else
-                // don't do anything, leave it off the ready queue
-                task->queued = false;
-                continue;
-            }
-        }
+        task->ready_loc = NULL;
 
         // dispatch the task
         sched_dispatched = task->tid;
@@ -169,13 +149,8 @@ void  sched_dispatch() {
             break;
         }
 
-        // even if it was slept or blocked, put it back on the ready queue
-        // we use the lazy approach and deal with it when it's popped off the ready queue
-        // NOTE: this means a task that blocks and unblocks before it's popped off the ready queue
-        //       gets to "cut" in line in the queue
-        //       but we do guarantee it's only on the queue once or we'd have space issues
-        ready_q.push(task);
-        // NOTE: we again assume we can always push
+        // NOTE: we again assume we can always push to the ready queue
+        task->ready_loc = ready_q.push(task);
 
         break;
     }
@@ -188,38 +163,47 @@ void  sched_dispatch() {
 void sched_sleep(tid_t tid, uint32_t time) {
     task_t* task = &(tasks[tid]); // TODO potential memory error, tid not bounds checked
 
-    if(task->state != STATE_ACTIVE) {
-        // TODO is this actually bad?
-        // can't sleep a non-active task
-        return;
+    // if the task is already sleeping, take it off the sleep queue
+    // this guarantees when it's placed back on the queue it's sorted properly
+    if(NULL != task->sleep_loc) {
+        sleep_q.remove(task->sleep_loc);
+        // new sleep_loc set later
     }
 
+    // if the task is on the ready queue, remove it
+    if(NULL != task->ready_loc) {
+        ready_q.remove(task->ready_loc);
+        task->ready_loc = NULL;
+    }
+
+    // set the state and wake time
     task->state = STATE_SLEEPING;
     task->wake_time = get_time() + time;
+
+    // place the task on the sleep queue
+    // NOTE: we assume we can always push
+    task->sleep_loc = sleep_q.push(task);
 }
 
 /// @brief wake up a task
 void sched_wake(tid_t tid) {
     task_t* task = &(tasks[tid]); // TODO potential memory error, tid not bounds checked
 
-    if(task->state != STATE_SLEEPING && task->state != STATE_BLOCKED) {
-        // nothing to wake from
+    if(NULL == task->ready_loc) {
+        // nothing to wake from, already on the ready queue
         return;
     }
 
-    // take it off the sleep queue
-    // BUG I think?, check NULL (maybe queue handles this)
-    if(task->sleep_loc) {
+    // if the task is on the sleep queue, remove it
+    if(NULL != task->sleep_loc) {
         sleep_q.remove(task->sleep_loc);
         task->sleep_loc = NULL;
     }
 
+    // put it on the ready queue
+    // NOTE: we assume we can always push
+    task->ready_loc = ready_q.push(task);
     task->state = STATE_ACTIVE;
-
-    if(!task->queued) {
-        ready_q.push(task);
-        // NOTE: we again assume we can always push
-    } // otherwise it never left the ready queue, let it stay and skip the line
 }
 
 /// @brief block a task
@@ -227,10 +211,14 @@ void sched_wake(tid_t tid) {
 void sched_block(tid_t tid) {
     task_t* task = &(tasks[tid]); // TODO potential memory error, tid not bounds checked
 
-    if(task->state != STATE_ACTIVE) {
-        // TODO is this actually bad?
-        // can't block a non-active task
-        return;
+    // remove this task from any queues it's on
+    // NOTE: this is an else if because a task should only ever be on one queue
+    if(NULL != task->ready_loc) {
+        ready_q.remove(task->ready_loc);
+        task->ready_loc = NULL;
+    } else if(NULL != task->sleep_loc) {
+        sleep_q.remove(task->sleep_loc);
+        task->sleep_loc = NULL;
     }
 
     task->state = STATE_BLOCKED;
