@@ -319,6 +319,14 @@ public:
         return RET_SUCCESS;
     }
 
+    RetType transmitReceive(I2CAddr_t &addr, uint8_t *buff,
+                            size_t inLen, size_t outLen, uint32_t timeout = 0) {
+    	RESUME();
+
+    	RESET();
+    	return RET_ERROR;
+    }
+
 
     /// @brief called by I2C handler asynchronously
     void callback(int) {
