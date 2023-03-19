@@ -1,8 +1,13 @@
 #ifndef HAL_I2C_HANDLERS_H
 #define HAL_I2C_HANDLERS_H
 
+#ifdef STM32F446xx
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_i2c.h"
+#elif STM32L476xx
+#include "stm32l4xx_hal.h"
+#include "stm32l4xx_hal_i2c.h"
+#endif
 
 #include "device/platforms/stm32/HAL_Handlers.h"
 #include "hashmap/hashmap.h"

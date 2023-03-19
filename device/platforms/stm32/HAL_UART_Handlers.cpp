@@ -1,7 +1,12 @@
 #include <stdlib.h>
 
+#ifdef STM32F446xx
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_uart.h"
+#elif STM32L476xx
+#include "stm32l4xx_hal.h"
+#include "stm32l4xx_hal_uart.h"
+#endif
 
 #include "device/platforms/stm32/HAL_Handlers.h"
 #include "hashmap/hashmap.h"

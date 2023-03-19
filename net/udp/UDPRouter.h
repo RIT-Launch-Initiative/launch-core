@@ -17,18 +17,18 @@ namespace udp {
     public:
         explicit UDPRouter(NetworkLayer &networkLayer) : transmitLayer(&networkLayer) {}
 
-        RetType subscribe_port(NetworkLayer &layer, uint16_t port_num) {
+        RetType subscribe_port(NetworkLayer *layer, uint16_t port_num) {
             NetworkLayer **layer_loc = port_bindings.add(port_num);
             if (!layer_loc) {
                 return RET_ERROR;
             }
 
-            uint16_t *port_num_loc = layer_bindings.add(&layer);
+            uint16_t *port_num_loc = layer_bindings.add(layer);
             if (!port_num_loc) {
                 return RET_ERROR;
             }
 
-            *layer_loc = &layer;
+            *layer_loc = layer;
             port_num_loc = &port_num;
 
             return RET_SUCCESS;

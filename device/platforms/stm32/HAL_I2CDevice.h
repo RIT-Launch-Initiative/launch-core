@@ -19,7 +19,6 @@ public:
                                                               m_blocked(-1),
                                                               m_i2c(hi2c),
                                                               m_lock(1),
-                                                              m_isr_lock(1),
                                                               m_isr_flag(0) {};
 
     /// @brief initialize
@@ -53,8 +52,8 @@ public:
 
     /// @brief poll this device
     RetType poll() {
-        // acquire the lock to access the ISR flag
-        m_isr_lock.acquire();
+        // disable interrupts to protect access to 'm_isr_flag'
+        __disable_irq();
 
         if (m_isr_flag) {
             // an interrupt occurred
@@ -62,8 +61,8 @@ public:
             // reset the flag
             m_isr_flag = 0;
 
-            // release the lock around the ISR flag
-            m_isr_lock.release();
+            // re-enable interrupts
+            __enable_irq();
 
             // if a task was blocked waiting for completion of this ISR, wake it up
             if(m_blocked != -1) {
@@ -73,8 +72,8 @@ public:
                 m_blocked = -1;
             }
         } else {
-            // nothing to see here
-            m_isr_lock.release();
+            // re-enable interrupts immediately
+            __enable_irq();
         }
 
         return RET_SUCCESS;
@@ -102,7 +101,6 @@ public:
         m_blocked = sched_dispatched;
 
         // start the transfer
-
         if (HAL_OK != HAL_I2C_Master_Transmit_IT(m_i2c, addr.dev_addr, buff, len)) {
             return RET_ERROR;
         }
@@ -322,19 +320,11 @@ public:
     }
 
 
-
-
     /// @brief called by I2C handler asynchronously
     void callback(int) {
         // all this does is set a flag
         // the interrupt is actually "handled" in 'poll'
-
-        m_isr_lock.acquire();
-
-        // this is less of a flag and more of a count, but is only read as a flag
-        m_isr_flag++;
-
-        m_isr_lock.release();
+        m_isr_flag = 1;
     }
 
 private:
@@ -352,7 +342,6 @@ private:
     BlockingSemaphore m_lock;
 
     // Flag when an interrupt has occurred
-    Semaphore m_isr_lock;
     uint8_t m_isr_flag;
 
 };
