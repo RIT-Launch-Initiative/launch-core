@@ -91,6 +91,8 @@ public:
 
         HAL_GPIO_WritePin(m_gpio, this->m_pin, static_cast<GPIO_PinState>(val));
 
+        BLOCK();
+
         ret = CALL(m_lock.release());
         if (ret != RET_SUCCESS) {
             RESET();
@@ -113,6 +115,8 @@ public:
         m_blocked = sched_dispatched;
 
         *val = static_cast<int>(HAL_GPIO_ReadPin(m_gpio, m_pin));
+
+        BLOCK();
 
         ret = CALL(m_lock.release());
         if (ret != RET_SUCCESS) {
