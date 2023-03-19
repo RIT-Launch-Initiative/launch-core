@@ -68,11 +68,6 @@ public:
 
         static uint8_t id = 0;
 
-        static int16_t xAvg;
-        static int16_t yAvg;
-        static int16_t zAvg;
-
-
         RetType ret = CALL(m_i2c.read(i2cAddr, &id, 1, 50));
         if (ret != RET_SUCCESS) return ret;
         if (id != 0xE5) return RET_ERROR;
@@ -93,6 +88,8 @@ public:
         RESUME();
 
         RetType ret = CALL(readXYZRaw(xAxis, yAxis, zAxis));
+        if (ret != RET_SUCCESS) return ret;
+
         *xAxis *= ADXL375_MG2G_MULTIPLIER * ADXL375_GRAVITY;
         *yAxis *= ADXL375_MG2G_MULTIPLIER * ADXL375_GRAVITY;
         *zAxis *= ADXL375_MG2G_MULTIPLIER * ADXL375_GRAVITY;
@@ -109,6 +106,8 @@ public:
         static int16_t zRaw;
 
         RetType ret = CALL(readXYZRaw(&xRaw, &yRaw, &zRaw));
+        if (ret != RET_SUCCESS) return ret;
+
         *xAxis = xRaw * ADXL375_MG2G_MULTIPLIER * ADXL375_GRAVITY;
         *yAxis = yRaw * ADXL375_MG2G_MULTIPLIER * ADXL375_GRAVITY;
         *zAxis = zRaw * ADXL375_MG2G_MULTIPLIER * ADXL375_GRAVITY;
