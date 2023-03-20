@@ -105,7 +105,7 @@ void _sched_wakeup_tasks() {
 
         task_t* task = *task_p;
 
-        if(get_time() > task->wake_time) {
+        if(get_time() >= task->wake_time) {
             // pop it off the sleep queue
             sleep_q.pop();
 
@@ -149,8 +149,12 @@ void  sched_dispatch() {
             break;
         }
 
-        // NOTE: we again assume we can always push to the ready queue
-        task->ready_loc = ready_q.push(task);
+        if(STATE_ACTIVE == task->state) {
+            // if the task was slept or blocked, don't put it back on the queue
+
+            task->ready_loc = ready_q.push(task);
+            // NOTE: we again assume we can always push to the ready queue
+        }
 
         break;
     }
