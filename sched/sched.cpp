@@ -192,7 +192,7 @@ void sched_sleep(tid_t tid, uint32_t time) {
 void sched_wake(tid_t tid) {
     task_t* task = &(tasks[tid]); // TODO potential memory error, tid not bounds checked
 
-    if(NULL == task->ready_loc) {
+    if(NULL != task->ready_loc) {
         // nothing to wake from, already on the ready queue
         return;
     }

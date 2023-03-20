@@ -29,6 +29,7 @@ int main() {
     while(1) {
         printf("tick %u --- ", tick);
         sched_dispatch();
+        WAKE(0);
         printf("\n");
         tick++;
         sleep(1);
