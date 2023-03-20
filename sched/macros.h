@@ -68,6 +68,7 @@
 
 #include "sched/macros/resume.h"
 #include "sched/macros/reset.h"
+#include "sched/macros/reset_ret.h"
 #include "sched/macros/sleep.h"
 #include "sched/macros/block.h"
 #include "sched/macros/wake.h"
