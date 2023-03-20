@@ -20,7 +20,7 @@
 #include "device/GPIODevice.h"
 #include "sched/sched.h"
 
-class HALGPIODevice : public GPIODevice, public CallbackDevice {
+class HALGPIODevice : public GPIODevice {
 public:
 
     HALGPIODevice(const char *name, GPIO_TypeDef *halGPIO, uint16_t pin) :
@@ -61,10 +61,6 @@ public:
         // TODO check for error?
 
         return RET_SUCCESS;
-    }
-
-    void callback(int) override {
-        m_isr_flag = 1;
     }
 
 private:
