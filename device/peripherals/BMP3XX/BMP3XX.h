@@ -40,13 +40,22 @@ public:
         if (this->device.chip_id != (is388 ? BMP3_CHIP_ID : BMP390_CHIP_ID)) return RET_ERROR;
 
         ret = CALL(softReset());
-        if (ret == RET_ERROR) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         ret = CALL(getCalibrationData());
-        if (ret == RET_ERROR) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         ret = CALL(initSettings());
-        if (ret == RET_ERROR) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         RESET();
         return ret;

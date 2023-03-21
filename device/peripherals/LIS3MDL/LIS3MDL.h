@@ -22,11 +22,17 @@ public:
 
         static uint8_t whoAmI = 0;
         RetType ret = CALL(readReg(LIS3MDL_WHO_AM_I, &whoAmI, 1, 50));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
         if (whoAmI != LIS3MDL_ID) return RET_ERROR;
 
         ret = CALL(initSettings());
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         RESET();
         return RET_SUCCESS;
@@ -48,14 +54,20 @@ public:
         static int16_t rawTemp;
 
         RetType ret = CALL(getRawMagnetic(rawMagneticData));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         *magX = fs16ToGauss(rawMagneticData[0]);
         *magY = fs16ToGauss(rawMagneticData[1]);
         *magZ = fs16ToGauss(rawMagneticData[2]);
 
         ret = CALL(getRawTemp(&rawTemp));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
         *temp = lsbToCelsius(rawTemp);
 
         RESET();
@@ -67,7 +79,10 @@ public:
 
         static uint8_t buff[6];
         RetType ret = CALL(readReg(LIS3MDL_OUT_X_L, buff, 6));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         // TODO: Below calculations cause a hardfault
         val[0] = (int16_t) buff[1];
@@ -86,7 +101,10 @@ public:
 
         static uint8_t data[2];
         RetType ret = CALL(readReg(LIS3MDL_TEMP_OUT_L, (uint8_t *) data, 2));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         *val = (int16_t) data[1];
         *val = (*val * 256) + (int16_t) data[0];
@@ -100,7 +118,10 @@ public:
 
         i2cAddr.mem_addr = reg;
         RetType ret = CALL(mI2C->read(i2cAddr, data, len, timeout));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         RESET();
         return RET_SUCCESS;
@@ -112,7 +133,10 @@ public:
         i2cAddr.mem_addr = reg;
 
         RetType ret = CALL(mI2C->write(i2cAddr, data, len, timeout));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         RESET();
         return RET_SUCCESS;
@@ -151,18 +175,30 @@ public:
         static lis3mdl_ctrl_reg4_t ctrlReg4;
 
         RetType ret = CALL(readReg(LIS3MDL_CTRL_REG1, (uint8_t * ) & ctrlReg1, 1));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         ctrlReg1.om = val;
         ret = CALL(readReg(LIS3MDL_CTRL_REG4, (uint8_t * ) & ctrlReg4, 1));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         ret = CALL(writeReg(LIS3MDL_CTRL_REG1, (uint8_t * ) & ctrlReg1, 1));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         ctrlReg4.omz = val;
         ret = CALL(writeReg(LIS3MDL_CTRL_REG4, (uint8_t * ) & ctrlReg4, 1));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         RESET();
         return ret;
@@ -179,11 +215,17 @@ public:
         static lis3mdl_ctrl_reg1_t ctrlReg1;
 
         RetType ret = CALL(readReg(LIS3MDL_CTRL_REG1, reinterpret_cast<uint8_t *>(&ctrlReg1), 1));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         ctrlReg1.temp_en = val;
         ret = CALL(writeReg(LIS3MDL_CTRL_REG1, reinterpret_cast<uint8_t *>(&ctrlReg1), 1));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         RESET();
         return ret;
@@ -201,7 +243,10 @@ public:
         static lis3mdl_ctrl_reg2_t ctrlReg2;
 
         RetType ret = CALL(readReg(LIS3MDL_CTRL_REG2, reinterpret_cast<uint8_t *>(&ctrlReg2), 1));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         ctrlReg2.fs = val;
         ret = CALL(writeReg(LIS3MDL_CTRL_REG2, reinterpret_cast<uint8_t *>(&ctrlReg2), 1));
@@ -221,7 +266,10 @@ public:
         static lis3mdl_ctrl_reg3_t ctrlReg3;
 
         RetType ret = CALL(readReg(LIS3MDL_CTRL_REG3, reinterpret_cast<uint8_t *>(&ctrlReg3), 1));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         ctrlReg3.md = val;
         ret = CALL(writeReg(LIS3MDL_CTRL_REG3, reinterpret_cast<uint8_t *>(&ctrlReg3), 1));
@@ -242,7 +290,10 @@ public:
         static lis3mdl_ctrl_reg3_t ctrlReg3;
 
         RetType ret = CALL(readReg(LIS3MDL_CTRL_REG3, reinterpret_cast<uint8_t *>(&ctrlReg3), 1));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         ctrlReg3.lp = val;
         ret = CALL(writeReg(LIS3MDL_CTRL_REG3, reinterpret_cast<uint8_t *>(&ctrlReg3), 1));
@@ -257,7 +308,10 @@ public:
         static lis3mdl_ctrl_reg5_t ctrlReg5;
 
         RetType ret = CALL(readReg(LIS3MDL_CTRL_REG4, reinterpret_cast<uint8_t *>(&ctrlReg5), 1));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         ctrlReg5.bdu = val;
         ret = CALL(writeReg(LIS3MDL_CTRL_REG4, reinterpret_cast<uint8_t *>(&ctrlReg5), 1));
@@ -271,12 +325,18 @@ public:
         RESUME();
 
         RetType ret = CALL(writeReg(LIS3MDL_CTRL_REG5, &val, 1));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         if (val == 0) {
             static lis3mdl_ctrl_reg5_t ctrlReg5;
             ret = CALL(readReg(LIS3MDL_CTRL_REG5, reinterpret_cast<uint8_t *>(&ctrlReg5), 1));
-            if (ret != RET_SUCCESS) return ret;
+            if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
         }
 
         RESET();
@@ -295,7 +355,10 @@ public:
         static lis3mdl_ctrl_reg2_t ctrlReg2;
 
         RetType ret = CALL(readReg(LIS3MDL_CTRL_REG2, reinterpret_cast<uint8_t *>(&ctrlReg2), 1));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         RESET();
         return RET_SUCCESS;
@@ -306,7 +369,10 @@ public:
         static lis3mdl_ctrl_reg2_t ctrlReg2;
 
         RetType ret = CALL(readReg(LIS3MDL_CTRL_REG2, reinterpret_cast<uint8_t *>(&ctrlReg2), 1));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         RESET();
         return RET_SUCCESS;
@@ -323,7 +389,10 @@ public:
         static lis3mdl_ctrl_reg4_t ctrlReg4;
 
         RetType ret = CALL(readReg(LIS3MDL_CTRL_REG4, reinterpret_cast<uint8_t *>(&ctrlReg4), 1));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         RESET();
         return RET_SUCCESS;
@@ -340,7 +409,10 @@ public:
         static lis3mdl_ctrl_reg4_t ctrlReg4;
 
         RetType ret = CALL(readReg(LIS3MDL_CTRL_REG4, reinterpret_cast<uint8_t *>(&ctrlReg4), 1));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         switch (ctrlReg4.ble) {
             case LIS3MDL_LSB_AT_LOW_ADD:
@@ -364,7 +436,10 @@ public:
         RESUME();
 
         RetType ret = CALL(writeReg(LIS3MDL_INT_CFG, reinterpret_cast<uint8_t *>(val), 1));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         RESET();
         return RET_SUCCESS;
@@ -379,7 +454,10 @@ public:
         RESUME();
 
         RetType ret = CALL(writeReg(LIS3MDL_INT_CFG, &val, 1));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         RESET();
         return RET_SUCCESS;
@@ -389,7 +467,10 @@ public:
         RESUME();
 
         RetType ret = CALL(writeReg(LIS3MDL_INT_SRC, reinterpret_cast<uint8_t *>(val), 1));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         RESET();
         return RET_SUCCESS;
@@ -406,7 +487,10 @@ public:
         RESUME();
 
         RetType ret = CALL(writeReg(LIS3MDL_INT_CFG, reinterpret_cast<uint8_t *>(&val), 1));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         RESET();
         return RET_SUCCESS;
@@ -417,7 +501,10 @@ public:
         RESUME();
 
         RetType ret = CALL(readReg(LIS3MDL_STATUS_REG, reinterpret_cast<uint8_t *>(val), 1));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         RESET();
         return RET_SUCCESS;
@@ -440,23 +527,38 @@ private:
 
         // Enable Block Update
         ret = CALL(setBlockDataUpdate(PROPERTY_ENABLE));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         // Set ODR
         ret = CALL(setDataRate(LIS3MDL_HP_1Hz25));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         // Set FS
         ret = CALL(setFullScale(LIS3MDL_16_GAUSS));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         // Enable temp sensing
         ret = CALL(setTempMeas(PROPERTY_ENABLE));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         // Set to continuous mode
         ret = CALL(setOperatingMode(LIS3MDL_CONTINUOUS_MODE));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         RESET();
         return RET_SUCCESS;

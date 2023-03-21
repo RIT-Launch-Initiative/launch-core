@@ -64,11 +64,17 @@ public:
         RESUME();
 
         RetType ret = CALL(reset());
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         SLEEP(280); // 2.8ms delay for register reload
         ret = CALL(readCalibration());
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         setConv(MS5607_OSR_256);
 
@@ -87,7 +93,10 @@ public:
         static uint32_t tempVal;
 
         RetType ret = CALL(readDigitalVals(&pressureVal, &tempVal));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         int32_t dT;
 
@@ -106,7 +115,10 @@ public:
         RESUME();
 
         RetType ret = CALL(mI2C->transmit(mAddr, reinterpret_cast<uint8_t *>(RESET_COMMAND), 1, 10));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         RESET();
         return RET_SUCCESS;
@@ -137,27 +149,45 @@ private:
 
         static uint8_t data[2];
         RetType ret = CALL(readPROM(data, COEFFICIENT_ONE_ADDR));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
         pressureSens = (data[0] << 8) | data[1];
 
         ret = CALL(readPROM(data, COEFFICIENT_TWO_ADDR));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
         pressureOffset = (data[0] << 8) | data[1];
 
         ret = CALL(readPROM(data, COEFFICIENT_THREE_ADDR));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
         pressureSensTempCo = (data[0] << 8) | data[1];
 
         ret = CALL(readPROM(data, COEFFICIENT_FOUR_ADDR));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
         pressureOffsetTempCo = (data[0] << 8) | data[1];
 
         ret = CALL(readPROM(data, COEFFICIENT_FIVE_ADDR));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
         tempRef = (data[0] << 8) | data[1];
 
         ret = CALL(readPROM(data, COEFFICIENT_SIX_ADDR));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
         tempSens = (data[0] << 8) | data[1];
 
         RESET();
@@ -169,7 +199,10 @@ private:
 
         data[0] = PROM_READ + offset;
         RetType ret = CALL(mI2C->transmitReceive(mAddr, data, 1, 2, 50));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         RESET();
         return RET_SUCCESS;
@@ -179,7 +212,10 @@ private:
         RESUME();
 
         RetType ret = CALL(mI2C->transmit(mAddr, isD1 ? &d1Conversion : &d2Conversion, 1));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         SLEEP(conversionDelay);
 
@@ -193,18 +229,27 @@ private:
         static uint8_t data[3];
 
         RetType ret = CALL(conversion(true));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         data[0] = ADC_READ;
         ret = CALL(mI2C->transmitReceive(mAddr, data, 1, 3, 50));
         *pressure = (data[0] << 16) | (data[1] << 8) | data[2];
 
         ret = CALL(conversion(false));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         data[0] = ADC_READ;
         ret = CALL(mI2C->transmitReceive(mAddr, data, 1, 3, 50));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
         *temp = (data[0] << 16) | (data[1] << 8) | data[2];
 
         RESET();
