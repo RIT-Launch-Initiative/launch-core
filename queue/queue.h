@@ -25,16 +25,16 @@
 template <typename T>
 class Queue {
 public:
-    /// @brief push an object onto the queue
-    /// @return 'true' on success, 'false' on error
-    virtual bool push(T obj) = 0;
+    /// @brief push an object onto the queue, copying it in the process
+    /// @return the pointer to the pushed object, or NULL on error
+    virtual T* push(T obj) = 0;
 
     /// @brief pop an object off the queue, if there is one to pop
     /// @return
     virtual void pop() = 0;
 
     /// @brief peek at the object on the back of the queue
-    /// @return the object, or NULL on error
+    /// @return a pointer to the object, or NULL on error
     virtual T* peek() = 0;
 
     /// @brief remove an entry from the queue

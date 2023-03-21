@@ -36,29 +36,40 @@ public:
     /// @param addr     the register address to write to
     /// @param buff     the buffer to write
     /// @param len      the size of 'buff' in bytes
+    /// @param timeout  the timeout of the operation, or '0' for no timeout
     /// @return if all bytes were written successfully
-    virtual RetType transmit(I2CAddr_t &addr, uint8_t *buff, size_t len) = 0;
+    virtual RetType transmit(I2CAddr_t &addr, uint8_t *buff,
+                             size_t len, uint32_t timeout = 0) = 0;
 
     /// @brief receive from the device
     /// @param addr     the register address to write to
     /// @param buff     the buffer to write
     /// @param len      the size of 'buff' in bytes
-    /// @return if all bytes were written successfully
-    virtual RetType receive(I2CAddr_t &addr, uint8_t *buff, size_t len) = 0;
+    /// @param timeout  the timeout of the operation, or '0' for no timeout
+    /// @return if all bytes were read successfully
+    virtual RetType transmitReceive(I2CAddr_t &addr, uint8_t *buff,
+                            size_t inLen, size_t outLen, uint32_t timeout = 0) = 0;
+
+    virtual RetType receive(I2CAddr_t &addr, uint8_t *buff,
+                            size_t len, uint32_t timeout = 0) = 0;
 
     /// @brief write to a specific device register
     /// @param addr     the register address to write to
     /// @param buff     the buffer to write
     /// @param len      the size of 'buff' in bytes
+    /// @param timeout  the timeout of the operation, or '0' for no timeout
     /// @return if all bytes were written successfully
-    virtual RetType write(I2CAddr_t& addr, uint8_t* buff, size_t len) = 0;
+    virtual RetType write(I2CAddr_t& addr, uint8_t* buff,
+                          size_t len, uint32_t timeout = 0) = 0;
 
     /// @brief read from a specific device register
     /// @param addr     the register address to read from
     /// @param buff     the buffer to read into
     /// @param len      the number of bytes to read
+    /// @param timeout  the timeout of the operation, or '0' for no timeout
     /// @return if all bytes were read successfully
-    virtual RetType read(I2CAddr_t& addr, uint8_t* buff, size_t len) = 0;
+    virtual RetType read(I2CAddr_t& addr, uint8_t* buff,
+                         size_t len, uint32_t timeout = 0) = 0;
 
 
 };

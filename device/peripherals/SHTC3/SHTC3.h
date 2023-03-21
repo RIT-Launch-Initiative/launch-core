@@ -33,9 +33,8 @@ enum SHTC3_CMD {
 };
 
 class SHTC3 {
-public:
-    SHTC3(I2CDevice &i2CDevice) : mI2C(i2CDevice), inLowPowerMode(false),
-                                  addr({.dev_addr = SHTC3_I2C_ADDR << 1, .mem_addr = 0, .mem_addr_size = 2}) {}
+   public:
+    SHTC3(I2CDevice &i2CDevice) : mI2C(i2CDevice), inLowPowerMode(false), addr({.dev_addr = SHTC3_I2C_ADDR << 1, .mem_addr = 0, .mem_addr_size = 2}) {}
 
     RetType init() {
         RESUME();
@@ -46,21 +45,20 @@ public:
         ret = CALL(reset());
         if (ret != RET_SUCCESS) return ret;
 
-
         ret = CALL(getID(&this->id));
         if (ret != RET_SUCCESS) return ret;
 
-//        if ((this->id & 0x083F) != 0x807) {
-//            return RET_ERROR;
-//        }
+        //        if ((this->id & 0x083F) != 0x807) {
+        //            return RET_ERROR;
+        //        }
 
-//        if (inLowPowerMode) {
-//            ret = CALL(writeCommand(LOW_POW_MEAS_TEMP));
-//            SLEEP(1000);
-//        } else {
-//            ret = CALL(writeCommand(NORMAL_POW_MEAS_TEMP));
-//            SLEEP(13000);
-//        }
+        //        if (inLowPowerMode) {
+        //            ret = CALL(writeCommand(LOW_POW_MEAS_TEMP));
+        //            SLEEP(1000);
+        //        } else {
+        //            ret = CALL(writeCommand(NORMAL_POW_MEAS_TEMP));
+        //            SLEEP(13000);
+        //        }
 
         RESET();
         return RET_SUCCESS;
@@ -90,11 +88,11 @@ public:
         return RET_SUCCESS;
     }
 
-    static float calcTemp(uint16_t rawValue){
+    static float calcTemp(uint16_t rawValue) {
         return 175 * static_cast<float>(rawValue) / 65536.0f - 45.0f;
     }
 
-    static float calcHumidity(uint16_t rawValue){
+    static float calcHumidity(uint16_t rawValue) {
         return 100 * static_cast<float>(rawValue) / 65536.0f;
     }
 
@@ -128,14 +126,13 @@ public:
     }
 
     RetType startWrite() {
-
     }
 
     RetType writeCommand(SHTC3_CMD command16) {
         RESUME();
         addr.dev_addr = (SHTC3_I2C_ADDR << 1);
 
-        RetType ret = CALL(mI2C.transmit(addr, reinterpret_cast<uint8_t*>(&command16), 0));
+        RetType ret = CALL(mI2C.transmit(addr, reinterpret_cast<uint8_t *>(&command16), 0));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
@@ -145,7 +142,7 @@ public:
     RetType readCommand(SHTC3_CMD command16, uint8_t *buff, uint8_t numBytes) {
         RESUME();
 
-        RetType ret = CALL(mI2C.transmit(addr, reinterpret_cast<uint8_t*>(&command16), 0));
+        RetType ret = CALL(mI2C.transmit(addr, reinterpret_cast<uint8_t *>(&command16), 0));
         if (ret != RET_SUCCESS) return ret;
 
         addr.dev_addr = (SHTC3_I2C_ADDR << 1) | 0x01;  // we bitwise or here to set read flag
@@ -169,12 +166,11 @@ public:
         return RET_SUCCESS;
     }
 
-//    RetType setPowerMode(bool lowPowerMode) {
-//        this->inLowPowerMode = lowPowerMode;
-//    }
+    //    RetType setPowerMode(bool lowPowerMode) {
+    //        this->inLowPowerMode = lowPowerMode;
+    //    }
 
-
-private:
+   private:
     I2CDevice &mI2C;
     I2CAddr_t addr;
     bool inLowPowerMode;
@@ -198,8 +194,6 @@ private:
         }
         return crc;
     }
-
 };
-
 
 #endif  // LAUNCH_CORE_SHTC3_H

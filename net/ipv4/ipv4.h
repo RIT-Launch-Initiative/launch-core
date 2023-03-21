@@ -17,14 +17,6 @@ static const uint8_t IGMP_PROTO         = 0x02;
 static const uint8_t EXPERIMENT1_PROTO  = 0xFD;
 static const uint8_t EXPERIMENT2_PROTO  = 0xFE;
 
-// maps socket types to protocol numbers
-static const uint8_t IPV4_PROTO[NUM_SOCK_TYPES] =
-{
-    UDP_PROTO,          // IPV4_UDP_SOCK
-    UDP_PROTO,          // RAW_IPV4_UDP_SOCK
-    EXPERIMENT1_PROTO   // PACKET_SOCK (this should probably never happen)
-};
-
 // IP Header struct
 typedef struct {
     uint8_t version_ihl;

@@ -17,7 +17,7 @@
 
 #include "return.h"
 
-/// @brief task id, any tid < 0 is an error
+/// @brief task id, any tid < 0 or > MAX_NUM_TASKS is an error
 ///        a tid equal to MAX_NUM_TASKS represents no task executing
 typedef int tid_t;
 
@@ -58,8 +58,8 @@ typedef struct task_s {
     void* arg;
     tid_t tid;
     uint32_t wake_time;
-    bool queued; // if it's on the ready queue
-    struct task_s** sleep_loc; // references where the pointer on the sleep queue is
+    struct task_s** ready_loc; // address of the task pointer on the ready queue
+    struct task_s** sleep_loc; // address of the task pointer on the ready queue
 } task_t;
 
 /// @brief initialize the scheduler

@@ -1,7 +1,8 @@
 build/
 CMakeLists.txt
 .idea/
+.vscode/
 *.o
 *.out
 
-stm32*
+stm32*.*

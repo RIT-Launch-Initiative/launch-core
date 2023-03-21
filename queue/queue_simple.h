@@ -67,8 +67,13 @@ public:
     /// @brief remove a node from the queue
     void remove_node(Node<T>* node) {
         if(node == m_head) {
-            m_head = node->next;
-            m_head->prev = NULL;
+            if(NULL == m_head->next) {
+                m_head = NULL;
+                m_tail = NULL;
+            } else {
+                m_head = node->next;
+                m_head->prev = NULL;
+            }
         } else if(node == m_tail) {
             m_tail = node->prev;
             m_tail->next = NULL;
