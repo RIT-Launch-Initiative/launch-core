@@ -6,11 +6,11 @@
 #ifndef LAUNCH_CORE_SHTC3_H
 #define LAUNCH_CORE_SHTC3_H
 
-#include "return.h"
-#include "sched/macros/resume.h"
-#include "sched/macros/reset.h"
 #include "device/I2CDevice.h"
+#include "return.h"
 #include "sched/macros/call.h"
+#include "sched/macros/reset.h"
+#include "sched/macros/resume.h"
 
 #define SHTC3_I2C_ADDR 0x70
 
@@ -32,27 +32,21 @@ enum SHTC3_CMD {
     LOW_POW_MEAS_HUM_STRETCH = 0x44DE,
 };
 
-
 class SHTC3 {
-public:
+   public:
     // TODO: Validate addr
-    SHTC3(I2CDevice *i2CDevice) : mI2C(i2CDevice),
-                                  inLowPowerMode(true),
-                                  addr({
-                                               .dev_addr = SHTC3_I2C_ADDR << 1,
-                                               .mem_addr = 0,
-                                               .mem_addr_size = 0
-                                       }) {}
+    SHTC3(I2CDevice &i2CDevice) : mI2C(i2CDevice), inLowPowerMode(true), addr({.dev_addr = SHTC3_I2C_ADDR << 1, .mem_addr = 0, .mem_addr_size = 2}) {}
 
     RetType init() {
         RESUME();
 
-        uint16_t id = 0;
-        RetType ret = CALL(getID(&id));
+        RetType ret = CALL(reset());
         if (ret != RET_SUCCESS) return ret;
 
+        ret = CALL(getID(&this->id));
+        if (ret != RET_SUCCESS) return ret;
 
-        if ((id & 0x083F) != 0x807) {
+        if ((this->id & 0x083F) != 0x807) {
             return RET_ERROR;
         }
 
@@ -74,7 +68,7 @@ public:
         }
         if (ret != RET_SUCCESS) return ret;
 
-        ret = CALL(mI2C->read(addr, buff, sizeof(buff)));
+        ret = CALL(mI2C.read(addr, buff, sizeof(buff)));
         if (ret != RET_SUCCESS) return ret;
 
         if ((buff[2] != crc8(buff, 2)) || (buff[5] != crc8(buff + 3, 2))) {
@@ -123,13 +117,15 @@ public:
     RetType writeCommand(SHTC3_CMD command16) {
         RESUME();
 
-        uint8_t command8[2] = {};
-        uint16ToUint8(command16, command8);
-
-        addr.mem_addr = command16;
+        addr.dev_addr = SHTC3_I2C_ADDR;
         addr.mem_addr_size = 2;
 
-        RetType ret = CALL(mI2C->write(addr, command8, 2));
+        uint8_t command8[2];
+        uint16ToUint8(command16, command8);
+        addr.mem_addr = command8;  // this MAY be incorrect, but it makes sense
+        // see datasheet table 11
+
+        RetType ret = CALL(mI2C.write(addr, command8, addr.mem_addr_size));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
@@ -139,17 +135,18 @@ public:
     RetType readCommand(SHTC3_CMD command16, uint8_t *buff, uint8_t numBytes) {
         RESUME();
 
-        static uint8_t command8[2] = {};
-        uint16ToUint8(command16, command8);
-
-        addr.mem_addr = command16;
+        addr.dev_addr = SHTC3_I2C_ADDR;
         addr.mem_addr_size = 2;
 
+        uint8_t command8[2];
+        uint16ToUint8(command16, command8);
+        addr.mem_addr = command8;
 
-        RetType ret = CALL(mI2C->write(addr, command8, 2));
+        RetType ret = CALL(mI2C.write(addr, command8, addr.mem_addr_size));
         if (ret != RET_SUCCESS) return ret;
 
-        ret = CALL(mI2C->read(addr, buff, numBytes));
+        addr.dev_addr = (SHTC3_I2C_ADDR << 1) | 0x01;  // we bitwise or here to set read flag
+        ret = CALL(mI2C.read(addr, buff, numBytes));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
@@ -159,13 +156,11 @@ public:
     RetType getID(uint16_t *id) {
         RESUME();
 
-        static uint8_t data[3] = {};
-        RetType ret = CALL(readCommand(READ_ID_CMD, data, 3));
+        uint8_t data[2] = {};
+        RetType ret = CALL(readCommand(READ_ID_CMD, data, 2));
         if (ret != RET_SUCCESS) return ret;
 
-        *id = data[0];
-        *id <<= 8;
-        *id |= data[1];
+        *id = data[0] << 8 | data[1];
 
         RESET();
         return RET_SUCCESS;
@@ -175,11 +170,11 @@ public:
         this->inLowPowerMode = lowPowerMode;
     }
 
-
-private:
-    I2CDevice *mI2C;
+   private:
+    I2CDevice &mI2C;
     I2CAddr_t addr;
     bool inLowPowerMode;
+    uint16_t id;
 
     void uint16ToUint8(uint16_t data16, uint8_t *data8) {
         data8[0] = static_cast<uint8_t>(data16 >> 8);
@@ -199,8 +194,6 @@ private:
         }
         return crc;
     }
-
 };
 
-
-#endif //LAUNCH_CORE_SHTC3_H
+#endif  // LAUNCH_CORE_SHTC3_H
