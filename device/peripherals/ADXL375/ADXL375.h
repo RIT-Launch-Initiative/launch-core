@@ -173,7 +173,7 @@ public:
     RetType setOperatingMode(ADXL375_OP_MODE opMode){
         RESUME();
         i2cAddr.mem_addr = ADXL375_REG_BW_RATE;
-        RetType ret = CALL(m_i2c.write(i2cAddr, &opMode, 1));
+        RetType ret = CALL(m_i2c.write(i2cAddr,  &opMode, 1));
         RESET();
         return ret;
     }
