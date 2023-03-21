@@ -1,25 +1,24 @@
 #ifndef HAL_I2C_DEVICE_H
 #define HAL_I2C_DEVICE_H
 
-#include "stm32f4xx_hal.h"
-#include "stm32f4xx_hal_i2c.h"
-
 #include "device/I2CDevice.h"
 #include "device/platforms/stm32/HAL_Handlers.h"
 #include "sched/macros.h"
+#include "stm32f4xx_hal.h"
+#include "stm32f4xx_hal_i2c.h"
 #include "sync/BlockingSemaphore.h"
 
 /// @brief I2C device controller
 class HALI2CDevice : public I2CDevice, public CallbackDevice {
-public:
+   public:
     /// @brief constructor
     /// @param name     the name of this device
     /// @param h12c     the HAL I2C device wrapped by this device
     HALI2CDevice(const char *name, I2C_HandleTypeDef *hi2c) : I2CDevice(name),
                                                               m_blocked(-1),
                                                               m_i2c(hi2c),
-                                                              m_lock(1), interrupt_flag(1) {};
-
+                                                              m_lock(1),
+                                                              interrupt_flag(1){};
 
     /// @brief initialize
     RetType init() {
@@ -102,7 +101,6 @@ public:
         // mark the device as unblocked
         m_blocked = -1;
 
-
         RESET();
         return RET_SUCCESS;
     }
@@ -146,7 +144,6 @@ public:
         // mark the device as unblocked
         m_blocked = -1;
 
-
         RESET();
         return RET_SUCCESS;
     }
@@ -189,7 +186,6 @@ public:
 
         // mark the device as unblocked
         m_blocked = -1;
-
 
         RESET();
         return RET_SUCCESS;
@@ -241,19 +237,16 @@ public:
         return RET_SUCCESS;
     }
 
-
-
-
     /// @brief called by I2C handler asynchronously
     void callback(int) {
         // don't care if it was tx or rx, for now
-            if (m_blocked != -1) {
-                // Release interrupt flag for poll to wake up the task
-                interrupt_flag.release();
-            }
+        if (m_blocked != -1) {
+            // Release interrupt flag for poll to wake up the task
+            interrupt_flag.release();
+        }
     }
 
-private:
+   private:
     // unique numbers for tx vs. rx callback
     static const int TX_NUM = 0;
     static const int RX_NUM = 1;

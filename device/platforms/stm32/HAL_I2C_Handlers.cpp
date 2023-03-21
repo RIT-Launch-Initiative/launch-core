@@ -1,12 +1,11 @@
 #ifndef HAL_I2C_HANDLERS_H
 #define HAL_I2C_HANDLERS_H
 
+#include "device/platforms/stm32/HAL_Handlers.h"
+#include "hashmap/hashmap.h"
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_i2c.h"
 #include "stm32f4xx_hal_uart.h"
-
-#include "device/platforms/stm32/HAL_Handlers.h"
-#include "hashmap/hashmap.h"
 extern UART_HandleTypeDef huart2;
 
 namespace HALHandlers {
@@ -17,16 +16,16 @@ static alloc::Hashmap<I2C_HandleTypeDef*, dev_t, MAX_I2C_DEVICES, MAX_I2C_DEVICE
 static alloc::Hashmap<I2C_HandleTypeDef*, dev_t, MAX_I2C_DEVICES, MAX_I2C_DEVICES> i2c_rx_map;
 
 RetType register_i2c_tx(I2C_HandleTypeDef* hi2c, CallbackDevice* dev, int num) {
-    if(i2c_tx_map[hi2c] != NULL) {
+    if (i2c_tx_map[hi2c] != NULL) {
         // someone is already registered for this device
         // delete them and add us instead
-        if(!i2c_tx_map.remove(hi2c)) {
+        if (!i2c_tx_map.remove(hi2c)) {
             return RET_ERROR;
         }
     }
 
     dev_t* ptr = i2c_tx_map.add(hi2c);
-    if(ptr == NULL) {
+    if (ptr == NULL) {
         // failed to add :(
         return RET_ERROR;
     }
@@ -38,16 +37,16 @@ RetType register_i2c_tx(I2C_HandleTypeDef* hi2c, CallbackDevice* dev, int num) {
 }
 
 RetType register_i2c_rx(I2C_HandleTypeDef* hi2c, CallbackDevice* dev, int num) {
-    if(i2c_rx_map[hi2c] != NULL) {
+    if (i2c_rx_map[hi2c] != NULL) {
         // someone is already registered for this device
         // delete them and add us instead
-        if(!i2c_rx_map.remove(hi2c)) {
+        if (!i2c_rx_map.remove(hi2c)) {
             return RET_ERROR;
         }
     }
 
     dev_t* ptr = i2c_rx_map.add(hi2c);
-    if(ptr == NULL) {
+    if (ptr == NULL) {
         // failed to add :(
         return RET_ERROR;
     }
@@ -58,51 +57,49 @@ RetType register_i2c_rx(I2C_HandleTypeDef* hi2c, CallbackDevice* dev, int num) {
     return RET_SUCCESS;
 }
 
-} // namespace HALHandlers
-
+}  // namespace HALHandlers
 
 // the actual HAL I2C callback functions
 
 // transmit complete
-void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *hi2c) {
+void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef* hi2c) {
     // lookup if there's a device registered for this I2C
     HALHandlers::dev_t* dev = HALHandlers::i2c_tx_map[hi2c];
-    HAL_UART_Transmit(&huart2, (uint8_t*)"TxCplt\r\n", 8, 1000);
+    HAL_UART_Transmit(&huart2, (uint8_t*)"I2C TX Complete\r\n", 17, 1000);
     // if there's a device, call it's callback function
-    if(dev) {
+    if (dev) {
         dev->dev->callback(dev->num);
     }
 }
 
-void HAL_I2C_MemTxCpltCallback(I2C_HandleTypeDef *hi2c) {
+void HAL_I2C_MemTxCpltCallback(I2C_HandleTypeDef* hi2c) {
     // lookup if there's a device registered for this I2C
     HALHandlers::dev_t* dev = HALHandlers::i2c_tx_map[hi2c];
 
     // if there's a device, call it's callback function
-    if(dev) {
+    if (dev) {
         dev->dev->callback(dev->num);
     }
 }
 
 // receive complete
-void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c) {
+void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef* hi2c) {
     // lookup if there's a device registered for this I2C
     HALHandlers::dev_t* dev = HALHandlers::i2c_rx_map[hi2c];
-
-    HAL_UART_Transmit(&huart2, (uint8_t*)"RxCplt\r\n", 8, 1000);
+    HAL_UART_Transmit(&huart2, (uint8_t*)"I2C RX Complete\r\n", 17, 1000);
 
     // if there's a device, call it's callback function
-    if(dev) {
+    if (dev) {
         dev->dev->callback(dev->num);
     }
 }
 
-void HAL_I2C_MemRxCpltCallback(I2C_HandleTypeDef *hi2c) {
+void HAL_I2C_MemRxCpltCallback(I2C_HandleTypeDef* hi2c) {
     // lookup if there's a device registered for this I2C
     HALHandlers::dev_t* dev = HALHandlers::i2c_rx_map[hi2c];
 
     // if there's a device, call it's callback function
-    if(dev) {
+    if (dev) {
         dev->dev->callback(dev->num);
     }
 }
