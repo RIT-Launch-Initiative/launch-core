@@ -3,16 +3,24 @@
 #ifndef HAL_HANDLERS_H
 #define HAL_HANDLERS_H
 
+#ifdef STM32F446xx
+#include "stm32f446xx.h"
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_uart.h"
 #include "stm32f4xx_hal_i2c.h"
 #include "stm32f4xx_hal_spi.h"
 #include "stm32f4xx_hal_gpio.h"
-
+#elif STM32L476xx
+#include "stm32l476xx.h"
+#include "stm32l4xx_hal.h"
+#include "stm32l4xx_hal_uart.h"
+#include "stm32l4xx_hal_i2c.h"
+#include "stm32l4xx_hal_spi.h"
+#include "stm32l4xx_hal_gpio.h"
+#endif
 
 #include "return.h"
 #include "device/Device.h"
-#include "stm32f446xx.h"
 
 /// @brief defines a device interface for an aysnchronous callback enabled device
 class CallbackDevice {
@@ -41,9 +49,6 @@ static const size_t MAX_I2C_DEVICES = 3;
 
 // maximum number of SPI devices supported
 static const size_t MAX_SPI_DEVICES = 3;
-
-// maximum number of GPIO devices supported
-static const size_t MAX_GPIO_DEVICES = 5;
 
 /// @brief register a device for UART transmit complete callback
 /// @param huart    the UART device to register the callback for
@@ -92,14 +97,6 @@ RetType register_spi_tx(SPI_HandleTypeDef* hspi, CallbackDevice* dev, int num);
 ///                 function of 'dev' when the event occurs
 /// @return
 RetType register_spi_rx(SPI_HandleTypeDef* hspi, CallbackDevice* dev, int num);
-
-/// @brief register a device for GPIO complete callback
-/// @param halGPIO     the GPIO device to register the callback for
-/// @param dev      the device registering
-/// @param num      some unique number that will be passed back in the 'callback'
-///                 function of 'dev' when the event occurs
-/// @return
-RetType register_gpio(GPIO_TypeDef* halGPIO, CallbackDevice* dev);
 
 }
 

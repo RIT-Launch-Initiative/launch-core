@@ -139,7 +139,7 @@ public:
     RetType readCommand(SHTC3_CMD command16, uint8_t *buff, uint8_t numBytes) {
         RESUME();
 
-        uint8_t command8[2] = {};
+        static uint8_t command8[2] = {};
         uint16ToUint8(command16, command8);
 
         addr.mem_addr = command16;
@@ -159,7 +159,7 @@ public:
     RetType getID(uint16_t *id) {
         RESUME();
 
-        uint8_t data[3] = {};
+        static uint8_t data[3] = {};
         RetType ret = CALL(readCommand(READ_ID_CMD, data, 3));
         if (ret != RET_SUCCESS) return ret;
 

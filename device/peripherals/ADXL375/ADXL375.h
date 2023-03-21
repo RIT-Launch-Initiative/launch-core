@@ -68,20 +68,24 @@ public:
 
         static uint8_t id = 0;
 
-        static int16_t xAvg;
-        static int16_t yAvg;
-        static int16_t zAvg;
-
-
-        RetType ret = CALL(m_i2c.read(i2cAddr, &id, 1));
-        if (ret != RET_SUCCESS) return ret;
+        RetType ret = CALL(m_i2c.read(i2cAddr, &id, 1, 50));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
         if (id != 0xE5) return RET_ERROR;
 
         ret = CALL(setDataRateAndLowPower(ADXL375_DR_100HZ, false));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         ret = CALL(setOperatingMode(ADXL375_MEASURING_MODE));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         SLEEP(100);
 
@@ -93,6 +97,11 @@ public:
         RESUME();
 
         RetType ret = CALL(readXYZRaw(xAxis, yAxis, zAxis));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
+
         *xAxis *= ADXL375_MG2G_MULTIPLIER * ADXL375_GRAVITY;
         *yAxis *= ADXL375_MG2G_MULTIPLIER * ADXL375_GRAVITY;
         *zAxis *= ADXL375_MG2G_MULTIPLIER * ADXL375_GRAVITY;
@@ -109,6 +118,11 @@ public:
         static int16_t zRaw;
 
         RetType ret = CALL(readXYZRaw(&xRaw, &yRaw, &zRaw));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
+
         *xAxis = xRaw * ADXL375_MG2G_MULTIPLIER * ADXL375_GRAVITY;
         *yAxis = yRaw * ADXL375_MG2G_MULTIPLIER * ADXL375_GRAVITY;
         *zAxis = zRaw * ADXL375_MG2G_MULTIPLIER * ADXL375_GRAVITY;
@@ -125,7 +139,10 @@ public:
         i2cAddr.mem_addr = xLSBDataReg;
 
         RetType ret = CALL(m_i2c.read(i2cAddr, buff, 6));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         *xAxis = ((buff[1] << 8) | buff[0]) * -1;
         *yAxis = ((buff[3] << 8) | buff[2]) * -1;
@@ -170,11 +187,17 @@ public:
         // reading the data
         i2cAddr.mem_addr = yLSBDataReg;
         RetType ret = CALL(m_i2c.read(i2cAddr, &lsb, 1));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         i2cAddr.mem_addr = yMSBDataReg;
         ret = CALL(m_i2c.read(i2cAddr, &msb, 1));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         // value is in 2's complement so have to convert it
         *yAxis = ((msb << 8) | lsb) * -1;
@@ -252,15 +275,24 @@ public:
 
         i2cAddr.mem_addr = offsetXReg;
         RetType ret = CALL(m_i2c.write(i2cAddr, xOffBuff, 2));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         i2cAddr.mem_addr = offsetYReg;
         ret = CALL(m_i2c.write(i2cAddr, yOffBuff, 2));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         i2cAddr.mem_addr = offsetZReg;
         ret = CALL(m_i2c.write(i2cAddr, zOffBuff, 2));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
 
         RESET();

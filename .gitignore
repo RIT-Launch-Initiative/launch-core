@@ -4,4 +4,4 @@ CMakeLists.txt
 *.o
 *.out
 
-stm32*
+stm32*.*

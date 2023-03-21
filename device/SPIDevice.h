@@ -28,13 +28,13 @@ public:
     /// @param buff     the buffer to write
     /// @param len      the size of 'buff' in bytes
     /// @return if all bytes were written successfully
-    virtual RetType write(uint8_t* buff, size_t len) = 0;
+    virtual RetType write(uint8_t* buff, size_t len, uint32_t timeout = 0) = 0;
 
     /// @brief read from the device
     /// @param buff     the buffer to read into
     /// @param len      the number of bytes to read
     /// @return if all bytes were read successfully
-    virtual RetType read(uint8_t* buff, size_t len) = 0;
+    virtual RetType read(uint8_t* buff, size_t len, uint32_t timeout = 0) = 0;
 
     /**
      * @brief write and read from the device
@@ -44,9 +44,7 @@ public:
      * @param read_len     the number of bytes to read
      * @return if all bytes were read successfully
      */
-    virtual RetType write_read(uint8_t* write_buff, size_t write_len, uint8_t* read_buff, size_t read_len) = 0;
-
-    virtual void setAsync(bool async) = 0;
+    virtual RetType write_read(uint8_t* write_buff, size_t write_len, uint8_t* read_buff, size_t read_len, uint32_t timeout = 0) = 0;
 };
 
 #endif

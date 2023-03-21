@@ -21,12 +21,15 @@
 class SimpleArpLayer : public NetworkLayer {
 public:
     /// @brief constructor
-    /// @param out  the network layer to send packets to next
-    SimpleArpLayer(NetworkLayer& out) : m_out(out) {};
+    /// @param out  the network layer to send transmitting packets too
+    SimpleArpLayer(NetworkLayer& lower) : m_lower(lower) {};
 
     /// @brief receive
     /// @returns error all the time, cannot receive
     RetType receive(Packet& packet, sockinfo_t& info, NetworkLayer*) {
+        // TODO could add responding to ARP requests here
+        // send response out the same layer that received
+
         return RET_ERROR;
     }
 
@@ -36,16 +39,16 @@ public:
     RetType transmit(Packet& packet, sockinfo_t& info, NetworkLayer*) {
         RESUME();
 
-        info.dst.mac[0] = 0x6c;
-        info.dst.mac[1] = 0x69;
+        info.dst.mac[0] = FIXED_MAC_1;
+        info.dst.mac[1] = FIXED_MAC_2;
 
-        uint32_t& ip = info.src.ipv4_addr;
+        uint32_t& ip = info.dst.ipv4_addr;
         info.dst.mac[2] = ip;
         info.dst.mac[3] = ip >> 8;
         info.dst.mac[4] = ip >> 16;
         info.dst.mac[5] = ip >> 24;
 
-        RetType ret = CALL(m_out.transmit(packet, info, this));
+        RetType ret = CALL(m_lower.transmit(packet, info, this));
 
         RESET();
         return ret;
@@ -56,14 +59,17 @@ public:
     RetType transmit2(Packet& packet, sockinfo_t& info, NetworkLayer* caller) {
         RESUME();
 
-        RetType ret = CALL(m_out.transmit2(packet, info, this));
+        RetType ret = CALL(m_lower.transmit2(packet, info, this));
 
         RESET();
         return ret;
     }
 
+    static const uint8_t FIXED_MAC_1 = 0x6c;
+    static const uint8_t FIXED_MAC_2 = 0x69;
+
 private:
-    NetworkLayer& m_out;
+    NetworkLayer& m_lower;
 };
 
 #endif

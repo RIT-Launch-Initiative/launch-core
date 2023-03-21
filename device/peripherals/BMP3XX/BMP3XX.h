@@ -28,8 +28,6 @@ public:
      *************************************************************************************/
     RetType init(bool is388 = true) {
         RESUME();
-        uint8_t chipID = 0;
-
         this->device.dummy_byte = 0;
 
         this->i2cAddr = {
@@ -38,17 +36,26 @@ public:
                 .mem_addr_size = 1,
         };
 
-        RetType ret = CALL(mI2C->read(this->i2cAddr, &this->device.chip_id, 1));
+        RetType ret = CALL(mI2C->read(this->i2cAddr, &this->device.chip_id, 1, 50));
         if (this->device.chip_id != (is388 ? BMP3_CHIP_ID : BMP390_CHIP_ID)) return RET_ERROR;
 
         ret = CALL(softReset());
-        if (ret == RET_ERROR) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         ret = CALL(getCalibrationData());
-        if (ret == RET_ERROR) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         ret = CALL(initSettings());
-        if (ret == RET_ERROR) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         RESET();
         return ret;
@@ -393,7 +400,6 @@ private:
         RESUME();
 
         uint8_t temporaryBuffer[len * 2];
-        uint8_t regAddrCount;
         size_t temporaryLen = len;
 
         temporaryBuffer[0] = regData[0];
