@@ -337,7 +337,7 @@ public:
 
         hdr->version_ihl = DEFAULT_VERSION_IHL;
         hdr->dscp_ecn = 0;
-        hdr->total_len = hton16(packet.size() + packet.headerSize());
+        hdr->total_len = hton16(packet.size() + packet.header_size());
         hdr->identification = 0;
         hdr->flags_frag = 0;
         hdr->ttl = DEFAULT_TTL;

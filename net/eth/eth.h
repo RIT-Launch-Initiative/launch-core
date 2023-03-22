@@ -8,6 +8,12 @@
 
 namespace eth {
 
+// maximum size of an Ethernet frame including header and FCS
+static const size_t MAX_FRAME_SIZE = 1518;
+
+// the size of the FCS
+static const size_t FCS_LEN = sizeof(uint32_t);
+
 // layer 2 ethernet 2 frame
 typedef struct {
     uint8_t dst[6];
