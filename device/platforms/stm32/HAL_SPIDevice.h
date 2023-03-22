@@ -101,6 +101,8 @@ public:
         RetType ret = CALL(m_lock.acquire());
         if (ret != RET_SUCCESS) {
             // some error
+            m_blocked = -1;
+            CALL(m_lock.release());
             RESET();
             return ret;
         }
@@ -112,6 +114,8 @@ public:
 
         // do our transmit
         if (HAL_OK != HAL_SPI_Transmit_IT(m_spi, buff, len)) {
+            m_blocked = -1;
+            CALL(m_lock.release());
             RESET();
             return RET_ERROR;
         }
@@ -177,6 +181,8 @@ public:
 
         // start the transfer
         if (HAL_OK != HAL_SPI_Receive_IT(m_spi, buff, len)) {
+            m_blocked = -1;
+            CALL(m_lock.release());
             RESET();
             return RET_ERROR;
         }
@@ -226,6 +232,8 @@ public:
         RetType ret = CALL(m_lock.acquire());
         if (ret != RET_SUCCESS) {
             // some error
+            m_blocked = -1;
+            CALL(m_lock.release());
             RESET();
             return ret;
         }
