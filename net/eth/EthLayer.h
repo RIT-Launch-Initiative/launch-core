@@ -72,10 +72,10 @@ public:
         }
 
         // calculate the FCS
-        uint32_t calc_fcs = calculate_fcs(packet->raw(), packet->size() + packet->header_size());
+        uint32_t calc_fcs = calculate_fcs(packet.raw(), packet.size() + packet.header_size());
 
         // get the transmitted FCS
-        uint32_t fcs = *(packet->raw()[packet->available() - sizeof(uint32_t)]);
+        uint32_t fcs = packet.raw()[packet.available() - sizeof(uint32_t)];
 
         // check that the calculated and sent FCS match
         if(calc_fcs != fcs) {
@@ -84,7 +84,7 @@ public:
         }
 
         // truncate the packet so the FCS isn't included in the payload
-        packet->truncate(packet->available() - sizeof(uint32_t));
+        packet.truncate(packet.available() - sizeof(uint32_t));
 
         // fill in src information for this packet
         for(size_t i = 0; i < 6; i++) {

@@ -10,6 +10,27 @@
 *
 *******************************************************************************/
 
+#ifndef IPV4_UDP_SOCKET_H
+#define IPV4_UDP_SOCKET_H
+
+#include <stdint.h>
+
+#include "net/udp/udp.h"
+#include "net/udp/UDPRouter.h"
+#include "net/ipv4/ipv4.h"
+#include "net/ipv4/IPv4Router.h"
+#include "net/eth/eth.h"
+#include "net/eth/EthLayer.h"
+#include "return.h"
+#include "net/network_layer/NetworkLayer.h"
+#include "queue/allocated_queue.h"
+#include "net/packet/Packet.h"
+#include "pool/pool.h"
+#include "sched/macros.h"
+
+// TODO add subscribing to multicast address somehow
+//      maybe just bind to multicast address (or 0.0.0.0)
+//      and make it a manual route?
 class IPv4UDPSocket : public NetworkLayer {
 public:
     /// @brief address type
@@ -55,7 +76,7 @@ public:
     /// @brief unbind a socket
     /// @return
     RetType unbind() {
-        if(addr.port != 0) {
+        if(m_addr.port != 0) {
             return m_udp->unsubscribePort(m_addr.port);
         }
 
@@ -128,10 +149,10 @@ public:
     RetType recv(uint8_t* buff, size_t* len, addr_t* src) {
         RESUME();
 
-        // try to allocate a packet
-        packet_t* packet = m_rx.peek();
+        // find a packet that's been received
+        packet_t** packet_p = m_rx.peek();
 
-        if(packet == NULL) {
+        if(packet_p == NULL) {
             // no packets buffered, need to block
 
             if(m_blocked != -1) {
@@ -146,13 +167,23 @@ public:
 
             // grab the packet that should have just arrived
             // NOTE: assuming this is non-NULL as this task has been woken!
-            packet = m_rx.peek();
+            packet_p = m_rx.peek();
+        }
+
+        packet_t* packet = *packet_p;
+
+        // return the packet to the pool and take it's pointer off the queue
+        m_rx.pop();
+
+        // NOTE: this should never fail
+        if(!m_pool.free(packet)) {
+            return RET_ERROR;
         }
 
         // find the number of bytes to actuall copy to 'buff'
         size_t min = packet->len;
-        if(len < min) {
-            min = len;
+        if(*len < min) {
+            min = *len;
         }
 
         // copy the bytes to buff
@@ -176,7 +207,7 @@ public:
     /// @param info     information about the packet to be filled in
     /// @param caller   the layer that called this function one layer before
     RetType receive(Packet& packet, sockinfo_t& info, NetworkLayer*) {
-        size_t size = packet->available();
+        size_t size = packet.available();
 
         // check if this packet is properly sized
         if(size > MTU) {
@@ -199,15 +230,20 @@ public:
         } // an address of 0 means we accept the packet from any interface
 
         // try to allocate space to copy the packet
-        packet_t* buff = m_rx.push();
+        packet_t* buff = m_pool.alloc();
 
         // if no buffers are available, drop the oldest buffer
         if(buff == NULL) {
+            packet_t** oldest = m_rx.peek();
             m_rx.pop();
-            buff = m_rx.push();
+            m_pool.free(*oldest);
 
+            buff = m_pool.alloc();
             // NOTE: assuming buff is non-NULL here
         }
+
+        // push the newly allocated buffer onto the received queue
+        m_rx.push(buff);
 
         // copy the payload into the receive buffer
         if(RET_SUCCESS != packet.read(buff->buff, size)) {
@@ -242,14 +278,7 @@ public:
     }
 
 protected:
-    /// @brief protected constructor
-    IPv4UDPSocket(udp::UDPRouter& udp_router,
-                  Queue<packet_t, 10>& receive_queue) : m_rx(receive_queue),
-                                                        m_udp(NULL),
-                                                        m_addr({0, 0}),
-                                                        m_blocked(-1) {};
-
-private:
+    // packet type for receive buffer
     typedef struct {
         uint8_t buff[MTU];
         size_t len;
@@ -257,8 +286,20 @@ private:
         uint16_t port;
     } packet_t;
 
+    /// @brief protected constructor
+    IPv4UDPSocket(Queue<packet_t*>& receive_queue,
+                  Pool<packet_t>& packet_pool)    : m_rx(receive_queue),
+                                                    m_pool(packet_pool),
+                                                    m_udp(NULL),
+                                                    m_addr({0, 0}),
+                                                    m_blocked(-1) {};
+
+private:
     // received packets queue
-    Queue<packet_t>& m_rx;
+    Queue<packet_t*>& m_rx;
+
+    // packet pool
+    Pool<packet_t>& m_pool;
 
     // UDP router
     udp::UDPRouter* m_udp;
@@ -279,11 +320,16 @@ template <size_t SIZE>
 class IPv4UDPSocket : public ::IPv4UDPSocket {
 public:
     /// @brief constructor
-    IPv4UDPSocket() : ::IPv4UDPSocket(m_buff) {};
+    IPv4UDPSocket() : ::IPv4UDPSocket(m_buff, m_pool) {};
 
 private:
     // allocated packet buffer
-    alloc::Queue<packet_t, SIZE> m_buff;
+    alloc::Queue<::IPv4UDPSocket::packet_t*, SIZE> m_buff;
+
+    // allocated packet pool
+    alloc::Pool<::IPv4UDPSocket::packet_t, SIZE> m_pool;
 };
 
 } // namespace alloc
+
+#endif

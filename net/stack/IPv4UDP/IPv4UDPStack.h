@@ -112,7 +112,7 @@ public:
     /// @return
     void free_socket(IPv4UDPSocket* sock) {
         sock->unbind();
-        m_socks.free(sock);
+        m_socks.free(static_cast<alloc::IPv4UDPSocket<10>*>(sock));
     }
 
     /// @brief add a multicast address for the stack to listen for
@@ -155,7 +155,7 @@ private:
 
     // pool of sockets
     // TODO don't hardcode this!
-    alloc::Pool<IPv4UDPSocket, 32> m_socks;
+    alloc::Pool<alloc::IPv4UDPSocket<10>, 32> m_socks;
 };
 
 #endif
