@@ -63,8 +63,8 @@ public:
     /// @brief poll this device
     /// @return
     RetType poll() {
-        // acquire the lock to access the ISR flag
-        m_isr_lock.acquire();
+        // disable interrupts to protect access to 'm_isr_flag'
+        __disable_irq();
 
         if (m_isr_flag) {
             // an interrupt occurred
@@ -72,19 +72,19 @@ public:
             // reset the flag
             m_isr_flag = 0;
 
-            // release the lock around the ISR flag
-            m_isr_lock.release();
+            // re-enable interrupts
+            __enable_irq();
 
             // if a task was blocked waiting for completion of this ISR, wake it up
-            if (m_blocked != -1) {
+            if(m_blocked != -1) {
                 WAKE(m_blocked);
 
                 // set this task as woken
                 m_blocked = -1;
             }
         } else {
-            // nothing to see here
-            m_isr_lock.release();
+            // re-enable interrupts immediately
+            __enable_irq();
         }
 
         return RET_SUCCESS;
@@ -290,13 +290,7 @@ public:
     void callback(int) {
         // all this does is set a flag
         // the interrupt is actually "handled" in 'poll'
-
-        m_isr_lock.acquire();
-
-        // this is less of a flag and more of a count, but is only read as a flag
-        m_isr_flag++;
-
-        m_isr_lock.release();
+        m_isr_flag = 1;
     }
 
 private:
