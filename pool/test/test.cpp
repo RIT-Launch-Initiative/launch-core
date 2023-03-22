@@ -79,6 +79,8 @@ bool double_free() {
             return false;
         }
     }
+
+    return true;
 }
 
 int main() {

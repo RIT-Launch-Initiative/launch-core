@@ -79,6 +79,7 @@ public:
         RetType ret = CALL(m_lock.acquire());
         if(ret != RET_SUCCESS) {
             // some error
+            RESET();
             return ret;
         }
 
@@ -89,6 +90,9 @@ public:
 
         // start the write
         if(HAL_OK != HAL_UART_Transmit_IT(m_uart, const_cast<uint8_t *>(buff), len)) {
+            m_blocked = -1;
+            CALL(m_lock.release());
+            RESET();
             return RET_ERROR;
         }
 
@@ -101,7 +105,10 @@ public:
         // we can unblock someone else if they were waiting
         ret = CALL(m_lock.release());
         if(ret != RET_SUCCESS) {
+            m_blocked = -1;
+            CALL(m_lock.release());
             // some error
+            RESET();
             return ret;
         }
 
@@ -121,6 +128,7 @@ public:
         RetType ret = CALL(m_lock.acquire());
         if(ret != RET_SUCCESS) {
             // some error
+            RESET();
             return ret;
         }
 
@@ -138,6 +146,7 @@ public:
         ret = CALL(m_lock.release());
         if(ret != RET_SUCCESS) {
             // some error
+            RESET();
             return ret;
         }
 

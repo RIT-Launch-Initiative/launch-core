@@ -7,12 +7,21 @@ uint32_t systime() {
     return tick;
 }
 
+RetType task2(void*) {
+    RESUME();
+    printf("task2\n");
+    SLEEP(2);
+    RESET();
+    return RET_SUCCESS;
+}
+
 RetType task(void*) {
     RESUME();
     printf("task\n");
     SLEEP(3);
+    sched_start(&task2, NULL);
     RESET();
-    return RET_SUCCESS;
+    return RET_ERROR;
 }
 
 int main() {

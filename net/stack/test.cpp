@@ -1,7 +1,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "net/stack/IPv4UDPStack.h"
+#include "net/stack/IPv4UDP/IPv4UDPStack.h"
+#include "net/stack/IPv4UDP/IPv4UDPSocket.h"
 #include "net/network_layer/NetworkLayer.h"
 
 
@@ -68,7 +69,7 @@ int main() {
         exit(1);
     }
 
-    udp_ip4_addr_t addr;
+    IPv4UDPSocket::addr_t addr;
     addr.ip[0] = addr.ip[1] = addr.ip[2] = addr.ip[3] = 0;
     addr.port = 8000;
 
@@ -82,12 +83,12 @@ int main() {
     addr.ip[2] = 0;
     addr.ip[3] = 1;
     addr.port = 8000;
-    if(RET_SUCCESS != sock->send(msg, len, addr)) {
+    if(RET_SUCCESS != sock->send(msg, len, &addr)) {
         printf("failed to send message on socket\n");
         exit(1);
     }
 
-    if(RET_SUCCESS != sock->recv(buff, 5, addr)) {
+    if(RET_SUCCESS != sock->recv(buff, &len, &addr)) {
         printf("failed to receive message on socket\n");
         exit(1);
     }
@@ -100,7 +101,8 @@ int main() {
     addr.ip[2] = 10;
     addr.ip[3] = 1;
     addr.port = 8000;
-    if(RET_SUCCESS != sock->send(msg, len, addr)) {
+    len = 5;
+    if(RET_SUCCESS != sock->send(msg, len, &addr)) {
         printf("failed to send message on socket\n");
         exit(1);
     }
