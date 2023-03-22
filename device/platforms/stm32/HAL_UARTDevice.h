@@ -43,7 +43,6 @@ public:
 
         // start the first read
         if(HAL_OK != HAL_UART_Receive_IT(m_uart, &m_byte, sizeof(uint8_t))) {
-            RESET();
             return RET_ERROR;
         }
 
