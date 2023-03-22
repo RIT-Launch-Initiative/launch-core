@@ -67,18 +67,37 @@ public:
             }
         }
 
-        RetType ret = RET_ERROR;
-
-        if(match | broadcast) {
-            // fill in src information for this packet
-            for(size_t i = 0; i < 6; i++) {
-                info.src.mac[i] = hdr->src[i];
-            }
-
-            if(RET_SUCCESS == packet.skip_read(sizeof(EthHeader_t))) {
-                ret = CALL(m_upper.receive(packet, info, this));
-            }
+        if(!match and !broadcast) {
+            return RET_ERROR;
         }
+
+        // calculate the FCS
+        uint32_t calc_fcs = calculate_fcs(packet.raw(), packet.size() + packet.header_size());
+
+        // get the transmitted FCS
+        uint32_t fcs = packet.raw()[packet.available() - sizeof(uint32_t)];
+
+        // check that the calculated and sent FCS match
+        if(calc_fcs != fcs) {
+            // some error occurred in transmission!
+            return RET_ERROR;
+        }
+
+        // truncate the packet so the FCS isn't included in the payload
+        packet.truncate(packet.available() - sizeof(uint32_t));
+
+        // fill in src information for this packet
+        for(size_t i = 0; i < 6; i++) {
+            info.src.mac[i] = hdr->src[i];
+        }
+
+        // skip ahead reading
+        if(RET_SUCCESS != packet.skip_read(sizeof(EthHeader_t))) {
+            return RET_ERROR;
+        }
+
+        // pass the packet to the next layer
+        RetType ret = CALL(m_upper.receive(packet, info, this));
 
         RESET();
         return ret;
@@ -112,7 +131,7 @@ public:
 
         // calculate the FCS if configured to
         if(m_fcs) {
-            uint32_t fcs = calculate_fcs(packet.raw(), packet.size() + packet.headerSize());
+            uint32_t fcs = calculate_fcs(packet.raw(), packet.size() + packet.header_size());
 
             if(RET_SUCCESS != packet.push(fcs)) {
                 return RET_ERROR;

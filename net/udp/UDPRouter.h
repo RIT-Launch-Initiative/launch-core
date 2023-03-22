@@ -98,7 +98,7 @@ namespace udp {
             header->src = hton16(*src_port);
             header->dst = hton16(info.dst.udp_port);
             header->checksum = 0;
-            header->length = sizeof(info)  + packet.headerSize() - sizeof(UDP_HEADER_T);
+            header->length = sizeof(info)  + packet.header_size() - sizeof(UDP_HEADER_T);
 
             RetType ret = CALL(transmitLayer->transmit(packet, info, this));
 
@@ -131,7 +131,7 @@ namespace udp {
             };
 
             header->checksum = checksum(&pseudo, header);
-            header->length = sizeof(info) + packet.headerSize() - sizeof(UDP_HEADER_T);
+            header->length = sizeof(info) + packet.header_size() - sizeof(UDP_HEADER_T);
 
             RetType ret = CALL(transmitLayer->transmit2(packet, info, this));
 

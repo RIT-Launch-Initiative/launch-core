@@ -186,7 +186,7 @@ public:
 
     /// @brief get the how many bytes of header is being used
     /// @return how much header space is used
-    size_t headerSize() {
+    size_t header_size() {
         return m_headerSize - m_hpos;
     }
 
