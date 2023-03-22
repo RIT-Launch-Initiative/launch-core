@@ -1,7 +1,7 @@
 ## Usage pattern
 ```
-RetType example_function(...) {
-	RESUME(); // mandatory!
+RetType example_function(...) { // must be RetType
+	RESUME(); // this function is reentrant (mandatory!)
 	RetType status;
 
 	status = CALL(blocking_function(...));
@@ -16,8 +16,8 @@ RetType example_function(...) {
 
 	// interesting things...
 
-	RESET(); // we are done
-	
+	RESET(); // we are done (mandatory!)
+	return RET_SUCCESS;
 }
 ```
 
@@ -25,7 +25,7 @@ Common mistakes (to be updated as they happen):
 - Failing to call `RESET` right before an early `return` (like for an error
 status). The consequence of this is that the next call, this function will not
 start from the beginning, and instead pick up from the last `CALL`, `SLEEP`,
-`BLOCK`, or `YIELD`, which is probably not what you want
+`BLOCK`, or `YIELD`, which is probably not what you want.
 
 ## RESUME
 **Sets up a function to be reentrant.**
@@ -34,6 +34,7 @@ start from the beginning, and instead pick up from the last `CALL`, `SLEEP`,
 - Initializes the array of labels a function uses to know where it is, for
 every task that may have called this function.
 - Gives the start label.
+- Jumps to where the currently executing task should be in this function
 
 ### All at once
 ```
@@ -49,14 +50,14 @@ goto *(_current[static_cast<int>(sched_dispatched)]);
 _start:
 ```
 Several questions pop out:
-- Why define a bool we immediately set to `false`?
+- What does `_init` do?
 - What stuff does each element of `_current` point to?
 - Why does `_current` need to be an array?
 - What is `sched_dispatched?`
 
 ### Stepping through
 `_init` is static to make sure the array of labels `_current` only gets
-initialized once:
+initialized once - starts out false:
 ```
 static bool _init = false;
 ```
@@ -69,8 +70,7 @@ static void* _current[static_cast<int>(MAX_NUM_TASKS) + 1];
 most `MAX_NUM + 1`) may call this re-entrant function, and will need its own
 re-entry label. 
 
-Initialize all of the labels in the array to the start label (the line inside
-`for` tells us what `_current` holds):
+Initialize (if it hasn't been already - this is what `_init` controls) all of the labels in the `_current` array to the start label:
 ```
 if(!_init) {
 	for(int i = 0; i < static_cast<int>(MAX_NUM_TASKS) + 1; i++) {
@@ -79,9 +79,10 @@ if(!_init) {
 	_init = true;
 }
 ```
+NOTE: The unary `&&` operator lets us store the label address as a variable and is [GCC specific](http://gcc.gnu.org/onlinedocs/gcc-3.2.3/gcc/Labels-as-Values.html#Labels%20as%20Values).
 
-Skip ahead to wherever this task needs this function to be (`sched_dispatched`
-designates what "this" task is):
+Skip ahead to wherever the current task needs this function to be (`sched_dispatched`
+tells us what the current task is):
 ```
 goto *(_current[static_cast<int>(sched_dispatched)]);
 ```
@@ -90,8 +91,6 @@ Label the start of the function:
 ```
 _start:
 ```
-(Does this mean you can have a part of a function that can only run once, if
-you put `RESUME` somewhere later than the start?)
 
 ## RESET
 Sets this (as given by `sched_dispatched`) task's position in this function to
@@ -138,12 +137,12 @@ Immediate questions:
 
 ### Stepping through
 For now we'll ignore the nested calls. The property we care about is that these
-`CALLS` get a unique variable to store the result and more importantly a unique
-label to jump back to. We will for now assume that by magic, `RET` and `z` are
-**unique to each invocation** of `CALL`.
+`CALLS` get a unique variable to store the result (given to us by the GCC-specific `__COUNTER__` macro) and more importantly a unique
+label to jump back to. We will for now just assume that `RET` and `z` are
+unique to each `CALL`.
 
 Store the label right before the function call as the current position (`z` is
-a unique identifier for this `CALL`)
+a unique identifier for this `CALL`):
 ```
 _current[static_cast<int>(sched_dispatched)] = TOKENPASTE2(&&_call, z); 
 ```
