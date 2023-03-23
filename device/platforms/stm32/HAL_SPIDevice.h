@@ -17,6 +17,9 @@
 #include "sync/BlockingSemaphore.h"
 #include "device/SPIDevice.h"
 
+#include "stm32f4xx_hal_uart.h"
+extern UART_HandleTypeDef huart2;
+
 
 /// @brief SPI device controller
 class HALSPIDevice : public SPIDevice, public CallbackDevice {
@@ -245,6 +248,8 @@ public:
 
         // start the transfer
         if (HAL_OK != HAL_SPI_TransmitReceive_IT(m_spi, write_buff, read_buff, len)) {
+            m_blocked = -1;
+            CALL(m_lock.release());
             RESET();
             return RET_ERROR;
         }

@@ -28,6 +28,9 @@
 #include "sched/macros.h"
 #include "return.h"
 
+#include "stm32f4xx_hal_uart.h"
+extern UART_HandleTypeDef huart2;
+
 /// @brief controller for W5500 device
 class W5500 {
 public:
@@ -337,9 +340,11 @@ public:
         txBuffer[2] = block_select_bit | W5500_CTRL_READ;
         rxBuffer[3] = 0x00; // Intentionally zero out the read value
 
+        HAL_UART_Transmit(&huart2, (const uint8_t *) "GPIO Set 0\r\n", 14, 1000);
         RetType ret = CALL(m_gpio.set(0));
         if (ret != RET_SUCCESS) goto write_register8_end;
 
+        HAL_UART_Transmit(&huart2, (const uint8_t *) "SPI Write Read\r\n", 18, 1000);
         ret = CALL(m_spi.write_read(txBuffer, rxBuffer, 4));
         if (ret != RET_SUCCESS) goto write_register8_end;
 
@@ -347,8 +352,10 @@ public:
 
         write_register8_end:
         ret = CALL(m_gpio.set(1));
+        HAL_UART_Transmit(&huart2, (const uint8_t *) "Rx8 Done\r\n", 12, 1000);
+
         RESET();
-        return ret;
+        return RET_SUCCESS;
     }
 
 
