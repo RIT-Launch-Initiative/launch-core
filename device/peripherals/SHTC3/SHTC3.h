@@ -48,17 +48,17 @@ class SHTC3 {
         ret = CALL(getID(&this->id));
         if (ret != RET_SUCCESS) return ret;
 
-        //        if ((this->id & 0x083F) != 0x807) {
-        //            return RET_ERROR;
-        //        }
+        if ((this->id & 0x083F) != 0x807) {
+            return RET_ERROR;
+        }
 
-        //        if (inLowPowerMode) {
-        //            ret = CALL(writeCommand(LOW_POW_MEAS_TEMP));
-        //            SLEEP(1000);
-        //        } else {
-        //            ret = CALL(writeCommand(NORMAL_POW_MEAS_TEMP));
-        //            SLEEP(13000);
-        //        }
+        if (inLowPowerMode) {
+            ret = CALL(writeCommand(LOW_POW_MEAS_TEMP));
+            SLEEP(1000);
+        } else {
+            ret = CALL(writeCommand(NORMAL_POW_MEAS_TEMP));
+            SLEEP(13000);
+        }
 
         RESET();
         return RET_SUCCESS;
@@ -142,11 +142,17 @@ class SHTC3 {
     RetType readCommand(SHTC3_CMD command16, uint8_t *buff, uint8_t numBytes) {
         RESUME();
 
-        RetType ret = CALL(mI2C.transmit(addr, reinterpret_cast<uint8_t *>(&command16), 0));
-        if (ret != RET_SUCCESS) return ret;
+//        RetType ret = CALL(mI2C.transmit(addr, reinterpret_cast<uint8_t *>(&command16), 0));
+//        if (ret != RET_SUCCESS) return ret;
+//
+//        static uint8_t secondAddr |= 0x01 << 0;
+//        ret = CALL(mI2C.receive(addr, buff, numBytes));
+//        if (ret != RET_SUCCESS) return ret;
+        uint16ToUint8(static_cast<uint16_t>(command16), buff);
+        static uint8_t secondAddr = addr.dev_addr;
+        secondAddr |= 0x01 << 0;
 
-        addr.dev_addr = (SHTC3_I2C_ADDR << 1) | 0x01;  // we bitwise or here to set read flag
-        ret = CALL(mI2C.receive(addr, buff, numBytes));
+        RetType ret = CALL(mI2C.transmitReceive(addr, buff, 2, numBytes, 50, secondAddr));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
