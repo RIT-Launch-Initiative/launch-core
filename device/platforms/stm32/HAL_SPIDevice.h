@@ -225,7 +225,7 @@ public:
         return ret;
     }
 
-    RetType write_read(uint8_t *write_buff, size_t write_len, uint8_t *read_buff, size_t read_len, uint32_t timeout) {
+    RetType write_read(uint8_t *write_buff, uint8_t *read_buff, size_t len, uint32_t timeout) {
         RESUME();
 
         // block waiting for the device to be available
@@ -244,7 +244,7 @@ public:
         m_blocked = sched_dispatched;
 
         // start the transfer
-        if (HAL_OK != HAL_SPI_TransmitReceive_IT(m_spi, write_buff, read_buff, write_len)) {
+        if (HAL_OK != HAL_SPI_TransmitReceive_IT(m_spi, write_buff, read_buff, len)) {
             RESET();
             return RET_ERROR;
         }

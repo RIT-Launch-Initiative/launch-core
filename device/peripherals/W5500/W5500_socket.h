@@ -15,7 +15,7 @@
 
 #include <stdint.h>
 
-#include "device/peripherals/w5500/w5500_defines.h"
+#include "device/peripherals/W5500/W5500_defines.h"
 
 /// @brief socket for a W5500
 typedef enum {

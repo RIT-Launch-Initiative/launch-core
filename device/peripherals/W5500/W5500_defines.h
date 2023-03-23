@@ -25,6 +25,9 @@
 // operation mode
 #define W5500_OM_MASK               0b00000011
 #define W5500_OM_SHIFT              0
+
+#define W5500_CTRL_READ             0x00
+#define W5500_CTRL_WRITE            0x04
 // **************************************** //
 
 // ********* block select values ********** //

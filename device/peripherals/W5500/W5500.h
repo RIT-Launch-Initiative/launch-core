@@ -34,7 +34,7 @@ public:
     /// @brief constructor
     /// @param spi      SPI controller device
     // TODO pass in GPIO for CS
-    W5500(SPIDevice& spi) : m_spi(spi) {
+    W5500(SPIDevice& spi, GPIODevice& gpio) : m_spi(spi), m_gpio(gpio) {
         for(size_t i = 0; i < static_cast<int>(W5500_NUM_SOCKETS); i++) {
             m_states[i] = {false, false};
             m_claimed[i] = false;
@@ -157,80 +157,80 @@ public:
     /// NOTE: this can be triggered by an ISR or polled
     ///       it uses scheduler macros so it should not be called directly from an ISR
     /// @return
-    RetType process_int() {
-        RESUME();
-
-        RetType ret;
-        uint8_t sir;
-
-        // TODO we don't check for any interrupts in the common block
-        // most of those aren't that interesting, but maybe IP conflict is worth looking at
-
-        // TODO set GPIO for CS
-
-        // read the socket interrupt register
-        ret = CALL(read_bytes(W5500_COMMON_REG, W5500_COMMON_SIR, &sir, 1));
-        if(ret != RET_SUCCESS) {
-            goto process_int_end;
-        }
-
-        // check which sockets have interrupts
-        for(int i = 0; i < static_cast<int>(W5500_NUM_SOCKETS); i++) {
-            if(!(sir & (1 << i))) {
-                // this socket does not have an interrupt
-                continue;
-            } // else we need to process the interrupt for this socket
-
-            W5500SocketDescriptor_t sock = W5500_SOCKET_MAP[i];
-
-            uint8_t ir;
-            ret = CALL(read_bytes(sock.reg, W5500_SOCKET_IR, &ir, 1));
-            if(ret != RET_SUCCESS) {
-                // try the other sockets instead of failing out
-                continue;
-            }
-
-            // TODO we only check receive and send complete interrupt for now
-
-            bool updated = false;
-
-            // send ok
-            if(ir & (0b10000)) {
-                m_states[i].send_ok = true;
-
-                // TODO if anything wrote to the buffer while we were waiting
-                //      for a tx to finish, start another SEND command
-                if(m_states[i].)
-
-                updated = true;
-            }
-
-            // recv
-            if(ir & (0b100)) {
-                m_states[i].rx_ready = true;
-                updated = true;
-            }
-
-            if(updated) {
-                // wake up the task that called registered for this socket if there is one
-                if(m_tids[i] != -1) {
-                    WAKE(m_tids[i]);
-                }
-            }
-
-            // clear the interrupts
-            ret = CALL(write_bytes(sock.reg, W5500_SOCKET_IR, &ir, 1));
-            if(ret != RET_SUCCESS) {
-                // try the other sockets
-                continue;
-            }
-        }
-
-    process_int_end:
-        // TODO reset GPIO for CS
-        RESET();
-        return ret;
-    }
+//    RetType process_int() {
+//        RESUME();
+//
+//        RetType ret;
+//        uint8_t sir;
+//
+//        // TODO we don't check for any interrupts in the common block
+//        // most of those aren't that interesting, but maybe IP conflict is worth looking at
+//
+//        // TODO set GPIO for CS
+//
+//        // read the socket interrupt register
+//        ret = CALL(read_bytes(W5500_COMMON_REG, W5500_COMMON_SIR, &sir, 1));
+//        if(ret != RET_SUCCESS) {
+//            goto process_int_end;
+//        }
+//
+//        // check which sockets have interrupts
+//        for(int i = 0; i < static_cast<int>(W5500_NUM_SOCKETS); i++) {
+//            if(!(sir & (1 << i))) {
+//                // this socket does not have an interrupt
+//                continue;
+//            } // else we need to process the interrupt for this socket
+//
+//            W5500SocketDescriptor_t sock = W5500_SOCKET_MAP[i];
+//
+//            uint8_t ir;
+//            ret = CALL(read_bytes(sock.reg, W5500_SOCKET_IR, &ir, 1));
+//            if(ret != RET_SUCCESS) {
+//                // try the other sockets instead of failing out
+//                continue;
+//            }
+//
+//            // TODO we only check receive and send complete interrupt for now
+//
+//            bool updated = false;
+//
+//            // send ok
+//            if(ir & (0b10000)) {
+//                m_states[i].send_ok = true;
+//
+//                // TODO if anything wrote to the buffer while we were waiting
+//                //      for a tx to finish, start another SEND command
+//                if(m_states[i].)
+//
+//                updated = true;
+//            }
+//
+//            // recv
+//            if(ir & (0b100)) {
+//                m_states[i].rx_ready = true;
+//                updated = true;
+//            }
+//
+//            if(updated) {
+//                // wake up the task that called registered for this socket if there is one
+//                if(m_tids[i] != -1) {
+//                    WAKE(m_tids[i]);
+//                }
+//            }
+//
+//            // clear the interrupts
+//            ret = CALL(write_bytes(sock.reg, W5500_SOCKET_IR, &ir, 1));
+//            if(ret != RET_SUCCESS) {
+//                // try the other sockets
+//                continue;
+//            }
+//        }
+//
+//    process_int_end:
+//        // TODO reset GPIO for CS
+//        RESET();
+//        return ret;
+//    }
 
     /// @brief register a task to be woken up when this socket updates
     /// NOTE: there can be only one task registered, the new one overwrites the old one
@@ -322,7 +322,38 @@ public:
         m_claimed[static_cast<int>(sock)] = false;
     }
 
+        /***
+     * @brief Read an eight bit value to a register
+     * @param block_select_bit
+     * @param reg
+     * @param val
+     * @return
+     */
+    RetType read_register(uint8_t block_select_bit, uint8_t reg, uint8_t *result) {
+        RESUME();
+
+        txBuffer[0] = 0x00;
+        txBuffer[1] = reg;
+        txBuffer[2] = block_select_bit | W5500_CTRL_READ;
+        rxBuffer[3] = 0x00; // Intentionally zero out the read value
+
+        RetType ret = CALL(m_gpio.set(0));
+        if (ret != RET_SUCCESS) goto write_register8_end;
+
+        ret = CALL(m_spi.write_read(txBuffer, rxBuffer, 4));
+        if (ret != RET_SUCCESS) goto write_register8_end;
+
+        *result = rxBuffer[0];
+
+        write_register8_end:
+        ret = CALL(m_gpio.set(1));
+        RESET();
+        return ret;
+    }
+
+
 private:
+
     /// @brief helper function to write data to the chip
     /// @param block_addr       the block address to write to
     /// @param offset_addr      the offset address to write to
@@ -420,7 +451,13 @@ private:
     }
 
     // passed in SPI controller
-    StreamDevice& m_spi;
+    SPIDevice& m_spi;
+    GPIODevice& m_gpio;
+
+    // SPI Transaction Buffers
+    // Reduce static memory usage by using a single buffer for all SPI transactions
+    uint8_t txBuffer[8] = {};
+    uint8_t rxBuffer[8] = {};
 
     // socket states
     W5500SocketState_t m_states[static_cast<int>(W5500_NUM_SOCKETS)];
