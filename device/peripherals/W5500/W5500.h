@@ -347,18 +347,18 @@ public:
     RetType read_register(uint8_t block_select_bit, uint8_t reg, uint8_t *result) {
         RESUME();
 
-        txBuffer[0] = 0x00;
-        txBuffer[1] = reg;
-        txBuffer[2] = block_select_bit | W5500_CTRL_READ;
-        rxBuffer[3] = 0x00; // Intentionally zero out the read value
+        tx_buffer[0] = 0x00;
+        tx_buffer[1] = reg;
+        tx_buffer[2] = block_select_bit | W5500_CTRL_READ;
+        rx_buffer[3] = 0x00; // Intentionally zero out the read value
 
         RetType ret = CALL(m_gpio.set(0));
         if (ret != RET_SUCCESS) goto read_register8_end;
 
-        ret = CALL(m_spi.write_read(txBuffer, rxBuffer, 4));
+        ret = CALL(m_spi.write_read(tx_buffer, rx_buffer, 4));
         if (ret != RET_SUCCESS) goto read_register8_end;
 
-        *result = rxBuffer[0];
+        *result = rx_buffer[0];
 
         read_register8_end:
         ret = CALL(m_gpio.set(1));
@@ -408,15 +408,15 @@ private:
     RetType write_register(uint8_t block_select_bit, uint8_t reg, uint8_t val) {
         RESUME();
 
-        txBuffer[0] = 0x00;
-        txBuffer[1] = reg;
-        txBuffer[2] = block_select_bit | W5500_CTRL_WRITE;
-        txBuffer[3] = val;
+        tx_buffer[0] = 0x00;
+        tx_buffer[1] = reg;
+        tx_buffer[2] = block_select_bit | W5500_CTRL_WRITE;
+        tx_buffer[3] = val;
 
         RetType ret = CALL(m_gpio.set(0));
         if (ret != RET_SUCCESS) goto write_register8_end;
 
-        ret = CALL(m_spi.write(txBuffer, 4));
+        ret = CALL(m_spi.write(tx_buffer, 4));
         if (ret != RET_SUCCESS) goto write_register8_end;
 
         write_register8_end:
@@ -529,8 +529,8 @@ private:
 
     // SPI Transaction Buffers
     // Reduce static memory usage by using a single buffer for all SPI transactions
-    uint8_t txBuffer[8] = {};
-    uint8_t rxBuffer[8] = {};
+    uint8_t tx_buffer[8] = {};
+    uint8_t rx_buffer[8] = {};
 
     // socket states
     W5500SocketState_t m_states[static_cast<int>(W5500_NUM_SOCKETS)];
