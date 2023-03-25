@@ -15,4 +15,9 @@
 // good for terminatiing functions that should never exit
 #define SPIN_TO_WIN(EXP) while(1) {EXP;}
 
+
+// branch prediction hints (GCC only)
+#define likely(x)       __builtin_expect((x),1)
+#define unlikely(x)     __builtin_expect((x),0)
+
 #endif
