@@ -386,6 +386,8 @@ public:
     RetType get_mac_addr(uint8_t *ret_mac) {
         RESUME();
 
+        RetType ret = CALL(read_buffer());
+
         RESET();
         return ret;
     }
@@ -491,6 +493,28 @@ private:
 
         // Write header + data
         ret = CALL(m_spi.write(tx_buffer, 3 + len, 1000));
+
+        write_buffer_end:
+        ret = CALL(m_gpio.set(1));
+        RESET();
+        return ret;
+    }
+
+    RetType read_buffer(uint8_t block_select_bit, uint16_t addr, const uint8_t *buff, uint16_t len) {
+        RESUME();
+        tx_buffer[0] = static_cast<uint8_t>(addr >> 8);
+        tx_buffer[1] = static_cast<uint8_t>(addr & 0xFF);
+        tx_buffer[2] = block_select_bit | W5500_CTRL_READ;
+
+        for (int i = 0; i < len; i++) {
+            tx_buffer[3 + i] = buff[i];
+        }
+
+        RetType ret = CALL(m_gpio.set(0));
+        if (ret != RET_SUCCESS) goto write_buffer_end;
+
+        // Write header + data
+        ret = CALL(m_spi.write_read(tx_buffer, rx_buffer, 3 + len, 1000));
 
         write_buffer_end:
         ret = CALL(m_gpio.set(1));
