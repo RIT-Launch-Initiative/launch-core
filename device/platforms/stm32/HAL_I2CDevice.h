@@ -101,6 +101,8 @@ public:
 
         // start the transfer
         if (HAL_OK != HAL_I2C_Master_Transmit_IT(m_i2c, addr.dev_addr, buff, len)) {
+            m_blocked = -1;
+            CALL(m_lock.release());
             RESET();
             return RET_ERROR;
         }
@@ -162,6 +164,8 @@ public:
         // start the transfer
         if (HAL_OK != HAL_I2C_Mem_Write_IT(m_i2c, addr.dev_addr, addr.mem_addr,
                                                addr.mem_addr_size, buff, len)) {
+            m_blocked = -1;
+            CALL(m_lock.release());
             RESET();
             return RET_ERROR;
         }
@@ -223,6 +227,9 @@ public:
         // start the transfer
         if (HAL_OK != HAL_I2C_Master_Receive_IT(m_i2c, addr.dev_addr,
                                                             buff, len)) {
+            m_blocked = -1;
+            CALL(m_lock.release());
+
             RESET();
             return RET_ERROR;
         }
@@ -285,6 +292,9 @@ public:
         // start the transfer
         if (HAL_OK != HAL_I2C_Mem_Read_IT(m_i2c, addr.dev_addr, addr.mem_addr,
                                           addr.mem_addr_size, buff, len)) {
+            m_blocked = -1;
+            CALL(m_lock.release());
+
             RESET();
             return RET_ERROR;
         }
@@ -348,6 +358,8 @@ public:
 
         // start the transfer
         if (HAL_OK != HAL_I2C_Master_Transmit_IT(m_i2c, addr.dev_addr, buff, inLen)) {
+            m_blocked = -1;
+            CALL(m_lock.release());
             RESET();
             return RET_ERROR;
         }
@@ -370,6 +382,8 @@ public:
         }
 
         if (HAL_OK != HAL_I2C_Master_Receive_IT(m_i2c, addr.dev_addr, buff, outLen)) {
+            m_blocked = -1;
+            CALL(m_lock.release());
             RESET();
             return RET_ERROR;
         }

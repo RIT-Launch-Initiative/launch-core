@@ -43,7 +43,6 @@ public:
 
         // start the first read
         if(HAL_OK != HAL_UART_Receive_IT(m_uart, &m_byte, sizeof(uint8_t))) {
-            RESET();
             return RET_ERROR;
         }
 
@@ -91,6 +90,8 @@ public:
 
         // start the write
         if(HAL_OK != HAL_UART_Transmit_IT(m_uart, const_cast<uint8_t *>(buff), len)) {
+            m_blocked = -1;
+            CALL(m_lock.release());
             RESET();
             return RET_ERROR;
         }
@@ -104,6 +105,8 @@ public:
         // we can unblock someone else if they were waiting
         ret = CALL(m_lock.release());
         if(ret != RET_SUCCESS) {
+            m_blocked = -1;
+            CALL(m_lock.release());
             // some error
             RESET();
             return ret;
