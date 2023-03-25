@@ -11,7 +11,7 @@
 *
 *******************************************************************************/
 #ifndef W5500_DEFINES_H
-#define W5500_DEDINES_H
+#define W5500_DEFINES_H
 
 // *** bit masks for control phase byte *** //
 // block select
@@ -25,6 +25,12 @@
 // operation mode
 #define W5500_OM_MASK               0b00000011
 #define W5500_OM_SHIFT              0
+
+// CTRL BYTE
+#define W5500_CTRL_REG              0x00
+#define W5500_CTRL_SOCKET_N_REG(n)  (0x08 | ((n) << 5))     /* Socket N Register Block */
+#define W5500_CTRL_SOCKET_N_TX(n)   (0x10 | ((n) << 5))     /* Socket N Transmit Block */
+#define W5500_CTRL_SOCKET_N_RX(n)   (0x18 | ((n) << 5))     /* Socket N Receive Block */
 
 #define W5500_CTRL_READ             0x00
 #define W5500_CTRL_WRITE            0x04
@@ -122,7 +128,28 @@
 // **** common register block offsets ***** //
 // offset addresses are 16-bits
 // registers are 8-bits
-
+/* Common Register Address Definitions */
+#define W5500_REG_MR                    0x00
+#define W5500_REG_GAR                   0x01
+#define W5500_REG_SUBR                  0x05
+#define W5500_REG_SHAR                  0x09
+#define W5500_REG_SIPR                  0x0F
+#define W5500_REG_INTLEVEL              0x13
+#define W5500_REG_IR                    0x15
+#define W5500_REG_IMR                   0x16
+#define W5500_REG_SIR                   0x17
+#define W5500_REG_SIMR                  0x18
+#define W5500_REG_RTR                   0x19
+#define W5500_REG_RCR                   0x1B
+#define W5500_REG_PRIMER                0x1C
+#define W5500_REG_PMAGIC                0x1D
+#define W5500_REG_PHAR                  0x1E
+#define W5500_REG_PSID                  0x24
+#define W5500_REG_PMRU                  0x26
+#define W5500_REG_UIPR                  0x28
+#define W5500_REG_UPORTR                0x2C
+#define W5500_REG_PHYCFGR               0x2E
+#define W5500_REG_VERSIONR              0x39
 // mode
 #define W5500_COMMON_MR             0x0000
 
@@ -209,6 +236,9 @@
 
 // Chip version
 #define W5500_COMMON_VERSIONR       0x0039
+
+// Modes
+#define W5500_COMMON_MODE_RESET     0x80
 
 // **************************************** //
 

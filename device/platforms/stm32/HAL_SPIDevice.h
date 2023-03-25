@@ -104,8 +104,6 @@ public:
         RetType ret = CALL(m_lock.acquire());
         if (ret != RET_SUCCESS) {
             // some error
-            m_blocked = -1;
-            CALL(m_lock.release());
             RESET();
             return ret;
         }

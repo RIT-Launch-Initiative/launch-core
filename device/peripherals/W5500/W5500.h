@@ -51,11 +51,14 @@ public:
     /// @param mac      source MAC address for the device
     /// @param ip       source IP address for the device
     /// @return
-    RetType init(uint8_t gw[4], uint8_t subnet[4], uint8_t mac[6], uint8_t ip[4]) {
+    RetType init() {
         RESUME();
+//    uint8_t gw[4], uint8_t subnet[4], uint8_t mac[6], uint8_t ip[4]
+        RetType ret = CALL(softReset());
+        if (ret != RET_SUCCESS) goto init_end;
 
-        RetType ret;
-
+        ret = CALL(set_tx_rx_rate(0x0800, 0x0800)); // TODO: No magic allowed
+        if (ret != RET_SUCCESS) goto init_end;
         // mode configuration:
         //  reset = 1
         //  reserved
@@ -65,54 +68,63 @@ public:
         //  reserved
         //  force ARP = 0
         //  reserved
-        uint8_t mode = 0b1000000;
+        static uint8_t mode = 0b1000000;
 
         // PHY configuration:
         //  reset = 1
         //  config operation mode = 1 (use the next 3 bits instead of HW pins)
         //  operation mode = 111 (all capable, auto negotation)
         //  all else read only
-        uint8_t phy_cfg = 0b11111000;
+        static uint8_t phy_cfg = 0b11111000;
 
         // mode
-        ret = CALL(write_bytes(W5500_COMMON_REG, W5500_COMMON_MR, &mode, 1));
-        if(ret != RET_SUCCESS) {
-            goto init_end;
-        }
+//        ret = CALL(write_bytes(W5500_COMMON_REG, W5500_COMMON_MR, &mode, 1));
+//        if(ret != RET_SUCCESS) goto init_end;for (uint8_t s = 0; s < W5500_MAX_SOCKET_NUM; s++ )
 
-        // gateway address
-        ret = CALL(write_bytes(W5500_COMMON_REG, W5500_COMMON_GAR0, gw, 4));
-        if(ret != RET_SUCCESS) {
-            goto init_end;
-        }
 
-        // subnet mask address
-        ret = CALL(write_bytes(W5500_COMMON_REG, W5500_COMMON_SUBR0, subnet, 4));
-        if(ret != RET_SUCCESS) {
-            goto init_end;
-        }
 
-        // source MAC address
-        ret = CALL(write_bytes(W5500_COMMON_REG, W5500_COMMON_SHAR0, mac, 6));
-        if(ret != RET_SUCCESS) {
-            goto init_end;
-        }
-
-        // source IP address
-        ret = CALL(write_bytes(W5500_COMMON_REG, W5500_COMMON_SIPR0, ip, 4));
-        if(ret != RET_SUCCESS) {
-            goto init_end;
-        }
+//        // gateway address
+//        ret = CALL(write_bytes(W5500_COMMON_REG, W5500_COMMON_GAR0, gw, 4));
+//        if(ret != RET_SUCCESS) {
+//            goto init_end;
+//        }
+//
+//        // subnet mask address
+//        ret = CALL(write_bytes(W5500_COMMON_REG, W5500_COMMON_SUBR0, subnet, 4));
+//        if(ret != RET_SUCCESS) {
+//            goto init_end;
+//        }
+//
+//        // source MAC address
+//        ret = CALL(write_bytes(W5500_COMMON_REG, W5500_COMMON_SHAR0, mac, 6));
+//        if(ret != RET_SUCCESS) {
+//            goto init_end;
+//        }
+//
+//        // source IP address
+//        ret = CALL(write_bytes(W5500_COMMON_REG, W5500_COMMON_SIPR0, ip, 4));
+//        if(ret != RET_SUCCESS) {
+//            goto init_end;
+//        }
 
         // PHY
-        ret = CALL(write_bytes(W5500_COMMON_REG, W5500_COMMON_PHYCFGR, &phy_cfg, 1));
+//        ret = CALL(write_bytes(W5500_COMMON_REG, W5500_COMMON_PHYCFGR, &phy_cfg, 1));
 
         // don't care about any other settings at the moment
         // TODO maybe do some interrupt masking until we actually open the socket?
         // TODO TCP will need some more settings like rety count and retry time
         // TODO read the version and make sure we are talking to a W5500?
 
-    init_end:
+        init_end:
+        RESET();
+        return ret;
+    }
+
+
+    RetType softReset() {
+        RESUME();
+
+        RetType ret = CALL(write_register(W5500_REG_MR, W5500_COMMON_REG, W5500_COMMON_MODE_RESET));
         RESET();
         return ret;
     }
@@ -340,19 +352,16 @@ public:
         txBuffer[2] = block_select_bit | W5500_CTRL_READ;
         rxBuffer[3] = 0x00; // Intentionally zero out the read value
 
-        HAL_UART_Transmit(&huart2, (const uint8_t *) "GPIO Set 0\r\n", 14, 1000);
         RetType ret = CALL(m_gpio.set(0));
-        if (ret != RET_SUCCESS) goto write_register8_end;
+        if (ret != RET_SUCCESS) goto read_register8_end;
 
-        HAL_UART_Transmit(&huart2, (const uint8_t *) "SPI Write Read\r\n", 18, 1000);
         ret = CALL(m_spi.write_read(txBuffer, rxBuffer, 4));
-        if (ret != RET_SUCCESS) goto write_register8_end;
+        if (ret != RET_SUCCESS) goto read_register8_end;
 
         *result = rxBuffer[0];
 
-        write_register8_end:
+        read_register8_end:
         ret = CALL(m_gpio.set(1));
-        HAL_UART_Transmit(&huart2, (const uint8_t *) "Rx8 Done\r\n", 12, 1000);
 
         RESET();
         return RET_SUCCESS;
@@ -360,6 +369,63 @@ public:
 
 
 private:
+    /// Set the TX/RX rates of the socket buffers
+    /// @param tx_size - Number of kilobytes to set for transmission
+    /// @param rx_size - Number of kilobytes to set for receiving
+    /// @return
+    RetType set_tx_rx_rate(size_t tx_size, size_t rx_size) {
+        RESUME();
+
+        RetType ret;
+        static uint8_t socket_num = 0;
+        for (socket_num = 0; socket_num < 8; socket_num++) {
+            ret = CALL(write_socket_rx_buffer(socket_num, rx_size >> 10));
+            if (ret != RET_SUCCESS) goto set_tx_rx_end;
+
+            ret = CALL(write_socket_tx_buffer(socket_num, tx_size >> 10));
+            if (ret != RET_SUCCESS) goto set_tx_rx_end;
+        }
+
+        set_tx_rx_end:
+        RESET();
+        return ret;
+    }
+
+    inline RetType write_socket_rx_buffer(uint8_t socket, uint8_t val) {
+        RESUME();
+        RetType ret = CALL(write_register(W5500_CTRL_SOCKET_N_RX(socket), W5500_SOCKET_RXBUF_SIZE, val));
+        RESET();
+        return ret;
+    }
+
+    inline RetType write_socket_tx_buffer(uint8_t socket, uint8_t val) {
+        RESUME();
+        RetType ret = CALL(write_register(W5500_CTRL_SOCKET_N_TX(socket), W5500_SOCKET_TXBUF_SIZE, val));
+        RESET();
+        return ret;
+    }
+
+    RetType write_register(uint8_t block_select_bit, uint8_t reg, uint8_t val) {
+        RESUME();
+
+        txBuffer[0] = 0x00;
+        txBuffer[1] = reg;
+        txBuffer[2] = block_select_bit | W5500_CTRL_WRITE;
+        txBuffer[3] = val;
+
+        RetType ret = CALL(m_gpio.set(0));
+        if (ret != RET_SUCCESS) goto write_register8_end;
+
+        ret = CALL(m_spi.write(txBuffer, 4));
+        if (ret != RET_SUCCESS) goto write_register8_end;
+
+        write_register8_end:
+        ret = CALL(m_gpio.set(1));
+
+        RESET();
+        return ret;
+    }
+
 
     /// @brief helper function to write data to the chip
     /// @param block_addr       the block address to write to
