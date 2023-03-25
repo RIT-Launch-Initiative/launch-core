@@ -36,7 +36,6 @@ class W5500 {
 public:
     /// @brief constructor
     /// @param spi      SPI controller device
-    // TODO pass in GPIO for CS
     W5500(SPIDevice& spi, GPIODevice& gpio) : m_spi(spi), m_gpio(gpio) {
         for(size_t i = 0; i < static_cast<int>(W5500_NUM_SOCKETS); i++) {
             m_states[i] = {false, false};
@@ -59,6 +58,7 @@ public:
 
         ret = CALL(set_tx_rx_rate(0x0800, 0x0800)); // TODO: No magic allowed
         if (ret != RET_SUCCESS) goto init_end;
+
         // mode configuration:
         //  reset = 1
         //  reserved
@@ -81,8 +81,6 @@ public:
 //        ret = CALL(write_bytes(W5500_COMMON_REG, W5500_COMMON_MR, &mode, 1));
 //        if(ret != RET_SUCCESS) goto init_end;for (uint8_t s = 0; s < W5500_MAX_SOCKET_NUM; s++ )
 
-
-
 //        // gateway address
 //        ret = CALL(write_bytes(W5500_COMMON_REG, W5500_COMMON_GAR0, gw, 4));
 //        if(ret != RET_SUCCESS) {
@@ -95,11 +93,11 @@ public:
 //            goto init_end;
 //        }
 //
-//        // source MAC address
-//        ret = CALL(write_bytes(W5500_COMMON_REG, W5500_COMMON_SHAR0, mac, 6));
-//        if(ret != RET_SUCCESS) {
-//            goto init_end;
-//        }
+        // source MAC address
+        ret = CALL(write_bytes(W5500_COMMON_REG, W5500_COMMON_SHAR0, mac, 6));
+        if(ret != RET_SUCCESS) {
+            goto init_end;
+        }
 //
 //        // source IP address
 //        ret = CALL(write_bytes(W5500_COMMON_REG, W5500_COMMON_SIPR0, ip, 4));
@@ -337,7 +335,7 @@ public:
         m_claimed[static_cast<int>(sock)] = false;
     }
 
-        /***
+    /***
      * @brief Read an eight bit value to a register
      * @param block_select_bit
      * @param reg
@@ -365,6 +363,42 @@ public:
 
         RESET();
         return RET_SUCCESS;
+    }
+
+    RetType set_mac_addr() {
+        RESUME();
+        RetType ret;
+        if (ret != RET_SUCCESS) goto set_mac_end;
+        set_mac_end:
+        RESET();
+        return ret;
+    }
+
+    RetType set_gateway_addr() {
+        RESUME();
+        RetType ret;
+        if (ret != RET_SUCCESS) goto set_gateway_end;
+        set_gateway_end:
+        RESET();
+        return ret;
+    }
+
+    RetType set_ip_addr() {
+        RESUME();
+        RetType ret;
+        if (ret != RET_SUCCESS) goto set_ip_end;
+        set_ip_end:
+        RESET();
+        return ret;
+    }
+
+    RetType set_subnet_mask() {
+        RESUME();
+        RetType ret;
+        if (ret != RET_SUCCESS) goto set_subnet_end;
+        set_subnet_end:
+        RESET();
+        return ret;
     }
 
 
