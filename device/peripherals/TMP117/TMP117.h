@@ -93,7 +93,7 @@ public:
         };
 
         static uint8_t buff;
-        RetType ret = CALL(mI2C.read(i2cAddr, &buff, 1));
+        RetType ret = CALL(mI2C.read(i2cAddr, &buff, 1, 50));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
