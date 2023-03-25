@@ -50,9 +50,8 @@ public:
     /// @param mac      source MAC address for the device
     /// @param ip       source IP address for the device
     /// @return
-    RetType init() {
+    RetType init(uint8_t gw[4], uint8_t subnet[4], uint8_t mac[6], uint8_t ip[4]) {
         RESUME();
-//    uint8_t gw[4], uint8_t subnet[4], uint8_t mac[6], uint8_t ip[4]
         RetType ret = CALL(softReset());
         if (ret != RET_SUCCESS) goto init_end;
 
@@ -82,24 +81,29 @@ public:
 //        if(ret != RET_SUCCESS) goto init_end;for (uint8_t s = 0; s < W5500_MAX_SOCKET_NUM; s++ )
 
 //        // gateway address
+        ret = CALL(set_gateway_addr());
+        if (ret != RET_SUCCESS) return ret;
 //        ret = CALL(write_bytes(W5500_COMMON_REG, W5500_COMMON_GAR0, gw, 4));
 //        if(ret != RET_SUCCESS) {
 //            goto init_end;
 //        }
 //
 //        // subnet mask address
+        ret = CALL(set_subnet_mask());
+        if (ret != RET_SUCCESS) goto init_end;
 //        ret = CALL(write_bytes(W5500_COMMON_REG, W5500_COMMON_SUBR0, subnet, 4));
 //        if(ret != RET_SUCCESS) {
 //            goto init_end;
 //        }
 //
         // source MAC address
-        ret = CALL(write_bytes(W5500_COMMON_REG, W5500_COMMON_SHAR0, mac, 6));
-        if(ret != RET_SUCCESS) {
-            goto init_end;
-        }
+        ret = CALL(set_mac_addr(mac));
+        if (ret != RET_SUCCESS) goto init_end;
 //
 //        // source IP address
+        ret = CALL(set_ip_addr());
+        if (ret != RET_SUCCESS) goto init_end;
+
 //        ret = CALL(write_bytes(W5500_COMMON_REG, W5500_COMMON_SIPR0, ip, 4));
 //        if(ret != RET_SUCCESS) {
 //            goto init_end;
@@ -365,11 +369,23 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType set_mac_addr() {
+    RetType set_mac_addr(uint8_t mac[6]) {
         RESUME();
-        RetType ret;
-        if (ret != RET_SUCCESS) goto set_mac_end;
-        set_mac_end:
+
+        if (mac == nullptr) {
+            RESET();
+            return RET_ERROR;
+        }
+
+        RetType ret = CALL(write_buffer(W5500_CTRL_REG, W5500_REG_SHAR, mac, 6));
+
+        RESET();
+        return ret;
+    }
+
+    RetType get_mac_addr(uint8_t *ret_mac) {
+        RESUME();
+
         RESET();
         return ret;
     }
@@ -456,6 +472,28 @@ private:
         write_register8_end:
         ret = CALL(m_gpio.set(1));
 
+        RESET();
+        return ret;
+    }
+
+    RetType write_buffer(uint8_t block_select_bit, uint16_t addr, const uint8_t *buff, uint16_t len) {
+        RESUME();
+        tx_buffer[0] = static_cast<uint8_t>(addr >> 8);
+        tx_buffer[1] = static_cast<uint8_t>(addr & 0xFF);
+        tx_buffer[2] = block_select_bit | W5500_CTRL_WRITE;
+
+        for (int i = 0; i < len; i++) {
+            tx_buffer[3 + i] = buff[i];
+        }
+
+        RetType ret = CALL(m_gpio.set(0));
+        if (ret != RET_SUCCESS) goto write_buffer_end;
+
+        // Write header + data
+        ret = CALL(m_spi.write(tx_buffer, 3 + len, 1000));
+
+        write_buffer_end:
+        ret = CALL(m_gpio.set(1));
         RESET();
         return ret;
     }
@@ -563,8 +601,8 @@ private:
 
     // SPI Transaction Buffers
     // Reduce static memory usage by using a single buffer for all SPI transactions
-    uint8_t tx_buffer[8] = {};
-    uint8_t rx_buffer[8] = {};
+    uint8_t tx_buffer[16] = {};
+    uint8_t rx_buffer[16] = {};
 
     // socket states
     W5500SocketState_t m_states[static_cast<int>(W5500_NUM_SOCKETS)];
