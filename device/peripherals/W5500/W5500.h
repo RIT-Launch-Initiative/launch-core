@@ -80,34 +80,23 @@ public:
 //        ret = CALL(write_bytes(W5500_COMMON_REG, W5500_COMMON_MR, &mode, 1));
 //        if(ret != RET_SUCCESS) goto init_end;for (uint8_t s = 0; s < W5500_MAX_SOCKET_NUM; s++ )
 
-//        // gateway address
-        ret = CALL(set_gateway_addr());
+
+// TODO: Either COMMON or CTRL reg
+        // gateway address
+        ret = CALL(set_gateway_addr(gw));
         if (ret != RET_SUCCESS) return ret;
-//        ret = CALL(write_bytes(W5500_COMMON_REG, W5500_COMMON_GAR0, gw, 4));
-//        if(ret != RET_SUCCESS) {
-//            goto init_end;
-//        }
-//
-//        // subnet mask address
-        ret = CALL(set_subnet_mask());
+
+        // subnet mask address
+        ret = CALL(set_subnet_mask(subnet));
         if (ret != RET_SUCCESS) goto init_end;
-//        ret = CALL(write_bytes(W5500_COMMON_REG, W5500_COMMON_SUBR0, subnet, 4));
-//        if(ret != RET_SUCCESS) {
-//            goto init_end;
-//        }
-//
+
         // source MAC address
         ret = CALL(set_mac_addr(mac));
         if (ret != RET_SUCCESS) goto init_end;
-//
-//        // source IP address
-        ret = CALL(set_ip_addr());
-        if (ret != RET_SUCCESS) goto init_end;
 
-//        ret = CALL(write_bytes(W5500_COMMON_REG, W5500_COMMON_SIPR0, ip, 4));
-//        if(ret != RET_SUCCESS) {
-//            goto init_end;
-//        }
+        // source IP address
+        ret = CALL(set_ip_addr(ip));
+        if (ret != RET_SUCCESS) goto init_end;
 
         // PHY
 //        ret = CALL(write_bytes(W5500_COMMON_REG, W5500_COMMON_PHYCFGR, &phy_cfg, 1));
@@ -377,42 +366,33 @@ public:
             return RET_ERROR;
         }
 
-        RetType ret = CALL(write_buffer(W5500_CTRL_REG, W5500_REG_SHAR, mac, 6));
+        RetType ret = CALL(write_buffer(W5500_CTRL_REG, W5500_COMMON_SHAR0, mac, 6));
 
         RESET();
         return ret;
     }
 
-    RetType get_mac_addr(uint8_t *ret_mac) {
+    RetType set_gateway_addr(uint8_t gateway[4]) {
         RESUME();
-
-        RetType ret = CALL(read_buffer());
-
-        RESET();
-        return ret;
-    }
-
-    RetType set_gateway_addr() {
-        RESUME();
-        RetType ret;
+        RetType ret = CALL(write_buffer(W5500_CTRL_REG, W5500_COMMON_GAR0, gateway, 4));
         if (ret != RET_SUCCESS) goto set_gateway_end;
         set_gateway_end:
         RESET();
         return ret;
     }
 
-    RetType set_ip_addr() {
+    RetType set_ip_addr(uint8_t ip[4]) {
         RESUME();
-        RetType ret;
+        RetType ret = CALL(write_buffer(W5500_CTRL_REG, W5500_COMMON_SIPR0, ip, 4););
         if (ret != RET_SUCCESS) goto set_ip_end;
         set_ip_end:
         RESET();
         return ret;
     }
 
-    RetType set_subnet_mask() {
+    RetType set_subnet_mask(uint8_t subnet[4]) {
         RESUME();
-        RetType ret;
+        RetType ret = CALL(write_buffer(W5500_CTRL_REG, W5500_COMMON_SUBR0, subnet, 4));
         if (ret != RET_SUCCESS) goto set_subnet_end;
         set_subnet_end:
         RESET();
