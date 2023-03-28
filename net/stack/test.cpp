@@ -14,7 +14,6 @@ public:
     /// @brief transmit
     RetType transmit(Packet &packet, sockinfo_t &, NetworkLayer *) {
         // don't do anything
-
         return RET_SUCCESS;
     }
 

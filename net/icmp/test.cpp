@@ -80,5 +80,12 @@ int main() {
         printf("Transmit 1 failed\n");
         return -1;
     }
+
+    packet.seek_header();
+
+    if (RET_SUCCESS != icmp.transmit2(packet, msg, &b)) {
+        printf("failed to transmit packet (second pass)\n");
+        return -1;
+    }
 };
 

@@ -15,6 +15,7 @@
 #include "net/packet/Packet.h"
 #include "net/network_layer/NetworkLayer.h"
 #include "sched/macros.h"
+#include <stdio.h>
 
 typedef enum {
     ECHO_MESSAGE = 8,
@@ -50,10 +51,15 @@ namespace icmp {
                 return RET_ERROR;
             }
 
+            printf("ICMP Receive:");
+            printf("\tdst: %d\nsrc: %d\n", info.dst.ipv4_addr, info.src.ipv4_addr);
             uint32_t &dst = info.src.ipv4_addr;
             uint32_t &src = info.dst.ipv4_addr;
             info.src.ipv4_addr = dst;           // Switch Src and dst addresses
             info.dst.ipv4_addr = src;
+            printf("\tdst: %d\nsrc: %d\n", info.dst.ipv4_addr, info.src.ipv4_addr);
+
+
 
 
             RetType ret = CALL(m_out.transmit(packet, info, this));
@@ -69,6 +75,8 @@ namespace icmp {
             icmp_t *head_pack = packet.allocate_header<icmp_t>();
             head_pack->type = ECHO_MESSAGE;
 
+            printf("Fuck");
+
             RetType ret = CALL(m_out.transmit(packet, info, this));
 
             RESET();
@@ -79,6 +87,8 @@ namespace icmp {
             RESUME();
             icmp_t *head = packet.allocate_header<icmp_t>();
             head->type = ECHO_REPLY;
+
+            printf("You");
 
             if (checksum((uint16_t *) &head, sizeof(icmp_t)) != head->checksum) {
                 return RET_ERROR;
