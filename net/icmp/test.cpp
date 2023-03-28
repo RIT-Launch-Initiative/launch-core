@@ -4,99 +4,50 @@
 #include "net/loopback/Loopback.h"
 #include "net/simple_arp/SimpleArpLayer.h"
 #include "net/network_layer/NetworkLayer.h"
+#include "net/icmp/icmp.h"
+class Blackhole : public NetworkLayer {
+public:
+    /// @brief constructor
+    Blackhole() {};
 
-typedef enum {
-    ECHO_MESSAGE = 8,
-    ECHO_REPLY = 0
-} echo_t;
+    /// @brief transmit
+    RetType transmit(Packet &packet, sockinfo_t &, NetworkLayer *) {
+        // don't do anything
 
-typedef struct {
-    uint8_t type;
-    uint8_t code = 0;
-    uint16_t checksum = 0;
-    uint16_t identifier = 0;
-    uint16_t seqNum = 0;
-} icmp_t;
-
-namespace icmp {
-class ICMP : public NetworkLayer {
-public: 
-    
-    ICMP(NetworkLayer& out) : m_out(out) {};
-
-    RetType receive(Packet& packet, sockinfo_t& info, NetworkLayer* caller) {
-        RESUME();
-        icmp_t head;
-        packet.read<icmp_t>(&head);
-
-        if(checksum((uint16_t *)&head, sizeof(icmp_t)) != head.checksum) {
-            RESET();
-            return RET_ERROR;
-        }
-
-        uint32_t& dst = info.src.ipv4_addr;
-        uint32_t& src = info.dst.ipv4_addr;
-        info.src.ipv4_addr = dst;
-        info.dst.ipv4_addr = src;
-
-        RetType ret = CALL(m_out.transmit(packet, info, this));
-        RESET();
-        return ret;
+        return RET_SUCCESS;
     }
 
-    RetType transmit(Packet& packet, sockinfo_t& info, NetworkLayer* caller) {
-        RESUME();
-        icmp_t* head = packet.allocate_header<icmp_t>();
-        head->type = ECHO_MESSAGE;
+    /// @brief transmit (second pass)
+    RetType transmit2(Packet &packet, sockinfo_t &, NetworkLayer *) {
+        printf("transmitting payload: \n");
 
-        RetType ret = CALL(m_out.transmit(packet, info, caller));
-        
-        RESET();
-        return ret;
-    }   
-
-    RetType transmit2(Packet& packet, sockinfo_t& info, NetworkLayer* caller) {
-        RESUME();
-        icmp_t* head = packet.allocate_header<icmp_t>();
-        head->type = ECHO_REPLY;
-
-        if(checksum((uint16_t *)&head, sizeof(icmp_t)) != head->checksum) {
-            RESET();
-            return RET_ERROR;
+        uint8_t *buff = packet.read_ptr<uint8_t>();
+        for (size_t i = 0; i < packet.size(); i++) {
+            printf("%02x ", buff[i]);
         }
+        printf("\n\n");
 
-        RetType ret = CALL(m_out.transmit(packet, info, this));
-        RESET();
-        return ret;
+        return RET_SUCCESS;
     }
 
-private:
-    NetworkLayer& m_out;
-    uint16_t checksum(uint16_t *b, int len) {
-        uint16_t *buf = b;
-        uint16_t sum = 0;
+    /// @brief receive
+    RetType receive(Packet &packet, sockinfo_t &, NetworkLayer *) {
+        printf("received payload: \n");
 
-        while(len > 1) {
-            sum += *buf++;
-            len -= 2;
+        uint8_t *buff = packet.read_ptr<uint8_t>();
+        for (size_t i = 0; i < packet.size(); i++) {
+            printf("%02x ", buff[i]);
         }
+        printf("\n\n");
 
-        if(len == 1) {
-            sum += *(unsigned char*)buf;
-        }
-
-        sum = (sum >> 16) + (sum & 0xFFFF);
-        sum += (sum >> 16);
-        return ~sum;
+        return RET_SUCCESS;
     }
-
-
 };
-}
+
 int main() {
     ipv4::IPv4Router ip;
     Loopback lo;
-    NetworkLayer& m_out;
+    Blackhole b;
 
     ipv4::IPv4Addr_t addr1;
     ipv4::IPv4Address(10, 10, 10, 5, &addr1);
@@ -108,7 +59,7 @@ int main() {
         printf("loopback failed");
         return -1;
     }
-    auto icmp = icmp::ICMP(m_out);
+    auto icmp = icmp::ICMP(ip);
     
     if(RET_SUCCESS != ip.add_protocol(ipv4::UDP_PROTO, icmp)) {
         printf("failed to add protocol\n");
@@ -125,7 +76,7 @@ int main() {
     msg.dst = dst;
     msg.type = IPV4_UDP_SOCK;
 
-    if(RET_SUCCESS != icmp.transmit(packet, msg, m_out)) {
+    if(RET_SUCCESS != icmp.transmit(packet, msg, &b)) {
         printf("Transmit 1 failed\n");
         return -1;
     }
