@@ -1,7 +1,7 @@
 /**
  * RFM95W LoRa Driver
  *
- * @author Aaron Chan
+ * @author Aaron Chan, Jonathan Russo
  */
 
 #ifndef LAUNCH_CORE_RFM95W_H
@@ -14,6 +14,9 @@
 #include "device/SPIDevice.h"
 #include "device/StreamDevice.h"
 #include "device/GPIODevice.h"
+
+#define RFM9x_VER 0x12
+
 
 
 enum RFM95_REGISTER_T {
@@ -38,13 +41,18 @@ enum RFM95_REGISTER_T {
     RFM95_REGISTER_PAYLOAD_LENGTH = 0x22,
     RFM95_REGISTER_MAX_PAYLOAD_LENGTH = 0x23,
     RFM95_REGISTER_MODEM_CONFIG_3 = 0x26,
+	RFM95_REGISTER_DETECTION_OPTIMIZE = 0x31;
     RFM95_REGISTER_INVERT_IQ_1 = 0x33,
+	RFM95_REGISTER_DETECTION_THRESHOLD = 0x37;
     RFM95_REGISTER_SYNC_WORD = 0x39,
     RFM95_REGISTER_INVERT_IQ_2 = 0x3B,
     RFM95_REGISTER_DIO_MAPPING_1 = 0x40,
     RFM95_REGISTER_VERSION = 0x42,
     RFM95_REGISTER_PA_DAC = 0x4D
 };
+
+
+
 
 
 class RFM95W {
@@ -56,8 +64,57 @@ public:
     RetType init() {
         RESUME();
 
+		// add potential asserts here
+
         RetType ret = CALL(reset());
         if (ret != RET_SUCCESS) return ret;
+
+		uint8_t version;
+		RetType ret = CALL(readReg(RFM95_REGISTER_VERSION, &version, 1));
+		if (ret != RET_SUCCESS) return ret;
+
+		if(version != RFM9x_VER) return RET_ERROR;
+
+		//place module in sleep mode
+		ret = CALL(writeReg(RFM95_REGISTER_OP_MODE, 0x00));
+		if (ret != RET_SUCCESS) return ret;
+		ret = CALL(writeReg(RFM95_REGISTER_OP_MODE, 0x80));
+		if (ret != RET_SUCCESS) return ret;
+
+		//set to default interrupt config
+		ret = CALL(writeReg(RFM95_REGISTER_DIO_MAPPING_1, 0x00));
+		if (ret != RET_SUCCESS) return ret;
+
+		//config interrupts
+
+		//set power
+		ret = setPower(17);
+		if (ret != RET_SUCCESS) return ret;
+
+		//set preamble to 8 + 4.25 = 12.25 symbols.
+		ret = CALL(writeReg(RFM95_REGISTER_PREAMBLE_MSB, 0x00));
+		if (ret != RET_SUCCESS) return ret;
+		ret = CALL(writeReg(RFM95_REGISTER_PREAMBLE_LSB, 0x08));
+		if (ret != RET_SUCCESS) return ret;
+
+		//set ttn sync word 0x34
+		ret = CALL(writeReg(RFM95_REGISTER_SYNC_WORD, 0x34));
+		if (ret != RET_SUCCESS) return ret;
+
+		//set up base addresses for rx and tx
+		ret = CALL(writeReg(RFM95_REGISTER_FIFO_TX_BASE_ADDR, 0x80));
+		if (ret != RET_SUCCESS) return ret;
+		ret = CALL(writeReg(RFM95_REGISTER_FIFO_RX_BASE_ADDR, 0x00));
+		if (ret != RET_SUCCESS) return ret;
+
+		// Set Maximum payload length to 64
+		ret = CALL(writeReg(RFM95_REGISTER_MAX_PAYLOAD_LENGTH, 64));
+		if (ret != RET_SUCCESS) return ret;
+
+		// Let module sleep after init
+		ret = CALL(writeReg(RFM95_REGISTER_OP_MODE, 0x80));
+		if (ret != RET_SUCCESS) return ret;
+
 
         RESET();
         return RET_SUCCESS;
@@ -109,9 +166,114 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType togglePower() {
+
+	RetType isTransmitting(){
+		uint8_t transmit;
+		if(readReg(RFM95_REGISTER_OP_MODE, &transmit, 1) != RET_SUCCESS
+	}
+
+	RetType setSpreadingFactor(int sf){
+		RESUME();
+
+		if(sf < 6){
+			sf = 6;
+		}
+
+		else if(sf > 12){
+			sf = 12;
+		}
+
+		if(sf == 6){
+			RetType ret = CALL(writeReg(RFM95W_REGISTER_DETECTION_OPTIMIZE, 0xc5));
+			if (ret != RET_SUCCESS) return ret;
+			RetType ret = CALL(writeReg(RFM95W_REGISTER_DETECTION_THRESHOLD, 0x0c));
+			if (ret != RET_SUCCESS) return ret;
+		}
+		else{
+			RetType ret = CALL(writeReg(RFM95W_REGISTER_DETECTION_OPTIMIZE, 0xc3));
+			if (ret != RET_SUCCESS) return ret;
+			RetType ret = CALL(writeReg(RFM95W_REGISTER_DETECTION_THRESHOLD, 0x0a));
+			if (ret != RET_SUCCESS) return ret;
+		}
+
+		// writeRegister(REG_MODEM_CONFIG_2, (readRegister(REG_MODEM_CONFIG_2) & 0x0f) | ((sf << 4) & 0xf0));
+
+
+		RESET();
+		return RET_SUCCESS;
+	}
+
+
+    RetType setPower(int8_t power) {
+		RESUME();
+
+		assert((power >= 2 && power <= 17) || power == 20);
+
+		rfm95_register_pa_config_t pa_config = {0};
+
+		if (power >= 2 && power <= 17) {
+			pa_config.max_power = 7;
+			pa_config.pa_select = 1;
+			pa_config.output_power = (power - 2);
+			pa_dac_config = RFM95_REGISTER_PA_DAC_LOW_POWER;
+
+		} else if (power == 20) {
+			pa_config.max_power = 7;
+			pa_config.pa_select = 1;
+			pa_config.output_power = 15;
+			pa_dac_config = RFM95_REGISTER_PA_DAC_HIGH_POWER;
+		}
+
+		ret = CALL(writeReg(RFM95_REGISTER_PA_CONFIG, pa_config.buffer));
+		if (ret != RET_SUCCESS) return ret;
+		ret = CALL(writeReg(RFM95_REGISTER_PA_DAC, pa_dac_config));
+		if (ret != RET_SUCCESS) return ret;
+
+		RESET();
+		return RET_SUCCESS;
 
     }
+
+    RetType handleInterrupt(){
+
+    }
+
+    RetType validateRxBuf(){
+
+    }
+
+    RetType available() {
+
+    }
+
+    RetType clearRxBuf(){
+
+    }
+
+    RetType receive(){
+
+    }
+
+    RetType send(){
+
+    }
+
+    RetType setTx(){
+
+    }
+
+    RetType setRx(){
+
+    }
+
+    RetType setModemReg(){
+
+    }
+
+    RetType setModemCfg(){
+
+    }
+
 
 private:
     SPIDevice *mSpi;
@@ -121,6 +283,18 @@ private:
 
     uint16_t txCount;
     uint16_t rxCount;
+
+	typedef struct
+{
+	union {
+		struct {
+			uint8_t output_power : 4;
+			uint8_t max_power : 3;
+			uint8_t pa_select : 1;
+		};
+		uint8_t buffer;
+	};
+} rfm95_register_pa_config_t;
 
     RetType writeReg(RFM95_REGISTER_T reg, uint8_t val) {
         RESUME();
@@ -162,6 +336,9 @@ private:
     }
 
 
+
+
 };
 
 #endif //LAUNCH_CORE_RFM95W_H
+
