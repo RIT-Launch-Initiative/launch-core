@@ -72,12 +72,14 @@ namespace icmp {
                 }
 
                 packet.seek_header();
+
                 ret = CALL(caller->transmit2(packet, info, this));
                 if (ret != RET_SUCCESS) {
                     reply_flag = false;
                     RESET();
                     return ret;
                 }
+
                 reply_flag = false;
             }
 

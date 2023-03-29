@@ -61,7 +61,7 @@ int main() {
     }
     auto icmp = icmp::ICMP(ip);
     
-    if(RET_SUCCESS != ip.add_protocol(ipv4::UDP_PROTO, icmp)) {
+    if(RET_SUCCESS != ip.add_protocol(ipv4::ICMP_PROTO, icmp)) {
         printf("failed to add protocol\n");
         return -1;
     }
