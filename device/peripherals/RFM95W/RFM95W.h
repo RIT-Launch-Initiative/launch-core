@@ -146,11 +146,11 @@ public:
         RetType ret = this->nrstPin->set(1);
         if (ret != RET_SUCCESS) return ret;
 
-        // Might need short delay here
+        SLEEP(1000);
         ret = this->nrstPin->set(0);
         if (ret != RET_SUCCESS) return ret;
 
-        // Here as well
+        SLEEP(1000);
         RESET();
         return RET_SUCCESS;
     }
@@ -346,8 +346,41 @@ public:
     }
 
     RetType receiveAsync(uint8_t *buf, uint8_t len){
+    	RESUME();
 
+    	RetType ret = CALL(setMode(0x01));
+    	if (ret != RET_SUCCESS) return ret;
 
+    	ret = CALL(writeReg(RFM95_REGISTER_PAYLOAD_LENGTH, len));
+    	if (ret != RET_SUCCESS) return ret;
+
+		ret = CALL(writeReg(RFM95_REGISTER_IRQ_FLAGS, (1<<6) | (1<<5) | (1<<7)));
+		if (ret != RET_SUCCESS) return ret;
+
+		uint8_t curr_addr;
+		ret = CALL(readReg(0x10, &curr_addr, 1)); // 0x10 = curr address register
+		if (ret != RET_SUCCESS) return ret;
+
+		ret = CALL(writeReg(RFM95_REGISTER_FIFO_ADDR_PTR, curr_addr));
+		if (ret != RET_SUCCESS) return ret;
+
+    	RESET();
+    	return RET_SUCCESS;
+
+    }
+
+    RetType packetWaiting(){
+    	RESUME();
+
+    	uint8_t irq_flags;
+
+		ret = CALL(readReg(RFM95_REGISTER_IRQ_FLAGS, &irq_flags, 1)); // 0x10 = curr address register
+		if (ret != RET_SUCCESS) return ret;
+
+		//TODO
+
+		RESET();
+		return RET_SUCCESS;
     }
 
     // not sure if needed
