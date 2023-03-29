@@ -82,8 +82,7 @@ namespace icmp {
             }
 
             RESET();
-            return ret;
-
+            return RET_SUCCESS;
         }
 
         /// @brief transmit the packet, echo reply
