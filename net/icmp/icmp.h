@@ -59,16 +59,27 @@ namespace icmp {
             uint32_t &src = info.dst.ipv4_addr;
             info.src.ipv4_addr = dst;           // Switch Src and dst addresses
             info.dst.ipv4_addr = src;
-            printf("\tdst: %d\nsrc: %d\n", info.dst.ipv4_addr, info.src.ipv4_addr);
+            printf("dst: %d\nsrc: %d\n", info.dst.ipv4_addr, info.src.ipv4_addr);
 
-            reply_flag = true;
-            RetType ret = CALL(m_out.transmit(packet, info, this));
+            RetType ret;
+            if (head.type == ECHO_MESSAGE) {
+                reply_flag = true;
+                ret = CALL(caller->transmit(packet, info, this));
+                if (ret != RET_SUCCESS) {
+                    reply_flag = false;
+                    RESET();
+                    return ret;
+                }
 
-            packet.seek_header();
-
-            ret = CALL(m_out.transmit2(packet, info, this));
-
-            reply_flag = false;
+                packet.seek_header();
+                ret = CALL(caller->transmit2(packet, info, this));
+                if (ret != RET_SUCCESS) {
+                    reply_flag = false;
+                    RESET();
+                    return ret;
+                }
+                reply_flag = false;
+            }
 
             RESET();
             return ret;
