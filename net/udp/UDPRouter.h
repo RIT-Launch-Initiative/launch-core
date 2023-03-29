@@ -1,3 +1,9 @@
+/**
+ * UDP Networking Standard
+ *
+ * @author Aaron Chan
+ */
+
 #ifndef LAUNCH_CORE_UDPROUTER_H
 #define LAUNCH_CORE_UDPROUTER_H
 

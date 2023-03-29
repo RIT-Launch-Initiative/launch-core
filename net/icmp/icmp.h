@@ -47,7 +47,9 @@ namespace icmp {
             icmp_t head;
             packet.read<icmp_t>(&head);
 
-            if (checksum((uint16_t *) &head, sizeof(icmp_t)) != head.checksum) {
+            uint16_t csum = head.checksum;
+            head.checksum = 0;
+            if (checksum((uint16_t *) &head, sizeof(icmp_t)) != csum) {
                 return RET_ERROR;
             }
 
@@ -59,10 +61,15 @@ namespace icmp {
             info.dst.ipv4_addr = src;
             printf("\tdst: %d\nsrc: %d\n", info.dst.ipv4_addr, info.src.ipv4_addr);
 
-
-
-
+            reply_flag = true;
             RetType ret = CALL(m_out.transmit(packet, info, this));
+
+            packet.seek_header();
+
+            ret = CALL(m_out.transmit2(packet, info, this));
+
+            reply_flag = false;
+
             RESET();
             return ret;
 
@@ -72,8 +79,8 @@ namespace icmp {
         /// @return
         RetType transmit(Packet &packet, sockinfo_t &info, NetworkLayer *caller) {
             RESUME();
-            icmp_t *head_pack = packet.allocate_header<icmp_t>();
-            head_pack->type = ECHO_MESSAGE;
+            icmp_t *head = packet.allocate_header<icmp_t>();
+            head->type = reply_flag ? ECHO_REPLY : ECHO_MESSAGE;
 
             printf("Fuck");
 
@@ -86,21 +93,19 @@ namespace icmp {
         RetType transmit2(Packet &packet, sockinfo_t &info, NetworkLayer *caller) {
             RESUME();
             icmp_t *head = packet.allocate_header<icmp_t>();
-            head->type = ECHO_REPLY;
+            head->type = reply_flag ? ECHO_REPLY : ECHO_MESSAGE;
 
             printf("You");
+            head->checksum = checksum((uint16_t *) head, sizeof(icmp_t));
 
-            if (checksum((uint16_t *) &head, sizeof(icmp_t)) != head->checksum) {
-                return RET_ERROR;
-            }
-
-            RetType ret = CALL(m_out.transmit(packet, info, this));
+            RetType ret = CALL(m_out.transmit2(packet, info, this));
             RESET();
             return ret;
         }
 
     private:
         NetworkLayer &m_out;
+        bool reply_flag = false;
 
         uint16_t checksum(uint16_t *b, int len) {
             uint16_t *buf = b;
@@ -112,7 +117,7 @@ namespace icmp {
             }
 
             if (len == 1) {
-                sum += *(unsigned char *) buf;
+                sum += *(uint8_t *) buf;
             }
 
             sum = (sum >> 16) + (sum & 0xFFFF);
