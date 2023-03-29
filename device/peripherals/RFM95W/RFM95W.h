@@ -7,6 +7,9 @@
 #ifndef LAUNCH_CORE_RFM95W_H
 #define LAUNCH_CORE_RFM95W_H
 
+#include <stdbool.h>
+#include <stdint.h>
+
 #include "return.h"
 #include "sched/macros/resume.h"
 #include "sched/macros/call.h"
@@ -41,9 +44,9 @@ enum RFM95_REGISTER_T {
     RFM95_REGISTER_PAYLOAD_LENGTH = 0x22,
     RFM95_REGISTER_MAX_PAYLOAD_LENGTH = 0x23,
     RFM95_REGISTER_MODEM_CONFIG_3 = 0x26,
-	RFM95_REGISTER_DETECTION_OPTIMIZE = 0x31;
+	RFM95_REGISTER_DETECTION_OPTIMIZE = 0x31,
     RFM95_REGISTER_INVERT_IQ_1 = 0x33,
-	RFM95_REGISTER_DETECTION_THRESHOLD = 0x37;
+	RFM95_REGISTER_DETECTION_THRESHOLD = 0x37,
     RFM95_REGISTER_SYNC_WORD = 0x39,
     RFM95_REGISTER_INVERT_IQ_2 = 0x3B,
     RFM95_REGISTER_DIO_MAPPING_1 = 0x40,
@@ -120,20 +123,6 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType write(RFM95_REGISTER_T reg, uint8_t *buff, size_t len) {
-        RESUME();
-
-        RESET();
-        return RET_SUCCESS;
-    }
-
-    RetType read(uint8_t *buff, size_t len) {
-        RESUME();
-
-        RESET();
-        return RET_SUCCESS;
-    }
-
     RetType configFrequency(uint32_t frequency) {
         uint64_t freqRespFunc = (static_cast<uint64_t>(frequency) << 19) / 32000000;
 
@@ -184,15 +173,15 @@ public:
 		}
 
 		if(sf == 6){
-			RetType ret = CALL(writeReg(RFM95W_REGISTER_DETECTION_OPTIMIZE, 0xc5));
+			RetType ret = CALL(writeReg(RFM95_REGISTER_DETECTION_OPTIMIZE, 0xc5));
 			if (ret != RET_SUCCESS) return ret;
-			RetType ret = CALL(writeReg(RFM95W_REGISTER_DETECTION_THRESHOLD, 0x0c));
+			RetType ret = CALL(writeReg(RFM95_REGISTER_DETECTION_THRESHOLD, 0x0c));
 			if (ret != RET_SUCCESS) return ret;
 		}
 		else{
-			RetType ret = CALL(writeReg(RFM95W_REGISTER_DETECTION_OPTIMIZE, 0xc3));
+			RetType ret = CALL(writeReg(RFM95_REGISTER_DETECTION_OPTIMIZE, 0xc3));
 			if (ret != RET_SUCCESS) return ret;
-			RetType ret = CALL(writeReg(RFM95W_REGISTER_DETECTION_THRESHOLD, 0x0a));
+			RetType ret = CALL(writeReg(RFM95_REGISTER_DETECTION_THRESHOLD, 0x0a));
 			if (ret != RET_SUCCESS) return ret;
 		}
 
@@ -204,29 +193,21 @@ public:
 	}
 
 
-    RetType setPower(int8_t power) {
+    RetType setPower(uint8_t power) {
 		RESUME();
 
-		assert((power >= 2 && power <= 17) || power == 20);
+		uint8_t RegPaConfig = 0x00;
 
-		rfm95_register_pa_config_t pa_config = {0};
+		if((power < 2) || (power > 17)){
+			power = 2;
 
-		if (power >= 2 && power <= 17) {
-			pa_config.max_power = 7;
-			pa_config.pa_select = 1;
-			pa_config.output_power = (power - 2);
-			pa_dac_config = RFM95_REGISTER_PA_DAC_LOW_POWER;
-
-		} else if (power == 20) {
-			pa_config.max_power = 7;
-			pa_config.pa_select = 1;
-			pa_config.output_power = 15;
-			pa_dac_config = RFM95_REGISTER_PA_DAC_HIGH_POWER;
 		}
 
-		ret = CALL(writeReg(RFM95_REGISTER_PA_CONFIG, pa_config.buffer));
-		if (ret != RET_SUCCESS) return ret;
-		ret = CALL(writeReg(RFM95_REGISTER_PA_DAC, pa_dac_config));
+		RegPaConfig |= (1<<7);
+
+		RegPaConfig |= (power - 2);
+
+		RetType ret = CALL(writeReg(RFM95_REGISTER_PA_CONFIG, RegPaConfig));
 		if (ret != RET_SUCCESS) return ret;
 
 		RESET();
@@ -234,46 +215,150 @@ public:
 
     }
 
-    RetType handleInterrupt(){
+	RetType setMode(uint8_t mode){
+		RESUME();
+
+		uint8_t RegOpMode;
+
+		if(mode > 0b00000111){
+			mode = 0x01; //standby mode
+		}
+
+		uint8_t curr_mode;
+		RetType ret = CALL(readReg(RFM95_REGISTER_OP_MODE, &curr_mode, 1));
+		if (ret != RET_SUCCESS) return ret;
+
+		curr_mode &= 0b11111000; // clear old mode;
+		curr_mode |= mode; //set mode;
+
+		ret = CALL(writeReg(RFM95_REGISTER_OP_MODE, curr_mode));
+		if (ret != RET_SUCCESS) return ret;
+
+		while(1){
+			uint8_t mode_check;
+			RetType ret = CALL(readReg(RFM95_REGISTER_OP_MODE, &mode_check, 1));
+			if (ret != RET_SUCCESS) return ret;
+			if(mode_check == mode){
+				break;
+			}
+		}
+
+		RESET();
+		return RET_SUCCESS;
+
+
+	}
+
+    RetType receive(uint8_t *buf, uint8_t len){
+		RESUME();
+		uint8_t irq_flags;
+		bool valid = false;
+
+
+		RetType ret = CALL(setMode(0x01));
+		if (ret != RET_SUCCESS) return ret;
+
+		ret = CALL(writeReg(RFM95_REGISTER_PAYLOAD_LENGTH, len));
+		if (ret != RET_SUCCESS) return ret;
+
+		do{
+			uint8_t rx_addr;
+			RetType ret = CALL(readReg(RFM95_REGISTER_FIFO_RX_BASE_ADDR, &rx_addr, 1));
+			if (ret != RET_SUCCESS) return ret;
+
+			ret = CALL(writeReg(RFM95_REGISTER_FIFO_ADDR_PTR, rx_addr));
+			if (ret != RET_SUCCESS) return ret;
+
+			//set to rx mode
+			ret = CALL(setMode(0x06));
+			if (ret != RET_SUCCESS) return ret
+
+			do {
+				ret = CALL(readReg(RFM95_REGISTER_IRQ_FLAGS, &irq_flags, 1));
+				if (ret != RET_SUCCESS) return ret;
+			} while(!(irq_flags & ((1<<7) | (1<<6))));
+
+			uint8_t rec_len;
+			RetType ret = CALL(readReg(RFM95_REGISTER_FIFO_RX_BYTES_NB, &rec_len, 1));
+			if (ret != RET_SUCCESS) return ret;
+
+			valid = (rec_len == len) && (irq_flags & (1<<6)) && !(irq_flags & (1<<5));
+
+			ret = CALL(writeReg(RFM95_REGISTER_IRQ_FLAGS, (1<<6) | (1<<5) | (1<<7)));
+			if (ret != RET_SUCCESS) return ret;
+		} while(!valid);
+
+		uint8_t curr_addr;
+		RetType ret = CALL(readReg(0x10, &curr_addr, 1)); // 0x10 = curr address register
+		if (ret != RET_SUCCESS) return ret;
+
+		ret = CALL(writeReg(RFM95_REGISTER_FIFO_ADDR_PTR, curr_addr));
+		if (ret != RET_SUCCESS) return ret;
+
+		//read packet into buffer from FIFO
+		// TODO
+
+		RESET();
+		return RET_SUCCESS;
+
 
     }
 
-    RetType validateRxBuf(){
+    RetType transmit(uint8_t *buffer, uint8_t len){
+    	RESUME();
+
+    	RetType ret = CALL(setMode(0x01));
+    	if (ret != RET_SUCCESS) return ret;
+
+    	ret = CALL(writeReg(RFM95_REGISTER_PAYLOAD_LENGTH, len));
+    	if (ret != RET_SUCCESS) return ret;
+
+    	uint8_t tx_addr;
+    	RetType ret = CALL(readReg(RFM95_REGISTER_FIFO_TX_BASE_ADDR, &tx_addr, 1));
+    	if (ret != RET_SUCCESS) return ret;
+
+    	ret = CALL(writeReg(RFM95_REGISTER_FIFO_ADDR_PTR, tx_addr));
+    	if (ret != RET_SUCCESS) return ret;
+
+
+    	//fill fifo
+    	// TODO
+
+    	RetType ret = CALL(setMode(0x03));
+    	if (ret != RET_SUCCESS) return ret;
+
+    	while(1){
+			uint8_t mode_check;
+			RetType ret = CALL(readReg(RFM95_REGISTER_OP_MODE, &mode_check, 1));
+			if (ret != RET_SUCCESS) return ret;
+			if((mode_check & 0b00000111) == 0x03){
+				break;
+			}
+    	}
+
+    	ret = CALL(writeReg(RFM95_REGISTER_OP_MODE, (1<<3)));
+    	if (ret != RET_SUCCESS) return ret;
+
+    	RESET();
+
+    	return RET_SUCCESS;
 
     }
 
-    RetType available() {
+    RetType receiveAsync(uint8_t *buf, uint8_t len){
+
 
     }
 
-    RetType clearRxBuf(){
+    // not sure if needed
+    RetType bulkRead(uint8_t addr){
 
     }
 
-    RetType receive(){
+    //not sure if needed
+    RetType bulkWrite(uint8_t addr, uint8_t *buf, uint8_t len){
 
     }
-
-    RetType send(){
-
-    }
-
-    RetType setTx(){
-
-    }
-
-    RetType setRx(){
-
-    }
-
-    RetType setModemReg(){
-
-    }
-
-    RetType setModemCfg(){
-
-    }
-
 
 private:
     SPIDevice *mSpi;
@@ -284,17 +369,6 @@ private:
     uint16_t txCount;
     uint16_t rxCount;
 
-	typedef struct
-{
-	union {
-		struct {
-			uint8_t output_power : 4;
-			uint8_t max_power : 3;
-			uint8_t pa_select : 1;
-		};
-		uint8_t buffer;
-	};
-} rfm95_register_pa_config_t;
 
     RetType writeReg(RFM95_REGISTER_T reg, uint8_t val) {
         RESUME();
