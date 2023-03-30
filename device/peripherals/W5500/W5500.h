@@ -55,6 +55,13 @@ public:
         RetType ret = CALL(softReset());
         if (ret != RET_SUCCESS) goto init_end;
 
+        static uint8_t chip_id = 0;
+        ret = CALL(get_chip_version(&chip_id));
+        if (chip_id != 0x04) {
+            ret = RET_ERROR;
+            goto init_end;
+        }
+
         ret = CALL(set_tx_rx_rate(0x0800, 0x0800)); // TODO: No magic allowed
         if (ret != RET_SUCCESS) goto init_end;
 
@@ -100,6 +107,7 @@ public:
 
         // PHY
 //        ret = CALL(write_bytes(W5500_COMMON_REG, W5500_COMMON_PHYCFGR, &phy_cfg, 1));
+//        if (ret != RET_SUCCESS) goto init_end;
 
         // don't care about any other settings at the moment
         // TODO maybe do some interrupt masking until we actually open the socket?
@@ -395,6 +403,15 @@ public:
         RetType ret = CALL(write_buffer(W5500_CTRL_REG, W5500_COMMON_SUBR0, subnet, 4));
         if (ret != RET_SUCCESS) goto set_subnet_end;
         set_subnet_end:
+        RESET();
+        return ret;
+    }
+
+    RetType get_chip_version(uint8_t *version) {
+        RESUME();
+
+        RetType ret = CALL(read_register(W5500_CTRL_REG, W5500_COMMON_VERSIONR, version));
+
         RESET();
         return ret;
     }
