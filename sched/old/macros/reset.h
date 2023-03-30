@@ -13,6 +13,6 @@
 */
 
 /// @brief reset a task to the top
-#define RESET() _current[static_cast<int>(sched_dispatched)] = &&_start;
+#define RESET() _jump_requested[sched_dispatched] = 0;
 
 #endif

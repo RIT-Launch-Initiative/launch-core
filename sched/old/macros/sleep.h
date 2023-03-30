@@ -3,6 +3,7 @@
 
 #include "sched/sched.h"
 #include "return.h"
+#include "sched/jump_table.h"
 
 /* The SLEEP macro.
 *  Called as SLEEP(T)
@@ -14,10 +15,12 @@
 
 
 #define SLEEP2(N, z)\
-            _current[static_cast<int>(sched_dispatched)] = TOKENPASTE2(&&_sleep, z);\
+            jt_push(sched_dispatched, TOKENPASTE2(&&_sleep, z));\
+            sched_jump_table[sched_dispatched].should_jump = 1;\
             sched_sleep(sched_dispatched, N);\
-            return RET_SLEEP;\
+            return RET_YIELD;\
             TOKENPASTE2(_sleep, z):\
+
 
 /// @brief sleep the currently running task for 'N' ticks
 #define SLEEP(N) SLEEP2(N, __COUNTER__)

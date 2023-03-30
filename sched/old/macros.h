@@ -14,15 +14,15 @@
 
 // ** macros for use in scheduler tasks ** //
 
+// NOTE: sched/jump_table.c must be compiled to use macros!
+
 // RESUME()
 //   Should be placed at the very beginning of a function. Sets up the function
 //   to be able to get blocked and return to execution at the line it was
-//   blocked at. The execution location is stored per-task, not per-function
-//   so multiple tasks can call the same function and execute in different
-//   places. Variables are not saved between executions on the scheduler, so
-//   use statics if storing information before blocking. Be aware another task
-//   could modify this static.
-//   NOTE: a function using resume can NOT be recursive!!!
+//   blocked at. Variables are not saved between executions on the scheduler, so
+//   use statics if storing information before blocking. Be aware this static
+//   could get modified by another task or if one task calls the same function
+//   twice.
 
 // RESET()
 //   Should be placed at the end of a function, before any return statements but
@@ -30,12 +30,12 @@
 
 // SLEEP(T)
 //   Sleep the current running task for 'T' ticks (in system clock time).
-//   Returns RET_SLEEP, all functions higher in the call stack should see this
+//   Returns RET_YIELD, all functions higher in the call stack should see this
 //   return result and get execution back to the scheduler ASAP.
 
 // BLOCK()
 //   Block the current running task indefinitely, only unblocked when WAKE is
-//   called on the blocked task's task ID. Returns RET_BLOCK, all functions
+//   called on the blocked task's task ID. Returns RET_YIELD, all functions
 //   higher in the call stack should see this return result and get execution
 //   back to the scheduler ASAP. When the task blocked is scheduled again,
 //   execution begins right after the macro.
@@ -54,11 +54,10 @@
 // CALL(EXP)
 //   Execute the expression 'EXP' and handle the return. 'EXP' must return a
 //   RetType. Used to call functions that may sleep, block, or yield. If
-//   RET_BLOCKED, RET_SLEEP, or RET_YIELD are returned, the same return code is
-//   returned immediately in order to get execution back to the scheduler. If
-//   any of those return codes are returned, the next time the task is scheduled
+//   RET_YIELD is returned, RET_YIELD is returned immediately in order to get
+//   execution back to the scheduler, the next time the task is scheduled
 //   execution will begin before evaluating 'EXP' so it is evaluated again. If
-//   RET_SUCCESS or RET_ERROR are returned, the macros evaluates to that result.
+//   RET_SUCCESS or RET_ERROR are returned, the macro evaluates to that result.
 
 
 // see test/example.cpp for an example of how these macros should be used
