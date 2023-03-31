@@ -24,11 +24,13 @@
 
 #include "device/peripherals/W5500/W5500_defines.h"
 #include "device/peripherals/W5500/W5500_socket.h"
+#include "device/peripherals/W5500/W5500_defs.h"
 #include "device/StreamDevice.h"
 #include "sched/macros.h"
 #include "return.h"
 
 #include "stm32f4xx_hal_uart.h"
+
 extern UART_HandleTypeDef huart2;
 
 /// @brief controller for W5500 device
@@ -36,8 +38,8 @@ class W5500 {
 public:
     /// @brief constructor
     /// @param spi      SPI controller device
-    W5500(SPIDevice& spi, GPIODevice& gpio) : m_spi(spi), m_gpio(gpio) {
-        for(size_t i = 0; i < static_cast<int>(W5500_NUM_SOCKETS); i++) {
+    W5500(SPIDevice &spi, GPIODevice &gpio) : m_spi(spi), m_gpio(gpio) {
+        for (size_t i = 0; i < static_cast<int>(W5500_NUM_SOCKETS); i++) {
             m_states[i] = {false, false};
             m_claimed[i] = false;
             m_tids[i] = -1;
@@ -62,8 +64,8 @@ public:
             goto init_end;
         }
 
-        ret = CALL(set_tx_rx_rate(0x0800, 0x0800)); // TODO: No magic allowed
-        if (ret != RET_SUCCESS) goto init_end;
+//        ret = CALL(set_tx_rx_rate(0x0800, 0x0800)); // TODO: No magic allowed
+//        if (ret != RET_SUCCESS) goto init_end;
 
         // mode configuration:
         //  reset = 1
@@ -123,7 +125,9 @@ public:
     RetType softReset() {
         RESUME();
 
-        RetType ret = CALL(write_register(W5500_REG_MR, W5500_COMMON_REG, W5500_COMMON_MODE_RESET));
+//        RetType ret = CALL(write_register(W5500_REG_MR, W5500_COMMON_REG, W5500_COMMON_MODE_RESET));
+        RetType ret;
+
         RESET();
         return ret;
     }
@@ -260,7 +264,7 @@ public:
     /// @param buff     the packet to send
     /// @param len      the length of the packet
     /// @return
-    RetType start_transmit(W5500Socket_t sock, uint8_t* buff, size_t len) {
+    RetType start_transmit(W5500Socket_t sock, uint8_t *buff, size_t len) {
         // TODO
         return RET_SUCCESS;
     }
@@ -274,7 +278,7 @@ public:
     //         only len bytes will be copied into 'buff'. If there are no packets
     //         to read, 'read' will be 0 and nothing is copied to 'buff'.
     /// @return
-    RetType start_receive(W5500Socket_t sock, uint8_t* buff, size_t len, size_t* read) {
+    RetType start_receive(W5500Socket_t sock, uint8_t *buff, size_t len, size_t *read) {
         // TODO
         return RET_SUCCESS;
     }
@@ -282,7 +286,7 @@ public:
     /// @brief get the state of a socket
     /// @param sock     the socket to get the state of
     /// @return a reference to the socket's state
-    W5500SocketState_t& state(W5500Socket_t sock) {
+    W5500SocketState_t &state(W5500Socket_t sock) {
         return m_states[static_cast<int>(sock)];
     }
 
@@ -292,10 +296,10 @@ public:
     /// @param sock     a pointer that will be set to the claimed socket
     /// @param raw      if we're attemmpting to claim a raw socket
     /// @return
-    RetType claim_sock(W5500Socket_t* sock, bool raw = false) {
-        if(raw) {
+    RetType claim_sock(W5500Socket_t *sock, bool raw = false) {
+        if (raw) {
             // we need socket 0
-            if(m_claimed[0]) {
+            if (m_claimed[0]) {
                 return RET_ERROR;
             }
 
@@ -307,8 +311,8 @@ public:
 
         // look for an unclaimed socket (not socket 0)
         bool claimed = false;
-        for(size_t i = 1; i < static_cast<int>(W5500_NUM_SOCKETS); i++) {
-            if(!m_claimed[i]) {
+        for (size_t i = 1; i < static_cast<int>(W5500_NUM_SOCKETS); i++) {
+            if (!m_claimed[i]) {
                 // we can claim this socket
                 *sock = static_cast<W5500Socket_t>(i);
                 m_claimed[i] = true;
@@ -318,8 +322,8 @@ public:
         }
 
         // if we haven't found any unclaimed socket, we can take socket 0
-        if(!claimed) {
-            if(m_claimed[0]) {
+        if (!claimed) {
+            if (m_claimed[0]) {
                 return RET_ERROR;
             }
 
@@ -373,8 +377,9 @@ public:
             RESET();
             return RET_ERROR;
         }
+        RetType ret;
 
-        RetType ret = CALL(write_buffer(W5500_CTRL_REG, W5500_COMMON_SHAR0, mac, 6));
+//        RetType ret = CALL(write_buffer(W5500_CTRL_REG, W5500_COMMON_SHAR0, mac, 6));
 
         RESET();
         return ret;
@@ -382,8 +387,10 @@ public:
 
     RetType set_gateway_addr(uint8_t gateway[4]) {
         RESUME();
-        RetType ret = CALL(write_buffer(W5500_CTRL_REG, W5500_COMMON_GAR0, gateway, 4));
-        if (ret != RET_SUCCESS) goto set_gateway_end;
+        RetType ret;
+
+//        RetType ret = CALL(write_buffer(W5500_CTRL_REG, W5500_COMMON_GAR0, gateway, 4));
+//        if (ret != RET_SUCCESS) goto set_gateway_end;
         set_gateway_end:
         RESET();
         return ret;
@@ -391,8 +398,10 @@ public:
 
     RetType set_ip_addr(uint8_t ip[4]) {
         RESUME();
-        RetType ret = CALL(write_buffer(W5500_CTRL_REG, W5500_COMMON_SIPR0, ip, 4););
-        if (ret != RET_SUCCESS) goto set_ip_end;
+        RetType ret;
+
+//        RetType ret = CALL(write_buffer(W5500_CTRL_REG, W5500_COMMON_SIPR0, ip, 4););
+//        if (ret != RET_SUCCESS) goto set_ip_end;
         set_ip_end:
         RESET();
         return ret;
@@ -400,8 +409,10 @@ public:
 
     RetType set_subnet_mask(uint8_t subnet[4]) {
         RESUME();
-        RetType ret = CALL(write_buffer(W5500_CTRL_REG, W5500_COMMON_SUBR0, subnet, 4));
-        if (ret != RET_SUCCESS) goto set_subnet_end;
+        RetType ret;
+
+//        RetType ret = CALL(write_buffer(W5500_CTRL_REG, W5500_COMMON_SUBR0, subnet, 4));
+//        if (ret != RET_SUCCESS) goto set_subnet_end;
         set_subnet_end:
         RESET();
         return ret;
@@ -409,8 +420,9 @@ public:
 
     RetType get_chip_version(uint8_t *version) {
         RESUME();
+        RetType ret;
 
-        RetType ret = CALL(read_register(W5500_CTRL_REG, W5500_COMMON_VERSIONR, version));
+//        RetType ret = CALL(read_register(W5500_CTRL_REG, W5500_COMMON_VERSIONR, version));
 
         RESET();
         return ret;
@@ -418,207 +430,9 @@ public:
 
 
 private:
-    /// Set the TX/RX rates of the socket buffers
-    /// @param tx_size - Number of kilobytes to set for transmission
-    /// @param rx_size - Number of kilobytes to set for receiving
-    /// @return
-    RetType set_tx_rx_rate(size_t tx_size, size_t rx_size) {
-        RESUME();
-
-        RetType ret;
-        static uint8_t socket_num = 0;
-        for (socket_num = 0; socket_num < 8; socket_num++) {
-            ret = CALL(write_socket_rx_buffer(socket_num, rx_size >> 10));
-            if (ret != RET_SUCCESS) goto set_tx_rx_end;
-
-            ret = CALL(write_socket_tx_buffer(socket_num, tx_size >> 10));
-            if (ret != RET_SUCCESS) goto set_tx_rx_end;
-        }
-
-        set_tx_rx_end:
-        RESET();
-        return ret;
-    }
-
-    inline RetType write_socket_rx_buffer(uint8_t socket, uint8_t val) {
-        RESUME();
-        RetType ret = CALL(write_register(W5500_CTRL_SOCKET_N_RX(socket), W5500_SOCKET_RXBUF_SIZE, val));
-        RESET();
-        return ret;
-    }
-
-    inline RetType write_socket_tx_buffer(uint8_t socket, uint8_t val) {
-        RESUME();
-        RetType ret = CALL(write_register(W5500_CTRL_SOCKET_N_TX(socket), W5500_SOCKET_TXBUF_SIZE, val));
-        RESET();
-        return ret;
-    }
-
-    RetType write_register(uint8_t block_select_bit, uint8_t reg, uint8_t val) {
-        RESUME();
-
-        tx_buffer[0] = 0x00;
-        tx_buffer[1] = reg;
-        tx_buffer[2] = block_select_bit | W5500_CTRL_WRITE;
-        tx_buffer[3] = val;
-
-        RetType ret = CALL(m_gpio.set(0));
-        if (ret != RET_SUCCESS) goto write_register8_end;
-
-        ret = CALL(m_spi.write(tx_buffer, 4));
-        if (ret != RET_SUCCESS) goto write_register8_end;
-
-        write_register8_end:
-        ret = CALL(m_gpio.set(1));
-
-        RESET();
-        return ret;
-    }
-
-    RetType write_buffer(uint8_t block_select_bit, uint16_t addr, const uint8_t *buff, uint16_t len) {
-        RESUME();
-        tx_buffer[0] = static_cast<uint8_t>(addr >> 8);
-        tx_buffer[1] = static_cast<uint8_t>(addr & 0xFF);
-        tx_buffer[2] = block_select_bit | W5500_CTRL_WRITE;
-
-        for (int i = 0; i < len; i++) {
-            tx_buffer[3 + i] = buff[i];
-        }
-
-        RetType ret = CALL(m_gpio.set(0));
-        if (ret != RET_SUCCESS) goto write_buffer_end;
-
-        // Write header + data
-        ret = CALL(m_spi.write(tx_buffer, 3 + len, 1000));
-
-        write_buffer_end:
-        ret = CALL(m_gpio.set(1));
-        RESET();
-        return ret;
-    }
-
-    RetType read_buffer(uint8_t block_select_bit, uint16_t addr, const uint8_t *buff, uint16_t len) {
-        RESUME();
-        tx_buffer[0] = static_cast<uint8_t>(addr >> 8);
-        tx_buffer[1] = static_cast<uint8_t>(addr & 0xFF);
-        tx_buffer[2] = block_select_bit | W5500_CTRL_READ;
-
-        for (int i = 0; i < len; i++) {
-            tx_buffer[3 + i] = buff[i];
-        }
-
-        RetType ret = CALL(m_gpio.set(0));
-        if (ret != RET_SUCCESS) goto write_buffer_end;
-
-        // Write header + data
-        ret = CALL(m_spi.write_read(tx_buffer, rx_buffer, 3 + len, 1000));
-
-        write_buffer_end:
-        ret = CALL(m_gpio.set(1));
-        RESET();
-        return ret;
-    }
-
-
-    /// @brief helper function to write data to the chip
-    /// @param block_addr       the block address to write to
-    /// @param offset_addr      the offset address to write to
-    /// @param buff             the data to write
-    /// @param len              the length of 'buff' in bytes
-    /// @return
-    RetType write_bytes(uint8_t block_addr, uint16_t offset_addr, uint8_t* buff, size_t len) {
-        RESUME();
-        RetType ret;
-
-        uint8_t cmd[3];
-
-        // address phase (MSB -> LSB)
-        cmd[0] = (uint8_t)(offset_addr >> 8); // MSB
-        cmd[1] = (uint8_t)(offset_addr);      // LSB
-
-        // control phase
-        cmd[2] = (block_addr << W5500_BS_SHIFT); // block select
-        cmd[2] |= (W5500_WRITE << W5500_RW_SHIFT);       // write access mode
-        cmd[2] |= (W5500_VDL_MODE << W5500_OM_SHIFT);    // variable data length mode
-        // TODO this would need to change to support fixed data length mode
-
-        // TODO toggle CS here!!!!!
-
-        // send the address and control phase data
-        ret = CALL(m_spi.write(cmd, 3));
-
-        // something bad happened
-        if(ret != RET_SUCCESS) {
-            goto write_bytes_end;
-        }
-
-        // send the data
-        ret = CALL(m_spi.write(buff, len));
-
-        // something bad happened
-        if(ret != RET_SUCCESS) {
-            goto write_bytes_end;
-        }
-
-
-    write_bytes_end:
-        // TODO toggle CS back here!!!!!
-
-        RESET();
-        return RET_SUCCESS;
-    }
-
-    /// @brief helper function to read data from the chip
-    /// @param block_addr       the block address to read from
-    /// @param offset_addr      the offset address to read from
-    /// @param buff             the buffer pointer to read into
-    /// @param len              the length of 'buff' in bytes
-    /// @return
-    RetType read_bytes(uint8_t block_addr, uint16_t offset_addr, uint8_t* buff, size_t len) {
-        RESUME();
-        RetType ret;
-
-        uint8_t cmd[3];
-
-        // address phase (MSB -> LSB)
-        cmd[0] = (uint8_t)(offset_addr >> 8); // MSB
-        cmd[1] = (uint8_t)(offset_addr);      // LSB
-
-        // control phase
-        cmd[2] = (block_addr << W5500_BS_SHIFT); // block select
-        cmd[2] |= (W5500_WRITE << W5500_RW_SHIFT);       // write access mode
-        cmd[2] |= (W5500_VDL_MODE << W5500_OM_SHIFT);    // variable data length mode
-        // TODO this would need to change to support fixed data length mode
-
-        // TODO toggle CS here!!!!!
-
-        // send the address and control phase data
-        ret = CALL(m_spi.write(cmd, 3));
-
-        // something bad happened
-        if(ret != RET_SUCCESS) {
-            goto read_bytes_end;
-        }
-
-        // send the data
-        ret = CALL(m_spi.read(buff, len));
-
-        // something bad happened
-        if(ret != RET_SUCCESS) {
-            goto read_bytes_end;
-        }
-
-
-    read_bytes_end:
-        // TODO toggle CS back here!!!!!
-
-        RESET();
-        return RET_SUCCESS;
-    }
-
     // passed in SPI controller
-    SPIDevice& m_spi;
-    GPIODevice& m_gpio;
+    SPIDevice &m_spi;
+    GPIODevice &m_gpio;
 
     // SPI Transaction Buffers
     // Reduce static memory usage by using a single buffer for all SPI transactions
@@ -633,6 +447,55 @@ private:
 
     // tasks that should be woken up when each socket is updated (tx complete or rx ready)
     tid_t m_tids[static_cast<int>(W5500_NUM_SOCKETS)];
+
+    RetType read_reg(uint32_t addrSelect, uint8_t *result) {
+        RESUME();
+        static uint8_t data[3];
+        RetType ret = CALL(m_gpio.set(0));
+        if (ret != RET_SUCCESS) goto read_reg_end;
+
+        WIZCHIP.CS._select();
+
+        addrSelect |= (_W5500_SPI_READ_ | _W5500_SPI_VDM_OP_);
+
+        data[0] = (addrSelect & 0x00FF0000) >> 16;
+        data[1] = (addrSelect & 0x0000FF00) >> 8;
+        data[2] = (addrSelect & 0x000000FF) >> 0;
+
+        ret = CALL(m_spi.write_read(data, data, 3));
+        if (ret != RET_SUCCESS) goto read_reg_end;
+
+        *result = data[0];
+
+        read_reg_end:
+        RESET();
+        CALL(m_gpio.set(1));
+        return ret;
+    }
+
+    RetType write_reg(uint32_t addrSel, uint8_t writeByte) {
+        uint8_t data[4];
+
+        RetType ret = CALL(m_gpio.set(0));
+        if (ret != RET_SUCCESS) goto write_reg_end;
+
+        addrSel |= (_W5500_SPI_WRITE_ | _W5500_SPI_VDM_OP_);
+
+        data[0] = (addrSel & 0x00FF0000) >> 16;
+        data[1] = (addrSel & 0x0000FF00) >> 8;
+        data[2] = (addrSel & 0x000000FF) >> 0;
+        data[3] = writeByte;
+
+        ret = CALL(m_spi.write_read(data, 4));
+        if (ret != RET_SUCCESS) goto write_reg_end;
+
+        write_reg_end:
+        RESET();
+        CALL(m_gpio.set(1));
+        return ret;
+    }
+
+
 };
 
 #endif
