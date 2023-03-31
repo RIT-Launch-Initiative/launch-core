@@ -3,7 +3,7 @@
 
 #include "sched/sched.h"
 #include "return.h"
-#include "sched/macros/jump_table.h"
+#include "sched/macros/macros.h"
 
 /* The SLEEP macro.
 *  Called as SLEEP(T)
@@ -19,6 +19,7 @@
             sched_sleep(sched_dispatched, N);\
             return RET_YIELD;\
             TOKENPASTE2(_sleep, z):\
+            sched_jump[sched_dispatched].size--;\
 
 
 /// @brief sleep the currently running task for 'N' ticks

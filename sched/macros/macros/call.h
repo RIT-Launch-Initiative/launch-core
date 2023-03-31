@@ -3,7 +3,7 @@
 
 #include "sched/sched.h"
 #include "return.h"
-#include "sched/macros/jump_table.h"
+#include "sched/macros/macros.h"
 
 /* The CALL macro.
 *  Called as RetType ret = CALL(E)
@@ -21,7 +21,7 @@
 
 
 #define CALL2(F, RET, z)\
-    ({sched_jump[sched_dispatched].jumps[sched_jump[sched_dispatched].size++] = TOKENPASTE2(&&_call, z); TOKENPASTE2(_call, z):; RetType RET = F; if(RET == RET_YIELD){return RET;}; RET;})\
+    ({sched_jump[sched_dispatched].jumps[sched_jump[sched_dispatched].size++] = TOKENPASTE2(&&_call, z); TOKENPASTE2(_call, z):; RetType RET = F; if(RET == RET_YIELD){return RET;};sched_jump[sched_dispatched].size--; RET;})\
 
 /// @brief call a function 'F' and handle the return
 ///        useful for calling in a task so you don't need to check for SLEEP, BLOCKED, or YIELD

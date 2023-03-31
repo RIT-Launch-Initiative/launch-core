@@ -1,8 +1,8 @@
 /*******************************************************************************
 *
-*  Name: jump_table.c
+*  Name: macros.cpp
 *
-*  Purpose: Declares the jump table for use with scheduler macros.
+*  Purpose: Declares data needed for macro functionality.
 *
 *  Author: Will Merges
 *
@@ -10,7 +10,7 @@
 *
 *******************************************************************************/
 
-#include "sched/macros/jump_table.h"
+#include "sched/macros/macros.h"
 
-jump_table_t sched_jump[MAX_NUM_TASKS];
+jump_table_t sched_jump[MAX_NUM_TASKS] = {0};
 tid_t sched_dispatched;

@@ -3,7 +3,7 @@
 
 #include "sched/sched.h"
 #include "return.h"
-#include "sched/macros/jump_table.h"
+#include "sched/macros/macros.h"
 
 /* The YIELD macro.
 *  Called as YIELD()
@@ -19,6 +19,7 @@
         sched_jump[sched_dispatched].jumps[sched_jump[sched_dispatched].size++] = TOKENPASTE2(&&_yield, z);\
         return RET_YIELD;\
         TOKENPASTE2(_yield, z):\
+        sched_jump[sched_dispatched].size--;\
 
 /// @brief yield back to the scheduler
 #define YIELD() YIELD2(__COUNTER__)

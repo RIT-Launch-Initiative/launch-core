@@ -3,7 +3,7 @@
 
 #include "sched/sched.h"
 #include "return.h"
-#include "sched/macros/jump_table.h"
+#include "sched/macros/macros.h"
 
 /* The BLOCK macro.
 *  Called as BLOCK()
@@ -18,6 +18,7 @@
         sched_block(sched_dispatched);\
         return RET_BLOCKED;\
         TOKENPASTE2(_block, z):\
+        sched_jump[sched_dispatched].size--;\
 
 /// @brief block the currently running task
 #define BLOCK() BLOCK2(__COUNTER__)

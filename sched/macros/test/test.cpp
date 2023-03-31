@@ -8,12 +8,21 @@ uint32_t systime() {
     return tick;
 }
 
+RetType func2() {
+    RESUME();
+
+    printf("func2!\n");
+    YIELD();
+
+    RETURN(RET_SUCCESS);
+}
+
 RetType func() {
     RESUME();
 
     static int i = 0;
 
-    SLEEP(1);
+    YIELD();
     i++;
 
     if(i == 5) {
@@ -21,13 +30,15 @@ RetType func() {
         // NOTE: fun test, if you remove this line you will likely get a
         //       segfault after i = MAX_CALL_DEPTH - 1
         i = 0;
-        return RET_SUCCESS;
+        RETURN(RET_SUCCESS);
     }
 
     printf("func: i = %i\n", i);
     RetType ret = CALL(func()); // recursion!!!
 
-    return ret;
+    ret = CALL(func2());
+
+    RETURN(ret);
 }
 
 RetType task(void*) {
@@ -35,9 +46,9 @@ RetType task(void*) {
 
     CALL(func());
 
-    SLEEP(1);
+    // SLEEP(1);
 
-    return RET_SUCCESS;
+    RETURN(RET_SUCCESS);
 }
 
 int main() {
@@ -60,6 +71,7 @@ int main() {
             printf("dispatching %i\n", dispatch->tid);
 
             sched_dispatched = dispatch->tid;
+            sched_jump[sched_dispatched].index = 0;
 
             RetType ret = dispatch->func(dispatch->arg);
 
