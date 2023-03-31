@@ -448,7 +448,7 @@ private:
     // tasks that should be woken up when each socket is updated (tx complete or rx ready)
     tid_t m_tids[static_cast<int>(W5500_NUM_SOCKETS)];
 
-    RetType read_reg(uint32_t addrSelect, uint8_t *result) {
+    RetType read_reg(uint32_t addr_select, uint8_t *result) {
         RESUME();
         static uint8_t data[3];
         RetType ret = CALL(m_gpio.set(0));
@@ -456,11 +456,11 @@ private:
 
         WIZCHIP.CS._select();
 
-        addrSelect |= (_W5500_SPI_READ_ | _W5500_SPI_VDM_OP_);
+        addr_select |= (_W5500_SPI_READ_ | _W5500_SPI_VDM_OP_);
 
-        data[0] = (addrSelect & 0x00FF0000) >> 16;
-        data[1] = (addrSelect & 0x0000FF00) >> 8;
-        data[2] = (addrSelect & 0x000000FF) >> 0;
+        data[0] = (addr_select & 0x00FF0000) >> 16;
+        data[1] = (addr_select & 0x0000FF00) >> 8;
+        data[2] = (addr_select & 0x000000FF) >> 0;
 
         ret = CALL(m_spi.write_read(data, data, 3));
         if (ret != RET_SUCCESS) goto read_reg_end;
@@ -473,23 +473,73 @@ private:
         return ret;
     }
 
-    RetType write_reg(uint32_t addrSel, uint8_t writeByte) {
+    RetType write_reg(uint32_t addr_sel, uint8_t write_byte) {
         uint8_t data[4];
 
         RetType ret = CALL(m_gpio.set(0));
         if (ret != RET_SUCCESS) goto write_reg_end;
 
-        addrSel |= (_W5500_SPI_WRITE_ | _W5500_SPI_VDM_OP_);
+        addr_sel |= (_W5500_SPI_WRITE_ | _W5500_SPI_VDM_OP_);
 
-        data[0] = (addrSel & 0x00FF0000) >> 16;
-        data[1] = (addrSel & 0x0000FF00) >> 8;
-        data[2] = (addrSel & 0x000000FF) >> 0;
-        data[3] = writeByte;
+        data[0] = (addr_sel & 0x00FF0000) >> 16;
+        data[1] = (addr_sel & 0x0000FF00) >> 8;
+        data[2] = (addr_sel & 0x000000FF) >> 0;
+        data[3] = write_byte;
 
         ret = CALL(m_spi.write_read(data, 4));
         if (ret != RET_SUCCESS) goto write_reg_end;
 
         write_reg_end:
+        RESET();
+        CALL(m_gpio.set(1));
+        return ret;
+    }
+
+    void read_buff(uint32_t addr_sel, uint8_t *buff, uint16_t len) {
+        RESUME();
+
+        // Original write with (data, 3) and read with (buff, len). Going to try write_read
+        static uint8_t data[16];
+        RetType ret = CALL(m_gpio.set(0));
+        if (ret != RET_SUCCESS) goto read_buff_end;
+
+        addr_sel |= (_W5500_SPI_READ_ | _W5500_SPI_VDM_OP_);
+        data[0] = (addr_sel & 0x00FF0000) >> 16;
+        data[1] = (addr_sel & 0x0000FF00) >> 8;
+        data[2] = (addr_sel & 0x000000FF) >> 0;
+        for (int i = 0; i < len; i++) {
+            data[i + 3] = *(buff + i);
+        }
+
+        ret = CALL(m_spi.write_read(data, data, len + 3));
+        if (ret != RET_SUCCESS) goto read_buff_end;
+
+        read_buff_end:
+        RESET();
+        CALL(m_gpio.set(1));
+        return ret;
+    }
+
+    void write_buff(uint32_t addr_sel, uint8_t *buff, uint16_t len) {
+        RESUME();
+        static uint8_t data[16];
+
+        RetType ret = CALL(m_gpio.set(0));
+        if (ret != RET_SUCCESS) goto write_buf_end;
+
+        addr_sel |= (_W5500_SPI_WRITE_ | _W5500_SPI_VDM_OP_);
+
+        data[0] = (addr_sel & 0x00FF0000) >> 16;
+        data[1] = (addr_sel & 0x0000FF00) >> 8;
+        data[2] = (addr_sel & 0x000000FF) >> 0;
+        for (int i = 0; i < len; i++) {
+            data[i + 3] = *(buff + i);
+        }
+
+        ret = CALL(m_spi.write_read(data, data, len + 3));
+        if (ret != RET_SUCCESS) goto write_buff_end;
+
+        write_buff_end:
         RESET();
         CALL(m_gpio.set(1));
         return ret;
