@@ -454,8 +454,6 @@ private:
         RetType ret = CALL(m_gpio.set(0));
         if (ret != RET_SUCCESS) goto read_reg_end;
 
-        WIZCHIP.CS._select();
-
         addr_select |= (_W5500_SPI_READ_ | _W5500_SPI_VDM_OP_);
 
         data[0] = (addr_select & 0x00FF0000) >> 16;
@@ -474,6 +472,8 @@ private:
     }
 
     RetType write_reg(uint32_t addr_sel, uint8_t write_byte) {
+        RESUME();
+
         uint8_t data[4];
 
         RetType ret = CALL(m_gpio.set(0));
@@ -486,7 +486,7 @@ private:
         data[2] = (addr_sel & 0x000000FF) >> 0;
         data[3] = write_byte;
 
-        ret = CALL(m_spi.write_read(data, 4));
+        ret = CALL(m_spi.write(data, 4));
         if (ret != RET_SUCCESS) goto write_reg_end;
 
         write_reg_end:
@@ -495,7 +495,7 @@ private:
         return ret;
     }
 
-    void read_buff(uint32_t addr_sel, uint8_t *buff, uint16_t len) {
+    RetType read_buff(uint32_t addr_sel, uint8_t *buff, uint16_t len) {
         RESUME();
 
         // Original write with (data, 3) and read with (buff, len). Going to try write_read
@@ -520,12 +520,12 @@ private:
         return ret;
     }
 
-    void write_buff(uint32_t addr_sel, uint8_t *buff, uint16_t len) {
+    RetType write_buff(uint32_t addr_sel, uint8_t *buff, uint16_t len) {
         RESUME();
         static uint8_t data[16];
 
         RetType ret = CALL(m_gpio.set(0));
-        if (ret != RET_SUCCESS) goto write_buf_end;
+        if (ret != RET_SUCCESS) goto write_buff_end;
 
         addr_sel |= (_W5500_SPI_WRITE_ | _W5500_SPI_VDM_OP_);
 
@@ -544,8 +544,6 @@ private:
         CALL(m_gpio.set(1));
         return ret;
     }
-
-
 };
 
 #endif
