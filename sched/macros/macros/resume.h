@@ -3,7 +3,7 @@
 
 #include "sched/sched.h"
 #include "return.h"
-#include "sched/jump_table.h"
+#include "sched/macros/jump_table.h"
 
 /* The RESUME macro.
 *  Called as RESUME()
@@ -18,7 +18,8 @@
 ///       that's not a C/C++ feature but is part of GCC, so we are dependent on
 ///       using GCC/G++ for these macros to work
 #define RESUME()\
-        void* _jump = jt_push(sched_dispatched);
-                goto *(jt_pop(sched_dispatched));
+    if(sched_jump[sched_dispatched].index < sched_jump[sched_dispatched].size) { \
+        goto *(sched_jump[sched_dispatched].jumps[sched_jump[sched_dispatched].index++]); \
+    } \
 
 #endif

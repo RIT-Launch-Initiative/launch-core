@@ -4,6 +4,8 @@
 #include "sched/sched.h"
 #include "return.h"
 
+// NOTE: depracated
+
 /* The RESET macro.
 *  Called as RESET()
 *  Resets the function to start executing from after RESUME() macro next time
@@ -13,6 +15,7 @@
 */
 
 /// @brief reset a task to the top
-#define RESET() _jump_requested[sched_dispatched] = 0;
+/// NOTE: deprecated, does nothing
+#define RESET()
 
 #endif

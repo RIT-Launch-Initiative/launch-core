@@ -3,6 +3,7 @@
 
 #include "sched/sched.h"
 #include "return.h"
+#include "sched/macros/jump_table.h"
 
 /* The YIELD macro.
 *  Called as YIELD()
@@ -15,7 +16,7 @@
 
 
 #define YIELD2(z)\
-        _current[static_cast<int>(sched_dispatched)] = TOKENPASTE2(&&_yield, z);\
+        sched_jump[sched_dispatched].jumps[sched_jump[sched_dispatched].size++] = TOKENPASTE2(&&_yield, z);\
         return RET_YIELD;\
         TOKENPASTE2(_yield, z):\
 

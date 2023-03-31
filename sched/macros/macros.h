@@ -14,7 +14,7 @@
 
 // ** macros for use in scheduler tasks ** //
 
-// NOTE: sched/jump_table.c must be compiled to use macros!
+// NOTE: sched/macros/jump_table.cpp must be compiled to use macros!
 
 // RESUME()
 //   Should be placed at the very beginning of a function. Sets up the function
@@ -65,12 +65,12 @@
 
 // includes for the macros //
 
-#include "sched/macros/resume.h"
-#include "sched/macros/reset.h"
-#include "sched/macros/sleep.h"
-#include "sched/macros/block.h"
-#include "sched/macros/wake.h"
-#include "sched/macros/yield.h"
-#include "sched/macros/call.h"
+#include "sched/macros/macros/resume.h"
+#include "sched/macros/macros/reset.h"
+#include "sched/macros/macros/sleep.h"
+#include "sched/macros/macros/block.h"
+#include "sched/macros/macros/wake.h"
+#include "sched/macros/macros/yield.h"
+#include "sched/macros/macros/call.h"
 
 #endif

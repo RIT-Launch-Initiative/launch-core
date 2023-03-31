@@ -119,8 +119,8 @@ static void _sched_wakeup_tasks() {
 }
 
 /// @brief select the next task
-/// @return the next task scheduled, or -1 if no task is ready to be scheduled
-tid_t sched_select() {
+/// @return the next task scheduled, or NULl if no task is ready to be scheduled
+task_t* sched_select() {
     // wakeup any sleeping tasks
     _sched_wakeup_tasks();
 
@@ -128,7 +128,7 @@ tid_t sched_select() {
 
     if(NULL == task_p) {
         // nothing ready
-        return -1;
+        return NULL;
     }
 
     ready_q.pop();
@@ -137,7 +137,7 @@ tid_t sched_select() {
     // requeue the task
     task->ready_loc = ready_q.push(task);
 
-    return task->tid;
+    return task;
 }
 
 /// @brief kill a task, removing it from the scheduler

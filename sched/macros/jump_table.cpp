@@ -10,6 +10,7 @@
 *
 *******************************************************************************/
 
-#include "sched/jump_table.h"
+#include "sched/macros/jump_table.h"
 
-jump_stack_t sched_jump_table[MAX_NUM_TASKS];
+jump_table_t sched_jump[MAX_NUM_TASKS];
+tid_t sched_dispatched;

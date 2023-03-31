@@ -16,11 +16,11 @@
 #include <stdint.h>
 
 #include "return.h"
-#include "sched/config.h"
 
-/// @brief task id, any tid < 0 or > MAX_NUM_TASKS is an error
-///        a tid equal to MAX_NUM_TASKS represents no task executing
+/// @brief task id, any tid < 0 or >= MAX_NUM_TASKS is not a valid ID for a task
 typedef int tid_t;
+
+#include "sched/config.h"
 
 /// @brief function type to get system time
 ///        units are arbitrary, same units as sleep
@@ -64,7 +64,7 @@ tid_t sched_start(task_func_t func, void* arg);
 
 /// @brief select the next task
 /// @return the next task scheduled, or -1 if no task is ready to be scheduled
-tid_t sched_select();
+task_t* sched_select();
 
 /// @brief kill a task, removing it from the scheduler
 /// @param tid  the tid of the task to kill
