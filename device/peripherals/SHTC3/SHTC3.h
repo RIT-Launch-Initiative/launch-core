@@ -57,7 +57,7 @@ class SHTC3 {
             SLEEP(1000);
         } else {
             ret = CALL(writeCommand(NORMAL_POW_MEAS_TEMP));
-            SLEEP(13000);
+            SLEEP(1000);
         }
 
         RESET();
@@ -70,11 +70,11 @@ class SHTC3 {
         uint16_t rawTemp;
         uint16_t rawHumidity;
 
-        RetType ret = CALL(writeCommand(NORMAL_POW_MEAS_HUM_STRETCH));
+        RetType ret = CALL(writeCommand(NORMAL_POW_MEAS_HUM_STRETCH));  // hang here fixed
 
         uint8_t buffer[2] = {};
 
-        ret = CALL(mI2C.read(addr, buffer, 2));
+        ret = CALL(mI2C.read(addr, buffer, 2));  // hanging here
         if (ret != RET_SUCCESS) return ret;
         rawHumidity = (buffer[0] << 8) | buffer[1];
         *humidity = calcHumidity(rawHumidity);
@@ -132,8 +132,11 @@ class SHTC3 {
         RESUME();
         addr.dev_addr = (SHTC3_I2C_ADDR << 1);
 
-        RetType ret = CALL(mI2C.transmit(addr, reinterpret_cast<uint8_t *>(&command16), 0));
-        if (ret != RET_SUCCESS) return ret;
+        uint8_t command8[2];
+        uint16ToUint8(command16, command8);
+        RetType ret = CALL(mI2C.transmit(addr, command8, 2, 80));
+        if (ret != RET_SUCCESS)
+            return ret;
 
         RESET();
         return RET_SUCCESS;
@@ -142,12 +145,12 @@ class SHTC3 {
     RetType readCommand(SHTC3_CMD command16, uint8_t *buff, uint8_t numBytes) {
         RESUME();
 
-//        RetType ret = CALL(mI2C.transmit(addr, reinterpret_cast<uint8_t *>(&command16), 0));
-//        if (ret != RET_SUCCESS) return ret;
-//
-//        static uint8_t secondAddr |= 0x01 << 0;
-//        ret = CALL(mI2C.receive(addr, buff, numBytes));
-//        if (ret != RET_SUCCESS) return ret;
+        //        RetType ret = CALL(mI2C.transmit(addr, reinterpret_cast<uint8_t *>(&command16), 0));
+        //        if (ret != RET_SUCCESS) return ret;
+        //
+        //        static uint8_t secondAddr |= 0x01 << 0;
+        //        ret = CALL(mI2C.receive(addr, buff, numBytes));
+        //        if (ret != RET_SUCCESS) return ret;
         uint16ToUint8(static_cast<uint16_t>(command16), buff);
         static uint8_t secondAddr = addr.dev_addr;
         secondAddr |= 0x01 << 0;
