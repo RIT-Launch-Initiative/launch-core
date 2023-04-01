@@ -21,5 +21,6 @@
     if(sched_jump[sched_dispatched].index++ < sched_jump[sched_dispatched].size) { \
         goto *(sched_jump[sched_dispatched].jumps[sched_jump[sched_dispatched].index - 1]); \
     } \
+    int _cached_index = sched_jump[sched_dispatched].index; \
 
 #endif

@@ -98,6 +98,5 @@ extern tid_t sched_dispatched;
 #include "sched/macros/macros/wake.h"
 #include "sched/macros/macros/yield.h"
 #include "sched/macros/macros/call.h"
-#include "sched/macros/macros/return.h"
 
 #endif

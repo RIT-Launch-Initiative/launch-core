@@ -12,9 +12,8 @@ RetType func2() {
     RESUME();
 
     printf("func2!\n");
-    YIELD();
 
-    RETURN(RET_SUCCESS);
+    return RET_SUCCESS;
 }
 
 RetType func() {
@@ -29,16 +28,16 @@ RetType func() {
         // base case
         // NOTE: fun test, if you remove this line you will likely get a
         //       segfault after i = MAX_CALL_DEPTH - 1
-        i = 0;
-        RETURN(RET_SUCCESS);
+        // i = 0;
+
+        RetType ret = CALL(func2());
+        return ret;
     }
 
     printf("func: i = %i\n", i);
     RetType ret = CALL(func()); // recursion!!!
 
-    ret = CALL(func2());
-
-    RETURN(ret);
+    return ret;
 }
 
 RetType task(void*) {
@@ -46,9 +45,9 @@ RetType task(void*) {
 
     CALL(func());
 
-    // SLEEP(1);
+    SLEEP(1);
 
-    RETURN(RET_SUCCESS);
+    return RET_SUCCESS;
 }
 
 int main() {
