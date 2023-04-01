@@ -1,7 +1,12 @@
+Combined with the scheduler, these macros allow us to make functions reentrant.
+
 ## Usage pattern
 ```
 RetType example_function(...) { // must be RetType
-	RESUME(); // this function is reentrant (mandatory!)
+	RESUME(); // this function is reentrant 
+	// If a function CALLs, SLEEPs, BLOCKs, or YIELDs, it can jump back and
+	// forth in execution and is reentrant. Such functions MUST have RESUME/RESET
+	// pairs.
 	RetType status;
 
 	status = CALL(blocking_function(...));
@@ -9,6 +14,7 @@ RetType example_function(...) { // must be RetType
 	if (status == RET_ERROR) { // blocking_function failed for some reason
 		// In this example, we elect not to continue execution
 		// Therefore, we want the RESUME() macro to start this function from the beginning
+		// next time this function is called.
 		RESET(); // We do this using the RESET macro
   
 		return RET_ERROR; // Return an error so the caller knows we failed
@@ -16,12 +22,22 @@ RetType example_function(...) { // must be RetType
 
 	// interesting things...
 
-	RESET(); // we are done (mandatory!)
-	return RET_SUCCESS;
+	RESET(); // we are done, reset the current label to the start
+	// Not needed if we don't use RESUME
+	return RET_SUCCESS; // :)
 }
 ```
 
+Notes:
+- All tasks are functions; not all functions are tasks. Calling reentrant
+  *functions* DOES NOT create new tasks, only `sched_start` creates new tasks.
+- If a task `SLEEP`s, `BLOCK`s, or `YIELD`s, it is reentrant and must have
+  reentrant macros.
+
 Common mistakes (to be updated as they happen):
+- Not using `CALL` on functions that are reentrant (have `RESUME/RESET` macros
+  inside them)
+- Not using `RESUME`/`RESET` in functions that rely on other reentrant functions
 - Failing to call `RESET` right before an early `return` (like for an error
 status). The consequence of this is that the next call, this function will not
 start from the beginning, and instead pick up from the last `CALL`, `SLEEP`,
@@ -38,6 +54,7 @@ every task that may have called this function.
 
 ### All at once
 ```
+#define RESUME()
 static bool _init = false;
 static void* _current[static_cast<int>(MAX_NUM_TASKS) + 1];
 if(!_init) {
@@ -70,7 +87,8 @@ static void* _current[static_cast<int>(MAX_NUM_TASKS) + 1];
 most `MAX_NUM + 1`) may call this re-entrant function, and will need its own
 re-entry label. 
 
-Initialize (if it hasn't been already - this is what `_init` controls) all of the labels in the `_current` array to the start label:
+Initialize (if it hasn't been already - this is what `_init` controls) all of
+the labels in the `_current` array to the start label:
 ```
 if(!_init) {
 	for(int i = 0; i < static_cast<int>(MAX_NUM_TASKS) + 1; i++) {
@@ -79,13 +97,15 @@ if(!_init) {
 	_init = true;
 }
 ```
-NOTE: The unary `&&` operator lets us store the label address as a variable and is [GCC specific](http://gcc.gnu.org/onlinedocs/gcc-3.2.3/gcc/Labels-as-Values.html#Labels%20as%20Values).
+NOTE: The unary `&&` operator lets us store the label address as a variable and is 
+[GCC specific](http://gcc.gnu.org/onlinedocs/gcc-3.2.3/gcc/Labels-as-Values.html#Labels%20as%20Values).
 
-Skip ahead to wherever the current task needs this function to be (`sched_dispatched`
-tells us what the current task is):
+Skip ahead to wherever the current task needs this function to be:
 ```
 goto *(_current[static_cast<int>(sched_dispatched)]);
 ```
+`sched_dispatched` is the ID (`tid_t`) of the currently executing task. It is
+kept up to date by the scheduler functions - DO NOT MODIFY!
 
 Label the start of the function:
 ```
@@ -96,7 +116,7 @@ _start:
 Sets this (as given by `sched_dispatched`) task's position in this function to
 the start.
 ```
-_current[static_cast<int>(sched_dispatched)] = &&_start;
+#define RESET() _current[static_cast<int>(sched_dispatched)] = &&_start;
 ```
 This means any time you want a function to start from the beginning the next
 time the *same* task calls this function, `RESET` should happen immediately
@@ -137,9 +157,10 @@ Immediate questions:
 
 ### Stepping through
 For now we'll ignore the nested calls. The property we care about is that these
-`CALLS` get a unique variable to store the result (given to us by the GCC-specific `__COUNTER__` macro) and more importantly a unique
-label to jump back to. We will for now just assume that `RET` and `z` are
-unique to each `CALL`.
+`CALLS` get a unique variable to store the result (given to us by the
+GCC-specific `__COUNTER__` macro) and more importantly a unique label to jump
+back to. We will for now just assume that `RET` and `z` are unique to each
+`CALL`.
 
 Store the label right before the function call as the current position (`z` is
 a unique identifier for this `CALL`):
@@ -181,32 +202,36 @@ RET;
 ## SLEEP
 ### All at once
 ```
+#define SLEEP2(N, z)
 _current[static_cast<int>(sched_dispatched)] = TOKENPASTE2(&&_sleep, z);
 sched_sleep(sched_dispatched, N);
 return RET_SLEEP;
 TOKENPASTE2(_sleep, z):
+
+#define SLEEP(N) SLEEP2(N, __COUNTER__)
 ```
-`CALL` is probably the most complicated macro, so there shouldn't be new questions here.
+`CALL` is probably the most complicated macro, so there shouldn't be new
+questions here. (as before, we ignore the nested calling for now)
 
 ### Stepping through
 Use `_current` to store this unique SLEEP point (`z`), for this (`sched_dispatched`) task:
 ```
-_current[static_cast<int>(sched_dispatched)] = TOKENPASTE2(&&_sleep, z);\
+_current[static_cast<int>(sched_dispatched)] = TOKENPASTE2(&&_sleep, z);
 ```
 
 Tell the scheduler to put this on the sleep queue for however many ticks (N) we want:
 ```
-sched_sleep(sched_dispatched, N);\
+sched_sleep(sched_dispatched, N);
 ```
 
 Return from the function (and every caller above will immediately return as well):
 ```
-return RET_SLEEP;\
+return RET_SLEEP;
 ```
 
 Put this invocation's unique label here:
 ```
-TOKENPASTE2(_sleep, z):\
+TOKENPASTE2(_sleep, z):
 ```
 
 Once this task goes back on the ready queue (the sleep time expires), the
@@ -215,10 +240,14 @@ return so we don't immediately go to sleep when we wake back up.
 
 ## BLOCK
 ```
-_current[static_cast<int>(sched_dispatched)] = TOKENPASTE2(&&_block, z);\
-sched_block(sched_dispatched);\
-return RET_BLOCKED;\
-TOKENPASTE2(_block, z):\
+#define BLOCK2(z)
+_current[static_cast<int>(sched_dispatched)] = TOKENPASTE2(&&_block, z);
+sched_block(sched_dispatched);
+return RET_BLOCKED;
+TOKENPASTE2(_block, z):
+
+#define BLOCK() BLOCK2(__COUNTER__)
+
 ```
 Similar to `SLEEP`, but uses `sched_block`. Something else (an ISR callback or
 `poll`) unblocks this task, and the `RESUME` expansions go down the chain of
@@ -226,11 +255,16 @@ Similar to `SLEEP`, but uses `sched_block`. Something else (an ISR callback or
 
 ## YIELD
 ```
+#define YIELD2(z)
 _current[static_cast<int>(sched_dispatched)] = TOKENPASTE2(&&_yield, z);
 return RET_YIELD;
 TOKENPASTE2(_yield, z):
+
+#define YIELD() YIELD2(__COUNTER__)
 ```
 `SLEEP`, but will immediately re-run once the scheduler goes through everything else.
 
 ## WAKE
-Wraps `sched_wake`.
+Wraps `sched_wake`. This is the only macro for which you need to know a task's
+ID. In our use, such an ID would be stored in some variable by a task right
+beforte that task blocks (see the [HAL I2C Device](../../device/platforms/stm32/HAL_I2CDevice.h)).
