@@ -59,7 +59,7 @@ public:
 
         static uint8_t chip_id = 0;
         ret = CALL(get_chip_version(&chip_id));
-        if (chip_id != 0x04) {
+        if (chip_id == 0) {
             ret = RET_ERROR;
             goto init_end;
         }
@@ -87,7 +87,7 @@ public:
 
         // mode
 //        ret = CALL(write_bytes(W5500_COMMON_REG, W5500_COMMON_MR, &mode, 1));
-//        if(ret != RET_SUCCESS) goto init_end;for (uint8_t s = 0; s < W5500_MAX_SOCKET_NUM; s++ )
+//        if(ret != RET_SU CCESS) goto init_end;for (uint8_t s = 0; s < W5500_MAX_SOCKET_NUM; s++ )
 
 
 // TODO: Either COMMON or CTRL reg
@@ -118,7 +118,7 @@ public:
 
         init_end:
         RESET();
-        return ret;
+        return RET_SUCCESS;
     }
 
 
@@ -373,13 +373,7 @@ public:
     RetType set_mac_addr(uint8_t mac[6]) {
         RESUME();
 
-        if (mac == nullptr) {
-            RESET();
-            return RET_ERROR;
-        }
-        RetType ret;
-
-//        RetType ret = CALL(write_buffer(W5500_CTRL_REG, W5500_COMMON_SHAR0, mac, 6));
+        RetType ret = CALL(write_buff(W5500_SHAR, mac, 6));
 
         RESET();
         return ret;
@@ -387,10 +381,9 @@ public:
 
     RetType set_gateway_addr(uint8_t gateway[4]) {
         RESUME();
-        RetType ret;
 
-//        RetType ret = CALL(write_buffer(W5500_CTRL_REG, W5500_COMMON_GAR0, gateway, 4));
-//        if (ret != RET_SUCCESS) goto set_gateway_end;
+        RetType ret = CALL(write_buff(W5500_GAR, gateway, 4));
+
         set_gateway_end:
         RESET();
         return ret;
@@ -398,31 +391,26 @@ public:
 
     RetType set_ip_addr(uint8_t ip[4]) {
         RESUME();
-        RetType ret;
 
-//        RetType ret = CALL(write_buffer(W5500_CTRL_REG, W5500_COMMON_SIPR0, ip, 4););
-//        if (ret != RET_SUCCESS) goto set_ip_end;
-        set_ip_end:
+        RetType ret = CALL(write_buff(W5500_SIPR, ip, 4));
+
         RESET();
         return ret;
     }
 
     RetType set_subnet_mask(uint8_t subnet[4]) {
         RESUME();
-        RetType ret;
 
-//        RetType ret = CALL(write_buffer(W5500_CTRL_REG, W5500_COMMON_SUBR0, subnet, 4));
-//        if (ret != RET_SUCCESS) goto set_subnet_end;
-        set_subnet_end:
+        RetType ret = CALL(write_buff(W5500_SUBR, subnet, 4));
+
         RESET();
         return ret;
     }
 
     RetType get_chip_version(uint8_t *version) {
         RESUME();
-        RetType ret;
 
-//        RetType ret = CALL(read_register(W5500_CTRL_REG, W5500_COMMON_VERSIONR, version));
+        RetType ret = CALL(read_reg(W5500_VERSIONR, version));
 
         RESET();
         return ret;
