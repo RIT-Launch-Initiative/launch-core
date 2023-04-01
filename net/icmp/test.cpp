@@ -87,5 +87,9 @@ int main() {
         printf("failed to transmit packet (second pass)\n");
         return -1;
     }
-};
 
+    if (RET_SUCCESS != lo.receive(packet, msg, &lo)) {
+        printf("Loopback receive failed");
+        return -1;
+    }
+};
