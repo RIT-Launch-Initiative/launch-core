@@ -90,6 +90,24 @@ extern jump_table_t sched_jump[MAX_NUM_TASKS];
 extern tid_t sched_dispatched;
 
 
+/// @brief dispatches a single task in the macro-based scheduler.
+///        assumes scheduler is initialized.
+///        this function should be called repeatedly to dispatch new tasks.
+///
+/// NOTE:  any task that returns RET_ERROR will be killed.
+inline void dispatch() {
+    task_t* task = sched_select();
+
+    if(NULL != dispatch) {
+        sched_dispatched = task->tid;
+        sched_jump[sched_dispatched].index = 0;
+
+        if(RET_ERROR == task->func(task->arg)) {
+            sched_kill(sched_dispatched);
+        }
+    }
+}
+
 // includes for the macros //
 
 #include "sched/macros/macros/resume.h"
