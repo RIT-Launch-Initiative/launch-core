@@ -15,6 +15,9 @@
 
 
 #define SLEEP2(N, z)\
+            if(sched_jump[sched_dispatched].size == MAX_CALL_DEPTH) {\
+                return RET_ERROR;\
+            }\
             sched_jump[sched_dispatched].jumps[sched_jump[sched_dispatched].size++] = TOKENPASTE2(&&_sleep, z);\
             sched_sleep(sched_dispatched, N);\
             return RET_YIELD;\

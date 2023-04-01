@@ -12,9 +12,10 @@
 #ifndef SCHED_MACROS_H
 #define SCHED_MACROS_H
 
-// ** macros for use in scheduler tasks ** //
-
 // NOTE: sched/macros/jump_table.cpp must be compiled to use macros!
+
+
+// ** macros for use in scheduler tasks ** //
 
 // RESUME()
 //   Should be placed at the very beginning of a function. Sets up the function
@@ -25,8 +26,7 @@
 //   twice.
 
 // RESET()
-//   Should be placed at the end of a function, before any return statements but
-//   after any blocking calls, such as CALL, BLOCK, YIELD, SLEEP.
+//   Deprecated, unnecessary to use but if included acts as a no-op.
 
 // SLEEP(T)
 //   Sleep the current running task for 'T' ticks (in system clock time).
@@ -36,7 +36,7 @@
 // BLOCK()
 //   Block the current running task indefinitely, only unblocked when WAKE is
 //   called on the blocked task's task ID. Returns RET_YIELD, all functions
-//   higher in the call stack should see this return result and get execution
+//   lower in the call stack should see this return result and get execution
 //   back to the scheduler ASAP. When the task blocked is scheduled again,
 //   execution begins right after the macro.
 
@@ -47,7 +47,7 @@
 // YIELD()
 //   Yield the currently executing task's time back to the scheduler. Task stays
 //   in the ready queue but is done executing for now. Return RET_YIELD, all
-//   functions higher in the call stack should see this return result and get
+//   functions lower in the call stack should see this return result and get
 //   execution back to the scheduler ASAP. When task is scheduled again,
 //   execution begins right after the macro.
 
@@ -68,6 +68,7 @@
 #include "sched/sched.h"
 
 // maxmimum call depth supported
+// if call depth is exceeded, all macros that may block will return RET_ERROR
 static const size_t MAX_CALL_DEPTH = 64;
 
 /// @brief a jump table for a task

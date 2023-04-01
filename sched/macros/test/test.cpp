@@ -26,9 +26,7 @@ RetType func() {
 
     if(i == 5) {
         // base case
-        // NOTE: fun test, if you remove this line you will likely get a
-        //       segfault after i = MAX_CALL_DEPTH - 1
-        // i = 0;
+        i = 0;
 
         RetType ret = CALL(func2());
         return ret;

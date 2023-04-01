@@ -14,6 +14,9 @@
 #define TOKENPASTE2(x, y) TOKENPASTE(x, y)
 
 #define BLOCK2(z)\
+        if(sched_jump[sched_dispatched].size == MAX_CALL_DEPTH) {\
+            return RET_ERROR;\
+        }\
         sched_jump[sched_dispatched].jumps[sched_jump[sched_dispatched].size++] = TOKENPASTE2(&&_yield, z);\
         sched_block(sched_dispatched);\
         return RET_BLOCKED;\
