@@ -154,7 +154,7 @@ class SHTC3 {
     RetType toggleSleep(bool setSleep) {
         RESUME();
 
-        static RetType ret;
+        RetType ret;
         if (setSleep) {
             ret = CALL(writeCommand(SLEEP_CMD));
         } else {
