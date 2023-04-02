@@ -340,7 +340,7 @@ public:
     /// @param outLen   the number of bytes to receive
     /// @return
     RetType transmitReceive(I2CAddr_t &addr, uint8_t *buff,
-                            size_t inLen, size_t outLen, uint32_t timeout) {
+                            size_t inLen, size_t outLen, uint32_t timeout, uint8_t secondAddr) {
         RESUME();
 
         // block and wait for the device to be available
@@ -379,6 +379,10 @@ public:
             } else {
                 timed_out = false;
             }
+        }
+
+        if (secondAddr != 0x00) {
+            addr.dev_addr = secondAddr;
         }
 
         if (HAL_OK != HAL_I2C_Master_Receive_IT(m_i2c, addr.dev_addr, buff, outLen)) {
