@@ -44,6 +44,31 @@ static inline void IPv4Address(uint8_t a, uint8_t b, uint8_t c, uint8_t d, IPv4A
     *addr |= (a << 24);
 }
 
+
+/// @brief determine if a particular IP address is a multicast address
+/// @param addr     the address to check
+/// @return true if the address is a multicast address
+static inline bool is_multicast(IPv4Addr_t* addr) {
+    // the range of multicast IPv4 addresses are from
+    // 224.0.0.0 to 239.255.255.255
+
+    if(*addr < 0xE0000000 || *addr > 0xEFFFFFFF) {
+        return false;
+    }
+
+    return true;
+}
+
+/// @brief determine if a particular IP address is the broadast address
+/// @param addr     the address to check
+/// @return true if the address is a multicast address
+static inline bool is_multicast(IPv4Addr_t* addr) {
+    // the broadcast address is 255.255.255.255
+
+    return *addr == 0xFFFFFFFF;
+}
+
+
 /// @brief calculates IPv4 checksum
 /// header checksum field must be zero before calling!
 uint16_t checksum(const uint16_t* data, uint16_t len) {

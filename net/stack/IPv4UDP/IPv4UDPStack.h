@@ -56,7 +56,7 @@ public:
                                                 SimpleArpLayer::FIXED_MAC_2,
                                                 a, b, c, d,
                                                 m_dev,
-                                                m_arp,
+                                                m_ip,
                                                 eth::IPV4_PROTO,
                                                 true),
                                           m_lo(),
@@ -83,8 +83,8 @@ public:
             return ret;
         }
 
-        // add a route for the device
-        ret = m_ip.add_route(m_ipAddr, m_ipSubnet, m_dev);
+        // add a route for packets bound for the device
+        ret = m_ip.add_route(m_ipAddr, m_ipSubnet, m_arp);
 
         if(RET_SUCCESS != ret) {
             return ret;
@@ -121,7 +121,7 @@ public:
         // adds addr/32 as a route for the ethernet layer
         // all packets sent to 'addr' over 'm_eth' will have a longest prefix
         // match with addr/32 (since it's the longest match possible)
-        return m_ip.add_route(addr, 0xFFFFFFFF, m_eth);
+        return m_ip.add_route(addr, 0xFFFFFFFF, m_arp);
     }
 
     /// @brief remove a multicast address for the stack to listen to
