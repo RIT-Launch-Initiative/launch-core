@@ -113,7 +113,7 @@ public:
 
         // fill in information
         netinfo_t info;
-        info.ignore_checksum = false;
+        info.ignore_checksums = false;
         info.dst.udp_port = dst->port;
         ipv4::IPv4Address(dst->ip[0], dst->ip[1], dst->ip[2], dst->ip[3],
                                                         &(info.dst.ipv4_addr));

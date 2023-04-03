@@ -251,7 +251,7 @@ public:
 
         NetworkLayer* next = *next_ptr;
 
-        if(!info.ignore_checksum) {
+        if(!info.ignore_checksums) {
             // zero the checksum in order to calculate, cache first
             uint16_t check = ntoh16(hdr->checksum);
             hdr->checksum = 0;

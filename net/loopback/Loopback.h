@@ -40,7 +40,7 @@ public:
         ipv4::IPv4Address(127, 0, 0, 1, &(hdr->src));
 
         // hint upper layers to ignore checksums as they will be incorrect now
-        info.ignore_checksum = true;
+        info.ignore_checksums = true;
 
         packet.seek_read(true);
         return CALL(caller->receive(packet, info, this));

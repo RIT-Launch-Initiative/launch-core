@@ -25,7 +25,7 @@ typedef struct {
     // hint as to whether bad checksums should be ignored
     // primarily used for receiving packets on loopback as it modifies packets
     // without updating the checksum
-    bool ignore_checksum;
+    bool ignore_checksums;
 } netinfo_t;
 
 /// @brief interface for network layer
