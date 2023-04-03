@@ -13,7 +13,7 @@
 #define BLOCKING_SEMAPHORE_H
 
 #include "return.h"
-#include "sched/macros.h"
+#include "sched/macros/macros.h"
 #include "sync/Semaphore.h"
 #include "queue/allocated_queue.h"
 

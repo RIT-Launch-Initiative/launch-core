@@ -9,7 +9,7 @@
 
 #include "device/SPIDevice.h"
 #include "device/GPIODevice.h"
-#include "sched/macros.h"
+#include "sched/macros/macros.h"
 #include "device/BlockDevice.h"
 
 

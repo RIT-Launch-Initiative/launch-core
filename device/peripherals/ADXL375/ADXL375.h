@@ -19,7 +19,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#include "sched/macros.h"
+#include "sched/macros/macros.h"
 #include "return.h"
 #include "device/I2CDevice.h"
 

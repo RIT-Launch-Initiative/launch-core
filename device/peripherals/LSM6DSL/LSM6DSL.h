@@ -26,7 +26,7 @@
 
 #include <stdint.h>
 #include "device/I2CDevice.h"
-#include "sched/macros.h"
+#include "sched/macros/macros.h"
 #include "device/peripherals/LSM6DSL/LSM6DSL_Driver.h"
 
 

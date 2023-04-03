@@ -7,7 +7,7 @@
 #include "net/network_layer/NetworkLayer.h"
 #include "hashmap/hashmap.h"
 #include "udp.h"
-#include "sched/macros.h"
+#include "sched/macros/macros.h"
 #include <stdint.h>
 
 namespace udp {
@@ -62,8 +62,10 @@ namespace udp {
                     header->length
             };
 
-            if (header->checksum != checksum(&pseudo, header)) {
-                return RET_ERROR;
+            if(!info.ignore_checksum) {
+                if (header->checksum != checksum(&pseudo, header)) {
+                    return RET_ERROR;
+                }
             }
 
             NetworkLayer **next_ptr = port_bindings[ntoh16(header->dst)];

@@ -30,7 +30,7 @@
 #include "queue/allocated_queue.h"
 #include "net/packet/Packet.h"
 #include "pool/pool.h"
-#include "sched/macros.h"
+#include "sched/macros/macros.h"
 #include "net/stack/IPv4UDP/IPv4UDPSocket.h"
 
 
@@ -55,7 +55,7 @@ public:
                                           m_eth(SimpleArpLayer::FIXED_MAC_1,
                                                 SimpleArpLayer::FIXED_MAC_2,
                                                 a, b, c, d,
-                                                m_dev,
+                                                dev,
                                                 m_ip,
                                                 eth::IPV4_PROTO,
                                                 true),

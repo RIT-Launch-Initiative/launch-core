@@ -5,7 +5,7 @@
  */
 
 #include "device/GPIODevice.h"
-#include "sched/macros.h"
+#include "sched/macros/macros.h"
 
 #ifndef LAUNCH_CORE_RGB_H
 #define LAUNCH_CORE_RGB_H

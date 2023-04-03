@@ -8,7 +8,7 @@
 #define LAUNCH_CORE_LED_H
 
 #include "device/GPIODevice.h"
-#include "sched/macros.h"
+#include "sched/macros/macros.h"
 
 typedef enum {
     LED_OFF = 0,

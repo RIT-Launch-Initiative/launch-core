@@ -13,7 +13,7 @@
 
 #include <stdlib.h>
 
-#include "sched/macros.h"
+#include "sched/macros/macros.h"
 #include "device/DeviceMap.h"
 #include "device/Device.h"
 

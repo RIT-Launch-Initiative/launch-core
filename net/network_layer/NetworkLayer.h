@@ -22,6 +22,10 @@ typedef struct {
 typedef struct {
     netaddr_t src;
     netaddr_t dst;
+    // hint as to whether bad checksums should be ignored
+    // primarily used for receiving packets on loopback as it modifies packets
+    // without updating the checksum
+    bool ignore_checksum;
 } netinfo_t;
 
 /// @brief interface for network layer

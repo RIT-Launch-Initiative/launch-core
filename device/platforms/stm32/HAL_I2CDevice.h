@@ -6,7 +6,7 @@
 
 #include "device/I2CDevice.h"
 #include "device/platforms/stm32/HAL_Handlers.h"
-#include "sched/macros.h"
+#include "sched/macros/macros.h"
 #include "sync/BlockingSemaphore.h"
 
 /// @brief I2C device controller

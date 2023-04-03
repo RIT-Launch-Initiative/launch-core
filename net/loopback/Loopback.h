@@ -3,10 +3,12 @@
 
 #include "return.h"
 #include "net/network_layer/NetworkLayer.h"
-#include "sched/macros.h"
+#include "sched/macros/macros.h"
 #include "net/ipv4/ipv4.h"
 
-/// @brief simple network layer that loops packets back to the caller
+/// @brief simple network layer that loops packets back to IPv4
+/// NOTE: IPv4Router must always be the caller, as loopback assumes the previous
+///       header is an IPv4 header so it can modify the src address to 127.0.0.1
 class Loopback : public NetworkLayer {
 public:
     /// @brief constructor
@@ -36,6 +38,9 @@ public:
 
         // set the src address to 127.0.0.1
         ipv4::IPv4Address(127, 0, 0, 1, &(hdr->src));
+
+        // hint upper layers to ignore checksums as they will be incorrect now
+        info.ignore_checksum = true;
 
         packet.seek_read(true);
         return CALL(caller->receive(packet, info, this));

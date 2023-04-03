@@ -25,7 +25,7 @@
 #include "device/peripherals/W5500/W5500_defines.h"
 #include "device/peripherals/W5500/W5500_socket.h"
 #include "device/StreamDevice.h"
-#include "sched/macros.h"
+#include "sched/macros/macros.h"
 #include "return.h"
 
 /// @brief controller for W5500 device

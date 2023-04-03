@@ -26,7 +26,7 @@
 #include "queue/allocated_queue.h"
 #include "net/packet/Packet.h"
 #include "pool/pool.h"
-#include "sched/macros.h"
+#include "sched/macros/macros.h"
 
 // TODO add subscribing to multicast address somehow
 //      maybe just bind to multicast address (or 0.0.0.0)
@@ -113,6 +113,7 @@ public:
 
         // fill in information
         netinfo_t info;
+        info.ignore_checksum = false;
         info.dst.udp_port = dst->port;
         ipv4::IPv4Address(dst->ip[0], dst->ip[1], dst->ip[2], dst->ip[3],
                                                         &(info.dst.ipv4_addr));

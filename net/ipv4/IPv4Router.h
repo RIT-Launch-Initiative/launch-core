@@ -9,7 +9,7 @@
 #include "net/socket/Socket.h"
 #include "hashmap/hashmap.h"
 #include "queue/allocated_queue.h"
-#include "sched/macros.h"
+#include "sched/macros/macros.h"
 #include "config.h"
 
 #ifdef NET_STATISTICS
@@ -251,19 +251,21 @@ public:
 
         NetworkLayer* next = *next_ptr;
 
-        // zero the checksum in order to calculate, cache first
-        uint16_t check = ntoh16(hdr->checksum);
-        hdr->checksum = 0;
+        if(!info.ignore_checksum) {
+            // zero the checksum in order to calculate, cache first
+            uint16_t check = ntoh16(hdr->checksum);
+            hdr->checksum = 0;
 
-        // check the checksum
-        if(check != checksum((uint16_t*)hdr, header_len / sizeof(uint16_t))) {
-            // invalid checksum
+            // check the checksum
+            if(check != checksum((uint16_t*)hdr, header_len / sizeof(uint16_t))) {
+                // invalid checksum
 
-            #ifdef NET_STATISTICS
-            NetworkStatistics::DroppedIncomingPackets++;
-            #endif
+                #ifdef NET_STATISTICS
+                NetworkStatistics::DroppedIncomingPackets++;
+                #endif
 
-            return RET_ERROR;
+                return RET_ERROR;
+            }
         }
 
         // record information about the packet

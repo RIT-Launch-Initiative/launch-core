@@ -62,7 +62,7 @@ static inline bool is_multicast(IPv4Addr_t* addr) {
 /// @brief determine if a particular IP address is the broadast address
 /// @param addr     the address to check
 /// @return true if the address is a multicast address
-static inline bool is_multicast(IPv4Addr_t* addr) {
+static inline bool is_broadcast(IPv4Addr_t* addr) {
     // the broadcast address is 255.255.255.255
 
     return *addr == 0xFFFFFFFF;

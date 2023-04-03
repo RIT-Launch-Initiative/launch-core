@@ -17,9 +17,9 @@
         if(unlikely(sched_jump[sched_dispatched].size == MAX_CALL_DEPTH)) {\
             return RET_ERROR;\
         }\
-        sched_jump[sched_dispatched].jumps[sched_jump[sched_dispatched].size++] = TOKENPASTE2(&&_yield, z);\
+        sched_jump[sched_dispatched].jumps[sched_jump[sched_dispatched].size++] = TOKENPASTE2(&&_block, z);\
         sched_block(sched_dispatched);\
-        return RET_BLOCKED;\
+        return RET_YIELD;\
         TOKENPASTE2(_block, z):\
         sched_jump[sched_dispatched].size--;\
 

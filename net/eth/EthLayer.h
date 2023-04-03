@@ -3,7 +3,7 @@
 
 #include "net/network_layer/NetworkLayer.h"
 #include "net/eth/eth.h"
-#include "sched/macros.h"
+#include "sched/macros/macros.h"
 
 using namespace eth;
 
