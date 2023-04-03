@@ -17,6 +17,10 @@ static const uint8_t IGMP_PROTO         = 0x02;
 static const uint8_t EXPERIMENT1_PROTO  = 0xFD;
 static const uint8_t EXPERIMENT2_PROTO  = 0xFE;
 
+// address is 32 bits
+// always assume in system endianness
+typedef uint32_t IPv4Addr_t;
+
 // IP Header struct
 typedef struct {
     uint8_t version_ihl;
@@ -27,14 +31,10 @@ typedef struct {
     uint8_t ttl;
     uint8_t protocol;
     uint16_t checksum;
-    uint32_t src;
-    uint32_t dst;
+    IPv4Addr_t src;
+    IPv4Addr_t dst;
     // options
 } IPv4Header_t;
-
-// address is 32 bits
-// always assume in system endianness
-typedef uint32_t IPv4Addr_t;
 
 /// @brief fill in the 'addr' field with an IPv4 address a.b.c.d
 static inline void IPv4Address(uint8_t a, uint8_t b, uint8_t c, uint8_t d, IPv4Addr_t* addr) {
