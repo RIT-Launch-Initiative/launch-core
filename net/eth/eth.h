@@ -5,6 +5,7 @@
 
 #include "net/socket/Socket.h"
 #include "net/eth/crctable.c"
+#include "net/common.h"
 
 namespace eth {
 
