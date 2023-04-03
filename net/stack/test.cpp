@@ -13,14 +13,14 @@ public:
     Blackhole() {};
 
     /// @brief transmit
-    RetType transmit(Packet &packet, sockinfo_t &, NetworkLayer *) {
+    RetType transmit(Packet &packet, netinfo_t &, NetworkLayer *) {
         // don't do anything
 
         return RET_SUCCESS;
     }
 
     /// @brief transmit (second pass)
-    RetType transmit2(Packet &packet, sockinfo_t &, NetworkLayer *) {
+    RetType transmit2(Packet &packet, netinfo_t &, NetworkLayer *) {
         printf("transmitting payload: \n");
 
         uint8_t *buff = packet.read_ptr<uint8_t>();
@@ -33,7 +33,7 @@ public:
     }
 
     /// @brief receive
-    RetType receive(Packet &packet, sockinfo_t &, NetworkLayer *) {
+    RetType receive(Packet &packet, netinfo_t &, NetworkLayer *) {
         printf("received payload: \n");
 
         uint8_t *buff = packet.read_ptr<uint8_t>();

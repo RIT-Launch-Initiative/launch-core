@@ -42,7 +42,7 @@ namespace udp {
             return device_success && protocol_success ? RET_SUCCESS : RET_ERROR;
         }
 
-        RetType receive(Packet &packet, sockinfo_t &info, NetworkLayer *caller) override {
+        RetType receive(Packet &packet, netinfo_t &info, NetworkLayer *caller) override {
             RESUME();
 
             UDP_HEADER_T *header = packet.read_ptr<UDP_HEADER_T>();
@@ -81,7 +81,7 @@ namespace udp {
             return ret;
         }
 
-        RetType transmit(Packet &packet, sockinfo_t &info, NetworkLayer *caller) override {
+        RetType transmit(Packet &packet, netinfo_t &info, NetworkLayer *caller) override {
             RESUME();
 
             UDP_HEADER_T *header = packet.allocate_header<UDP_HEADER_T>();
@@ -106,7 +106,7 @@ namespace udp {
             return ret;
         }
 
-        RetType transmit2(Packet &packet, sockinfo_t &info, NetworkLayer *caller) override {
+        RetType transmit2(Packet &packet, netinfo_t &info, NetworkLayer *caller) override {
             RESUME();
 
             UDP_HEADER_T *header = packet.allocate_header<UDP_HEADER_T>();

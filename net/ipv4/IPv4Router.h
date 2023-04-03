@@ -151,7 +151,7 @@ public:
 
     /// @brief receive a packet
     /// @return
-    RetType receive(Packet& packet, sockinfo_t& info, NetworkLayer* caller) {
+    RetType receive(Packet& packet, netinfo_t& info, NetworkLayer* caller) {
         RESUME();
 
         IPv4Header_t* hdr = packet.read_ptr<IPv4Header_t>();
@@ -283,7 +283,7 @@ public:
 
     /// @brief transmit a packet
     /// @return
-    RetType transmit(Packet& packet, sockinfo_t& info, NetworkLayer* caller) {
+    RetType transmit(Packet& packet, netinfo_t& info, NetworkLayer* caller) {
         RESUME();
 
         // first find the route to send this packet over
@@ -360,7 +360,7 @@ public:
     }
 
     /// @brief second pass of transmitting a packet
-    RetType transmit2(Packet& packet, sockinfo_t& info, NetworkLayer* caller) {
+    RetType transmit2(Packet& packet, netinfo_t& info, NetworkLayer* caller) {
         RESUME();
 
         // don't do anything on the second pass, just move the header and pass it along

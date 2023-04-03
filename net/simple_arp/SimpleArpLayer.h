@@ -29,7 +29,7 @@ public:
 
     /// @brief receive
     /// @returns error all the time, cannot receive
-    RetType receive(Packet& packet, sockinfo_t& info, NetworkLayer*) {
+    RetType receive(Packet& packet, netinfo_t& info, NetworkLayer*) {
         // TODO could add responding to ARP requests here
         // send response out the same layer that received
 
@@ -39,7 +39,7 @@ public:
     /// @brief transmit
     ///        fills in the 'mac' field of info.dst
     /// @return
-    RetType transmit(Packet& packet, sockinfo_t& info, NetworkLayer*) {
+    RetType transmit(Packet& packet, netinfo_t& info, NetworkLayer*) {
         RESUME();
 
         if(ipv4::is_multicast(&(info.dst.ipv4_addr)) ||
@@ -68,7 +68,7 @@ public:
 
     /// @brief transmit (second pass)
     /// @return
-    RetType transmit2(Packet& packet, sockinfo_t& info, NetworkLayer* caller) {
+    RetType transmit2(Packet& packet, netinfo_t& info, NetworkLayer* caller) {
         RESUME();
 
         RetType ret = CALL(m_lower.transmit2(packet, info, this));
