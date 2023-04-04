@@ -34,10 +34,8 @@
 #include "net/stack/IPv4UDP/IPv4UDPSocket.h"
 
 
-// TODO this is pretty messy, need to clean it up
 
-
-// TODO make this store multiple Ethernet devices (or any layer 1 device)
+// TODO make this store multiple Ethernet devices? (or any layer 1 device)
 class IPv4UDPStack {
 public:
     /// @brief constructor

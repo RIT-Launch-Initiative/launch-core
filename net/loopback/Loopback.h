@@ -5,6 +5,7 @@
 #include "net/network_layer/NetworkLayer.h"
 #include "sched/macros/macros.h"
 #include "net/ipv4/ipv4.h"
+#include "net/common.h"
 
 /// @brief simple network layer that loops packets back to IPv4
 /// NOTE: IPv4Router must always be the caller, as loopback assumes the previous
@@ -25,7 +26,7 @@ public:
     /// @brief transmit (second pass)
     /// bounce the packet back to the caller
     /// NOTE: assumes the caller is the IPv4 layer!
-    ///       it will poke where the IPv4 header should be to change the src
+    ///       it will poke where the IPv4 header should be to change the dst
     ///       address to 127.0.0.1!
     RetType transmit2(Packet& packet, netinfo_t& info, NetworkLayer* caller) {
         RESUME();
@@ -37,7 +38,9 @@ public:
         }
 
         // set the src address to 127.0.0.1
-        ipv4::IPv4Address(127, 0, 0, 1, &(hdr->src));
+        ipv4::IPv4Addr_t new_dst;
+        ipv4::IPv4Address(127, 0, 0, 1, &new_dst);
+        hdr->dst = hton32(new_dst);
 
         // hint upper layers to ignore checksums as they will be incorrect now
         info.ignore_checksums = true;

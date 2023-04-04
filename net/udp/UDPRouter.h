@@ -62,7 +62,7 @@ namespace udp {
                     header->length
             };
 
-            if(!info.ignore_checksum) {
+            if(!info.ignore_checksums) {
                 if (header->checksum != checksum(&pseudo, header)) {
                     return RET_ERROR;
                 }

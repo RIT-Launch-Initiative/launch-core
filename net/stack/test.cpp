@@ -84,7 +84,7 @@ int main() {
     addr.ip[3] = 1;
     addr.port = 8000;
     if(RET_SUCCESS != sock->send(msg, len, &addr)) {
-        printf("failed to send message on socket\n");
+        printf("failed to send message to loopback on socket\n");
         exit(1);
     }
 
@@ -103,7 +103,7 @@ int main() {
     addr.port = 8000;
     len = 5;
     if(RET_SUCCESS != sock->send(msg, len, &addr)) {
-        printf("failed to send message on socket\n");
+        printf("failed to send message to 10.10.10.1 on socket\n");
         exit(1);
     }
 
