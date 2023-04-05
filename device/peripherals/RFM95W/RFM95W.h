@@ -296,7 +296,8 @@ public:
 		if (ret != RET_SUCCESS) return ret;
 
 		//read packet into buffer from FIFO
-		// TODO
+		RetType ret = CALL(readReg(RFM95_REGISTER_FIFO_RX_BASE_ADDR, &buf, len));
+		if (ret != RET_SUCCESS) return ret;
 
 		RESET();
 		return RET_SUCCESS;
@@ -322,7 +323,8 @@ public:
 
 
     	//fill fifo
-    	// TODO
+    	RetType ret = CALL(readReg(RFM95_REGISTER_FIFO_ACCESS, &buffer, len));
+    	if (ret != RET_SUCCESS) return ret;
 
     	RetType ret = CALL(setMode(0x03));
     	if (ret != RET_SUCCESS) return ret;
@@ -369,7 +371,7 @@ public:
 
     }
 
-    RetType packetWaiting(){
+    RetType packetWaiting(int status){
     	RESUME();
 
     	uint8_t irq_flags;
@@ -377,21 +379,60 @@ public:
 		ret = CALL(readReg(RFM95_REGISTER_IRQ_FLAGS, &irq_flags, 1)); // 0x10 = curr address register
 		if (ret != RET_SUCCESS) return ret;
 
-		//TODO
+		if(irq_flags & (1<<6)){
+			&status = 1;
+		}
+		else {
+			&status = 0;
+		}
+
 
 		RESET();
 		return RET_SUCCESS;
     }
 
-    // not sure if needed
-    RetType bulkRead(uint8_t addr){
+    RetType receive_packet_async(uint8_t *buffer, uint8_t len){
+    	RESUME();
+
+    	uint8_t rx_len, irq_flags;
+
+    	ret = CALL(readReg(RFM95_REGISTER_IRQ_FLAGS, &irq_flags, 1));
+    	if (ret != RET_SUCCESS) return ret;
+
+    	ret = CALL(readReg(RFM95_REGISTER_FIFO_RX_BYTES_NB, &rx_len, 1));
+    	if (ret != RET_SUCCESS) return ret;
+
+    	if((irq_flags & (1<<6)) && !(irq_flags & (1<<5)) && (rx_len == len)){ //good receive
+    		uint8_t curr_addr;
+    		RetType ret = CALL(readReg(0x10, &curr_addr, 1)); // 0x10 = curr address register
+    		if (ret != RET_SUCCESS) return ret;
+
+    		ret = CALL(writeReg(RFM95_REGISTER_FIFO_ADDR_PTR, curr_addr));
+    		if (ret != RET_SUCCESS) return ret;
+
+    		RetType ret = CALL(readReg(RFM95_REGISTER_FIFO_RX_BASE_ADDR, &buf, len));
+    		if (ret != RET_SUCCESS) return ret;
+
+    		ret = CALL(writeReg(RFM95_REGISTER_IRQ_FLAGS, (1<<6) | (1<<5) | (1<<7)));
+    		if (ret != RET_SUCCESS) return ret;
+
+    		RESET();
+    		return RET_SUCCESS;
+
+    	}
+
+    	else {
+    		ret = CALL(writeReg(RFM95_REGISTER_IRQ_FLAGS, (1<<6) | (1<<5) | (1<<7)));
+    		if (ret != RET_SUCCESS) return ret;
+
+    		RESET();
+    		return RET_SUCCESS; //change??
+    	}
 
     }
 
-    //not sure if needed
-    RetType bulkWrite(uint8_t addr, uint8_t *buf, uint8_t len){
 
-    }
+
 
 private:
     SPIDevice *mSpi;
@@ -441,6 +482,7 @@ private:
         RESET();
         return RET_SUCCESS;
     }
+
 
 
 
