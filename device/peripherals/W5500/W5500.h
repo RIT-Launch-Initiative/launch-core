@@ -29,10 +29,6 @@
 #include "sched/macros.h"
 #include "return.h"
 
-#include "stm32f4xx_hal_uart.h"
-
-extern UART_HandleTypeDef huart2;
-
 /// @brief controller for W5500 device
 class W5500 {
 public:
@@ -59,7 +55,7 @@ public:
 
         static uint8_t chip_id = 0;
         ret = CALL(get_chip_version(&chip_id));
-        if (chip_id == 0) {
+        if (chip_id != 4) {
             ret = RET_ERROR;
             goto init_end;
         }
@@ -448,21 +444,22 @@ private:
         data[1] = (addr_select & 0x0000FF00) >> 8;
         data[2] = (addr_select & 0x000000FF) >> 0;
 
-        ret = CALL(m_spi.write_read(data, data, 3));
+        ret = CALL(m_spi.write(data, 3));
         if (ret != RET_SUCCESS) goto read_reg_end;
 
-        *result = data[0];
+        ret = CALL(m_spi.read(result, 1));
+        if (ret != RET_SUCCESS) goto read_reg_end;
 
         read_reg_end:
-        RESET();
         CALL(m_gpio.set(1));
+        RESET();
         return ret;
     }
 
     RetType write_reg(uint32_t addr_sel, uint8_t write_byte) {
         RESUME();
 
-        uint8_t data[4];
+        static uint8_t data[4];
 
         RetType ret = CALL(m_gpio.set(0));
         if (ret != RET_SUCCESS) goto write_reg_end;
@@ -478,8 +475,8 @@ private:
         if (ret != RET_SUCCESS) goto write_reg_end;
 
         write_reg_end:
-        RESET();
         CALL(m_gpio.set(1));
+        RESET();
         return ret;
     }
 
@@ -503,8 +500,8 @@ private:
         if (ret != RET_SUCCESS) goto read_buff_end;
 
         read_buff_end:
-        RESET();
         CALL(m_gpio.set(1));
+        RESET();
         return ret;
     }
 
@@ -528,8 +525,8 @@ private:
         if (ret != RET_SUCCESS) goto write_buff_end;
 
         write_buff_end:
-        RESET();
         CALL(m_gpio.set(1));
+        RESET();
         return ret;
     }
 };

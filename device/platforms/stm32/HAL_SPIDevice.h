@@ -17,10 +17,6 @@
 #include "sync/BlockingSemaphore.h"
 #include "device/SPIDevice.h"
 
-#include "stm32f4xx_hal_uart.h"
-extern UART_HandleTypeDef huart2;
-
-
 /// @brief SPI device controller
 class HALSPIDevice : public SPIDevice, public CallbackDevice {
 public:
