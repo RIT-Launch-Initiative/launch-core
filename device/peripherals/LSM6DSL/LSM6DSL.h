@@ -30,10 +30,10 @@
 #include "device/peripherals/LSM6DSL/LSM6DSL_Driver.h"
 
 
-enum LSM6DSL_Interrupt_Pin_t{
+enum LSM6DSL_Interrupt_Pin_t {
     LSM6DSL_INT1_PIN,
     LSM6DSL_INT2_PIN
-} ;
+};
 
 struct LSM6DSL_EVENT_STATUS_T {
     uint8_t FreeFallStatus: 1;
@@ -48,49 +48,71 @@ struct LSM6DSL_SENSOR_DATA_T {
 
 class LSM6DSL {
 public:
-    LSM6DSL(I2CDevice *i2CDevice) : mI2C(i2CDevice), accelEnabled(false), gyroEnabled(false) {}
+    LSM6DSL(I2CDevice &i2CDevice) : mI2C(&i2CDevice), accelEnabled(false), gyroEnabled(false) {}
 
-    RetType init(uint8_t i2cDevAddr) {
+    RetType init() {
         RESUME();
         i2cAddr = {
-                .dev_addr = i2cDevAddr,
+                .dev_addr = 0x6A << 1,
                 .mem_addr = LSM6DSL_ACC_GYRO_WHO_AM_I_REG,
                 .mem_addr_size = 1
         };
 
         // Check Chip ID
-        uint8_t chipID;
-        RetType ret = CALL(readReg(LSM6DSL_ACC_GYRO_WHO_AM_I_REG, &chipID, 1, LSM6DSL_ACC_GYRO_WHO_AM_I_BIT_MASK));
-        if (ret != RET_SUCCESS || LSM6DSL_ACC_GYRO_WHO_AM_I != chipID) return ret;
+        static uint8_t chipID;
+        RetType ret = CALL(readReg(LSM6DSL_ACC_GYRO_WHO_AM_I_REG, &chipID, 1, LSM6DSL_ACC_GYRO_WHO_AM_I_BIT_MASK, 50));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
+        if (chipID != LSM6DSL_ACC_GYRO_WHO_AM_I) return RET_ERROR;
 
         // Enable reg addr automatically incremented during multi byte access with serial intf
         ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL3_C, LSM6DSL_ACC_GYRO_IF_INC_ENABLED, 1, LSM6DSL_ACC_GYRO_IF_INC_MASK));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         // Enable BDU
         ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL3_C, LSM6DSL_ACC_GYRO_BDU_BLOCK_UPDATE, 1, LSM6DSL_ACC_GYRO_BDU_MASK));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         // FIFO Mode Select
-        ret = CALL(
-                writeReg(LSM6DSL_ACC_GYRO_FIFO_CTRL5, LSM6DSL_ACC_GYRO_FIFO_MODE_BYPASS, 1,
-                         LSM6DSL_ACC_GYRO_FIFO_MODE_MASK));
-        if (ret != RET_SUCCESS) return ret;
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_FIFO_CTRL5, LSM6DSL_ACC_GYRO_FIFO_MODE_BYPASS, 1, LSM6DSL_ACC_GYRO_FIFO_MODE_MASK));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
-        // Output Data Rate Selection
-        ret = CALL(
-                writeReg(LSM6DSL_ACC_GYRO_FIFO_CTRL5, LSM6DSL_ACC_GYRO_ODR_XL_POWER_DOWN,
-                         1, LSM6DSL_ACC_GYRO_ODR_FIFO_MASK));
-        if (ret != RET_SUCCESS) return ret;
+        // ODR Selection
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL2_G, LSM6DSL_ACC_GYRO_ODR_G_104Hz, 1, LSM6DSL_ACC_GYRO_ODR_G_MASK));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL1_XL, LSM6DSL_ACC_GYRO_ODR_XL_104Hz, 1, LSM6DSL_ACC_GYRO_ODR_XL_MASK));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
+
+        // Full Scale
         ret = CALL(setAccelFullScale(2.0f));
-        if (ret != RET_SUCCESS) return ret;
-
-        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL2_G, LSM6DSL_ACC_GYRO_ODR_G_POWER_DOWN, 1, LSM6DSL_ACC_GYRO_IF_INC_MASK));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         ret = CALL(setGyroFullScale(2000.0f));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         accelLastODR = 104.0f;
         accelEnabled = true;
@@ -105,22 +127,48 @@ public:
      * Acceleration Functions
      **********************************************************/
 
-    RetType getAccelAxes(int32_t *accelData) {
+    RetType getAccelAxesMS2(int32_t *accelX, int32_t *accelY, int32_t *accelZ) {
         RESUME();
 
-        int16_t rawData[3];
-        float sens = 0;
+        RetType ret = CALL(getAccelAxes(accelX, accelY, accelZ));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
+
+        *accelX *= 9.80665f;
+        *accelY *= 9.80665f;
+        *accelZ *= 9.80665f;
+
+        *accelX /= 1000;
+        *accelY /= 1000;
+        *accelZ /= 1000;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType getAccelAxes(int32_t *accelX, int32_t *accelY, int32_t *accelZ) {
+        RESUME();
+
+        static int16_t rawData[3];
+        static float sens = 0;
 
         RetType ret = CALL(getAccelAxesRaw(rawData));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         ret = CALL(getAccelSens(&sens));
-        if (ret != RET_SUCCESS) return ret;
-
-
-        for (int i = 0; i < 3; i++) {
-            accelData[i] = static_cast<int32_t>(rawData[i] * sens);
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
         }
+
+        *accelX = static_cast<int32_t>(rawData[0] * sens);
+        *accelY = static_cast<int32_t>(rawData[1] * sens);
+        *accelZ = static_cast<int32_t>(rawData[2] * sens);
 
         RESET();
         return RET_SUCCESS;
@@ -129,18 +177,13 @@ public:
     RetType getAccelAxesRaw(int16_t *accelData) {
         RESUME();
 
-        uint8_t regValue[6] = {};
+        static uint8_t regValue[6] = {};
 
-        int accelDataIndex;
-        for (int i = 0; i < 3; i++) {
-            for (int j = 0; i < 3; i++) {
-                RetType ret = CALL(readReg(LSM6DSL_ACC_GYRO_OUTX_L_XL + accelDataIndex, reinterpret_cast<uint8_t *>(&accelData[accelDataIndex]), 1));
-                if (ret != RET_SUCCESS) return ret;
-
-                accelDataIndex++;
-            }
+        RetType ret = CALL(readReg(LSM6DSL_ACC_GYRO_OUTX_L_XL, regValue, 6));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
         }
-
 
         accelData[0] = static_cast<int16_t>(regValue[1] << 8) + static_cast<int16_t>(regValue[0]);
         accelData[1] = static_cast<int16_t>(regValue[3] << 8) + static_cast<int16_t>(regValue[2]);
@@ -153,11 +196,14 @@ public:
     RetType getAccelSens(float *sens) {
         RESUME();
 
-        LSM6DSL_ACC_GYRO_FS_XL_t fullScale;
+        static LSM6DSL_ACC_GYRO_FS_XL_t fullScale;
 
         RetType ret = CALL(readReg(LSM6DSL_ACC_GYRO_CTRL1_XL, reinterpret_cast<uint8_t *>(&fullScale), 1,
                                    LSM6DSL_ACC_GYRO_FS_XL_MASK));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         switch (fullScale) {
             case LSM6DSL_ACC_GYRO_FS_XL_2g:
@@ -185,14 +231,17 @@ public:
     RetType setAccelFullScale(float fullScale) {
         RESUME();
 
-        LSM6DSL_ACC_GYRO_FS_XL_t newFs = (fullScale <= 2.0f) ? LSM6DSL_ACC_GYRO_FS_XL_2g : (fullScale <= 4.0f)
-                                                                                           ? LSM6DSL_ACC_GYRO_FS_XL_4g
-                                                                                           : (fullScale <= 8.0f)
-                                                                                             ? LSM6DSL_ACC_GYRO_FS_XL_8g
-                                                                                             : LSM6DSL_ACC_GYRO_FS_XL_16g;
+        static LSM6DSL_ACC_GYRO_FS_XL_t newFs = (fullScale <= 2.0f) ? LSM6DSL_ACC_GYRO_FS_XL_2g : (fullScale <= 4.0f)
+                                                                                                  ? LSM6DSL_ACC_GYRO_FS_XL_4g
+                                                                                                  : (fullScale <= 8.0f)
+                                                                                                    ? LSM6DSL_ACC_GYRO_FS_XL_8g
+                                                                                                    : LSM6DSL_ACC_GYRO_FS_XL_16g;
 
         RetType ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL1_XL, newFs, 1, LSM6DSL_ACC_GYRO_FS_XL_MASK));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
 
         RESET();
@@ -215,7 +264,10 @@ public:
                                     : LSM6DSL_ACC_GYRO_ODR_XL_6660Hz;
 
             RetType ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL1_XL, newODR, 1, LSM6DSL_ACC_GYRO_ODR_XL_MASK));
-            if (ret != RET_SUCCESS) return ret;
+            if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         } else {
             accelLastODR = (odr <= 13.0f) ? 13.0f
@@ -238,22 +290,27 @@ public:
     /**********************************************************
      * Gyroscope Functions
      **********************************************************/
-    RetType getGyroAxes(int32_t *gyroData) {
+    RetType getGyroAxes(int32_t *gyroX, int32_t *gyroY, int32_t *gyroZ) {
         RESUME();
 
-        int16_t rawData[3];
-        float sens = 0;
+        static int16_t rawData[3];
+        static float sens = 0;
 
         RetType ret = CALL(getGyroAxesRaw(rawData));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         ret = CALL(getGyroSens(&sens));
-        if (ret != RET_SUCCESS) return ret;
-
-
-        for (int i = 0; i < 3; i++) {
-            gyroData[i] = static_cast<int32_t>(rawData[i] * sens);
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
         }
+
+        *gyroX = static_cast<int32_t>(rawData[0] * sens);
+        *gyroY = static_cast<int32_t>(rawData[1] * sens);
+        *gyroZ = static_cast<int32_t>(rawData[2] * sens);
 
         RESET();
         return RET_SUCCESS;
@@ -262,18 +319,14 @@ public:
     RetType getGyroAxesRaw(int16_t *gyroData) {
         RESUME();
 
-        uint8_t regValue[6] = {};
+        static uint8_t regValue[6] = {};
 
-        int accelDataIndex;
-        for (int i = 0; i < 3; i++) {
-            for (int j = 0; i < 3; i++) {
-                RetType ret = CALL(readReg(LSM6DSL_ACC_GYRO_OUTX_L_G + accelDataIndex,
-                                           reinterpret_cast<uint8_t *>(&gyroData[accelDataIndex]), 1));
-                if (ret != RET_SUCCESS) return ret;
-
-                accelDataIndex++;
-            }
+        RetType ret = CALL(readReg(LSM6DSL_ACC_GYRO_OUTX_L_G, regValue, 6));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
         }
+
 
         gyroData[0] = static_cast<int16_t>(regValue[1] << 8) + static_cast<int16_t>(regValue[0]);
         gyroData[1] = static_cast<int16_t>(regValue[3] << 8) + static_cast<int16_t>(regValue[2]);
@@ -286,8 +339,8 @@ public:
     RetType getGyroSens(float *sens) {
         RESUME();
 
-        LSM6DSL_ACC_GYRO_FS_125_t fullScale125;
-        LSM6DSL_ACC_GYRO_FS_G_t fullScale;
+        static LSM6DSL_ACC_GYRO_FS_125_t fullScale125;
+        static LSM6DSL_ACC_GYRO_FS_G_t fullScale;
 
         RetType ret = CALL(readReg(LSM6DSL_ACC_GYRO_CTRL2_G, reinterpret_cast<uint8_t *>(&fullScale125), 1,
                                    LSM6DSL_ACC_GYRO_FS_125_MASK));
@@ -298,7 +351,10 @@ public:
         } else {
             ret = CALL(readReg(LSM6DSL_ACC_GYRO_CTRL2_G, reinterpret_cast<uint8_t *>(&fullScale), 1,
                                LSM6DSL_ACC_GYRO_FS_G_MASK));
-            if (ret != RET_SUCCESS) return ret;
+            if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
             switch (fullScale) {
                 case LSM6DSL_ACC_GYRO_FS_G_245dps:
@@ -326,11 +382,15 @@ public:
     RetType setGyroFullScale(float fullScale) {
         RESUME();
 
-        LSM6DSL_ACC_GYRO_FS_G_t newFs;
+        static LSM6DSL_ACC_GYRO_FS_G_t newFs;
 
         if (fullScale <= 125.0f) {
-            RetType ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL2_G, LSM6DSL_ACC_GYRO_FS_125_ENABLED, 1, LSM6DSL_ACC_GYRO_FS_125_MASK));
-            if (ret != RET_SUCCESS) return ret;
+            RetType ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL2_G, LSM6DSL_ACC_GYRO_FS_125_ENABLED, 1,
+                                        LSM6DSL_ACC_GYRO_FS_125_MASK));
+            if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         } else {
             newFs = (fullScale <= 245.0f) ? LSM6DSL_ACC_GYRO_FS_G_245dps
@@ -338,11 +398,18 @@ public:
                                                                   : (fullScale <= 1000.0f)
                                                                     ? LSM6DSL_ACC_GYRO_FS_G_1000dps
                                                                     : LSM6DSL_ACC_GYRO_FS_G_2000dps;
-            RetType ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL2_G, LSM6DSL_ACC_GYRO_FS_125_DISABLED, 1, LSM6DSL_ACC_GYRO_FS_125_MASK));
-            if (ret != RET_SUCCESS) return ret;
+            RetType ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL2_G, LSM6DSL_ACC_GYRO_FS_125_DISABLED, 1,
+                                        LSM6DSL_ACC_GYRO_FS_125_MASK));
+            if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
             ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL2_G, newFs, 1, LSM6DSL_ACC_GYRO_FS_G_MASK));
-            if (ret != RET_SUCCESS) return ret;
+            if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
         }
 
         RESET();
@@ -364,7 +431,10 @@ public:
                     : LSM6DSL_ACC_GYRO_ODR_G_6660Hz;
 
             RetType ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL2_G, newODR, 1, LSM6DSL_ACC_GYRO_ODR_G_MASK));
-            if (ret != RET_SUCCESS) return ret;
+            if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         } else {
             gyroLastODR = (odr <= 13.0f ) ? 13.0f
@@ -392,11 +462,17 @@ public:
         RESUME();
 
         RetType ret = CALL(setAccelODR(416.0f));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         // Full Scale Select
         ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL1_XL, LSM6DSL_ACC_GYRO_FS_XL_2g, 1, LSM6DSL_ACC_GYRO_FS_XL_MASK));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         // FF Duration
         uint8_t duration = 0x06;
@@ -405,50 +481,81 @@ public:
         lowVal &= LSM6DSL_ACC_GYRO_FF_FREE_FALL_DUR_MASK;
 
         ret = CALL(writeReg(LSM6DSL_ACC_GYRO_FREE_FALL, lowVal, 1, LSM6DSL_ACC_GYRO_FF_FREE_FALL_DUR_MASK));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         uint8_t highVal = (duration >> 5) & 0x1;
         highVal = highVal << LSM6DSL_ACC_GYRO_FF_WAKE_UP_DUR_POSITION;
         highVal &= LSM6DSL_ACC_GYRO_FF_WAKE_UP_DUR_MASK;
 
         ret = CALL(writeReg(LSM6DSL_ACC_GYRO_WAKE_UP_DUR, highVal, 1, LSM6DSL_ACC_GYRO_FS_XL_MASK));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         // Wake Duration
         duration = 0x00 << LSM6DSL_ACC_GYRO_WAKE_DUR_POSITION;
         duration &= LSM6DSL_ACC_GYRO_WAKE_DUR_MASK;
 
         ret = CALL(writeReg(LSM6DSL_ACC_GYRO_WAKE_UP_DUR, duration, 1, LSM6DSL_ACC_GYRO_WAKE_DUR_MASK));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         // Timer HR
-        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_WAKE_UP_DUR, LSM6DSL_ACC_GYRO_TIMER_HR_6_4ms, 1, LSM6DSL_ACC_GYRO_TIMER_HR_MASK));
-        if (ret != RET_SUCCESS) return ret;
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_WAKE_UP_DUR, LSM6DSL_ACC_GYRO_TIMER_HR_6_4ms, 1,
+                            LSM6DSL_ACC_GYRO_TIMER_HR_MASK));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         // Sleep Duration
         duration = 0x00 << LSM6DSL_ACC_GYRO_SLEEP_DUR_POSITION;
         duration &= LSM6DSL_ACC_GYRO_SLEEP_DUR_MASK;
 
         ret = CALL(writeReg(LSM6DSL_ACC_GYRO_WAKE_UP_DUR, duration, 1, LSM6DSL_ACC_GYRO_SLEEP_DUR_MASK));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         // Free Fall THS
         ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL1_XL, LSM6DSL_ACC_GYRO_FF_THS_312mg, 1, LSM6DSL_ACC_GYRO_FF_THS_MASK));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         // Enable Interrupts
-        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_TAP_CFG1, LSM6DSL_ACC_GYRO_BASIC_INT_ENABLED, 1, LSM6DSL_ACC_GYRO_INT_EN_MASK));
-        if (ret != RET_SUCCESS) return ret;
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_TAP_CFG1, LSM6DSL_ACC_GYRO_BASIC_INT_ENABLED, 1,
+                            LSM6DSL_ACC_GYRO_INT_EN_MASK));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         /* Enable free fall event on either INT1 or INT2 pin */
         switch (interruptPin) {
             case LSM6DSL_INT1_PIN:
-                ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD1_CFG, LSM6DSL_ACC_GYRO_INT1_FF_ENABLED, 1, LSM6DSL_ACC_GYRO_INT1_FF_MASK));
-                if (ret != RET_SUCCESS) return ret;
+                ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD1_CFG, LSM6DSL_ACC_GYRO_INT1_FF_ENABLED, 1,
+                                    LSM6DSL_ACC_GYRO_INT1_FF_MASK));
+                if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
             case LSM6DSL_INT2_PIN:
-                ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD2_CFG, LSM6DSL_ACC_GYRO_INT1_FF_ENABLED, 1, LSM6DSL_ACC_GYRO_INT2_FF_MASK));
-                if (ret != RET_SUCCESS) return ret;
+                ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD2_CFG, LSM6DSL_ACC_GYRO_INT1_FF_ENABLED, 1,
+                                    LSM6DSL_ACC_GYRO_INT2_FF_MASK));
+                if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
             default:
                 return RET_ERROR;
@@ -462,15 +569,27 @@ public:
         RESUME();
 
         // Disable FF events on pins
-        RetType ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD1_CFG, LSM6DSL_ACC_GYRO_INT1_FF_DISABLED, 1, LSM6DSL_ACC_GYRO_INT1_FF_MASK));
-        if (ret != RET_SUCCESS) return ret;
+        RetType ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD1_CFG, LSM6DSL_ACC_GYRO_INT1_FF_DISABLED, 1,
+                                    LSM6DSL_ACC_GYRO_INT1_FF_MASK));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
-        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD2_CFG, LSM6DSL_ACC_GYRO_INT1_FF_DISABLED, 1, LSM6DSL_ACC_GYRO_INT2_FF_MASK));
-        if (ret != RET_SUCCESS) return ret;
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD2_CFG, LSM6DSL_ACC_GYRO_INT1_FF_DISABLED, 1,
+                            LSM6DSL_ACC_GYRO_INT2_FF_MASK));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         // Disable Interrupts
-        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_TAP_CFG1, LSM6DSL_ACC_GYRO_BASIC_INT_DISABLED, 1, LSM6DSL_ACC_GYRO_INT_EN_MASK));
-        if (ret != RET_SUCCESS) return ret;
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_TAP_CFG1, LSM6DSL_ACC_GYRO_BASIC_INT_DISABLED, 1,
+                            LSM6DSL_ACC_GYRO_INT_EN_MASK));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         // Set Free Fall Duration
         uint8_t duration = 0x00;
@@ -480,18 +599,27 @@ public:
         lowVal &= LSM6DSL_ACC_GYRO_FF_FREE_FALL_DUR_MASK;
 
         ret = CALL(writeReg(LSM6DSL_ACC_GYRO_FREE_FALL, lowVal, 1, LSM6DSL_ACC_GYRO_FF_FREE_FALL_DUR_MASK));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         uint8_t highVal = (duration >> 5) & 0x1;
         highVal = highVal << LSM6DSL_ACC_GYRO_FF_WAKE_UP_DUR_POSITION;
         highVal &= LSM6DSL_ACC_GYRO_FF_WAKE_UP_DUR_MASK;
 
         ret = CALL(writeReg(LSM6DSL_ACC_GYRO_WAKE_UP_DUR, highVal, 1, LSM6DSL_ACC_GYRO_FS_XL_MASK));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         // Set Free Fall THS Setting
         ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL1_XL, LSM6DSL_ACC_GYRO_FF_THS_156mg, 1, LSM6DSL_ACC_GYRO_FF_THS_MASK));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         RESET();
         return RET_SUCCESS;
@@ -501,7 +629,10 @@ public:
         RESUME();
 
         RetType ret = CALL(writeReg(LSM6DSL_ACC_GYRO_FREE_FALL, threshold, 1, LSM6DSL_ACC_GYRO_FF_THS_MASK));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         RESET();
         return RET_SUCCESS;
@@ -517,30 +648,51 @@ public:
 
         // Output Data Rate
         RetType ret = CALL(setGyroODR(26.0f));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         // Full Scale Selection
         ret = CALL(setGyroFullScale(2.0f));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         // Enable Embedded Functionalities
-        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL10_C, LSM6DSL_ACC_GYRO_FUNC_EN_ENABLED, 1, LSM6DSL_ACC_GYRO_FUNC_EN_MASK));
-        if (ret != RET_SUCCESS) return ret;
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL10_C, LSM6DSL_ACC_GYRO_FUNC_EN_ENABLED, 1,
+                            LSM6DSL_ACC_GYRO_FUNC_EN_MASK));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         // Enable Tilt Calculation
         ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL10_C, LSM6DSL_ACC_GYRO_TILT_ENABLED, 1, LSM6DSL_ACC_GYRO_TILT_MASK));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         // Enable Tilt Detection
         switch (interruptPin) {
             case LSM6DSL_INT1_PIN:
-                ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD1_CFG, LSM6DSL_ACC_GYRO_INT1_TILT_ENABLED, 1, LSM6DSL_ACC_GYRO_INT1_TILT_MASK));
-                if (ret != RET_SUCCESS) return ret;
+                ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD1_CFG, LSM6DSL_ACC_GYRO_INT1_TILT_ENABLED, 1,
+                                    LSM6DSL_ACC_GYRO_INT1_TILT_MASK));
+                if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
                 break;
 
             case LSM6DSL_INT2_PIN:
-                ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD2_CFG, LSM6DSL_ACC_GYRO_INT2_TILT_ENABLED, 1, LSM6DSL_ACC_GYRO_INT2_TILT_MASK));
-                if (ret != RET_SUCCESS) return ret;
+                ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD2_CFG, LSM6DSL_ACC_GYRO_INT2_TILT_ENABLED, 1,
+                                    LSM6DSL_ACC_GYRO_INT2_TILT_MASK));
+                if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
                 break;
 
             default:
@@ -555,19 +707,34 @@ public:
         RESUME();
 
         // Disable Tilt Events
-        RetType ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD1_CFG, LSM6DSL_ACC_GYRO_INT1_TILT_DISABLED, 1, LSM6DSL_ACC_GYRO_INT1_TILT_MASK));
-        if (ret != RET_SUCCESS) return ret;
+        RetType ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD1_CFG, LSM6DSL_ACC_GYRO_INT1_TILT_DISABLED, 1,
+                                    LSM6DSL_ACC_GYRO_INT1_TILT_MASK));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
-        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD2_CFG, LSM6DSL_ACC_GYRO_INT2_TILT_DISABLED, 1, LSM6DSL_ACC_GYRO_INT2_TILT_MASK));
-        if (ret != RET_SUCCESS) return ret;
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD2_CFG, LSM6DSL_ACC_GYRO_INT2_TILT_DISABLED, 1,
+                            LSM6DSL_ACC_GYRO_INT2_TILT_MASK));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         // Disable Tilt Calculations
         ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL10_C, LSM6DSL_ACC_GYRO_TILT_DISABLED, 1, LSM6DSL_ACC_GYRO_TILT_MASK));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         // Disable Embedded Functionalities
-        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL10_C, LSM6DSL_ACC_GYRO_FUNC_EN_DISABLED, 1, LSM6DSL_ACC_GYRO_FUNC_EN_MASK));
-        if (ret != RET_SUCCESS) return ret;
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL10_C, LSM6DSL_ACC_GYRO_FUNC_EN_DISABLED, 1,
+                            LSM6DSL_ACC_GYRO_FUNC_EN_MASK));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         RESET();
         return RET_SUCCESS;
@@ -582,29 +749,51 @@ public:
 
         // Output Data Rate selection
         RetType ret = CALL(setAccelODR(416.0f));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         ret = CALL(setAccelFullScale(2.0f));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         // Set 6D Threshold
-        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_TAP_THS_6D, LSM6DSL_ACC_GYRO_SIXD_THS_60_degree, 1, LSM6DSL_ACC_GYRO_SIXD_THS_MASK));
-        if (ret != RET_SUCCESS) return ret;
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_TAP_THS_6D, LSM6DSL_ACC_GYRO_SIXD_THS_60_degree, 1,
+                            LSM6DSL_ACC_GYRO_SIXD_THS_MASK));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         /* Enable basic Interrupts */
-        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_TAP_CFG1, LSM6DSL_ACC_GYRO_BASIC_INT_ENABLED, 1, LSM6DSL_ACC_GYRO_INT_EN_MASK));
-        if (ret != RET_SUCCESS) return ret;
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_TAP_CFG1, LSM6DSL_ACC_GYRO_BASIC_INT_ENABLED, 1,
+                            LSM6DSL_ACC_GYRO_INT_EN_MASK));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         // Enable 6D orientation on either INT1 or INT2 pin
         switch (interruptPin) {
             case LSM6DSL_INT1_PIN:
-                ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD1_CFG, LSM6DSL_ACC_GYRO_INT1_6D_ENABLED, 1, LSM6DSL_ACC_GYRO_INT1_6D_MASK));
-                if (ret != RET_SUCCESS) return ret;
+                ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD1_CFG, LSM6DSL_ACC_GYRO_INT1_6D_ENABLED, 1,
+                                    LSM6DSL_ACC_GYRO_INT1_6D_MASK));
+                if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
                 break;
             case LSM6DSL_INT2_PIN:
-                ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD2_CFG, LSM6DSL_ACC_GYRO_INT2_6D_ENABLED, 1, LSM6DSL_ACC_GYRO_INT2_6D_MASK));
-                if (ret != RET_SUCCESS) return ret;
+                ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD2_CFG, LSM6DSL_ACC_GYRO_INT2_6D_ENABLED, 1,
+                                    LSM6DSL_ACC_GYRO_INT2_6D_MASK));
+                if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
                 break;
             default:
@@ -619,19 +808,35 @@ public:
         RESUME();
 
         // Disable 6D Interrupts
-        RetType ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD1_CFG, LSM6DSL_ACC_GYRO_INT1_6D_DISABLED, 1, LSM6DSL_ACC_GYRO_INT1_6D_MASK));
-        if (ret != RET_SUCCESS) return ret;
+        RetType ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD1_CFG, LSM6DSL_ACC_GYRO_INT1_6D_DISABLED, 1,
+                                    LSM6DSL_ACC_GYRO_INT1_6D_MASK));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
-        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD2_CFG, LSM6DSL_ACC_GYRO_INT2_6D_DISABLED, 1, LSM6DSL_ACC_GYRO_INT2_6D_MASK));
-        if (ret != RET_SUCCESS) return ret;
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD2_CFG, LSM6DSL_ACC_GYRO_INT2_6D_DISABLED, 1,
+                            LSM6DSL_ACC_GYRO_INT2_6D_MASK));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         // Disable Basic Interrupts
-        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_TAP_CFG1, LSM6DSL_ACC_GYRO_BASIC_INT_DISABLED, 1, LSM6DSL_ACC_GYRO_INT_EN_MASK));
-        if (ret != RET_SUCCESS) return ret;
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_TAP_CFG1, LSM6DSL_ACC_GYRO_BASIC_INT_DISABLED, 1,
+                            LSM6DSL_ACC_GYRO_INT_EN_MASK));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         /* Reset 6D threshold. */
-        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_TAP_THS_6D, LSM6DSL_ACC_GYRO_SIXD_THS_80_degree, 1, LSM6DSL_ACC_GYRO_SIXD_THS_MASK));
-        if (ret != RET_SUCCESS) return ret;
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_TAP_THS_6D, LSM6DSL_ACC_GYRO_SIXD_THS_80_degree, 1,
+                            LSM6DSL_ACC_GYRO_SIXD_THS_MASK));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         RESET();
         return RET_SUCCESS;
@@ -654,7 +859,10 @@ private:
         i2cAddr.mem_addr = reg;
 
         RetType ret = CALL(mI2C->read(i2cAddr, buff, len));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         RESET();
         return RET_SUCCESS;
@@ -666,7 +874,10 @@ private:
         i2cAddr.mem_addr = reg;
 
         RetType ret = CALL(mI2C->read(i2cAddr, buff, len));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         *buff &= mask;
 
@@ -677,11 +888,14 @@ private:
     RetType writeReg(uint8_t reg, uint8_t newVal, size_t len, uint8_t mask) {
         RESUME();
 
-        uint8_t value;
+        static uint8_t value;
         i2cAddr.mem_addr = reg;
 
         RetType ret = CALL(mI2C->read(i2cAddr, &value, len));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         value &= ~mask;
         value |= newVal;

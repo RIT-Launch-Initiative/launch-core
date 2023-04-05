@@ -31,21 +31,20 @@ public:
 
     /// @brief push an object onto the queue
     /// @return 'true' on success, 'false' on error
-    bool push(T obj) {
+    T* push(T obj) {
         Node<T>* node = m_pool.alloc();
 
         if(node == NULL) {
-            return false;
+            return NULL;
         }
 
         node->data = obj;
 
         ::SimpleQueue<T>::push_node(node);
-        return true;
+        return &(node->data);
     }
 
     /// @brief create an object at the end of the queue and get a pointer to it
-    /// NOTE: this is more functionality than the standard queue
     /// @return the object, or NULL on error
     T* push() {
         Node<T>* node = m_pool.alloc();
@@ -74,7 +73,7 @@ public:
     }
 
     /// @brief peek at the object on the back of the queue
-    /// @return the object, or NULL on error
+    /// @return a pointer to the object, or NULL on error
     T* peek() {
         Node<T>* node = ::SimpleQueue<T>::peek_node();
 
@@ -120,17 +119,17 @@ public:
 
     /// @brief push an object onto the queue
     /// @return 'true' on success, 'false' on error
-    bool push(T obj) {
+    T* push(T obj) {
         Node<T>* node = m_pool.alloc();
 
         if(node == NULL) {
-            return false;
+            return NULL;
         }
 
         node->data = obj;
 
         ::SimpleSortedQueue<T>::push_node(node);
-        return true;
+        return &(node->data);
     }
 
     // can't preallocate an object because then we can't sort until the pointer is set
@@ -151,7 +150,7 @@ public:
     }
 
     /// @brief peek at the object on the back of the queue
-    /// @return the object, or NULL on error
+    /// @return a pointer to the object, or NULL on error
     T* peek() {
         Node<T>* node = ::SimpleSortedQueue<T>::peek_node();
 

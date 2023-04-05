@@ -1,7 +1,11 @@
 #ifndef UART_DEVICE_H
 #define UART_DEVICE_H
 
+#ifdef STM32F446xx
 #include "stm32f4xx_hal_uart.h"
+#elif STM32L476xx
+#include "stm32l4xx_hal_uart.h"
+#endif
 
 #include "device/StreamDevice.h"
 #include "device/platforms/stm32/HAL_Handlers.h"
@@ -75,6 +79,7 @@ public:
         RetType ret = CALL(m_lock.acquire());
         if(ret != RET_SUCCESS) {
             // some error
+            RESET();
             return ret;
         }
 
@@ -84,7 +89,10 @@ public:
         m_blocked = sched_dispatched;
 
         // start the write
-        if(HAL_OK != HAL_UART_Transmit_IT(m_uart, buff, len)) {
+        if(HAL_OK != HAL_UART_Transmit_IT(m_uart, const_cast<uint8_t *>(buff), len)) {
+            m_blocked = -1;
+            CALL(m_lock.release());
+            RESET();
             return RET_ERROR;
         }
 
@@ -97,7 +105,10 @@ public:
         // we can unblock someone else if they were waiting
         ret = CALL(m_lock.release());
         if(ret != RET_SUCCESS) {
+            m_blocked = -1;
+            CALL(m_lock.release());
             // some error
+            RESET();
             return ret;
         }
 
@@ -117,6 +128,7 @@ public:
         RetType ret = CALL(m_lock.acquire());
         if(ret != RET_SUCCESS) {
             // some error
+            RESET();
             return ret;
         }
 
@@ -134,6 +146,7 @@ public:
         ret = CALL(m_lock.release());
         if(ret != RET_SUCCESS) {
             // some error
+            RESET();
             return ret;
         }
 

@@ -38,7 +38,7 @@ LinuxDeviceMap map{};
 
 // task that just echoes
 // buffers 5 characters at a time
-RetType echo() {
+RetType echo(void*) {
     RESUME();
 
     printf("echo task started\r\n");
@@ -95,7 +95,7 @@ RetType echo() {
 }
 
 // basic timer task
-RetType timer() {
+RetType timer(void*) {
     RESUME();
 
     printf("timer task started\r\n");
@@ -129,7 +129,7 @@ RetType timer() {
 }
 
 // another basic timer task
-RetType timer2() {
+RetType timer2(void*) {
     RESUME();
 
     printf("timer2 task started\r\n");
@@ -163,7 +163,7 @@ RetType timer2() {
 }
 
 // slow timer task
-RetType slow_timer() {
+RetType slow_timer(void*) {
     RESUME();
 
     printf("slow_timer task started\r\n");
@@ -197,7 +197,7 @@ RetType slow_timer() {
 }
 
 // task that waits to receive packets on the network
-// RetType echo_net() {
+// RetType echo_net(void*) {
 //     RESUME();
 //
 //     printf("network echo task started\r\n");
@@ -239,7 +239,7 @@ RetType slow_timer() {
 //     }
 // }
 
-RetType block_write() {
+RetType block_write(void*) {
     RESUME();
 
     printf("started block write task\n");
@@ -325,32 +325,32 @@ int main() {
         return -1;
     }
 
-    if(-1 == sched_start(&echo)) {
+    if(-1 == sched_start(&echo, NULL)) {
         printf("failed to start echo task\r\n");
         return -1;
     }
 
-    if(-1 == sched_start(&timer)) {
+    if(-1 == sched_start(&timer, NULL)) {
         printf("failed to start timer task\r\n");
         return -1;
     }
 
-    if(-1 == sched_start(&timer2)) {
+    if(-1 == sched_start(&timer2, NULL)) {
         printf("failed to start timer2 task\r\n");
         return -1;
     }
 
-    if(-1 == sched_start(&slow_timer)) {
+    if(-1 == sched_start(&slow_timer, NULL)) {
         printf("failed to start slow_timer task\r\n");
         return -1;
     }
 
-    // if(-1 == sched_start(&echo_net)) {
+    // if(-1 == sched_start(&echo_net, NULL)) {
     //     printf("failed to start network echo task\r\n");
     //     return -1;
     // }
 
-    if(-1 == sched_start(&block_write)) {
+    if(-1 == sched_start(&block_write, NULL)) {
         printf("failed to start block write task\r\n");
         return -1;
     }

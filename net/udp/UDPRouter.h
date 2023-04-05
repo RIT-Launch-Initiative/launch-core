@@ -23,18 +23,18 @@ namespace udp {
     public:
         explicit UDPRouter(NetworkLayer &networkLayer) : transmitLayer(&networkLayer) {}
 
-        RetType subscribe_port(NetworkLayer &layer, uint16_t port_num) {
+        RetType subscribe_port(NetworkLayer *layer, uint16_t port_num) {
             NetworkLayer **layer_loc = port_bindings.add(port_num);
             if (!layer_loc) {
                 return RET_ERROR;
             }
 
-            uint16_t *port_num_loc = layer_bindings.add(&layer);
+            uint16_t *port_num_loc = layer_bindings.add(layer);
             if (!port_num_loc) {
                 return RET_ERROR;
             }
 
-            *layer_loc = &layer;
+            *layer_loc = layer;
             port_num_loc = &port_num;
 
             return RET_SUCCESS;
@@ -104,7 +104,7 @@ namespace udp {
             header->src = hton16(*src_port);
             header->dst = hton16(info.dst.udp_port);
             header->checksum = 0;
-            header->length = sizeof(info)  + packet.headerSize() - sizeof(UDP_HEADER_T);
+            header->length = sizeof(info)  + packet.header_size() - sizeof(UDP_HEADER_T);
 
             RetType ret = CALL(transmitLayer->transmit(packet, info, this));
 
@@ -137,7 +137,7 @@ namespace udp {
             };
 
             header->checksum = checksum(&pseudo, header);
-            header->length = sizeof(info) + packet.headerSize() - sizeof(UDP_HEADER_T);
+            header->length = sizeof(info) + packet.header_size() - sizeof(UDP_HEADER_T);
 
             RetType ret = CALL(transmitLayer->transmit2(packet, info, this));
 

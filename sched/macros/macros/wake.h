@@ -5,8 +5,8 @@
 #include "return.h"
 
 /* The WAKE macro.
-*  Called as WAKE()
-*  The current task will be blocked and taken off the ready queue.
+*  Called as WAKE(TID)
+*  The task with TID will be added back to the ready queue.
 */
 
 /// @brief wake up a task with task ID 'TID'

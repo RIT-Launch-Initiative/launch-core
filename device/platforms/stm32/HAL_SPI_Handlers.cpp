@@ -1,8 +1,13 @@
 #ifndef HAL_SPI_HANDLERS_H
 #define HAL_SPI_HANDLERS_H
 
+#ifdef STM32F446xx
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_spi.h"
+#elif STM32L476xx
+#include "stm32l4xx_hal.h"
+#include "stm32l4xx_hal_spi.h"
+#endif
 
 #include "device/platforms/stm32/HAL_Handlers.h"
 #include "hashmap/hashmap.h"

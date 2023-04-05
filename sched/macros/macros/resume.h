@@ -3,6 +3,7 @@
 
 #include "sched/sched.h"
 #include "return.h"
+#include "sched/macros/macros.h"
 
 /* The RESUME macro.
 *  Called as RESUME()
@@ -11,23 +12,15 @@
 *  call to RESUME at the top.
 */
 
-/// @brief resumes a task from where it last slept or blocked from
+/// @brief resumes a task from where it last yielded to the scheduler from
 ///        should be at the top of the task function
 /// NOTE: this uses the fact that we can store the address of a label as a value
 ///       that's not a C/C++ feature but is part of GCC, so we are dependent on
 ///       using GCC/G++ for these macros to work
 #define RESUME()\
-            static bool _init = false;\
-            static void* _current[static_cast<int>(MAX_NUM_TASKS) + 1];\
-            if(!_init) {\
-                for(int i = 0; i < static_cast<int>(MAX_NUM_TASKS) + 1; i++) {\
-                    _current[i] = &&_start;\
-                }\
-                _init = true;\
-            }\
-            goto *(_current[static_cast<int>(sched_dispatched)]);\
-            _start:\
-
-// TODO checking init feels a bit slow, not sure how else to initialize _current though
+    if(sched_jump[sched_dispatched].index++ < sched_jump[sched_dispatched].size) { \
+        goto *(sched_jump[sched_dispatched].jumps[sched_jump[sched_dispatched].index - 1]); \
+    } \
+    int _cached_index = sched_jump[sched_dispatched].index; \
 
 #endif
