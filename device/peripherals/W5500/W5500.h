@@ -26,11 +26,16 @@
 #include "device/peripherals/W5500/W5500_socket.h"
 #include "device/peripherals/W5500/W5500_defs.h"
 #include "device/StreamDevice.h"
+#include "net/network_layer/NetworkLayer.h"
+#include "net/packet/Packet.h"
 #include "sched/macros.h"
 #include "return.h"
 
+#define DEFAULT_SOCKET_NUM 0
+
+
 /// @brief controller for W5500 device
-class W5500 {
+class W5500 : public NetworkLayer {
 public:
     /// @brief constructor
     /// @param spi      SPI controller device
@@ -113,6 +118,52 @@ public:
         // TODO read the version and make sure we are talking to a W5500?
 
         init_end:
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType receive(Packet &packet, sockinfo_t &info, NetworkLayer *caller) {
+        RESUME();
+
+        RetType ret = CALL(softReset());
+        if (ret != RET_SUCCESS) return ret;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType transmit(Packet &packet, sockinfo_t &info, NetworkLayer *caller) {
+        RESUME();
+
+        RetType ret = CALL(softReset());
+        if (ret != RET_SUCCESS) return ret;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType transmit2(Packet &packet, sockinfo_t &info, NetworkLayer *caller) {
+        RESUME();
+
+        static uint16_t ptr = 0;
+        static uint32_t addrSel = 0;
+        static size_t len = packet.header_size() + packet.size();
+        static uint8_t *data = packet.read_ptr<uint8_t>();
+
+        if (len == 0) return RET_SUCCESS;
+        // 0 is the socket number. Only transmitting through socket 0 for now
+
+        RetType ret = (get_socket_register_tx_wr(DEFAULT_SOCKET_NUM, &ptr));
+        if (ret != RET_SUCCESS) return ret;
+
+        addrSel = (static_cast<uint32_t>(ptr << 8)) + (W5500_WIZCHIP_TXBUF_BLOCK(DEFAULT_SOCKET_NUM) << 3);
+
+        ret = CALL(write_buff(addrSel, data, len));
+        if (ret != RET_SUCCESS) return ret;
+
+        ptr += len;
+        set_socket_register_tx_wr(DEFAULT_SOCKET_NUM, ptr);
+
         RESET();
         return RET_SUCCESS;
     }
@@ -261,7 +312,6 @@ public:
     /// @param len      the length of the packet
     /// @return
     RetType start_transmit(W5500Socket_t sock, uint8_t *buff, size_t len) {
-        // TODO
         return RET_SUCCESS;
     }
 
@@ -526,6 +576,38 @@ private:
 
         write_buff_end:
         CALL(m_gpio.set(1));
+        RESET();
+        return ret;
+    }
+
+    RetType get_socket_register_tx_wr(uint8_t socket, uint16_t *val) {
+        RESUME();
+
+        static uint8_t result = 0;
+        RetType ret = read_reg(W5500_Sn_TX_WR(socket) << 8, &result);
+        if (ret != RET_SUCCESS) goto get_socket_register_tx_wr_end;
+
+        *val = result;
+
+        ret = read_reg(W5500_Sn_TX_WR(W5500_WIZCHIP_OFFSET_INC(W5500_Sn_TX_WR(socket), 1)) << 8, &result);
+        if (ret != RET_SUCCESS) goto get_socket_register_tx_wr_end;
+
+        *val += result;
+
+        get_socket_register_tx_wr_end:
+        RESET();
+        return ret;
+    }
+
+    RetType set_socket_register_tx_wr(uint8_t socket, uint16_t val) {
+        RESUME();
+
+        RetType ret = CALL(write_reg(W5500_Sn_TX_WR(socket), static_cast<uint8_t>(val >> 8)));
+        if (ret != RET_SUCCESS) goto set_socket_reg_tx_wr_end;
+
+        ret = write_reg(W5500_WIZCHIP_OFFSET_INC(W5500_Sn_TX_WR(socket), 1), static_cast<uint8_t>(val));
+
+        set_socket_reg_tx_wr_end:
         RESET();
         return ret;
     }
