@@ -16,7 +16,7 @@
 #define SIMPLE_ARP_H
 
 #include "net/network_layer/NetworkLayer.h"
-#include "sched/macros.h"
+#include "sched/macros/macros.h"
 
 class SimpleArpLayer : public NetworkLayer {
 public:

@@ -9,7 +9,7 @@
 #include "net/socket/Socket.h"
 #include "hashmap/hashmap.h"
 #include "queue/allocated_queue.h"
-#include "sched/macros.h"
+#include "sched/macros/macros.h"
 #include "config.h"
 
 #ifdef NET_STATISTICS

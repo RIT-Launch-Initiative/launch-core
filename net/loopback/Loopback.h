@@ -3,13 +3,13 @@
 
 #include "return.h"
 #include "net/network_layer/NetworkLayer.h"
-#include "sched/macros.h"
+#include "sched/macros/macros.h"
 
 /// @brief simple network layer that loops packets back to the caller
 class Loopback : public NetworkLayer {
 public:
     /// @brief constructor
-    Loopback() : {};
+    Loopback() {};
 
     RetType transmit(Packet& packet, sockinfo_t& info, NetworkLayer* caller) {
         // don't do anything

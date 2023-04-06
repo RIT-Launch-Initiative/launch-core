@@ -74,7 +74,6 @@ int main() {
 
     sockinfo_t msg;
     msg.dst = dst;
-    msg.type = IPV4_UDP_SOCK;
 
     if(RET_SUCCESS != icmp.transmit(packet, msg, &b)) {
         printf("Transmit 1 failed\n");
@@ -88,7 +87,7 @@ int main() {
         return -1;
     }
 
-    if (RET_SUCCESS != lo.receive(packet, msg, &lo)) {
+    if (RET_SUCCESS != lo.receive(packet, msg, &ip)) {
         printf("Loopback receive failed");
         return -1;
     }
