@@ -2,6 +2,7 @@
  * Platform independent implementation of TMP117 Sensor
  *
  * @author Aaron Chan
+ * @author Nate Aquino
  */
 
 #ifndef LAUNCH_CORE_TMP117_H
@@ -192,7 +193,9 @@ public:
         static uint8_t *response;
 
         RetType ret = CALL(readRegister(TMP117_CONFIGURATION, response, 2));
-        uint16_t response16 = (response[0] << 8) | response[1];
+                if (ret != RET_SUCCESS)
+            return ret;
+        // uint16_t response16 = (response[0] << 8) | response[1]; // unused
 
         *dataReady = *response & 1 << 13;
 
