@@ -65,7 +65,11 @@ public:
             RESET();
             return ret;
         }
-        if (chipID != LSM6DSL_ACC_GYRO_WHO_AM_I) return RET_ERROR;
+        
+        if (chipID != LSM6DSL_ACC_GYRO_WHO_AM_I) {
+            RESET();
+            return RET_ERROR;
+        }
 
         // Enable reg addr automatically incremented during multi byte access with serial intf
         ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL3_C, LSM6DSL_ACC_GYRO_IF_INC_ENABLED, 1, LSM6DSL_ACC_GYRO_IF_INC_MASK));
@@ -853,6 +857,7 @@ private:
     bool accelEnabled;
     bool gyroEnabled;
 
+
     RetType readReg(uint8_t reg, uint8_t *buff, size_t len) {
         RESUME();
 
@@ -868,12 +873,12 @@ private:
         return RET_SUCCESS;
     }
 
-    RetType readReg(uint8_t reg, uint8_t *buff, size_t len, uint8_t mask) {
+    RetType readReg(uint8_t reg, uint8_t *buff, size_t len, uint8_t mask, uint32_t timeout = 0) {
         RESUME();
 
         i2cAddr.mem_addr = reg;
 
-        RetType ret = CALL(mI2C->read(i2cAddr, buff, len));
+        RetType ret = CALL(mI2C->read(i2cAddr, buff, len, timeout));
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
