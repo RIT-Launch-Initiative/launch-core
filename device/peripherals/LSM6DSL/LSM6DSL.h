@@ -2,6 +2,7 @@
  * Platform Independent LSM6DSL IMU Driver Using scheduler
  *
  * @author Aaron Chan
+ * @author Nate Aquino
  */
 
 #ifndef LAUNCH_CORE_LSM6DSL_H
