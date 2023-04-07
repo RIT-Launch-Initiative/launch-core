@@ -75,14 +75,28 @@ public:
         ipv4::IPv4Address(127, 0, 0, 1, &temp_addr);
         ipv4::IPv4Address(255, 0, 0, 0, &temp_subnet);
 
-        ret = m_ip.add_route(temp_addr, temp_subnet, m_lo);
+        ret = m_ip.add_outgoing_route(temp_addr, temp_subnet, m_lo);
+
+        if(RET_SUCCESS != ret) {
+            return ret;
+        }
+
+        ret = m_ip.add_incoming_route(temp_addr, m_lo);
 
         if(RET_SUCCESS != ret) {
             return ret;
         }
 
         // add a route for packets bound for the device
-        ret = m_ip.add_route(m_ipAddr, m_ipSubnet, m_arp);
+        // outgoing packets go to the ARP layer first
+        ret = m_ip.add_outgoing_route(m_ipAddr, m_ipSubnet, m_arp);
+
+        if(RET_SUCCESS != ret) {
+            return ret;
+        }
+
+        // incoming packets come straight from the Ethernet layer
+        ret = m_ip.add_incoming_route(m_ipAddr, m_eth);
 
         if(RET_SUCCESS != ret) {
             return ret;
@@ -116,16 +130,25 @@ public:
     /// @brief add a multicast address for the stack to listen for
     /// @return
     RetType add_multicast(ipv4::IPv4Addr_t addr) {
-        // adds addr/32 as a route for the ethernet layer
-        // all packets sent to 'addr' over 'm_eth' will have a longest prefix
+        // adds addr/32 as a route for the ethernet layer / ARP layer
+        // all packets sent to 'addr' will have a longest prefix
         // match with addr/32 (since it's the longest match possible)
-        return m_ip.add_route(addr, 0xFFFFFFFF, m_arp);
+        RetType ret;
+
+        ret = m_ip.add_outgoing_route(addr, 0xFFFFFFFF, m_arp);
+        if(RET_SUCCESS != ret) {
+            return ret;
+        }
+
+        ret = m_ip.add_incoming_route(addr, m_eth);
+        return ret;
     }
 
     /// @brief remove a multicast address for the stack to listen to
     /// @return
     RetType remove_multicast(ipv4::IPv4Addr_t addr) {
-        return m_ip.remove_route(addr);
+        m_ip.remove_incoming_route(addr);
+        return m_ip.remove_outgoing_route(addr, 0xFFFFFFFF);
     }
 
 private:

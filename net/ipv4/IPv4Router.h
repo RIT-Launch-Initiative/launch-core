@@ -33,67 +33,44 @@ public:
     /// @brief constructor
     IPv4Router() : m_routingTable(route_sort) {};
 
-    /// @brief add route to/from a layer
+    /// @brief add an outgoing route
     /// @param addr     IPv4 address
     /// @param subnet   subnet mask
     /// @param layer    network layer
     /// If a transmitted packet's destination IP has the longest match with this
     //  'addr' on subnet 'subnet', the packet will be forwarded to 'layer'.
-    //  A received packet from 'layer' must have the exact destination address
-    //  of 'addr' to be forwarded to the next protocol layer.
-    //  NOTE: this means for multicasts, each route needs to be added individually!
-    //        ex) add a route for the layer with address 234.0.0.1/32
-    //  NOTE: currently only one layer is allowed per address, this is just
-    //        a limitation for implementation simplicity
+    //  NOTE: currently adding conflicting routes is undefined, whichever
+    //        route is matched first will be used
     /// @return
-    RetType add_route(IPv4Addr_t addr, IPv4Addr_t subnet, NetworkLayer& layer) {
+    RetType add_outgoing_route(IPv4Addr_t addr, IPv4Addr_t subnet,
+                                                          NetworkLayer& layer) {
         // check that it's a valid subnet
         if(!valid_subnet(subnet)) {
             return RET_ERROR;
         }
 
-        // add to the lower layer map
-        NetworkLayer** lower_ptr = m_lowerMap[addr];
-        if(lower_ptr) {
-            // some other layer has this address
-            return RET_ERROR;
-        }
-
-        lower_ptr = m_lowerMap.add(addr);
-        if(lower_ptr == NULL) {
-            // failed to add
-            return RET_ERROR;
-        }
-
-        *lower_ptr = &layer;
-
         // add to the routing table
         Route route = {addr, subnet, &layer};
         if(!m_routingTable.push(route)) {
             // no room
-            // remove layer from map
-            m_lowerMap.remove(addr);
-
             return RET_ERROR;
         }
 
         return RET_SUCCESS;
     }
 
-    /// @brief remove a route
+    /// @brief remove an outgoing route
     /// @param addr     the address of the route to remove
+    /// @param subnet   the subnet of the route to remove
     /// @return success if the route no longer exists (including if it never did)
-    RetType remove_route(IPv4Addr_t addr) {
-        // remove the lower layer from the hashmap
-        // we don't check the return because if the address doesn't exist it's already removed
-        m_lowerMap.remove(addr);
-
+    /// NOTE: if there are conflicting routes, only one will be removed!
+    RetType remove_outgoing_route(IPv4Addr_t addr, IPv4Addr_t subnet) {
         // search for the address in the routing table
         QueueIterator<Route> it = m_routingTable.iterator();
 
         Route* curr;
         while(curr = *it) {
-            if(curr->addr == addr) {
+            if(curr->addr == addr && curr->subnet == subnet) {
                 // this is our guy
                 m_routingTable.remove(curr);
                 return RET_SUCCESS;
@@ -104,6 +81,39 @@ public:
 
         // couldn't find the route, so it's technically removed
         return RET_SUCCESS;
+    }
+
+    /// @brief add an incoming route
+    /// @param addr   address
+    /// @param layer  network layer
+    /// Add an incoming route. Packets that are received from 'layer' that have
+    /// a destination address of 'addr' will be forwarded to a higher layer.
+    /// All other packets, besides broadcasts, will be dropped.
+    /// NOTE: only one incoming layer is allowed per address, this is purely
+    ///       for implementation simplicity and could be changed
+    /// @return
+    RetType add_incoming_route(IPv4Addr_t addr, NetworkLayer& layer) {
+        NetworkLayer** ptr = m_incoming[addr];
+        if(ptr) {
+            // this address is already mapped to an incoming layer
+            return RET_ERROR;
+        }
+
+        ptr = m_incoming.add(addr);
+        if(NULL == ptr) {
+            // no room
+            return RET_ERROR;
+        }
+
+        *ptr = &layer;
+
+        return RET_SUCCESS;
+    }
+
+    /// @brief remove an incoming route
+    /// @param addr     the address of the route to remove
+    void remove_incoming_route(IPv4Addr_t addr) {
+        m_incoming.remove(addr);
     }
 
     /// @brief add a protocol layer to forward packets too
@@ -216,8 +226,8 @@ public:
         // check the address
         IPv4Addr_t addr = ntoh32(hdr->dst);
 
-        NetworkLayer** lower_ptr = m_lowerMap[addr];
-        if(lower_ptr == NULL) {
+        NetworkLayer** incoming_ptr = m_incoming[addr];
+        if(incoming_ptr == NULL) {
             // no layer with this IP
 
             #ifdef NET_STATISTICS
@@ -227,7 +237,7 @@ public:
             return RET_ERROR;
         }
 
-        if(*lower_ptr != caller) {
+        if(*incoming_ptr != caller) {
             // the address doesn't match the layer it should have come in on
 
             #ifdef NET_STATISTICS
@@ -437,11 +447,12 @@ private:
         return subnet_len(fst.subnet) > subnet_len(snd.subnet);
     }
 
-    // stores all routes to lower layers
+    // stores all outgoing routes to lower layers
     alloc::SortedQueue<Route, SIZE> m_routingTable;
 
-    // maps lower layers to addresses
-    alloc::Hashmap<IPv4Addr_t, NetworkLayer*, SIZE, SIZE> m_lowerMap;
+    // stores incoming routes
+    // maps addresses to a layer packets from that address should come in on
+    alloc::Hashmap<IPv4Addr_t, NetworkLayer*, SIZE, SIZE> m_incoming;
 
     // maps higher level protocols to protocol numbers
     alloc::Hashmap<uint8_t, NetworkLayer*, SIZE, SIZE> m_protMap;
