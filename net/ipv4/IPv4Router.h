@@ -359,7 +359,7 @@ public:
         hdr->src = hton32(m_route->addr);
 
         // calculate checksum
-        hdr->checksum = hton16(checksum((uint16_t*)hdr, sizeof(IPv4Header_t) / sizeof(uint16_t)));
+        hdr->checksum = checksum((uint16_t*)hdr, sizeof(IPv4Header_t));
 
         // record information about the packet for lower layers to use
         info.dst.ipv4_addr = hdr->dst;

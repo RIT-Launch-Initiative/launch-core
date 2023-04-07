@@ -21,13 +21,14 @@ public:
 
     /// @brief transmit (second pass)
     RetType transmit2(Packet &packet, netinfo_t &, NetworkLayer *) {
-        printf("transmitting payload: \n");
+        printf("packet hex dump: \n");
 
-        uint8_t *buff = packet.read_ptr<uint8_t>();
-        for (size_t i = 0; i < packet.size(); i++) {
+        packet.seek_read(true);
+        uint8_t* buff = packet.read_ptr<uint8_t>();
+        for(size_t i = 0; i < packet.available(); i++) {
             printf("%02x ", buff[i]);
         }
-        printf("\n\n");
+        printf("\n");
 
         return RET_SUCCESS;
     }
@@ -99,7 +100,7 @@ int main() {
     addr.ip[0] = 10;
     addr.ip[1] = 10;
     addr.ip[2] = 10;
-    addr.ip[3] = 1;
+    addr.ip[3] = 101;
     addr.port = 8000;
     len = 5;
     if(RET_SUCCESS != sock->send(msg, len, &addr)) {

@@ -129,6 +129,11 @@ public:
     RetType transmit2(Packet& packet, netinfo_t& info, NetworkLayer*) {
         RESUME();
 
+        EthHeader_t* hdr = packet.allocate_header<EthHeader_t>();
+        if(hdr == NULL) {
+            return RET_ERROR;
+        }
+
         // calculate the FCS if configured to
         if(m_fcs) {
             uint32_t fcs = calculate_fcs(packet.raw(), packet.size() + packet.header_size());

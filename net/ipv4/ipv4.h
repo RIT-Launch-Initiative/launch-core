@@ -77,7 +77,7 @@ uint16_t checksum(const uint16_t* data, uint16_t len) {
         sum += data[i];
     }
 
-    // retrun one's complement
+    // return one's complement
     return ~sum;
 }
 
