@@ -60,7 +60,7 @@ public:
 
         // Check Chip ID
         static uint8_t chipID;
-        RetType ret = CALL(readReg(LSM6DSL_ACC_GYRO_WHO_AM_I_REG, &chipID, 1, LSM6DSL_ACC_GYRO_WHO_AM_I_BIT_MASK, 50));
+        RetType ret = CALL(readReg(LSM6DSL_ACC_GYRO_WHO_AM_I_REG, &chipID, 1, LSM6DSL_ACC_GYRO_WHO_AM_I_BIT_MASK/*, 50*/)); // dunno why 50 is here but its improper use of this function
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
