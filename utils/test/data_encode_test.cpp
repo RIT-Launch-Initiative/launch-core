@@ -15,6 +15,10 @@ typedef struct {
     uint8_t some_other_flight_data;
 } example_struct_t;
 
+
+// NOTE: *buffer should point to the start of where you want to write the data into
+// Make sure you do not overwrite if you are writing multiple structs into the same buffer
+// Each struct and encode/decode functions can go into its related class. Struct at the top and static functions at the bottom outside of the class
 void example_encode(example_struct_t *telem, uint8_t *buffer) {
     uint16_to_uint8(telem->identifier, buffer);
     int16_to_uint8(telem->some_flight_data, buffer + 2);
