@@ -74,8 +74,26 @@ class MAXM10S {
      */
     RetType readDataRandAccess(uint8_t *buff, int *readBytes) {
         RESUME();
+
+        // read the amount of data available
+        uint8_t byteCount[2];
+        RetType ret = CALL(readRegister(BYTE_COUNT_HIGH, byteCount, 1));
+        if (ret != RET_SUCCESS)
+            return ret;
+        ret = CALL(readRegister(BYTE_COUNT_HIGH, byteCount + 1, 1));
+        if (ret != RET_SUCCESS)
+            return ret;
+        *readBytes = (byteCount[0] << 8) | byteCount[1];
+        if (*readBytes == 0)
+            return RET_SUCCESS;  // no data available
+
+        // read the data
+        ret = CALL(readRegister(DATA_STREAM, buff, *readBytes));
+        if (ret != RET_SUCCESS)
+            return ret;
+
         RESET();
-        return RET_SUCCESS;  /// @todo NYI
+        return RET_SUCCESS;
     }
 
     /**
@@ -100,8 +118,14 @@ class MAXM10S {
      */
     RetType readRegister(enum MAXM10S_REG reg, uint8_t *buff, int numBytes) {
         RESUME();
+
+        addr.mem_addr = reg;
+        RetType ret = CALL(mI2C.read(addr, buff, numBytes, 1500));  // sensor timeout
+        if (ret != RET_SUCCESS)
+            return ret;
+
         RESET();
-        return RET_SUCCESS;  /// @todo NYI
+        return RET_SUCCESS;
     }
 
    private:
