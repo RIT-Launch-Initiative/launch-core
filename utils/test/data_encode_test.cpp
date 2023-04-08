@@ -6,6 +6,8 @@
 
 // TODO: Include relevant headers here
 #include <cstdint>
+#include <cassert>
+#include <cstdio>
 #include <utils/conversion.h>
 
 // TODO: Remove this struct when you have your own and know what to do
@@ -19,34 +21,31 @@ typedef struct {
 // NOTE: *buffer should point to the start of where you want to write the data into
 // Make sure you do not overwrite if you are writing multiple structs into the same buffer
 // Each struct and encode/decode functions can go into its related class. Struct at the top and static functions at the bottom outside of the class
-constexpr void example_encode(example_struct_t *telem, uint8_t *buffer) {
+void example_encode(example_struct_t *telem, uint8_t *buffer) {
     uint16_to_uint8(telem->identifier, buffer);
     int16_to_uint8(telem->some_flight_data, buffer + 2);
     *(buffer + 4) = telem->some_other_flight_data;
 }
 
-constexpr void example_decode(example_struct_t *telem, uint8_t *buffer) {
+void example_decode(example_struct_t *telem, uint8_t *buffer) {
     telem->identifier = uint8_to_uint16(buffer);
     telem->some_flight_data = uint8_to_int16(buffer + 2);
     telem->some_other_flight_data = *(buffer + 4);
 }
 
 // TODO: Add tests that encode a single struct each
-
-// TODO: Remove when understood
-// constexpr allows the compiler to evaluate the function at compile time
-constexpr bool encode_example_struct_test() {
+bool encode_example_struct_test() {
     uint8_t buffer[5] = {};
     example_struct_t example_struct = {10000, -10, 200};
 
     example_encode(&example_struct, buffer);
 
-    return buffer[0] == 39 && buffer[1] == 16 && buffer[2] == 246 && buffer[3] == 255 && buffer[4] == 200;
+    return buffer[0] == 39 && buffer[1] == 16 && buffer[2] == 255 && buffer[3] == 246 && buffer[4] == 200;
 }
 
 // TODO: Add tests that can decode a uint8_t buffer and convert it into a struct
-constexpr bool decode_example_struct_test() {
-    uint8_t buffer[5] = {39, 16, 246, 255, 200};
+bool decode_example_struct_test() {
+    uint8_t buffer[5] = {39, 16, 255, 246, 200};
     example_struct_t example_struct = {};
 
     example_decode(&example_struct, buffer);
@@ -56,7 +55,7 @@ constexpr bool decode_example_struct_test() {
 }
 
 // TODO: Tests where you encode a struct and then decode it and compare the values
-constexpr bool encode_decode_example_struct_test() {
+bool encode_decode_example_struct_test() {
     uint8_t buffer[5] = {};
     example_struct_t expected = {10000, -10, 200};
     example_struct_t actual = {};
@@ -71,8 +70,12 @@ constexpr bool encode_decode_example_struct_test() {
 
 
 int main() {
-    // TODO: Remove when understood. static_assert will cause a compile time error if the expression is false
-    static_assert(encode_example_struct_test(), "Example test failed");
+    assert(encode_example_struct_test());
+    assert(decode_example_struct_test());
+    assert(encode_decode_example_struct_test());
+
+    printf("All tests passed!\n");
+
 }
 
 
