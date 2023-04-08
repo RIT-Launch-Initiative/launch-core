@@ -38,7 +38,7 @@ enum MAXM10S_REG {
 };
 
 /**
- * @brief Platform Independent Driver for the MAX-M10S GPS module
+ * @brief Platform Independent Driver for the MAXM10S GPS module
  */
 class MAXM10S {
    public:
@@ -105,7 +105,9 @@ class MAXM10S {
     }
 
    private:
+    /* The I2C object */
     I2CDevice &mI2C;
+    /* The I2C address of the sensor */
     I2CAddr_t addr;
 };
 
