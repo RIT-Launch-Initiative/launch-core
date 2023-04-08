@@ -4,7 +4,9 @@
  * @details This is the I2C Implementation.
  *          UART and PIO are also supported but are NYI.
  *          Im not even sure if we are going to need them but the option
- *          is there. 🤯
+ *          is there. 🤯. Also note this sensor is not writeable with
+ *          2 exceptions. Those being writing NMEA and UBX messages.
+ *          The datasheet is not very clear on how to do this.
  * @author Nate Aquino
  */
 #ifndef LAUNCH_CORE_MAXM10S_H
@@ -51,6 +53,56 @@ class MAXM10S {
               .mem_addr = 0,
               .mem_addr_size = 2,
           }) {}
+
+    /**
+     * @brief Initialize the MAXM10S sensor
+     *
+     * @return RetType the scheduler status
+     */
+    RetType init() {
+        RESUME();
+        RESET();
+        return RET_SUCCESS;  /// @todo NYI
+    }
+
+    /**
+     * @brief Reads the amount of data available from the sensor
+     * @details This is a random access read (register read)
+     * @param buff the gps data buffer
+     * @param numBytes the number of bytes to read
+     * @return RetType the scheduler status
+     */
+    RetType readDataRandAccess(uint8_t *buff, int *readBytes) {
+        RESUME();
+        RESET();
+        return RET_SUCCESS;  /// @todo NYI
+    }
+
+    /**
+     * @brief Reads the amount of data available from the sensor
+     * @details This is a current access read (TXRX read)
+     * @param buff the gps data buffer
+     * @return RetType the scheduler status
+     */
+    RetType readDataCurrentAccess(uint8_t *buff) {
+        RESUME();
+        RESET();
+        return RET_SUCCESS;  /// @todo NYI
+    }
+
+    /**
+     * @brief Reads a register from the MAXM10S sensor
+     *
+     * @param reg the register to read from
+     * @param buff the buffer to read into
+     * @param numBytes the number of bytes to read
+     * @return RetType the scheduler status
+     */
+    RetType readRegister(enum MAXM10S_REG reg, uint8_t *buff, int numBytes) {
+        RESUME();
+        RESET();
+        return RET_SUCCESS;  /// @todo NYI
+    }
 
    private:
     I2CDevice &mI2C;
