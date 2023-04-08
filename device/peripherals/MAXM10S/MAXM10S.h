@@ -67,12 +67,12 @@ class MAXM10S {
 
     /**
      * @brief Reads the amount of data available from the sensor
-     * @details This is a random access read (register read)
+     * @details This is a random access read (all at once)
      * @param buff the gps data buffer
      * @param numBytes the number of bytes to read
      * @return RetType the scheduler status
      */
-    RetType readDataRandAccess(uint8_t *buff, int *readBytes) {
+    RetType readDataRandAccess(uint8_t *buff, int *readBytes) {  /// @todo TESTME!
         RESUME();
 
         // read the amount of data available
@@ -98,14 +98,26 @@ class MAXM10S {
 
     /**
      * @brief Reads the amount of data available from the sensor
-     * @details This is a current access read (TXRX read)
+     * @details This is a current access read (stream read)
      * @param buff the gps data buffer
      * @return RetType the scheduler status
      */
-    RetType readDataCurrentAccess(uint8_t *buff) {
+    RetType readDataCurrentAccess(uint8_t *buff) {  /// @todo TESTME!
         RESUME();
+
+        RetType ret;
+
+        addr.mem_addr = DATA_STREAM;
+        // read as much data as possible (assuming RET_ERROR means NACK?)
+        // I know for sure 0xFF is the end of the data stream
+        do {
+            ret = CALL(mI2C.read(addr, buff, 1, 1500));  // sensor timeout
+            if (ret == RET_SUCCESS)
+                buff++;
+        } while (ret != RET_ERROR || *(buff - 1) != 0xFF);
+
         RESET();
-        return RET_SUCCESS;  /// @todo NYI
+        return ret;
     }
 
     /**
@@ -116,7 +128,7 @@ class MAXM10S {
      * @param numBytes the number of bytes to read
      * @return RetType the scheduler status
      */
-    RetType readRegister(enum MAXM10S_REG reg, uint8_t *buff, int numBytes) {
+    RetType readRegister(enum MAXM10S_REG reg, uint8_t *buff, int numBytes) {  /// @todo TESTME!
         RESUME();
 
         addr.mem_addr = reg;
