@@ -140,6 +140,24 @@ class MAXM10S {
         return RET_SUCCESS;
     }
 
+    /**
+     * @brief Writes commands to the MAXM10S sensor
+     *
+     * @param cmdBuff The NMBA or UBX command to send
+     * @param cmdLen The length of the command
+     * @return RetType the scheduler status
+     */
+    RetType sendCommand(uint8_t *cmdBuff, int cmdLen) {  /// @todo TESTME!
+        RESUME();
+
+        RetType ret = CALL(mI2C.transmit(addr, cmdBuff, cmdLen, 50));
+        if (ret != RET_SUCCESS)
+            return ret;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
    private:
     /* The I2C object */
     I2CDevice &mI2C;
