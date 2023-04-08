@@ -75,15 +75,7 @@ class MAXM10S {
     RetType readDataRandAccess(uint8_t *buff, int *readBytes) {  /// @todo TESTME!
         RESUME();
 
-        // read the amount of data available
-        uint8_t byteCount[2];
-        RetType ret = CALL(readRegister(BYTE_COUNT_HIGH, byteCount, 1));
-        if (ret != RET_SUCCESS)
-            return ret;
-        ret = CALL(readRegister(BYTE_COUNT_HIGH, byteCount + 1, 1));
-        if (ret != RET_SUCCESS)
-            return ret;
-        *readBytes = (byteCount[0] << 8) | byteCount[1];
+        RetType ret = CALL(getAmtData(readBytes));
         if (*readBytes == 0)
             return RET_SUCCESS;  // no data available
 
@@ -91,6 +83,29 @@ class MAXM10S {
         ret = CALL(readRegister(DATA_STREAM, buff, *readBytes));
         if (ret != RET_SUCCESS)
             return ret;
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    /**
+     * @brief Get the amount of data available from the sensor
+     *
+     * @param amt ptr to the amount of data available
+     * @return RetType the scheduler status
+     */
+    RetType getAmtData(int *amt) {
+        RESUME();
+
+        // read the amount of data available
+        static uint8_t byteCount[2];
+        RetType ret = CALL(readRegister(BYTE_COUNT_HIGH, byteCount, 1));
+        if (ret != RET_SUCCESS)
+            return ret;
+        ret = CALL(readRegister(BYTE_COUNT_HIGH, byteCount + 1, 1));
+        if (ret != RET_SUCCESS)
+            return ret;
+        *amt = (byteCount[0] << 8) | byteCount[1];
 
         RESET();
         return RET_SUCCESS;
