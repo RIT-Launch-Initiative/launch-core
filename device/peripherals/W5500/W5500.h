@@ -101,9 +101,13 @@ public:
         if (ret != RET_SUCCESS) goto init_end;
 
         // source IP address
-        ret = CALL(set_src(ip));
+        ret = CALL(set_src(W5500_SOCKET0, 0x10101069, 10000));
         if (ret != RET_SUCCESS) goto init_end;
-        
+
+        // dst IP address
+        ret = CALL(set_dst(W5500_SOCKET0, 0xFFFFFFFF, 10000));
+        if (ret != RET_SUCCESS) goto init_end;
+
         // don't care about any other settings at the moment
         // TODO maybe do some interrupt masking until we actually open the socket?
         // TODO TCP will need some more settings like rety count and retry time
@@ -201,15 +205,26 @@ public:
     RetType set_src(W5500Socket_t sock, uint32_t ipaddr, uint16_t port) {
         RESUME();
 
+        static uint8_t ip[4] = {};
+        static uint8_t port_bytes[2] = {};
+
+        ip[0] = (ipaddr >> 24) & 0xFF;
+        ip[1] = (ipaddr >> 16) & 0xFF;
+        ip[2] = (ipaddr >> 8) & 0xFF;
+        ip[3] = ipaddr & 0xFF;
+
+        port_bytes[0] = (port >> 8) & 0xFF;
+        port_bytes[1] = port & 0xFF;
+
         RetType ret = CALL(write_buff(W5500_SIPR, ip, 4));
         if (ret != RET_SUCCESS) return ret;
 
-        ret = CALL(write_buff(W5500_SPORT, port, 2));
+        ret = CALL(write_buff(W5500_Sn_PORT(sock), port_bytes, 2));
         if (ret != RET_SUCCESS) return ret;
 
         set_src_end:
         RESET();
-        return ret;
+        return RET_SUCCESS;
     }
 
     /// @brief set the destination address and port
@@ -218,9 +233,30 @@ public:
     /// @param port     the new destination port, in system endianness
     /// @return
     RetType set_dst(W5500Socket_t sock, uint32_t ipaddr, uint16_t port) {
-        // TODO
-        return RET_SUCCESS;
+        RESUME();
+
+        static uint8_t ip[4] = {};
+        static uint8_t port_bytes[2] = {};
+
+        ip[0] = (ipaddr >> 24) & 0xFF;
+        ip[1] = (ipaddr >> 16) & 0xFF;
+        ip[2] = (ipaddr >> 8) & 0xFF;
+        ip[3] = ipaddr & 0xFF;
+
+        port_bytes[0] = (port >> 8) & 0xFF;
+        port_bytes[1] = port & 0xFF;
+
+        RetType ret = CALL(write_buff(W5500_Sn_DIPR(sock), ip, 4));
+        if (ret != RET_SUCCESS) return ret;
+
+        ret = CALL(write_buff(W5500_Sn_DPORT(sock), port_bytes, 2));
+        if (ret != RET_SUCCESS) return ret;
+
+        set_dst_end:
+        RESET();
+        return ret;
     }
+
 
     /// @brief open a socket
     /// @param sock         the socket to open
@@ -228,10 +264,35 @@ public:
     /// @param multicast    'true' if this socket should listen for multicasts,
     ///                      or for raw sockets, true if it should listen for IPv6
     /// @return
-    RetType open(W5500Socket_t sock, W5500SocketMode_t mode) {
-        // TODO
-        return RET_SUCCESS;
-    }
+//    RetType open(W5500Socket_t sock, W5500SocketMode_t mode) {
+//        RESUME();
+//
+//        RetType ret = CALL(set_socket_register_mode(sock, mode));
+//        if (ret != RET_SUCCESS) return ret;
+//
+//        ret = CALL(set_socket_register_command(sock, W5500SocketCommand_t::OPEN));
+//        if (ret != RET_SUCCESS) return ret;
+//
+//    open_end:
+//        RESET();
+//
+//        return RET_SUCCESS;
+//    }
+//
+//    RetType set_socket_register_mode(W5500Socket_t sock, W5500SocketMode_t mode) {
+//        RESUME();
+//
+//        static uint8_t mode_byte = 0;
+//
+//        mode_byte = static_cast<uint8_t>(mode);
+//
+//        RetType ret = CALL(write_buff(W5500_Sn_MR(sock), &mode_byte, 1));
+//        if (ret != RET_SUCCESS) return ret;
+//
+//        set_socket_register_mode_end:
+//        RESET();
+//        return ret;
+//    }
 
     /// @brief close a socket
     /// @param sock     the socket to close
@@ -458,10 +519,12 @@ public:
         return ret;
     }
 
-    RetType set_src_ip_addr(uint8_t ip[4]) {
+    RetType get_gateway_addr(uint8_t gateway[4]) {
         RESUME();
 
+        RetType ret = CALL(read_buff(W5500_GAR, gateway, 4));
 
+        get_gateway_end:
         RESET();
         return ret;
     }
@@ -475,6 +538,15 @@ public:
         return ret;
     }
 
+    RetType get_subnet_mask(uint8_t subnet[4]) {
+        RESUME();
+
+        RetType ret = CALL(read_buff(W5500_SUBR, subnet, 4));
+
+        RESET();
+        return ret;
+    }
+
     RetType get_chip_version(uint8_t *version) {
         RESUME();
 
@@ -483,15 +555,6 @@ public:
         RESET();
         return ret;
     }
-
-    uint8_t *get_tx_flag() {
-        return &tx_int_flag;
-    }
-
-    uint8_t *get_rx_flag() {
-        return &rx_int_flag;
-    }
-
 
 private:
     // passed in SPI controller
