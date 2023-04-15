@@ -9,6 +9,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #include "return.h"
 #include "sched/macros/resume.h"
@@ -72,7 +73,7 @@ public:
         RetType ret = CALL(reset());
         if (ret != RET_SUCCESS) return ret;
 
-		uint8_t version;
+		static uint8_t version;
 		RetType ret = CALL(readReg(RFM95_REGISTER_VERSION, &version, 1));
 		if (ret != RET_SUCCESS) return ret;
 
@@ -124,7 +125,7 @@ public:
     }
 
     RetType configFrequency(uint32_t frequency) {
-        uint64_t freqRespFunc = (static_cast<uint64_t>(frequency) << 19) / 32000000;
+        static uint64_t freqRespFunc = (static_cast<uint64_t>(frequency) << 19) / 32000000;
 
         RetType ret = CALL(writeReg(RFM95_REGISTER_FR_MSB, static_cast<uint8_t>(freqRespFunc >> 16)));
         if (ret != RET_SUCCESS) return ret;
@@ -155,11 +156,6 @@ public:
         return RET_SUCCESS;
     }
 
-
-	RetType isTransmitting(){
-		uint8_t transmit;
-		if(readReg(RFM95_REGISTER_OP_MODE, &transmit, 1) != RET_SUCCESS
-	}
 
 	RetType setSpreadingFactor(int sf){
 		RESUME();
@@ -196,7 +192,7 @@ public:
     RetType setPower(uint8_t power) {
 		RESUME();
 
-		uint8_t RegPaConfig = 0x00;
+		static uint8_t RegPaConfig = 0x00;
 
 		if((power < 2) || (power > 17)){
 			power = 2;
@@ -218,13 +214,13 @@ public:
 	RetType setMode(uint8_t mode){
 		RESUME();
 
-		uint8_t RegOpMode;
+		static uint8_t RegOpMode;
 
 		if(mode > 0b00000111){
 			mode = 0x01; //standby mode
 		}
 
-		uint8_t curr_mode;
+		static uint8_t curr_mode;
 		RetType ret = CALL(readReg(RFM95_REGISTER_OP_MODE, &curr_mode, 1));
 		if (ret != RET_SUCCESS) return ret;
 
@@ -251,7 +247,7 @@ public:
 
     RetType receive(uint8_t *buf, uint8_t len){
 		RESUME();
-		uint8_t irq_flags;
+		static uint8_t irq_flags; // make all variables are static
 		bool valid = false;
 
 
@@ -262,7 +258,7 @@ public:
 		if (ret != RET_SUCCESS) return ret;
 
 		do{
-			uint8_t rx_addr;
+			static uint8_t rx_addr;
 			RetType ret = CALL(readReg(RFM95_REGISTER_FIFO_RX_BASE_ADDR, &rx_addr, 1));
 			if (ret != RET_SUCCESS) return ret;
 
@@ -271,14 +267,14 @@ public:
 
 			//set to rx mode
 			ret = CALL(setMode(0x06));
-			if (ret != RET_SUCCESS) return ret
+			if (ret != RET_SUCCESS) return ret;
 
 			do {
 				ret = CALL(readReg(RFM95_REGISTER_IRQ_FLAGS, &irq_flags, 1));
 				if (ret != RET_SUCCESS) return ret;
 			} while(!(irq_flags & ((1<<7) | (1<<6))));
 
-			uint8_t rec_len;
+			static uint8_t rec_len;
 			RetType ret = CALL(readReg(RFM95_REGISTER_FIFO_RX_BYTES_NB, &rec_len, 1));
 			if (ret != RET_SUCCESS) return ret;
 
@@ -288,7 +284,7 @@ public:
 			if (ret != RET_SUCCESS) return ret;
 		} while(!valid);
 
-		uint8_t curr_addr;
+		static uint8_t curr_addr;
 		RetType ret = CALL(readReg(0x10, &curr_addr, 1)); // 0x10 = curr address register
 		if (ret != RET_SUCCESS) return ret;
 
@@ -314,7 +310,7 @@ public:
     	ret = CALL(writeReg(RFM95_REGISTER_PAYLOAD_LENGTH, len));
     	if (ret != RET_SUCCESS) return ret;
 
-    	uint8_t tx_addr;
+    	static uint8_t tx_addr;
     	RetType ret = CALL(readReg(RFM95_REGISTER_FIFO_TX_BASE_ADDR, &tx_addr, 1));
     	if (ret != RET_SUCCESS) return ret;
 
@@ -359,7 +355,7 @@ public:
 		ret = CALL(writeReg(RFM95_REGISTER_IRQ_FLAGS, (1<<6) | (1<<5) | (1<<7)));
 		if (ret != RET_SUCCESS) return ret;
 
-		uint8_t curr_addr;
+		static uint8_t curr_addr;
 		ret = CALL(readReg(0x10, &curr_addr, 1)); // 0x10 = curr address register
 		if (ret != RET_SUCCESS) return ret;
 
@@ -371,19 +367,19 @@ public:
 
     }
 
-    RetType packetWaiting(int status){
+    RetType packetWaiting(int *status){
     	RESUME();
 
-    	uint8_t irq_flags;
+    	static uint8_t irq_flags;
 
 		ret = CALL(readReg(RFM95_REGISTER_IRQ_FLAGS, &irq_flags, 1)); // 0x10 = curr address register
 		if (ret != RET_SUCCESS) return ret;
 
 		if(irq_flags & (1<<6)){
-			&status = 1;
+			*status = 1;
 		}
 		else {
-			&status = 0;
+			*status = 0;
 		}
 
 
@@ -394,7 +390,7 @@ public:
     RetType receive_packet_async(uint8_t *buffer, uint8_t len){
     	RESUME();
 
-    	uint8_t rx_len, irq_flags;
+    	static uint8_t rx_len, irq_flags;
 
     	ret = CALL(readReg(RFM95_REGISTER_IRQ_FLAGS, &irq_flags, 1));
     	if (ret != RET_SUCCESS) return ret;
@@ -431,7 +427,24 @@ public:
 
     }
 
+    RetType getRSSIVal(uint8_t *val){
+    	RESUME();
 
+    	static uint8_t read;
+		ret = CALL(readReg(0x1a, &rssi, 1)); // 0x10 = curr address register
+		if (ret != RET_SUCCESS) return ret;
+		static uint16_t rssi = (uint16_t)read * 99 / 155;
+
+		if(rssi > 99){
+			rssi = 99;
+		}
+
+		*val = rssi;
+		RESET();
+		return RET_SUCCESS;
+
+
+    }
 
 
 private:
