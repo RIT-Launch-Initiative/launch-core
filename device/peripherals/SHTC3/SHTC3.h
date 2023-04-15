@@ -6,15 +6,27 @@
  */
 #ifndef LAUNCH_CORE_SHTC3_H
 #define LAUNCH_CORE_SHTC3_H
+#define DEFAULT_SHTC3(X) SHTC3_Readings X = {.id = 16070, .temp = NULL, .humidity = NULL}
 
 #include "device/I2CDevice.h"
 #include "return.h"
 #include "sched/macros/call.h"
 #include "sched/macros/reset.h"
 #include "sched/macros/resume.h"
+#include "utils/conversion.h"
+#include "device/peripherals/SensorDevice.h"
 
 /* The SHTC3 I2C address (8 bits) */
 #define SHTC3_I2C_ADDR 0x70
+
+
+
+typedef struct 
+{
+    uint16_t id;
+    float temp;
+    float humidity;
+} SHTC3_Readings
 
 /**
  * @brief The SHTC3 Commands
@@ -54,7 +66,7 @@ enum SHTC3_CMD {
  * @brief Platform Independent Driver for the SHTC3 Sensor
  *
  */
-class SHTC3 {
+class SHTC3 : public SensorEncodeDecode{
    public:
     SHTC3(I2CDevice &i2CDevice) : mI2C(i2CDevice), inLowPowerMode(false), addr({.dev_addr = SHTC3_I2C_ADDR << 1, .mem_addr = 0, .mem_addr_size = 2}) {}
 
@@ -293,6 +305,20 @@ class SHTC3 {
         }
         return crc;
     }
+
+    void encode(void* sensor_struct, uint8_t buffer){
+        SHTC3_Readings data = (SHTC3_Readings)sensor_struct;
+        uint16_to_uint8(data->id, buffer);
+        int32_to_uint8(data->temp, buffer + 2);
+        int32_to_uint8(data->humidity, buffer + 6);
+    }
+
+    void decode(void* sensor_struct, uint8_t buffer){
+        SHTC3_Readings data = (SHTC3_Readings)sensor_struct;
+        data->id = uint8_to_int16(buffer);
+        data->temp = uint8_to_int64(buffer + 2);
+        data->humidity = uint8_to_int64(buffer + 6);
+    } 
 };
 
 #endif  // LAUNCH_CORE_SHTC3_H

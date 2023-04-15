@@ -24,11 +24,26 @@
 #define LSM6DSL_WAKE_UP_THRESHOLD_MID_HIGH  0x2F
 #define LSM6DSL_WAKE_UP_THRESHOLD_HIGH      0x3F  /**< Highest value of wake up threshold */
 
+#define DEFAULT_LSM(X) LSM_Readings X = {.id = 11106, .accX = NULL, .accY = NULL, .accZ = NULL, .gyroX = NULL, .gyroY = NULL, .gyroZ = NULL}
+
 #include <stdint.h>
 #include "device/I2CDevice.h"
 #include "sched/macros.h"
 #include "device/peripherals/LSM6DSL/LSM6DSL_Driver.h"
+#include "device/peripherals/SensorDevice.h"
+#include "utils/conversion.h"
 
+
+typedef struct
+{
+    uint16_t id;
+    uint32_t accX;
+    uint32_t accY;
+    uint32_t accZ;
+    uint32_t gyroX;
+    uint32_t gyroY;
+    uint32_t gyroZ;
+} LSM_Readings
 
 enum LSM6DSL_Interrupt_Pin_t {
     LSM6DSL_INT1_PIN,
@@ -46,7 +61,7 @@ struct LSM6DSL_SENSOR_DATA_T {
     float angularVelocity;
 };
 
-class LSM6DSL {
+class LSM6DSL : public SensorEncodeDecode{
 public:
     LSM6DSL(I2CDevice &i2CDevice) : mI2C(&i2CDevice), accelEnabled(false), gyroEnabled(false) {}
 
@@ -845,6 +860,28 @@ public:
         RESET();
         return RET_SUCCESS;
     }
+
+    void encode(void* sensor_struct, uint8_t buffer){
+        LSM_Readings data = (LSM_Readings)sensor_struct;
+        uint16_to_uint8(data->id, buffer);
+        uint32_to_uint8(data->accX, buffer + 2 );
+        uint32_to_uint8(data->accY, buffer + 6 );
+        uint32_to_uint8(data->accZ, buffer + 10 );
+        uint32_to_uint8(data->gyroX, buffer + 14 );
+        uint32_to_uint8(data->gyroy, buffer + 18 );
+        uint32_to_uint8(data->gyroZ, buffer + 22 );
+    }
+
+    void decode(void* sensor_struct, uint8_t buffer){
+        LSM_Readings data = (LSM_Readings)sensor_struct;
+        data->id = uint8_to_int16(buffer);
+        data->accX = uint8_to_uint32(buffer + 2);
+        data->accY = uint8_to_uint32(buffer + 6);
+        data->accZ = uint8_to_uint32(buffer + 10);
+        data->gyroX = uint8_to_uint32(buffer + 14);
+        data->gyroY = uint8_to_uint32(buffer + 18);
+        data->gyroZ = uint8_to_uint32(buffer + 22);
+    } 
 
     // TODO: Maybe add wakeup detection functionality
 

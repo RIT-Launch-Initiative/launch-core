@@ -13,6 +13,8 @@
 #include "sched/macros/resume.h"
 #include "sched/macros/reset.h"
 #include "sched/macros/call.h"
+#include "utils/conversion.h"
+#include "device/peripherals/SensorDevice.h"
 
 #define TMP_117_DEVICE_ADDR 0x48
 #define DEVICE_ID_VALUE 0x0117
@@ -20,7 +22,8 @@
 #define bitRead(value, bit) (((value) >> (bit)) & 0x01)
 #define bitSet(value, bit) ((value) |= (1UL << (bit)))
 #define bitClear(value, bit) ((value) &= ~(1UL << (bit)))
-#define bitWrite(value, bit, bitVal) (bitVal ? bitSet(value, bit) : bitClear(value, bit))
+#define bitWrite(value, bit, bitVal) (bitVal ? bitSet(value, bit) : bitClear(value, bit))\
+#define DEFAULT_TEMP117(X) TMP117_Readings X = {.id = 16048, .temp = NULL}
 
 typedef union {
     struct {
@@ -39,6 +42,12 @@ typedef union {
     } CONFIGURATION_FIELDS;
     uint16_t CONFIGURATION_COMBINED;
 } CONFIGURATION_REG;
+
+typedef struct
+{
+    uint16_t id;
+    float temp;
+} TMP117_Readings
 
 // Device ID Register used for checking if the device ID is the same as declared
 typedef union {
@@ -79,7 +88,7 @@ enum TMP117_HILO_ALERT_BIT {
 };
 
 
-class TMP117 {
+class TMP117 : public SensorEncodeDecode{
 public:
     TMP117(I2CDevice &i2CDevice) : mI2C(i2CDevice) {}
 
@@ -521,6 +530,18 @@ public:
         RESET();
         return RET_SUCCESS;
     }
+
+    void encode(void* sensor_struct, uint8_t buffer){
+        TMP117_Readings data = (TMP117_Readings)sensor_struct;
+        uint16_to_uint8(data->id, buffer);
+        int32_to_uint8(data->temp, buffer + 2);
+    }
+
+    void decode(void* sensor_struct, uint8_t buffer){
+        TMP117_Readings data = (TMP117_Readings)sensor_struct;
+        data->id = uint8_to_int16(buffer);
+        data->temp = uint8_to_int64(buffer + 2);
+    } 
 
 private:
     I2CDevice &mI2C;

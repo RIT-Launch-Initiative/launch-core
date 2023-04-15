@@ -15,13 +15,16 @@
 #define ADXL375_XYZ_READ_SCALE_FACTOR 49
 #define ADXL375_MG2G_MULTIPLIER 0.049
 #define ADXL375_GRAVITY 9.80665F
+#define DEFAULT_ADXL375(X) ADXL375_Readings X = {.id = 12053, .x_axis = NULL, .y_axis = NULL, .z_axis = NULL}
 
 #include <stdlib.h>
 #include <stdint.h>
 
+#include "utils/conversion.h"
 #include "sched/macros.h"
 #include "return.h"
 #include "device/I2CDevice.h"
+#include "device/peripherals/SensorDevice.h"
 
 
 typedef enum {
@@ -58,8 +61,15 @@ typedef enum {
     ADLX375_AUTOSLEEP_MODE = 0x10,
 } ADXL375_OP_MODE;
 
+typedef struct
+{
+    uint16_t id;
+    uint32_t x_axis;
+    uint32_t y_axis;
+    uint32_t z_axis;
+} ADXL375_Readings
 
-class ADXL375 {
+class ADXL375 : public SensorEncodeDecode{
 public:
     ADXL375(I2CDevice &i2c) : m_i2c(i2c) {}
 
@@ -297,6 +307,22 @@ public:
 
         RESET();
         return ret;
+    }
+
+    void encode(void* sensor_struct, uint8_t buffer){
+        ADXL375_Readings data = (ADXL375_Readings)sensor_struct;
+        uint16_to_uint8(data->id, buffer);
+        uint32_to_uint8(data->x_axis, buffer + 2);
+        uint32_to_uint8(data->y_axis, buffer + 6);
+        uint32_to_uint8(data->z_axis, buffer + 10);
+    }
+
+    void decode(void* sensor_struct, uint8_t buffer){
+        ADXL375_Readings data = (ADXL375_Readings)sensor_struct;
+        data->id = uint8_to_int16(buffer);
+        data->x_axis = uint8_to_uint32(buffer + 2);
+        data->y_axis = uint8_to_uint32(buffer + 6);
+        data->z_axis = uint8_to_uint32(buffer + 10);
     }
 
 private:

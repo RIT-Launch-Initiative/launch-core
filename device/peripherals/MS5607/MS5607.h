@@ -6,6 +6,7 @@
 
 #ifndef LAUNCH_CORE_MS5607_H
 #define LAUNCH_CORE_MS5607_H
+#define DEFAULT_MS5607(X) MS5607_Readings X = {.id = 10076, .pressure = NULL, .temp = NULL}
 
 #include "device/GPIODevice.h"
 #include "sched/macros.h"
@@ -13,9 +14,19 @@
 #include "device/SPIDevice.h"
 #include "device/I2CDevice.h"
 #include <cmath>
+#include "device/peripherals/SensorDevice.h"
+#include "utils/conversion.h"
 
 #define CHECK_RET {if (ret != RET_SUCCESS) {RESET(); return ret;}}
 #define CONCAT(a, b) a ## b
+
+
+typedef struct
+{
+    uint16_t id;
+    float pressure;
+    float temp;
+} MS5607_Readings
 
 typedef enum {
     FACTORY_DATA_ADDR = 0,
@@ -56,7 +67,7 @@ typedef enum {
     MS5607_OSR_4096 = 4,
 } MS5607_OSR_T;
 
-class MS5607 {
+class MS5607 : public SensorEncodeDecode{
 public:
     MS5607(I2CDevice &i2cDevice) : mI2C(&i2cDevice) {}
 
@@ -123,6 +134,18 @@ public:
         RESET();
         return RET_SUCCESS;
     }
+
+
+    // need conversion from float to uint8
+    void encode(void* sensor_struct, uint8_t buffer){
+        MS5607_Readings data = (MS5607_Readings)sensor_struct;
+        uint16_to_uint8(data->id, buffer);
+    }
+
+    void decode(void* sensor_struct, uint8_t buffer){
+        MS5607_Readings data = (MS5607_Readings)sensor_struct;
+        data->id = uint8_to_int16(buffer);
+    } 
 
 
 private:

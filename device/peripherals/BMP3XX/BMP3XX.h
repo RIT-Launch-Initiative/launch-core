@@ -7,6 +7,7 @@
 
 #ifndef LAUNCH_CORE_BMP3XX_H
 #define LAUNCH_CORE_BMP3XX_H
+#define DEFAULT_BMP3XX(X) BMP3XX_Readings X = {.id = 10077, .pressure = NULL, .temp = NULL, .altitude = NULL}
 
 #include "device/peripherals/BMP3XX/bmp3_defs.h"
 #include "return.h"
@@ -16,10 +17,19 @@
 #include "device/I2CDevice.h"
 
 #include "sched/macros/call.h"
+#include "utils/conversion.h"
 #include "macros.h"
+#include "device/peripherals/SensorDevice.h"
 
+typedef struct
+{
+    uint16_t id;
+    double pressure;
+    double temp;
+    double altitude;
+} BMP3XX_Readings
 
-class BMP3XX {
+class BMP3XX : public SensorEncodeDecode{
 public:
     BMP3XX(I2CDevice &i2cDev) : mI2C(&i2cDev) {}
 
@@ -319,7 +329,21 @@ public:
         return RET_SUCCESS;
     }
 
+    void encode(void* sensor_struct, uint8_t buffer){
+        BMP3XX_Readings data = (BMP3XX_Readings)sensor_struct;
+        uint16_to_uint8(data->id, buffer);
+        uint64_to_uint8(data->pressure, buffer + 2);
+        uint64_to_uint8(data->temp, buffer + 10);
+        uint64_to_uint8(data->altitude, buffer + 18);
+    }
 
+    void decode(void* sensor_struct, uint8_t buffer){
+        BMP3XX_Readings data = (BMP3XX_Readings)sensor_struct;
+        data->id = uint8_to_int16(buffer);
+        data->pressure = uint8_to_int64(buffer+2);
+        data->temp = uint8_to_int64(buffer+10);
+        data->altitude = uint8_to_int64(buffer + 18);
+    } 
 
 private:
     bmp3_dev device = {};
@@ -888,6 +912,7 @@ private:
         settings.odr_filter.iir_filter = BMP3_GET_BITS(regData[index], BMP3_IIR_FILTER);
     }
 };
+
 
 
 #endif //LAUNCH_CORE_BMP3XX_H
