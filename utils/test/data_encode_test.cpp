@@ -98,33 +98,37 @@ void decode(struct *data, uint8_t *buffer){
     {
     case 10076:
             
-            break;
-        case 10077:
-            data->pressure = uint8_to_int64(buffer+2);
-            data->temp = uint8_to_int64(buffer+10);
-            data->altitude = uint8_to_int64(buffer + 18);
-            break;
-        case 11106:
-            data->accX = uint8_to_int32(buffer + 2);
-            data->accY = uint8_to_int32(buffer + 6);
-            data->accZ = uint8_to_int32(buffer + 10);
-            data->gyroX = uint8_to_int32(buffer + 14);
-            data->gyroY = uint8_to_int32(buffer + 18);
-            data->gyroZ = uint32_to_uint8(buffer + 22);
-            break;
-        case 12053:
-            data->x_axis = uint32_to_uint8(buffer + 2);
-            data->y_axis = uint8_to_int32(buffer + 6);
-            data->z_axis = uint32_to_uint8(buffer 10);
+        break;
+    case 10077:
+        data->pressure = uint8_to_int64(buffer+2);
+        data->temp = uint8_to_int64(buffer+10);
+        data->altitude = uint8_to_int64(buffer + 18);
+        break;
+    case 11106:
+        data->accX = uint8_to_uint32(buffer + 2);
+        data->accY = uint8_to_uint32(buffer + 6);
+        data->accZ = uint8_to_uint32(buffer + 10);
+        data->gyroX = uint8_to_uint32(buffer + 14);
+        data->gyroY = uint8_to_uint32(buffer + 18);
+        data->gyroZ = uint8_to_uint32(buffer + 22);
+        break;
+    case 12053:
+        data->x_axis = uint8_to_uint32(buffer + 2);
+        data->y_axis = uint8_to_uint32(buffer + 6);
+        data->z_axis = uint8_to_uint32(buffer + 10);
             break;
         case 15028:
-            
+        data->magX = uint8_to_int64(buffer + 2);
+        data->magY = uint8_to_int64(buffer + 6);
+        data->magZ = uint8_to_int64(buffer + 10);
+        data->temp = uint8_to_int64(buffer + 14);
             break;
         case 16070:
-            
+        data->temp = uint8_to_int64(buffer + 2);
+        data->humidity = uint8_to_int64(buffer + 6);
             break;
         case 16048:
-            
+        data->temp = uint8_to_int64(buffer + 2);
             break;
         default:
             break;
@@ -160,18 +164,26 @@ void encode(struct *data, uint8_t *buffer) {
             break;
         case 15028:
             uint16_to_uint8(data->id, buffer);
+            int32_to_uint8(data->magX, buffer + 2);
+            int32_to_uint8(data->magY, buffer + 6);
+            int32_to_uint8(data->magZ, buffer + 10);
+            int32_to_uint8(data->temp, buffer + 14);
             break;
         case 16070:
             uint16_to_uint8(data->id, buffer);
+            int32_to_uint8(data->temp, buff + 2);
+            int32_to_uint8(data->humidity, buffer + 6);
             break;
         case 16048:
             uint16_to_uint8(data->id, buffer);
+            int32_to_uint8(data->temp, buffer + 2);
             break;
         default:
             break;
     }
      
 }
+
 
 // TODO: Add tests that encode a single struct each
 bool encode_example_struct_test() {
@@ -184,11 +196,19 @@ bool encode_example_struct_test() {
 }
 
 bool encode_BMP_struct_test(){
-    uint8_t buffer[26] = {};
+    uint8_t buffer[3] = {};
     BMP_Readings BMP = {5.0, 12.0, 1000.0};
 
     encode(&BMP, &buffer);
-    return buffer[0] == uint16_to_uint8(10077) && buffer[1] == uint16_to_uint8(5);
+    return buffer[0] == uint16_to_uint8(10077) && buffer[1] == uint64_to_uint8(5.0) && uint64_to_uint8(12.0) && uint64_to_uint8(1000.0);
+ }
+
+bool encode_ADXL_struct_test(){
+    uint8_t buffer[26] = {};
+    BMP_Readings BMP = {-12, 12.0, 10};
+
+    encode(&BMP, &buffer);
+    return buffer[0] == uint16_to_uint8(12053) && buffer[1] == uint16_to_uint8(5);
  }
 
 // TODO: Add tests that can decode a uint8_t buffer and convert it into a struct
