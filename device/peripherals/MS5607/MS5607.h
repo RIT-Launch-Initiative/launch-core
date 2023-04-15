@@ -140,11 +140,15 @@ public:
     void encode(void* sensor_struct, uint8_t buffer){
         MS5607_Readings data = (MS5607_Readings)sensor_struct;
         uint16_to_uint8(data->id, buffer);
+        uint32_to_uint8(data->pressure, buffer);
+        uint32_to_uint8(data->temp, buffer);
     }
 
     void decode(void* sensor_struct, uint8_t buffer){
         MS5607_Readings data = (MS5607_Readings)sensor_struct;
         data->id = uint8_to_int16(buffer);
+        data->pressure = uint8_to_int32(buffer);
+        data->temp = uint8_to_int32(buffer);
     } 
 
 
