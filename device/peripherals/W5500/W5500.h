@@ -125,11 +125,13 @@ public:
         static size_t len = packet.header_size() + packet.size();
         static uint8_t data[256] = {};
         static uint8_t* packet_buff = packet.write_ptr<uint8_t>();
-        if (len == 0) return RET_SUCCESS;
 
+        if (len == 0) return RET_SUCCESS;
 
         ptr = W5500_Sn_RX_RD(DEFAULT_SOCKET_NUM);
         addr_sel = ((uint32_t) ptr << 8) + (W5500_WIZCHIP_RXBUF_BLOCK(DEFAULT_SOCKET_NUM) << 3);
+        len = packet.header_size() + packet.size();
+        packet_buff = packet.write_ptr<uint8_t>();
 
         RetType ret = CALL(read_buff(addr_sel, data, len));
         if (ret != RET_SUCCESS) goto receive_end;
@@ -551,6 +553,26 @@ public:
         RESUME();
 
         RetType ret = CALL(read_reg(W5500_VERSIONR, version));
+
+        RESET();
+        return ret;
+    }
+
+
+
+    RetType get_phy_reg(uint8_t* reg) {
+        RESUME();
+
+        RetType ret = CALL(read_reg(W5500_PHYCFGR, reg));
+
+        RESET();
+        return ret;
+    }
+
+    RetType set_phy_reg(uint8_t reg) {
+        RESUME();
+
+        RetType ret = CALL(write_reg(W5500_PHYCFGR, reg));
 
         RESET();
         return ret;
