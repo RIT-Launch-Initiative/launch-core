@@ -2,17 +2,14 @@
 *
 *  Name: w5500.h
 *
-*  Purpose: Implementation of a Wiznet W5500 Ethernet chip driver. Written to be
-*           platform independent, requires a "StreamDevice" that handles SPI
-*           communication for the platform and a "GPIODevice" to control the
-*           chip select (TODO add the GPIODevice here).
+*  Purpose: Implementation of a Wiznet W5500 Ethernet chip driver
 *
 *           Currently only works in variable data length mode, so the chip
 *           select must be used and cannot be tied to ground like for fixed
 *           data length mode.
 *
 *  Author:  Aaron Chan
-*          Will Merges
+*           Will Merges
 *
 *  RIT Launch Initiative
 *
@@ -77,7 +74,7 @@ public:
         //  force ARP = 0
         //  reserved
         static uint8_t mode = 0b1000000;
-        ret = CALL(write_mode(&mode));
+        ret = CALL(write_mode(mode));
 
         // PHY configuration:
         //  reset = 1
@@ -85,28 +82,46 @@ public:
         //  operation mode = 111 (all capable, auto negotation)
         //  all else read only
         static uint8_t phy_cfg = 0b11111000;
-        ret = CALL(write_phy_cfg(&phy_cfg));
-        if (ret != RET_SUCCESS) goto init_end;
-        
-        // gateway address
-        ret = CALL(set_gateway_addr(gw));
-        if (ret != RET_SUCCESS) return ret;
-
-        // subnet mask address
-        ret = CALL(set_subnet_mask(subnet));
+        ret = CALL(write_phy_cfg(phy_cfg));
         if (ret != RET_SUCCESS) goto init_end;
 
-        // source MAC address
+
+        // Set our local MAC address
         ret = CALL(set_mac_addr(mac));
         if (ret != RET_SUCCESS) goto init_end;
 
-        // source IP address
-        ret = CALL(set_src(W5500_SOCKET0, 0x10101069, 10000));
+        // Open Socket 0 in MACRaw mode
+        ret = CALL(set_socket_mode_reg(DEFAULT_SOCKET_NUM, MAC_RAW_MODE));
         if (ret != RET_SUCCESS) goto init_end;
 
-        // dst IP address
-        ret = CALL(set_dst(W5500_SOCKET0, 0xFFFFFFFF, 10000));
+        ret = CALL(set_socket_control_reg(DEFAULT_SOCKET_NUM, OPEN_SOCKET));
         if (ret != RET_SUCCESS) goto init_end;
+
+        ret = CALL(set_socket_mode_tx_size(DEFAULT_SOCKET_NUM, 16));
+        if (ret != RET_SUCCESS) goto init_end;
+
+        ret = CALL(set_socket_mode_rx_size(DEFAULT_SOCKET_NUM, 16));
+        if (ret != RET_SUCCESS) goto init_end;
+
+        // gateway address
+//        ret = CALL(set_gateway_addr(gw));
+//        if (ret != RET_SUCCESS) return ret;
+//
+//        // subnet mask address
+//        ret = CALL(set_subnet_mask(subnet));
+//        if (ret != RET_SUCCESS) goto init_end;
+//
+//        // source MAC address
+//        ret = CALL(set_mac_addr(mac));
+//        if (ret != RET_SUCCESS) goto init_end;
+//
+//        // source IP address
+        ret = CALL(set_src_ip(ip));
+        if (ret != RET_SUCCESS) goto init_end;
+//
+//        // dst IP address
+//        ret = CALL(set_dst(W5500_SOCKET0, 0xFFFFFFFF, 10000));
+//        if (ret != RET_SUCCESS) goto init_end;
 
         // don't care about any other settings at the moment
         // TODO maybe do some interrupt masking until we actually open the socket?
@@ -114,7 +129,7 @@ public:
 
         init_end:
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     RetType receive(Packet &packet, sockinfo_t &info, NetworkLayer *caller) override {
@@ -124,7 +139,7 @@ public:
         static uint32_t addr_sel = 0;
         static size_t len = packet.header_size() + packet.size();
         static uint8_t data[256] = {};
-        static uint8_t* packet_buff = packet.write_ptr<uint8_t>();
+        static uint8_t *packet_buff = packet.write_ptr<uint8_t>();
 
         if (len == 0) return RET_SUCCESS;
 
@@ -159,6 +174,7 @@ public:
         static uint32_t addr_sel = 0;
         static size_t len = packet.header_size() + packet.size();
         static uint8_t *data = packet.read_ptr<uint8_t>();
+        static uint8_t test_buff[4] = {'t', 'e', 's', 't'};
 
         if (len == 0) return RET_SUCCESS;
         // 0 is the socket number. Only transmitting through socket 0 for now
@@ -168,7 +184,7 @@ public:
 
         addr_sel = (static_cast<uint32_t>(ptr << 8)) + (W5500_WIZCHIP_TXBUF_BLOCK(DEFAULT_SOCKET_NUM) << 3);
 
-        ret = CALL(write_buff(addr_sel, data, len));
+        ret = CALL(write_buff(addr_sel, test_buff, 4));
         if (ret != RET_SUCCESS) return ret;
 
         ptr += len;
@@ -178,56 +194,134 @@ public:
         return RET_SUCCESS;
     }
 
-
-    RetType write_mode(uint8_t *mode) {
+    RetType set_socket_mode_reg(uint8_t socket_num, uint8_t mode) {
         RESUME();
 
-        RetType ret = CALL(write_buff(W5500_MR, mode, 1));
+        RetType ret = CALL(write_reg(W5500_Sn_MR(socket_num), mode));
+
+        RESET();
+
+        return ret;
+    }
+
+    RetType get_socket_mode_reg(uint8_t socket_num, uint8_t *mode) {
+        RESUME();
+
+        RetType ret = CALL(read_reg(W5500_Sn_MR(socket_num), mode));
+
+        RESET();
+
+        return ret;
+    }
+
+    RetType set_socket_control_reg(uint8_t socket_num, uint8_t mode) {
+        RESUME();
+
+        RetType ret = CALL(write_reg(W5500_Sn_CR(socket_num), mode));
+
+        RESET();
+
+        return ret;
+    }
+
+    RetType get_socket_control_reg(uint8_t socket_num, uint8_t *mode) {
+        RESUME();
+
+        RetType ret = CALL(read_reg(W5500_Sn_CR(socket_num), mode));
+
+        RESET();
+
+        return ret;
+    }
+
+    RetType set_socket_mode_tx_size(uint8_t socket_num, uint8_t size) {
+        RESUME();
+
+        RetType ret = CALL(write_reg(W5500_Sn_TXBUF_SIZE(socket_num), size));
+
+        RESET();
+
+        return ret;
+    }
+
+    RetType get_socket_mode_tx_size(uint8_t socket_num, uint8_t *size) {
+        RESUME();
+
+        RetType ret = CALL(read_reg(W5500_Sn_TXBUF_SIZE(socket_num), size));
+
+        RESET();
+
+        return ret;
+    }
+
+    RetType set_socket_mode_rx_size(uint8_t socket_num, uint8_t size) {
+        RESUME();
+
+        RetType ret = CALL(write_reg(W5500_Sn_TXBUF_SIZE(socket_num), size));
+
+        RESET();
+
+        return ret;
+    }
+
+    RetType get_socket_mode_rx_size(uint8_t socket_num, uint8_t *size) {
+        RESUME();
+
+        RetType ret = CALL(read_reg(W5500_Sn_TXBUF_SIZE(socket_num), size));
+
+        RESET();
+
+        return ret;
+    }
+
+
+    RetType write_mode(uint8_t mode) {
+        RESUME();
+
+        RetType ret = CALL(write_reg(W5500_MR, mode));
+
+        RESET();
+        return ret;
+    }
+
+    RetType read_mode(uint8_t *mode) {
+        RESUME();
+
+        RetType ret = CALL(read_reg(W5500_MR, mode));
+
+        RESET();
+        return ret;
+
+    }
+
+    RetType write_phy_cfg(uint8_t phy_cfg) {
+        RESUME();
+
+        RetType ret = CALL(write_reg(W5500_PHYCFGR, phy_cfg));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
         return ret;
     }
 
-    RetType write_phy_cfg(uint8_t *phy_cfg) {
+    RetType set_src_ip(uint8_t source_ip[4]) {
         RESUME();
 
-        RetType ret = CALL(write_buff(W5500_PHYCFGR, phy_cfg, 1));
-        if (ret != RET_SUCCESS) return ret;
+        RetType ret = CALL(write_buff(W5500_SIPR, source_ip, 4));
 
         RESET();
         return ret;
     }
 
-    /// @brief set a sockets source address and port
-    /// @param sock     the socket to set
-    /// @param ipaddr   the new source IPv4 address, in system endianness
-    /// @param port     the new source port, in system endianness
-    /// @return
-    RetType set_src(W5500Socket_t sock, uint32_t ipaddr, uint16_t port) {
+    RetType get_src_ip(uint8_t *source_ip) {
         RESUME();
 
-        static uint8_t ip[4] = {};
-        static uint8_t port_bytes[2] = {};
+        RetType ret = CALL(read_buff(W5500_SIPR, source_ip, 4));
 
-        ip[0] = (ipaddr >> 24) & 0xFF;
-        ip[1] = (ipaddr >> 16) & 0xFF;
-        ip[2] = (ipaddr >> 8) & 0xFF;
-        ip[3] = ipaddr & 0xFF;
-
-        port_bytes[0] = (port >> 8) & 0xFF;
-        port_bytes[1] = port & 0xFF;
-
-        RetType ret = CALL(write_buff(W5500_SIPR, ip, 4));
-        if (ret != RET_SUCCESS) return ret;
-
-        ret = CALL(write_buff(W5500_Sn_PORT(sock), port_bytes, 2));
-        if (ret != RET_SUCCESS) return ret;
-
-        set_src_end:
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
+
 
     /// @brief set the destination address and port
     /// @param sock     the socket to set
@@ -255,7 +349,7 @@ public:
         if (ret != RET_SUCCESS) return ret;
 
         set_dst_end:
-        RESET();
+    RESET();
         return ret;
     }
 
@@ -511,12 +605,20 @@ public:
         return ret;
     }
 
+    RetType get_mac_addr(uint8_t *mac) {
+        RESUME();
+
+        RetType ret = CALL(read_buff(W5500_SHAR, mac, 6));
+
+        RESET();
+        return ret;
+    }
+
     RetType set_gateway_addr(uint8_t gateway[4]) {
         RESUME();
 
         RetType ret = CALL(write_buff(W5500_GAR, gateway, 4));
 
-        set_gateway_end:
         RESET();
         return ret;
     }
@@ -527,7 +629,7 @@ public:
         RetType ret = CALL(read_buff(W5500_GAR, gateway, 4));
 
         get_gateway_end:
-        RESET();
+    RESET();
         return ret;
     }
 
@@ -549,18 +651,17 @@ public:
         return ret;
     }
 
-    RetType get_chip_version(uint8_t *version) {
+    RetType set_phy_reg(uint8_t reg) {
         RESUME();
 
-        RetType ret = CALL(read_reg(W5500_VERSIONR, version));
+        RetType ret = CALL(write_reg(W5500_PHYCFGR, reg));
 
         RESET();
         return ret;
     }
 
 
-
-    RetType get_phy_reg(uint8_t* reg) {
+    RetType get_phy_reg(uint8_t *reg) {
         RESUME();
 
         RetType ret = CALL(read_reg(W5500_PHYCFGR, reg));
@@ -569,10 +670,10 @@ public:
         return ret;
     }
 
-    RetType set_phy_reg(uint8_t reg) {
+    RetType get_chip_version(uint8_t *version) {
         RESUME();
 
-        RetType ret = CALL(write_reg(W5500_PHYCFGR, reg));
+        RetType ret = CALL(read_reg(W5500_VERSIONR, version));
 
         RESET();
         return ret;
@@ -713,7 +814,7 @@ private:
         *val += result;
 
         get_socket_register_tx_wr_end:
-        RESET();
+    RESET();
         return ret;
     }
 
@@ -726,7 +827,7 @@ private:
         ret = CALL(write_reg(W5500_WIZCHIP_OFFSET_INC(W5500_Sn_TX_WR(socket), 1), static_cast<uint8_t>(val)));
 
         set_socket_reg_tx_wr_end:
-        RESET();
+    RESET();
         return ret;
     }
 
@@ -745,7 +846,7 @@ private:
         *val += result;
 
         get_socket_register_rx_rd_end:
-        RESET();
+    RESET();
         return ret;
     }
 
@@ -758,7 +859,7 @@ private:
         ret = CALL(write_reg(W5500_WIZCHIP_OFFSET_INC(W5500_Sn_RX_RD(socket), 1), static_cast<uint8_t>(val)));
 
         set_socket_reg_rx_rd_end:
-        RESET();
+    RESET();
         return ret;
     }
 
@@ -771,7 +872,7 @@ private:
         ret = CALL(write_reg(W5500_WIZCHIP_OFFSET_INC(W5500_Sn_PORT(socket), 1), static_cast<uint8_t>(port)));
 
         set_socket_port_end:
-        RESET();
+    RESET();
         return ret;
     }
 };
