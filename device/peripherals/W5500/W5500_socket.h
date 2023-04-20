@@ -50,7 +50,13 @@ typedef enum {
     LISTEN_SOCKET = 0x02,
     CONNECT_SOCKET = 0x04,
     DISCONNECT_SOCKET = 0x08,
-    CLOSE_SOCKET = 0x10
+    CLOSE_SOCKET = 0x10,
+
+    SEND_SOCKET = 0x20,
+    SEND_MAC_SOCKET = 0x21,
+    SEND_KEEP_SOCKET = 0x22,
+
+    RECV_SOCKET = 0x40
 } W5500SocketCtrl_t;
 
 /// @brief current state of a socket

@@ -90,7 +90,6 @@ public:
         ret = CALL(set_mac_addr(mac));
         if (ret != RET_SUCCESS) goto init_end;
 
-        // Open Socket 0 in MACRaw mode
         ret = CALL(set_socket_mode_reg(DEFAULT_SOCKET_NUM, MAC_RAW_MODE));
         if (ret != RET_SUCCESS) goto init_end;
 
@@ -128,7 +127,7 @@ public:
         // TODO TCP will need some more settings like rety count and retry time
 
         init_end:
-        RESET();
+    RESET();
         return ret;
     }
 
@@ -159,7 +158,7 @@ public:
         if (ret != RET_SUCCESS) goto receive_end;
 
         receive_end:
-        RESET();
+    RESET();
         return RET_SUCCESS;
     }
 
@@ -170,29 +169,81 @@ public:
     RetType transmit2(Packet &packet, sockinfo_t &info, NetworkLayer *caller) override {
         RESUME();
 
-        static uint16_t ptr = 0;
-        static uint32_t addr_sel = 0;
-        static size_t len = packet.header_size() + packet.size();
-        static uint8_t *data = packet.read_ptr<uint8_t>();
-        static uint8_t test_buff[4] = {'t', 'e', 's', 't'};
+        static uint16_t ptr;
+        static uint16_t len;
+        ptr = 0;
+        len = packet.header_size() + packet.size();
 
-        if (len == 0) return RET_SUCCESS;
-        // 0 is the socket number. Only transmitting through socket 0 for now
+        if (len == 0) {
+            RESET();
+            return RET_SUCCESS;
+        }
 
         RetType ret = CALL(get_socket_register_tx_wr(DEFAULT_SOCKET_NUM, &ptr));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) goto transmit2_end;
 
-        addr_sel = (static_cast<uint32_t>(ptr << 8)) + (W5500_WIZCHIP_TXBUF_BLOCK(DEFAULT_SOCKET_NUM) << 3);
-
-        ret = CALL(write_buff(addr_sel, test_buff, 4));
-        if (ret != RET_SUCCESS) return ret;
+        ret = CALL(write_buff(ptr, packet.read_ptr<uint8_t>(), len, W5500_WIZCHIP_TXBUF_BLOCK(DEFAULT_SOCKET_NUM)));
+        if (ret != RET_SUCCESS) goto transmit2_end;
 
         ptr += len;
         ret = CALL(set_socket_register_tx_wr(DEFAULT_SOCKET_NUM, ptr));
 
+        transmit2_end:
         RESET();
         return RET_SUCCESS;
     }
+
+//    RetType sendFrame(const uint8_t *buf, uint16_t len) {
+//        RESUME();
+//        static uint8_t socket_status;
+//
+//        while (1) {
+//            uint16_t freesize = getSn_TX_FSR();
+//            getSn_SR();
+//            if (socket_status == CLOSE_SOCKET) {
+//                RESET();
+//                return RET_ERROR;
+//            }
+//            if (len <= freesize) break;
+//        };
+//
+//        wizchip_send_data(buf, len);
+//        setSn_CR(Sn_CR_SEND);
+//
+//        while (1) {
+//            uint8_t tmp = getSn_IR();
+//            if (tmp & Sn_IR_SENDOK) {
+//                setSn_IR(Sn_IR_SENDOK);
+//                // Packet sent ok
+//                break;
+//            } else if (tmp & Sn_IR_TIMEOUT) {
+//                setSn_IR(Sn_IR_TIMEOUT);
+//                // There was a timeout
+//                return -1;
+//            }
+//        }
+//
+//        RESET();
+//        return RET_ERROR;
+//    }
+//
+//    RetType send_data(const uint8_t *data, uint16_t len) {
+//        RESUME();
+//        static uint16_t ptr;
+//        ptr = 0;
+//
+//        if(len == 0) {
+//            RESET();
+//            return RET_SUCCESS;
+//        };
+//
+//        ptr = W5500_getSn_TX_WR();
+//        wizchip_write_buf(BlockSelectTxBuf, ptr, wizdata, len);
+//
+//        ptr += len;
+//
+//        setSn_TX_WR(ptr);
+//    }
 
     RetType set_socket_mode_reg(uint8_t socket_num, uint8_t mode) {
         RESUME();
@@ -774,7 +825,7 @@ private:
         return ret;
     }
 
-    RetType write_buff(uint32_t addr_sel, uint8_t *buff, uint16_t len) {
+    RetType write_buff(uint32_t addr_sel, uint8_t *buff, uint16_t len, uint8_t block = 0) {
         RESUME();
         static uint8_t data[16];
 
@@ -786,6 +837,10 @@ private:
         data[0] = (addr_sel & 0x00FF0000) >> 16;
         data[1] = (addr_sel & 0x0000FF00) >> 8;
         data[2] = (addr_sel & 0x000000FF) >> 0;
+        if (block) {
+            data[2] |= _W5500_SPI_WRITE_;
+        }
+
         for (int i = 0; i < len; i++) {
             data[i + 3] = *(buff + i);
         }
@@ -794,6 +849,31 @@ private:
         if (ret != RET_SUCCESS) goto write_buff_end;
 
         write_buff_end:
+        CALL(m_gpio.set(1));
+        RESET();
+        return ret;
+    }
+
+    RetType write_buff(uint32_t addr_sel, uint8_t *buff, uint16_t len, uint8_t block) {
+        RESUME();
+        static uint8_t data[16];
+
+        RetType ret = CALL(m_gpio.set(0));
+        if (ret != RET_SUCCESS) goto write_buff_block_end;
+
+        addr_sel |= (_W5500_SPI_WRITE_ | _W5500_SPI_VDM_OP_);
+
+        data[0] = (addr_sel & 0x00FF0000) >> 16;
+        data[1] = (addr_sel & 0x0000FF00) >> 8;
+        data[2] = (addr_sel & 0x000000FF) >> 0;
+        for (int i = 0; i < len; i++) {
+            data[i + 3] = *(buff + i);
+        }
+
+        ret = CALL(m_spi.write_read(data, data, len + 3));
+        if (ret != RET_SUCCESS) goto write_buff_block_end;
+
+        write_buff_block_end:
         CALL(m_gpio.set(1));
         RESET();
         return ret;
