@@ -854,31 +854,6 @@ private:
         return ret;
     }
 
-    RetType write_buff(uint32_t addr_sel, uint8_t *buff, uint16_t len, uint8_t block) {
-        RESUME();
-        static uint8_t data[16];
-
-        RetType ret = CALL(m_gpio.set(0));
-        if (ret != RET_SUCCESS) goto write_buff_block_end;
-
-        addr_sel |= (_W5500_SPI_WRITE_ | _W5500_SPI_VDM_OP_);
-
-        data[0] = (addr_sel & 0x00FF0000) >> 16;
-        data[1] = (addr_sel & 0x0000FF00) >> 8;
-        data[2] = (addr_sel & 0x000000FF) >> 0;
-        for (int i = 0; i < len; i++) {
-            data[i + 3] = *(buff + i);
-        }
-
-        ret = CALL(m_spi.write_read(data, data, len + 3));
-        if (ret != RET_SUCCESS) goto write_buff_block_end;
-
-        write_buff_block_end:
-        CALL(m_gpio.set(1));
-        RESET();
-        return ret;
-    }
-
     RetType get_socket_register_tx_wr(uint8_t socket, uint16_t *val) {
         RESUME();
 
