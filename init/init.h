@@ -21,7 +21,7 @@
 ///        function of 'dev'
 /// @param dev     a Device class pointer to the device to poll
 /// @return
-void PollDevice(void* dev) {
+RetType PollDevice(void* dev) {
     RESUME();
 
     // returns blocked or yield to return back to the scheduler
@@ -59,10 +59,10 @@ typedef struct {
 ///         - loops forever
 ///
 /// @param init_args      the init arguments, an init_arg_t* cast to void*
-void init(void* init_args) {
+RetType init(void* init_args) {
     RESUME();
 
-    init_arg_t args = (init_arg_t*)init_args;
+    init_arg_t* args = (init_arg_t*)init_args;
 
     DeviceMap* map = args->dev_map;
     Device* dev = map->next();
@@ -85,7 +85,7 @@ void init(void* init_args) {
 
     // start all the tasks we were passed
     for(size_t i = 0; i < args->num_tasks; i++) {
-        task_func_t* task = args->tasks[i];
+        task_func_t task = args->tasks[i];
         void* arg = args->args[i];
 
         // NOTE: again not checking return here

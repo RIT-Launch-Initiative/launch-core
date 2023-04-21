@@ -53,21 +53,22 @@ public:
         // clean = 1
         // snap = 2
 
-        ctl = 0b0000110;
+        m_ctl = 0b0000110;
     }
 
     /// @brief obtain a buffer for reading
-    /// @return a pointer to a buffer to be read from
+    /// @return a pointer to a buffer to be read from, or NULL if there
+    ///         are no new writes since the last time 'read' was called
     TYPE* read() {
         uint_fast8_t ctl_curr;
         uint_fast8_t ctl_new;
 
         do {
-            ctl_curr = ctl;
+            ctl_curr = m_ctl;
 
             if(!(ctl_curr & 0b1000000)) {
                 // no new write to the dirty buffer, no reason to swap it out
-                break;
+                return NULL;
             }
 
             // swaps the clean and snap buffers
@@ -76,10 +77,10 @@ public:
         } while(!__sync_bool_compare_and_swap(&ctl, ctl_curr, ctl_new));
 
         // return the new (or current if no new write) snap buffer
-        return &buffs[SNAP_INDEX(ctl)];
+        return &m_buffs[SNAP_INDEX(m_ctl)];
     }
 
-    /// @brief obtain a buffer for writing
+    /// @brief obtain a buffer for writing, flushing the last write buffer
     /// @return a pointer to a buffer to be written to
     TYPE* write() {
         uint_fast8_t ctl_curr;
@@ -95,11 +96,11 @@ public:
         } while(!__sync_bool_compare_and_swap(&ctl, ctl_curr, ctl_new));
 
         // return the new dirty buffer to be written to
-        return &buffs[DIRTY_INDEX(ctl)];
+        return &m_buffs[DIRTY_INDEX(m_ctl)];
     }
 private:
-    volatile uint_fast8_t ctl;
-    TYPE buffs[3];
+    volatile uint_fast8_t m_ctl;
+    TYPE m_buffs[3];
 };
 
 #endif
