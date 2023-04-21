@@ -56,11 +56,11 @@ typedef enum {
     MS5607_OSR_4096 = 4,
 } MS5607_OSR_T;
 
-class MS5607 {
+class MS5607 : public Device {
 public:
-    MS5607(I2CDevice &i2cDevice) : mI2C(&i2cDevice) {}
+    MS5607(I2CDevice &i2cDevice) : mI2C(&i2cDevice), Device("MS5607") {}
 
-    RetType init() {
+    RetType init() override {
         RESUME();
 
         RetType ret = CALL(reset());
@@ -124,6 +124,17 @@ public:
         return RET_SUCCESS;
     }
 
+    RetType obtain() override {
+        return RET_SUCCESS;
+    }
+
+    RetType release() override {
+        return RET_SUCCESS;
+    }
+
+    RetType poll() override {
+        return RET_SUCCESS;
+    }
 
 private:
     I2CDevice *mI2C;

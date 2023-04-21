@@ -10,9 +10,8 @@
 #include <stdint.h>
 #include "return.h"
 #include "device/I2CDevice.h"
-#include "sched/macros/resume.h"
-#include "sched/macros/reset.h"
-#include "sched/macros/call.h"
+#include "sched/macros/macros.h"
+
 
 #define TMP_117_DEVICE_ADDR 0x48
 #define DEVICE_ID_VALUE 0x0117
@@ -79,9 +78,9 @@ enum TMP117_HILO_ALERT_BIT {
 };
 
 
-class TMP117 {
+class TMP117 : public Device {
 public:
-    TMP117(I2CDevice &i2CDevice) : mI2C(i2CDevice) {}
+    TMP117(I2CDevice &i2CDevice) : Device("TMP117"), mI2C(i2CDevice) {}
 
     RetType init() {
         RESUME();
@@ -519,6 +518,18 @@ public:
         }
 
         RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType obtain() override {
+        return RET_SUCCESS;
+    }
+
+    RetType release() override {
+        return RET_SUCCESS;
+    }
+
+    RetType poll() override {
         return RET_SUCCESS;
     }
 

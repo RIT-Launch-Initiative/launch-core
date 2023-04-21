@@ -59,11 +59,11 @@ typedef enum {
 } ADXL375_OP_MODE;
 
 
-class ADXL375 {
+class ADXL375 : public Device {
 public:
-    ADXL375(I2CDevice &i2c) : m_i2c(i2c) {}
+    ADXL375(I2CDevice &i2c) : m_i2c(i2c), Device("ADXL375") {}
 
-    RetType init() {
+    RetType init() override {
         RESUME();
 
         static uint8_t id = 0;
@@ -299,6 +299,17 @@ public:
         return ret;
     }
 
+    RetType obtain() override {
+        return RET_SUCCESS;
+    }
+
+    RetType release() override {
+        return RET_SUCCESS;
+    }
+
+    RetType poll() override {
+        return RET_SUCCESS;
+    }
 private:
     I2CDevice &m_i2c;
     I2CAddr_t i2cAddr{

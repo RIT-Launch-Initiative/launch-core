@@ -8,10 +8,9 @@
 #define LAUNCH_CORE_SHTC3_H
 
 #include "device/I2CDevice.h"
+#include "sched/macros/macros.h"
 #include "return.h"
-#include "sched/macros/call.h"
-#include "sched/macros/reset.h"
-#include "sched/macros/resume.h"
+
 
 /* The SHTC3 I2C address (8 bits) */
 #define SHTC3_I2C_ADDR 0x70
@@ -54,16 +53,18 @@ enum SHTC3_CMD {
  * @brief Platform Independent Driver for the SHTC3 Sensor
  *
  */
-class SHTC3 {
-   public:
-    SHTC3(I2CDevice &i2CDevice) : mI2C(i2CDevice), inLowPowerMode(false), addr({.dev_addr = SHTC3_I2C_ADDR << 1, .mem_addr = 0, .mem_addr_size = 2}) {}
+class SHTC3 : public Device {
+public:
+    SHTC3(I2CDevice &i2CDevice) : Device("SHTC3"), mI2C(i2CDevice),
+                                  addr({.dev_addr = SHTC3_I2C_ADDR << 1, .mem_addr = 0, .mem_addr_size = 2}),
+                                  inLowPowerMode(false) {}
 
     /**
      * @brief Initialize the sensor
      *
      * @return RetType The scheduler status
      */
-    RetType init() {
+    RetType init() override {
         RESUME();
 
         RetType ret = CALL(toggleSleep(false));
@@ -252,7 +253,19 @@ class SHTC3 {
     //        this->inLowPowerMode = lowPowerMode;
     //    }
 
-   private:
+    RetType obtain() override {
+        return RET_SUCCESS;
+    }
+
+    RetType release() override {
+        return RET_SUCCESS;
+    }
+
+    RetType poll() override {
+        return RET_SUCCESS;
+    }
+
+private:
     /* The I2C object */
     I2CDevice &mI2C;
     /* The I2C address of the sensor */
