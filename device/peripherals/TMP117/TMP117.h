@@ -78,9 +78,9 @@ enum TMP117_HILO_ALERT_BIT {
 };
 
 
-class TMP117 {
+class TMP117 : public Device {
 public:
-    TMP117(I2CDevice &i2CDevice) : mI2C(i2CDevice) {}
+    TMP117(I2CDevice &i2CDevice) : Device("TMP117"), mI2C(i2CDevice) {}
 
     RetType init() {
         RESUME();
@@ -518,6 +518,18 @@ public:
         }
 
         RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType obtain() override {
+        return RET_SUCCESS;
+    }
+
+    RetType release() override {
+        return RET_SUCCESS;
+    }
+
+    RetType poll() override {
         return RET_SUCCESS;
     }
 

@@ -14,15 +14,16 @@
 #include "device/I2CDevice.h"
 
 
-class BMP3XX {
+class BMP3XX : public Device {
 public:
-    BMP3XX(I2CDevice &i2cDev) : mI2C(&i2cDev) {}
+    BMP3XX(I2CDevice &i2cDev, bool is388 = true) : mI2C(&i2cDev), is388(is388), Device("BMP3XX") {}
 
     /*************************************************************************************
      * Main Functionality
      *************************************************************************************/
-    RetType init(bool is388 = true) {
+    RetType init() override {
         RESUME();
+
         this->device.dummy_byte = 0;
 
         this->i2cAddr = {
@@ -314,7 +315,17 @@ public:
         return RET_SUCCESS;
     }
 
+    RetType obtain() override {
+        return RET_SUCCESS;
+    }
 
+    RetType release() override {
+        return RET_SUCCESS;
+    }
+
+    RetType poll() override {
+        return RET_SUCCESS;
+    }
 
 private:
     bmp3_dev device = {};
@@ -323,6 +334,7 @@ private:
     uint8_t chipID;
     I2CDevice *mI2C;
     I2CAddr_t i2cAddr;
+    bool is388 = true;
 
 
     RetType initSettings() {
