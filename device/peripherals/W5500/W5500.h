@@ -182,7 +182,7 @@ public:
         RetType ret = CALL(get_socket_register_tx_wr(DEFAULT_SOCKET_NUM, &ptr));
         if (ret != RET_SUCCESS) goto transmit2_end;
 
-        ret = CALL(write_buff(ptr, buff, 17, W5500_WIZCHIP_TXBUF_BLOCK(DEFAULT_SOCKET_NUM)));
+        ret = CALL(write_buff(ptr, packet.read_ptr<uint8_t>(), len, W5500_WIZCHIP_TXBUF_BLOCK(DEFAULT_SOCKET_NUM)));
         if (ret != RET_SUCCESS) goto transmit2_end;
 
         ptr += len;
