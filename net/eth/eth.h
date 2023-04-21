@@ -9,10 +9,13 @@
 
 namespace eth {
 
-// maximum size of an Ethernet frame including header and FCS
+// maximum size of an Ethernet frame including header and FCS in bytes
 static const size_t MAX_FRAME_SIZE = 1518;
 
-// the size of the FCS
+// minimum size of an ethernet frame payload in bytes
+static const size_t MIN_PAYLOAD_SIZE = 46;
+
+// the size of the FCS in bytes
 static const size_t FCS_LEN = sizeof(uint32_t);
 
 // layer 2 ethernet 2 frame

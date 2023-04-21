@@ -134,6 +134,18 @@ public:
             return RET_ERROR;
         }
 
+        // add padding if needed
+        ssize_t diff = (packet.size() + packet.header_size() - sizeof(eth::EthHeader_t)) \
+                       - eth::MIN_PAYLOAD_SIZE;
+        if(diff < 0) {
+            // add padding
+            uint8_t zero = 0;
+            while(diff < 0) {
+                packet.push<uint8_t>(zero);
+                diff++;
+            }
+        }
+
         // calculate the FCS if configured to
         if(m_fcs) {
             uint32_t fcs = calculate_fcs(packet.raw(), packet.size() + packet.header_size());

@@ -21,7 +21,7 @@ public:
 
     /// @brief transmit (second pass)
     RetType transmit2(Packet &packet, netinfo_t &, NetworkLayer *) {
-        printf("packet hex dump: \n");
+        printf("packet of size %lu: \n", packet.size() + packet.header_size());
 
         packet.seek_read(true);
         uint8_t* buff = packet.read_ptr<uint8_t>();
