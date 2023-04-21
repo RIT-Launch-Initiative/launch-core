@@ -192,9 +192,12 @@ public:
         static uint8_t *response;
 
         RetType ret = CALL(readRegister(TMP117_CONFIGURATION, response, 2));
-        uint16_t response16 = (response[0] << 8) | response[1];
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
-        *dataReady = *response & 1 << 13;
+        *dataReady = ((response[0] << 8) | response[1]) & 1 << 13;
 
         RESET();
         return RET_SUCCESS;
