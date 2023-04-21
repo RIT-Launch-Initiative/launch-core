@@ -10,9 +10,8 @@
 #include <stdint.h>
 #include "return.h"
 #include "device/I2CDevice.h"
-#include "sched/macros/resume.h"
-#include "sched/macros/reset.h"
-#include "sched/macros/call.h"
+#include "sched/macros/macros.h"
+
 
 #define TMP_117_DEVICE_ADDR 0x48
 #define DEVICE_ID_VALUE 0x0117

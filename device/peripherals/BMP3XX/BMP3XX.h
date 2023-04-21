@@ -8,15 +8,10 @@
 #ifndef LAUNCH_CORE_BMP3XX_H
 #define LAUNCH_CORE_BMP3XX_H
 
-#include "device/peripherals/BMP3XX/bmp3_defs.h"
 #include "return.h"
-#include "sched/macros/resume.h"
-#include "sched/macros/reset.h"
-#include "device/SPIDevice.h"
+#include "sched/macros/macros.h"
+#include "device/peripherals/BMP3XX/bmp3_defs.h"
 #include "device/I2CDevice.h"
-
-#include "sched/macros/call.h"
-#include "macros.h"
 
 
 class BMP3XX {

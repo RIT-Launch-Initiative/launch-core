@@ -7,11 +7,10 @@
 #ifndef LAUNCH_CORE_LIS3MDL_H
 #define LAUNCH_CORE_LIS3MDL_H
 
+#include "sched/macros/macros.h"
 #include "device/I2CDevice.h"
-#include "sched/macros/resume.h"
-#include "sched/macros/reset.h"
 #include "lis3mdl_reg.h"
-#include "sched/macros/call.h"
+
 
 class LIS3MDL {
 public:

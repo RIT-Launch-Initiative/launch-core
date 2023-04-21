@@ -8,10 +8,9 @@
 #define LAUNCH_CORE_SHTC3_H
 
 #include "device/I2CDevice.h"
+#include "sched/macros/macros.h"
 #include "return.h"
-#include "sched/macros/call.h"
-#include "sched/macros/reset.h"
-#include "sched/macros/resume.h"
+
 
 /* The SHTC3 I2C address (8 bits) */
 #define SHTC3_I2C_ADDR 0x70
