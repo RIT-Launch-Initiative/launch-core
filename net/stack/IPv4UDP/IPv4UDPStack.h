@@ -1,4 +1,3 @@
-ckout main
 /*******************************************************************************
 *
 *  Name: IPv4UDPStack.h
@@ -156,7 +155,7 @@ private:
 
     // pool of sockets
     // TODO don't hardcode this!
-    alloc::Pool<alloc::IPv4UDPSocket<10>, 32> m_socks;
+    alloc::Pool<alloc::IPv4UDPSocket<10>, 4> m_socks;
 };
 
 #endif
