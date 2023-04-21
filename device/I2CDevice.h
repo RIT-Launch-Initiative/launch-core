@@ -48,7 +48,7 @@ public:
     /// @param timeout  the timeout of the operation, or '0' for no timeout
     /// @return if all bytes were read successfully
     virtual RetType transmitReceive(I2CAddr_t &addr, uint8_t *buff,
-                            size_t inLen, size_t outLen, uint32_t timeout = 0) = 0;
+                            size_t inLen, size_t outLen, uint32_t timeout = 0, uint8_t secondAddr = 0x00) = 0;
 
     virtual RetType receive(I2CAddr_t &addr, uint8_t *buff,
                             size_t len, uint32_t timeout = 0) = 0;
