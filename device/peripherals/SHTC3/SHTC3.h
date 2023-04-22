@@ -254,15 +254,15 @@ public:
     //    }
 
     RetType obtain() override {
-        return RET_SUCCESS;
+        return RET_ERROR;
     }
 
     RetType release() override {
-        return RET_SUCCESS;
+        return RET_ERROR;
     }
 
     RetType poll() override {
-        return RET_SUCCESS;
+        return RET_ERROR;
     }
 
 private:
