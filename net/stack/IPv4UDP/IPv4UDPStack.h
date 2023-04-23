@@ -72,7 +72,7 @@ public:
         ipv4::IPv4Addr_t temp_addr;
         ipv4::IPv4Addr_t temp_subnet;
 
-        ipv4::IPv4Address(127, 0, 0, 1, &temp_addr);
+        ipv4::IPv4Address(69, 69, 69, 69, &temp_addr);
         ipv4::IPv4Address(255, 0, 0, 0, &temp_subnet);
 
         ret = m_ip.add_outgoing_route(temp_addr, temp_subnet, m_lo);

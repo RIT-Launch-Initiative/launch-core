@@ -30,6 +30,7 @@
 #include "return.h"
 
 #include "stm32f4xx_hal_uart.h"
+
 extern UART_HandleTypeDef huart2;
 
 #define DEFAULT_SOCKET_NUM 0
@@ -162,7 +163,7 @@ public:
         if (ret != RET_SUCCESS) goto receive_end;
 
         receive_end:
-        RESET();
+    RESET();
         return RET_SUCCESS;
     }
 
@@ -170,99 +171,111 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType transmit2(Packet &packet, netinfo_t &info, NetworkLayer *caller) override {
+//    RetType transmit2(Packet &packet, netinfo_t &info, NetworkLayer *caller) override {
+//        RESUME();
+//
+//        static uint16_t ptr;
+//        static uint8_t *buff;
+//        static uint16_t len;
+//        static uint8_t block;
+//        ptr = 0;
+//        len = packet.header_size() + packet.size();
+//
+//        if (len == 0) {
+//            RESET();
+//            return RET_SUCCESS;
+//        }
+//
+//        RetType ret = CALL(get_socket_register_tx_wr(DEFAULT_SOCKET_NUM, &ptr));
+//        if (ret != RET_SUCCESS) goto transmit2_end;
+//
+////        HAL_UART_Transmit(&huart2, (uint8_t *) "Got socket register tx\r\n", 25, 1000);
+//
+//        buff = packet.read_ptr<uint8_t>();
+//        block = W5500_WIZCHIP_TXBUF_BLOCK(DEFAULT_SOCKET_NUM);
+//
+//        ret = CALL(write_buff(ptr, buff, len, block));
+//        if (ret != RET_SUCCESS) goto transmit2_end;
+//
+////        HAL_UART_Transmit(&huart2, (uint8_t *) "Wrote to buffer\r\n", 17, 1000);
+//
+//        ptr += len;
+//        ret = CALL(set_socket_register_tx_wr(DEFAULT_SOCKET_NUM, ptr));
+//        if (ret != RET_SUCCESS) goto transmit2_end;
+//
+////        HAL_UART_Transmit(&huart2, (uint8_t *) "Set socket register tx\r\n", 25, 1000);
+//
+//        ret = CALL(set_socket_control_reg(DEFAULT_SOCKET_NUM, SEND_SOCKET));
+////        HAL_UART_Transmit(&huart2, (uint8_t *) "Set socket control reg\r\n", 25, 1000);
+//
+//        transmit2_end:
+//        RESET();
+//        return RET_SUCCESS;
+//    }
+//
+
+
+    RetType transmit2(Packet &packet, netinfo_t &info, NetworkLayer *caller) {
         RESUME();
 
-        static uint16_t ptr;
         static uint8_t *buff;
         static uint16_t len;
-        static uint8_t block;
-        ptr = 0;
+        buff = packet.read_ptr<uint8_t>();
         len = packet.header_size() + packet.size();
+
+
+        static uint8_t socket_status;
+        static uint16_t free_size;
+
+        while (1) {
+            free_size = get_socket_tx_fsr();
+            getSn_SR();
+
+            if (socket_status == CLOSE_SOCKET) {
+                RESET();
+                return RET_ERROR;
+            }
+
+            if (len <= free_size) break;
+        };
+
+        wizchip_send_data(buf, len);
+        setSn_CR(Sn_CR_SEND);
+
+        while (1) {
+            uint8_t tmp = getSn_IR();
+            if (tmp & Sn_IR_SENDOK) {
+                setSn_IR(Sn_IR_SENDOK);
+                // Packet sent ok
+                break;
+            } else if (tmp & Sn_IR_TIMEOUT) {
+                setSn_IR(Sn_IR_TIMEOUT);
+                // There was a timeout
+                return -1;
+            }
+        }
+
+        RESET();
+        return RET_ERROR;
+    }
+
+    RetType send_data(const uint8_t *data, uint16_t len) {
+        RESUME();
+        static uint16_t ptr;
+        ptr = 0;
 
         if (len == 0) {
             RESET();
             return RET_SUCCESS;
-        }
+        };
 
-        RetType ret = CALL(get_socket_register_tx_wr(DEFAULT_SOCKET_NUM, &ptr));
-        if (ret != RET_SUCCESS) goto transmit2_end;
-
-//        HAL_UART_Transmit(&huart2, (uint8_t *) "Got socket register tx\r\n", 25, 1000);
-
-        buff = packet.read_ptr<uint8_t>();
-        block = W5500_WIZCHIP_TXBUF_BLOCK(DEFAULT_SOCKET_NUM);
-
-        ret = CALL(write_buff(ptr, buff, len, block));
-        if (ret != RET_SUCCESS) goto transmit2_end;
-
-//        HAL_UART_Transmit(&huart2, (uint8_t *) "Wrote to buffer\r\n", 17, 1000);
+        ptr = W5500_getSn_TX_WR();
+        wizchip_write_buf(BlockSelectTxBuf, ptr, wizdata, len);
 
         ptr += len;
-        ret = CALL(set_socket_register_tx_wr(DEFAULT_SOCKET_NUM, ptr));
-        if (ret != RET_SUCCESS) goto transmit2_end;
 
-//        HAL_UART_Transmit(&huart2, (uint8_t *) "Set socket register tx\r\n", 25, 1000);
-
-        ret = CALL(set_socket_control_reg(DEFAULT_SOCKET_NUM, SEND_SOCKET));
-//        HAL_UART_Transmit(&huart2, (uint8_t *) "Set socket control reg\r\n", 25, 1000);
-
-        transmit2_end:
-        RESET();
-        return RET_SUCCESS;
+        setSn_TX_WR(ptr);
     }
-
-//    RetType transmit_frame(const uint8_t *buff, uint16_t len) {
-//        RESUME();
-//        static uint8_t socket_status;
-//
-//        while (1) {
-//            uint16_t freesize = getSn_TX_FSR();
-//            getSn_SR();
-//            if (socket_status == CLOSE_SOCKET) {
-//                RESET();
-//                return RET_ERROR;
-//            }
-//            if (len <= freesize) break;
-//        };
-//
-//        wizchip_send_data(buf, len);
-//        setSn_CR(Sn_CR_SEND);
-//
-//        while (1) {
-//            uint8_t tmp = getSn_IR();
-//            if (tmp & Sn_IR_SENDOK) {
-//                setSn_IR(Sn_IR_SENDOK);
-//                // Packet sent ok
-//                break;
-//            } else if (tmp & Sn_IR_TIMEOUT) {
-//                setSn_IR(Sn_IR_TIMEOUT);
-//                // There was a timeout
-//                return -1;
-//            }
-//        }
-//
-//        RESET();
-//        return RET_ERROR;
-//    }
-
-//    RetType send_data(const uint8_t *data, uint16_t len) {
-//        RESUME();
-//        static uint16_t ptr;
-//        ptr = 0;
-//
-//        if(len == 0) {
-//            RESET();
-//            return RET_SUCCESS;
-//        };
-//
-//        ptr = W5500_getSn_TX_WR();
-//        wizchip_write_buf(BlockSelectTxBuf, ptr, wizdata, len);
-//
-//        ptr += len;
-//
-//        setSn_TX_WR(ptr);
-//    }
 
     RetType set_socket_mode_reg(uint8_t socket_num, uint8_t mode) {
         RESUME();
@@ -341,6 +354,46 @@ public:
 
         RESET();
 
+        return ret;
+    }
+
+    RetType get_socket_tx_fsr(uint8_t socket_num, uint16_t *result) {
+        RESUME();
+
+        static uint16_t val;
+        static uint16_t val1;
+        static uint8_t current_sock_num;
+        val = 0;
+        val1 = 0;
+
+        static uint8_t tmp;
+
+        RetType ret;
+        do {
+            current_sock_num = W5500_Sn_TX_FSR(socket_num);
+
+            ret = CALL(read_reg(current_sock_num, (uint8_t *) &val1));
+            if (ret != RET_SUCCESS) goto get_socket_tx_fsr_end;
+
+            ret = CALL(read_reg(W5500_WIZCHIP_OFFSET_INC(current_sock_num, 1), (uint8_t *) &tmp));
+            if (ret != RET_SUCCESS) goto get_socket_tx_fsr_end;
+            val1 = (val1 << 8) + tmp;
+
+            if (val1 != 0) {
+                tmp = W5500_Sn_TX_FSR(socket_num);
+
+                ret = CALL(read_reg(tmp, (uint8_t *) &val));
+                if (ret != RET_SUCCESS) goto get_socket_tx_fsr_end;
+
+                ret = CALL(read_reg(W5500_WIZCHIP_OFFSET_INC(tmp, 1), (uint8_t *) &tmp));
+                if (ret != RET_SUCCESS) goto get_socket_tx_fsr_end;
+
+                val = (val << 8) + tmp;
+            }
+        } while (val != val1);
+
+        get_socket_tx_fsr_end:
+        RESET();
         return ret;
     }
 
@@ -862,7 +915,7 @@ private:
             data[i + 3] = *(buff + i);
         }
 
-        ret = CALL(m_spi.write(data, len + 2));
+        ret = CALL(m_spi.write(data, block ? len + 3 : len + 2));
         if (ret != RET_SUCCESS) goto write_buff_end;
 
         write_buff_end:
@@ -886,7 +939,7 @@ private:
         *val += result;
 
         get_socket_register_tx_wr_end:
-        RESET();
+    RESET();
         return ret;
     }
 
