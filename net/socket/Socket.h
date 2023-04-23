@@ -6,6 +6,12 @@
 
 #include "return.h"
 
+// NOTE: depracated
+//       it's up to the network stack to provide what a socket looks like
+//       this could be a standard interface to use in the future
+//
+//        sockaddr_t / sockinfo_t  is also no longer in use
+
 // all the possible addressing information for any kind of socket
 typedef struct {
     // Ethernet info

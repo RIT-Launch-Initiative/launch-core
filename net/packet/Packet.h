@@ -144,6 +144,18 @@ public:
         return reinterpret_cast<HEADER*>(m_buff + m_hpos);
     }
 
+    /// @brief get a pointer to the current front of the last allocated header
+    /// @tparam HEADER      the type of the header
+    /// @return a pointer to the last allocated header, or NULL on error
+    template <typename HEADER>
+    HEADER* header_ptr() {
+        if(sizeof(HEADER) > m_headerSize) {
+            return NULL;
+        }
+
+        return reinterpret_cast<HEADER*>(m_buff + m_hpos);
+    }
+
     /// @brief reset the reading position to the beginning of the packet
     /// @param includeHeaders   true if the read position should start at the first header
     ///                         false if the read position should start at the payload

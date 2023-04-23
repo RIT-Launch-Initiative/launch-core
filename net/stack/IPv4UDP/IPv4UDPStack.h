@@ -34,10 +34,8 @@
 #include "net/stack/IPv4UDP/IPv4UDPSocket.h"
 
 
-// TODO this is pretty messy, need to clean it up
 
-
-// TODO make this store multiple Ethernet devices (or any layer 1 device)
+// TODO make this store multiple Ethernet devices? (or any layer 1 device)
 class IPv4UDPStack {
 public:
     /// @brief constructor
@@ -48,18 +46,18 @@ public:
     IPv4UDPStack(uint8_t a, uint8_t b, uint8_t c, uint8_t d,
                  uint8_t e, uint8_t f, uint8_t g, uint8_t h,
                  NetworkLayer& dev)
-                                        : m_udp(m_ip),
+                                        : m_dev(dev),
+                                          m_udp(m_ip),
                                           m_ip(),
                                           m_arp(m_eth),
                                           m_eth(SimpleArpLayer::FIXED_MAC_1,
                                                 SimpleArpLayer::FIXED_MAC_2,
                                                 a, b, c, d,
                                                 dev,
-                                                m_arp,
+                                                m_ip,
                                                 eth::IPV4_PROTO,
                                                 true),
                                           m_lo(),
-                                          m_dev(dev),
                                           m_socks() {
         ipv4::IPv4Address(a, b, c, d, &m_ipAddr);
         ipv4::IPv4Address(e, f, g, h, &m_ipSubnet);
@@ -77,14 +75,28 @@ public:
         ipv4::IPv4Address(127, 0, 0, 1, &temp_addr);
         ipv4::IPv4Address(255, 0, 0, 0, &temp_subnet);
 
-        ret = m_ip.add_route(temp_addr, temp_subnet, m_lo);
+        ret = m_ip.add_outgoing_route(temp_addr, temp_subnet, m_lo);
 
         if(RET_SUCCESS != ret) {
             return ret;
         }
 
-        // add a route for the device
-        ret = m_ip.add_route(m_ipAddr, m_ipSubnet, m_dev);
+        ret = m_ip.add_incoming_route(temp_addr, m_lo);
+
+        if(RET_SUCCESS != ret) {
+            return ret;
+        }
+
+        // add a route for packets bound for the device
+        // outgoing packets go to the ARP layer first
+        ret = m_ip.add_outgoing_route(m_ipAddr, m_ipSubnet, m_arp);
+
+        if(RET_SUCCESS != ret) {
+            return ret;
+        }
+
+        // incoming packets come straight from the Ethernet layer
+        ret = m_ip.add_incoming_route(m_ipAddr, m_eth);
 
         if(RET_SUCCESS != ret) {
             return ret;
@@ -118,16 +130,25 @@ public:
     /// @brief add a multicast address for the stack to listen for
     /// @return
     RetType add_multicast(ipv4::IPv4Addr_t addr) {
-        // adds addr/32 as a route for the ethernet layer
-        // all packets sent to 'addr' over 'm_eth' will have a longest prefix
+        // adds addr/32 as a route for the ethernet layer / ARP layer
+        // all packets sent to 'addr' will have a longest prefix
         // match with addr/32 (since it's the longest match possible)
-        return m_ip.add_route(addr, 0xFFFFFFFF, m_eth);
+        RetType ret;
+
+        ret = m_ip.add_outgoing_route(addr, 0xFFFFFFFF, m_arp);
+        if(RET_SUCCESS != ret) {
+            return ret;
+        }
+
+        ret = m_ip.add_incoming_route(addr, m_eth);
+        return ret;
     }
 
     /// @brief remove a multicast address for the stack to listen to
     /// @return
     RetType remove_multicast(ipv4::IPv4Addr_t addr) {
-        return m_ip.remove_route(addr);
+        m_ip.remove_incoming_route(addr);
+        return m_ip.remove_outgoing_route(addr, 0xFFFFFFFF);
     }
 
 private:

@@ -29,6 +29,9 @@
 #include "sched/macros.h"
 #include "return.h"
 
+#include "stm32f4xx_hal_uart.h"
+extern UART_HandleTypeDef huart2;
+
 #define DEFAULT_SOCKET_NUM 0
 
 
@@ -57,6 +60,7 @@ public:
         static uint8_t chip_id = 0;
         RetType ret = CALL(get_chip_version(&chip_id));
         if (chip_id != 4) {
+
             ret = RET_ERROR;
             goto init_end;
         }
@@ -131,7 +135,7 @@ public:
         return ret;
     }
 
-    RetType receive(Packet &packet, sockinfo_t &info, NetworkLayer *caller) override {
+    RetType receive(Packet &packet, netinfo_t &info, NetworkLayer *caller) override {
         RESUME();
 
         static uint16_t ptr = 0;
@@ -162,15 +166,17 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType transmit(Packet &packet, sockinfo_t &info, NetworkLayer *caller) override {
+    RetType transmit(Packet &packet, netinfo_t &info, NetworkLayer *caller) override {
         return RET_SUCCESS;
     }
 
-    RetType transmit2(Packet &packet, sockinfo_t &info, NetworkLayer *caller) override {
+    RetType transmit2(Packet &packet, netinfo_t &info, NetworkLayer *caller) override {
         RESUME();
 
         static uint16_t ptr;
+        static uint8_t *buff;
         static uint16_t len;
+        static uint8_t block;
         ptr = 0;
         len = packet.header_size() + packet.size();
 
@@ -182,14 +188,24 @@ public:
         RetType ret = CALL(get_socket_register_tx_wr(DEFAULT_SOCKET_NUM, &ptr));
         if (ret != RET_SUCCESS) goto transmit2_end;
 
-        ret = CALL(write_buff(ptr, packet.read_ptr<uint8_t>(), len, W5500_WIZCHIP_TXBUF_BLOCK(DEFAULT_SOCKET_NUM)));
+//        HAL_UART_Transmit(&huart2, (uint8_t *) "Got socket register tx\r\n", 25, 1000);
+
+        buff = packet.read_ptr<uint8_t>();
+        block = W5500_WIZCHIP_TXBUF_BLOCK(DEFAULT_SOCKET_NUM);
+
+        ret = CALL(write_buff(ptr, buff, len, block));
         if (ret != RET_SUCCESS) goto transmit2_end;
+
+//        HAL_UART_Transmit(&huart2, (uint8_t *) "Wrote to buffer\r\n", 17, 1000);
 
         ptr += len;
         ret = CALL(set_socket_register_tx_wr(DEFAULT_SOCKET_NUM, ptr));
         if (ret != RET_SUCCESS) goto transmit2_end;
 
+//        HAL_UART_Transmit(&huart2, (uint8_t *) "Set socket register tx\r\n", 25, 1000);
+
         ret = CALL(set_socket_control_reg(DEFAULT_SOCKET_NUM, SEND_SOCKET));
+//        HAL_UART_Transmit(&huart2, (uint8_t *) "Set socket control reg\r\n", 25, 1000);
 
         transmit2_end:
         RESET();
@@ -846,7 +862,7 @@ private:
             data[i + 3] = *(buff + i);
         }
 
-        ret = CALL(m_spi.write_read(data, data, len + 2));
+        ret = CALL(m_spi.write(data, len + 2));
         if (ret != RET_SUCCESS) goto write_buff_end;
 
         write_buff_end:
