@@ -212,7 +212,7 @@ public:
 //        RESET();
 //        return RET_SUCCESS;
 //    }
-//
+
 
 
     RetType transmit2(Packet &packet, netinfo_t &info, NetworkLayer *caller) {
@@ -220,6 +220,7 @@ public:
 
         static uint8_t *buff;
         static uint16_t len;
+        static uint8_t tmp;
         buff = packet.read_ptr<uint8_t>();
         len = packet.header_size() + packet.size();
 
@@ -228,6 +229,7 @@ public:
         static uint16_t free_size;
 
         RetType ret;
+        // Spinlock until we have space in TX buff
         while (1) {
             ret = CALL(get_socket_tx_fsr(DEFAULT_SOCKET_NUM, &free_size));
             if (ret != RET_SUCCESS) goto transmit2_end;
@@ -240,29 +242,37 @@ public:
                 return RET_ERROR;
             }
 
-            if (len <= free_size) break;
+            if (len <= free_size) {
+                break;
+            }
+
+            YIELD(); // Try again later
         };
 
         ret = CALL(send_data(buff, len));
+        if (ret != RET_SUCCESS) goto transmit2_end;
 
-//        setSn_CR(Sn_CR_SEND);
-//
-//        while (1) {
-//            uint8_t tmp = getSn_IR();
-//            if (tmp & Sn_IR_SENDOK) {
-//                setSn_IR(Sn_IR_SENDOK);
-//                // Packet sent ok
-//                break;
-//            } else if (tmp & Sn_IR_TIMEOUT) {
-//                setSn_IR(Sn_IR_TIMEOUT);
-//                // There was a timeout
-//                return -1;
-//            }
-//        }
+        ret = CALL(set_socket_control_reg(DEFAULT_SOCKET_NUM, SEND_SOCKET));
+        if (ret != RET_SUCCESS) goto transmit2_end;
+
+        while (1) {
+            ret = CALL(read_reg(W5500_Sn_IR(DEFAULT_SOCKET_NUM), &tmp));
+            if (ret != RET_SUCCESS) goto transmit2_end;
+
+            if (tmp & W5500_Sn_IR_SENDOK) {
+                set_socket_interrupt_reg(DEFAULT_SOCKET_NUM, W5500_Sn_IR_SENDOK);
+                break; // Sent!
+            } else if (tmp & W5500_Sn_IR_TIMEOUT) {
+                setSn_IR(DEFAULT_SOCKET_NUM, W5500_Sn_IR_TIMEOUT);
+                goto transmit2_end;
+            }
+
+            YIELD();
+        }
 
         transmit2_end:
         RESET();
-        return RET_ERROR;
+        return ret;
     }
 
     RetType send_data(uint8_t *buff, uint16_t len) {
@@ -421,6 +431,26 @@ public:
 
         get_socket_tx_fsr_end:
         RESET();
+        return ret;
+    }
+
+    RetType get_socket_interrupt_reg(uint8_t socket_num, uint8_t *result) {
+        RESUME();
+
+        RetType ret = CALL(read_reg(W5500_Sn_IR(socket_num), result));
+
+        RESET();
+
+        return ret;
+    }
+
+    RetType set_socket_interrupt_reg(uint8_t socket_num, uint8_t val) {
+        RESUME();
+
+        RetType ret = CALL(write_reg(W5500_Sn_IR(socket_num), val));
+
+        RESET();
+
         return ret;
     }
 
