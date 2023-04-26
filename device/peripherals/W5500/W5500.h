@@ -81,6 +81,7 @@ public:
         static uint8_t mode = 0b1000000;
         ret = CALL(write_mode(mode));
 
+
         // PHY configuration:
         //  reset = 1
         //  config operation mode = 1 (use the next 3 bits instead of HW pins)
@@ -215,13 +216,13 @@ public:
 
 
 
-    RetType transmit2(Packet &packet, netinfo_t &info, NetworkLayer *caller) {
+    RetType transmit2(Packet &packet, netinfo_t &info, NetworkLayer *caller) override {
         RESUME();
 
         static uint8_t *buff;
         static uint16_t len;
         static uint8_t tmp;
-        buff = packet.read_ptr<uint8_t>();
+        buff = packet.raw();
         len = packet.header_size() + packet.size();
 
 
@@ -259,12 +260,13 @@ public:
             ret = CALL(read_reg(W5500_Sn_IR(DEFAULT_SOCKET_NUM), &tmp));
             if (ret != RET_SUCCESS) goto transmit2_end;
 
-            if (tmp & W5500_Sn_IR_SENDOK) {
-                set_socket_interrupt_reg(DEFAULT_SOCKET_NUM, W5500_Sn_IR_SENDOK);
+                if (tmp & W5500_Sn_IR_SENDOK) {
+                ret = CALL(set_socket_interrupt_reg(DEFAULT_SOCKET_NUM, W5500_Sn_IR_SENDOK));
+                if (ret != RET_SUCCESS) goto transmit2_end;
                 break; // Sent!
             } else if (tmp & W5500_Sn_IR_TIMEOUT) {
-                setSn_IR(DEFAULT_SOCKET_NUM, W5500_Sn_IR_TIMEOUT);
-                goto transmit2_end;
+                CALL(set_socket_interrupt_reg(DEFAULT_SOCKET_NUM, W5500_Sn_IR_TIMEOUT));
+                goto transmit2_end; // ret doesn't matter. It's still a fail :(
             }
 
             YIELD();
@@ -319,7 +321,6 @@ public:
         RetType ret = CALL(write_reg(W5500_Sn_MR(socket_num), mode));
 
         RESET();
-
         return ret;
     }
 
@@ -329,7 +330,6 @@ public:
         RetType ret = CALL(read_reg(W5500_Sn_MR(socket_num), mode));
 
         RESET();
-
         return ret;
     }
 
@@ -339,7 +339,6 @@ public:
         RetType ret = CALL(write_reg(W5500_Sn_CR(socket_num), mode));
 
         RESET();
-
         return ret;
     }
 
@@ -349,7 +348,6 @@ public:
         RetType ret = CALL(read_reg(W5500_Sn_CR(socket_num), mode));
 
         RESET();
-
         return ret;
     }
 
@@ -405,7 +403,6 @@ public:
         static uint8_t tmp;
 
         RetType ret;
-        // TODO: Gets stuck in this loop
         do {
             current_sock_num = W5500_Sn_TX_FSR(socket_num);
 
@@ -426,6 +423,7 @@ public:
                 if (ret != RET_SUCCESS) goto get_socket_tx_fsr_end;
 
                 val = (val << 8) + tmp;
+                *result = val;
             }
         } while (val != val1);
 
