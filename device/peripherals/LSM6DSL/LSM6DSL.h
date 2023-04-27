@@ -46,14 +46,19 @@ struct LSM6DSL_SENSOR_DATA_T {
     float angularVelocity;
 };
 
+enum LSM6DSL_I2C_ADDR {
+    LSM6DSL_I2C_ADDR_PRIMARY = 0x6A,
+    LSM6DSL_I2C_ADDR_SECONDARY = 0x6B
+};
+
 class LSM6DSL {
 public:
     LSM6DSL(I2CDevice &i2CDevice) : mI2C(&i2CDevice), accelEnabled(false), gyroEnabled(false) {}
 
-    RetType init() {
+    RetType init(LSM6DSL_I2C_ADDR i2cAddr = LSM6DSL_I2C_ADDR_LOW);) {
         RESUME();
         i2cAddr = {
-                .dev_addr = 0x6A << 1,
+                .dev_addr = i2cAddr << 1,
                 .mem_addr = LSM6DSL_ACC_GYRO_WHO_AM_I_REG,
                 .mem_addr_size = 1
         };

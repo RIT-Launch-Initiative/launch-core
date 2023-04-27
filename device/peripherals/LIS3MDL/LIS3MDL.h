@@ -13,6 +13,11 @@
 #include "lis3mdl_reg.h"
 #include "sched/macros/call.h"
 
+enum LIS3MDL_I2C_ADDR {
+    LIS3MDL_I2C_ADDR_PRIMARY = 0x1C,
+    LIS3MDL_I2C_ADDR_SECONDARY = 0x1E,
+};
+
 class LIS3MDL {
 public:
     LIS3MDL(I2CDevice &i2cDevice) : mI2C(&i2cDevice) {}
