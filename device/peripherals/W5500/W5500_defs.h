@@ -1921,7 +1921,7 @@ uint16_t getSn_RX_RSR(uint8_t sn);
 /**
  * @ingroup Socket_register_access_function
  * @brief Get @ref Sn_RX_RD register
- * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
+ * @param (uint8_t)sn Socket numberIt should be <b>0 ~ 7</b>.
  * @return uint16_t. Value of @ref Sn_RX_RD.
  * @sa setSn_RX_RD()
  */

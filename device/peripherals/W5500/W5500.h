@@ -102,6 +102,7 @@ public:
         ret = CALL(set_socket_control_reg(DEFAULT_SOCKET_NUM, OPEN_SOCKET));
         if (ret != RET_SUCCESS) goto init_end;
 
+// TODO: Check if Sn_SR is in MAC_RAW mode
         ret = CALL(set_socket_mode_tx_size(DEFAULT_SOCKET_NUM, 16));
         if (ret != RET_SUCCESS) goto init_end;
 
@@ -140,81 +141,50 @@ public:
     RetType receive(Packet &packet, netinfo_t &info, NetworkLayer *caller) override {
         RESUME();
 
-        static uint16_t ptr = 0;
-        static uint32_t addr_sel = 0;
-        static size_t len = packet.header_size() + packet.size();
-        static uint8_t data[256] = {};
-        static uint8_t *packet_buff = packet.write_ptr<uint8_t>();
+        static uint16_t len;
+        static uint8_t head[2];
+        static uint16_t data_len;
 
-        if (len == 0) return RET_SUCCESS;
+//        uint16_t len = getSn_RX_RSR();
 
-        ptr = W5500_Sn_RX_RD(DEFAULT_SOCKET_NUM);
-        addr_sel = ((uint32_t) ptr << 8) + (W5500_WIZCHIP_RXBUF_BLOCK(DEFAULT_SOCKET_NUM) << 3);
-        len = packet.header_size() + packet.size();
-        packet_buff = packet.write_ptr<uint8_t>();
-
-        RetType ret = CALL(read_buff(addr_sel, data, len));
-        if (ret != RET_SUCCESS) goto receive_end;
-
-        memcpy(packet_buff, data, len);
-        *packet_buff += len;
-        ptr += len;
-
-        ret = CALL(set_socket_register_rx_rd(DEFAULT_SOCKET_NUM, ptr));
-        if (ret != RET_SUCCESS) goto receive_end;
+//        if (len > 0) {
+//            data_len = 0;
+//
+//            wizchip_recv_data(head, 2);
+//            setSn_CR(Sn_CR_RECV);
+//
+//            data_len = head[0];
+//            data_len = (data_len << 8) + head[1];
+//            data_len -= 2;
+//
+//            if (data_len > packet.available()) {
+//                // Packet is bigger than buffer - drop the packet
+//                wizchip_recv_ignore(data_len);
+//                setSn_CR(Sn_CR_RECV);
+//                return 0;
+//            }
+//
+//            wizchip_recv_data(buffer, data_len);
+//            setSn_CR(Sn_CR_RECV);
+//
+//            // Had problems with W5500 MAC address filtering (the Sn_MR_MFEN option)
+//            // Do it in software instead:
+//            if ((buffer[0] & 0x01) || memcmp(&buffer[0], _mac_address, 6) == 0) {
+//                // Addressed to an Ethernet multicast address or our unicast address
+//                return data_len;
+//            } else {
+//                return 0;
+//            }
+//        }
 
         receive_end:
-    RESET();
+        RESET();
         return RET_SUCCESS;
     }
 
     RetType transmit(Packet &packet, netinfo_t &info, NetworkLayer *caller) override {
         return RET_SUCCESS;
     }
-
-//    RetType transmit2(Packet &packet, netinfo_t &info, NetworkLayer *caller) override {
-//        RESUME();
-//
-//        static uint16_t ptr;
-//        static uint8_t *buff;
-//        static uint16_t len;
-//        static uint8_t block;
-//        ptr = 0;
-//        len = packet.header_size() + packet.size();
-//
-//        if (len == 0) {
-//            RESET();
-//            return RET_SUCCESS;
-//        }
-//
-//        RetType ret = CALL(get_socket_register_tx_wr(DEFAULT_SOCKET_NUM, &ptr));
-//        if (ret != RET_SUCCESS) goto transmit2_end;
-//
-////        HAL_UART_Transmit(&huart2, (uint8_t *) "Got socket register tx\r\n", 25, 1000);
-//
-//        buff = packet.read_ptr<uint8_t>();
-//        block = W5500_WIZCHIP_TXBUF_BLOCK(DEFAULT_SOCKET_NUM);
-//
-//        ret = CALL(write_buff(ptr, buff, len, block));
-//        if (ret != RET_SUCCESS) goto transmit2_end;
-//
-////        HAL_UART_Transmit(&huart2, (uint8_t *) "Wrote to buffer\r\n", 17, 1000);
-//
-//        ptr += len;
-//        ret = CALL(set_socket_register_tx_wr(DEFAULT_SOCKET_NUM, ptr));
-//        if (ret != RET_SUCCESS) goto transmit2_end;
-//
-////        HAL_UART_Transmit(&huart2, (uint8_t *) "Set socket register tx\r\n", 25, 1000);
-//
-//        ret = CALL(set_socket_control_reg(DEFAULT_SOCKET_NUM, SEND_SOCKET));
-////        HAL_UART_Transmit(&huart2, (uint8_t *) "Set socket control reg\r\n", 25, 1000);
-//
-//        transmit2_end:
-//        RESET();
-//        return RET_SUCCESS;
-//    }
-
-
 
     RetType transmit2(Packet &packet, netinfo_t &info, NetworkLayer *caller) override {
         RESUME();
@@ -260,11 +230,13 @@ public:
             ret = CALL(read_reg(W5500_Sn_IR(DEFAULT_SOCKET_NUM), &tmp));
             if (ret != RET_SUCCESS) goto transmit2_end;
 
-                if (tmp & W5500_Sn_IR_SENDOK) {
+            if (tmp & W5500_Sn_IR_SENDOK) {
                 ret = CALL(set_socket_interrupt_reg(DEFAULT_SOCKET_NUM, W5500_Sn_IR_SENDOK));
                 if (ret != RET_SUCCESS) goto transmit2_end;
                 break; // Sent!
-            } else if (tmp & W5500_Sn_IR_TIMEOUT) {
+            }
+
+            if (tmp & W5500_Sn_IR_TIMEOUT) {
                 CALL(set_socket_interrupt_reg(DEFAULT_SOCKET_NUM, W5500_Sn_IR_TIMEOUT));
                 goto transmit2_end; // ret doesn't matter. It's still a fail :(
             }
@@ -290,29 +262,44 @@ public:
         }
 
         RetType ret = CALL(get_socket_register_tx_wr(DEFAULT_SOCKET_NUM, &ptr));
-        if (ret != RET_SUCCESS) goto transmit2_end;
-
-//        HAL_UART_Transmit(&huart2, (uint8_t *) "Got socket register tx\r\n", 25, 1000);
+        if (ret != RET_SUCCESS) goto send_data_end;
 
         block = W5500_WIZCHIP_TXBUF_BLOCK(DEFAULT_SOCKET_NUM);
 
         ret = CALL(write_buff(ptr, buff, len, block));
-        if (ret != RET_SUCCESS) goto transmit2_end;
-
-//        HAL_UART_Transmit(&huart2, (uint8_t *) "Wrote to buffer\r\n", 17, 1000);
+        if (ret != RET_SUCCESS) goto send_data_end;
 
         ptr += len;
         ret = CALL(set_socket_register_tx_wr(DEFAULT_SOCKET_NUM, ptr));
-        if (ret != RET_SUCCESS) goto transmit2_end;
-
-//        HAL_UART_Transmit(&huart2, (uint8_t *) "Set socket register tx\r\n", 25, 1000);
+        if (ret != RET_SUCCESS) goto send_data_end;
 
         ret = CALL(set_socket_control_reg(DEFAULT_SOCKET_NUM, SEND_SOCKET));
-//        HAL_UART_Transmit(&huart2, (uint8_t *) "Set socket control reg\r\n", 25, 1000);
 
-        transmit2_end:
+        send_data_end:
         RESET();
         return RET_SUCCESS;
+    }
+
+    RetType recv_data(uint8_t* buff, uint16_t len) {
+        RESUME();
+        static uint16_t ptr;
+
+        if(len == 0) goto recv_data_end;
+
+        RetType ret = CALL(get_socket_read_ptr_reg(DEFAULT_SOCKET_NUM, &ptr));
+        if (ret != RET_SUCCESS) goto recv_data_end;
+
+        ret = CALL(read_buff(ptr, buff, len, W5500_WIZCHIP_RXBUF_BLOCK(DEFAULT_SOCKET_NUM)));
+        if (ret != RET_SUCCESS) goto recv_data_end;
+
+        ptr += len;
+
+        setSn_RX_RD(ptr);
+
+
+        recv_data_end:
+        RESET();
+        return ret;
     }
 
     RetType set_socket_mode_reg(uint8_t socket_num, uint8_t mode) {
@@ -449,6 +436,36 @@ public:
 
         RESET();
 
+        return ret;
+    }
+
+    RetType set_socket_read_ptr_reg(uint8_t socket_num, uint8_t val) {
+        RESUME();
+
+        RetType ret = CALL(write_reg(W5500_Sn_RX_RD(socket_num), (uint8_t) (val >> 8));
+        if (ret != RET_SUCCESS) goto write_socket_read_ptr_reg_end;
+
+        ret = CALL(write_reg(W5500_WIZCHIP_OFFSET_INC(W5500_Sn_RX_RD(socket_num), 1). val));
+        write_socket_read_ptr_reg_end:
+        RESET();
+        return ret;
+    }
+
+    RetType get_socket_read_ptr_reg(uint8_t socket_num, uint16_t *result) {
+        RESUME();
+
+        static uint16_t tmp;
+
+        RetType ret = CALL(write_reg(W5500_Sn_RX_RD(socket_num) << 8, &tmp));
+        if (ret != RET_SUCCESS) goto get_socket_read_ptr_reg_end;
+        result = tmp;
+
+        CALL(write_reg(W5500_WIZCHIP_OFFSET_INC(Sn_RX_RD(sn), 1), &tmp));
+        if (ret != RET_SUCCESS) goto get_socket_read_ptr_reg_end;
+        result += tmp;
+
+        get_socket_read_ptr_reg_end:
+        RESET();
         return ret;
     }
 
@@ -926,7 +943,7 @@ private:
     }
 
     // TODO: Hardfault after some time when doing a write_read
-    RetType read_buff(uint32_t addr_sel, uint8_t *buff, uint16_t len) {
+    RetType read_buff(uint32_t addr_sel, uint8_t *buff, uint16_t len, uint8_t block = 0) {
         RESUME();
 
         // Original write with (data, 3) and read with (buff, len). Going to try write_read
@@ -937,12 +954,14 @@ private:
         addr_sel |= (_W5500_SPI_READ_ | _W5500_SPI_VDM_OP_);
         data[0] = (addr_sel & 0x00FF0000) >> 16;
         data[1] = (addr_sel & 0x0000FF00) >> 8;
-        data[2] = (addr_sel & 0x000000FF) >> 0;
+        if (block) {
+            data[2] = (addr_sel & 0x000000FF) >> 0;
+        }
         for (int i = 0; i < len; i++) {
-            data[i + 3] = *(buff + i);
+            data[i + (block ? 3 : 2)] = *(buff + i);
         }
 
-        ret = CALL(m_spi.write_read(data, data, len + 3));
+        ret = CALL(m_spi.write_read(data, data, block ? len + 3 : len + 2));
         if (ret != RET_SUCCESS) goto read_buff_end;
 
         read_buff_end:
@@ -967,7 +986,7 @@ private:
         }
 
         for (int i = 0; i < len; i++) {
-            data[i + 3] = *(buff + i);
+            data[i + (block ? 3 : 2)] = *(buff + i);
         }
 
         ret = CALL(m_spi.write(data, block ? len + 3 : len + 2));
@@ -1052,6 +1071,19 @@ private:
         ret = CALL(write_reg(W5500_WIZCHIP_OFFSET_INC(W5500_Sn_PORT(socket), 1), static_cast<uint8_t>(port)));
 
         set_socket_port_end:
+    RESET();
+        return ret;
+    }
+
+    RetType reset() {
+        RESUME();
+
+        RetType ret = CALL(set_socket_mode_reg(W5500_MR, W5500_MR_RST));
+        if (ret != RET_SUCCESS) goto reset_end;
+
+        SLEEP(500);
+
+        reset_end:
     RESET();
         return ret;
     }
