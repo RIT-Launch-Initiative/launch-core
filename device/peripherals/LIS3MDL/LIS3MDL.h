@@ -22,8 +22,10 @@ class LIS3MDL {
 public:
     LIS3MDL(I2CDevice &i2cDevice) : mI2C(&i2cDevice) {}
 
-    RetType init() {
+    RetType init(uint8_t address = LIS3MDL_I2C_ADDR_PRIMARY) { // TODO: Not being detected
         RESUME();
+
+        i2cAddr.dev_addr = address;
 
         static uint8_t whoAmI = 0;
         RetType ret = CALL(readReg(LIS3MDL_WHO_AM_I, &whoAmI, 1, 50));

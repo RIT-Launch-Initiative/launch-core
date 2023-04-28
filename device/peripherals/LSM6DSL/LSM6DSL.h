@@ -55,10 +55,10 @@ class LSM6DSL {
 public:
     LSM6DSL(I2CDevice &i2CDevice) : mI2C(&i2CDevice), accelEnabled(false), gyroEnabled(false) {}
 
-    RetType init(LSM6DSL_I2C_ADDR i2cAddr = LSM6DSL_I2C_ADDR_LOW);) {
+    RetType init(LSM6DSL_I2C_ADDR address = LSM6DSL_I2C_ADDR_SECONDARY) {
         RESUME();
         i2cAddr = {
-                .dev_addr = i2cAddr << 1,
+                .dev_addr = LSM6DSL_I2C_ADDR_PRIMARY << 1,
                 .mem_addr = LSM6DSL_ACC_GYRO_WHO_AM_I_REG,
                 .mem_addr_size = 1
         };
