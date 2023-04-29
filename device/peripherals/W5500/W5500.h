@@ -244,6 +244,10 @@ public:
             YIELD();
         }
 
+
+        ret = CALL(set_socket_control_reg(DEFAULT_SOCKET_NUM, OPEN_SOCKET));
+
+
         transmit2_end:
         RESET();
         return ret;
