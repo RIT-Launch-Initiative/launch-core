@@ -253,7 +253,7 @@ public:
         RESUME();
 
         static uint16_t ptr;
-        static uint8_t block;
+        static uint8_t addr_sel;
         ptr = 0;
 
         if (len == 0) {
@@ -264,9 +264,9 @@ public:
         RetType ret = CALL(get_socket_register_tx_wr(DEFAULT_SOCKET_NUM, &ptr));
         if (ret != RET_SUCCESS) goto send_data_end;
 
-        block = W5500_WIZCHIP_TXBUF_BLOCK(DEFAULT_SOCKET_NUM);
+        addr_sel = ((uint32_t) ptr << 8) + (W5500_WIZCHIP_TXBUF_BLOCK(DEFAULT_SOCKET_NUM) << 3);
 
-        ret = CALL(write_buff(ptr, buff, len, block));
+        ret = CALL(write_buff(addr_sel, buff, len));
         if (ret != RET_SUCCESS) goto send_data_end;
 
         ptr += len;
@@ -280,27 +280,27 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType recv_data(uint8_t* buff, uint16_t len) {
-        RESUME();
-        static uint16_t ptr;
-
-        if(len == 0) goto recv_data_end;
-
-        RetType ret = CALL(get_socket_read_ptr_reg(DEFAULT_SOCKET_NUM, &ptr));
-        if (ret != RET_SUCCESS) goto recv_data_end;
-
-        ret = CALL(read_buff(ptr, buff, len, W5500_WIZCHIP_RXBUF_BLOCK(DEFAULT_SOCKET_NUM)));
-        if (ret != RET_SUCCESS) goto recv_data_end;
-
-        ptr += len;
-
-        setSn_RX_RD(ptr);
-
-
-        recv_data_end:
-        RESET();
-        return ret;
-    }
+//    RetType recv_data(uint8_t* buff, uint16_t len) {
+//        RESUME();
+//        static uint16_t ptr;
+//
+//        if(len == 0) goto recv_data_end;
+//
+//        RetType ret = CALL(get_socket_read_ptr_reg(DEFAULT_SOCKET_NUM, &ptr));
+//        if (ret != RET_SUCCESS) goto recv_data_end;
+//
+//        ret = CALL(read_buff(ptr, buff, len, W5500_WIZCHIP_RXBUF_BLOCK(DEFAULT_SOCKET_NUM)));
+//        if (ret != RET_SUCCESS) goto recv_data_end;
+//
+//        ptr += len;
+//
+//        setSn_RX_RD(ptr);
+//
+//
+//        recv_data_end:
+//        RESET();
+//        return ret;
+//    }
 
     RetType set_socket_mode_reg(uint8_t socket_num, uint8_t mode) {
         RESUME();
@@ -442,32 +442,32 @@ public:
     RetType set_socket_read_ptr_reg(uint8_t socket_num, uint8_t val) {
         RESUME();
 
-        RetType ret = CALL(write_reg(W5500_Sn_RX_RD(socket_num), (uint8_t) (val >> 8));
+        RetType ret = CALL(write_reg(W5500_Sn_RX_RD(socket_num), (uint8_t) (val >> 8)));
         if (ret != RET_SUCCESS) goto write_socket_read_ptr_reg_end;
 
-        ret = CALL(write_reg(W5500_WIZCHIP_OFFSET_INC(W5500_Sn_RX_RD(socket_num), 1). val));
+        ret = CALL(write_reg(W5500_WIZCHIP_OFFSET_INC(W5500_Sn_RX_RD(socket_num), 1), val));
         write_socket_read_ptr_reg_end:
         RESET();
         return ret;
     }
 
-    RetType get_socket_read_ptr_reg(uint8_t socket_num, uint16_t *result) {
-        RESUME();
-
-        static uint16_t tmp;
-
-        RetType ret = CALL(write_reg(W5500_Sn_RX_RD(socket_num) << 8, &tmp));
-        if (ret != RET_SUCCESS) goto get_socket_read_ptr_reg_end;
-        result = tmp;
-
-        CALL(write_reg(W5500_WIZCHIP_OFFSET_INC(Sn_RX_RD(sn), 1), &tmp));
-        if (ret != RET_SUCCESS) goto get_socket_read_ptr_reg_end;
-        result += tmp;
-
-        get_socket_read_ptr_reg_end:
-        RESET();
-        return ret;
-    }
+//    RetType get_socket_read_ptr_reg(uint8_t socket_num, uint16_t *result) {
+//        RESUME();
+//
+//        static uint8_t tmp;
+//
+//        RetType ret = CALL(write_reg(W5500_Sn_RX_RD(socket_num) << 8, tmp));
+//        if (ret != RET_SUCCESS) goto get_socket_read_ptr_reg_end;
+//        result = tmp;
+//
+//        CALL(write_reg(W5500_WIZCHIP_OFFSET_INC(Sn_RX_RD(sn), 1), &tmp));
+//        if (ret != RET_SUCCESS) goto get_socket_read_ptr_reg_end;
+//        result += tmp;
+//
+//        get_socket_read_ptr_reg_end:
+//        RESET();
+//        return ret;
+//    }
 
 
     RetType write_mode(uint8_t mode) {
@@ -970,27 +970,35 @@ private:
         return ret;
     }
 
-    RetType write_buff(uint16_t addr_sel, uint8_t *buff, uint16_t len, uint8_t block = 0) {
+    RetType write_buff(uint32_t addr_sel, uint8_t *buff, uint16_t len, uint8_t block = 0) {
         RESUME();
-        static uint8_t data[16];
+        static uint8_t data[3];
 
         RetType ret = CALL(m_gpio.set(0));
         if (ret != RET_SUCCESS) goto write_buff_end;
 
-//        addr_sel |= (_W5500_SPI_WRITE_ | _W5500_SPI_VDM_OP_);
+        addr_sel |= (_W5500_SPI_WRITE_ | _W5500_SPI_VDM_OP_);
 
-        data[0] = (addr_sel & 0xFF00) >> 8;
-        data[1] = (addr_sel & 0xFF00) >> 0;
-        if (block) {
-            data[2] |= _W5500_SPI_WRITE_;
-        }
-
-        for (int i = 0; i < len; i++) {
-            data[i + (block ? 3 : 2)] = *(buff + i);
-        }
-
-        ret = CALL(m_spi.write(data, block ? len + 3 : len + 2));
+        data[0] = (addr_sel & 0x00FF0000) >> 16;
+        data[1] = (addr_sel & 0x0000FF00) >> 8;
+        data[2] = (addr_sel & 0x000000FF) >> 0;
+        ret = CALL(m_spi.write(data, 3));
         if (ret != RET_SUCCESS) goto write_buff_end;
+
+        ret = CALL(m_spi.write(buff, len));
+        if (ret != RET_SUCCESS) goto write_buff_end;
+
+
+//        if (block) {
+//            data[2] |= _W5500_SPI_WRITE_;
+//        }
+//
+//        for (int i = 0; i < len; i++) {
+//            data[i + (block ? 3 : 2)] = *(buff + i);
+//        }
+//
+//        ret = CALL(m_spi.write(data, block ? len + 3 : len + 2));
+//        if (ret != RET_SUCCESS) goto write_buff_end;
 
         write_buff_end:
         CALL(m_gpio.set(1));
@@ -1013,7 +1021,7 @@ private:
         *val += result;
 
         get_socket_register_tx_wr_end:
-    RESET();
+        RESET();
         return ret;
     }
 
@@ -1071,7 +1079,7 @@ private:
         ret = CALL(write_reg(W5500_WIZCHIP_OFFSET_INC(W5500_Sn_PORT(socket), 1), static_cast<uint8_t>(port)));
 
         set_socket_port_end:
-    RESET();
+        RESET();
         return ret;
     }
 
@@ -1084,7 +1092,7 @@ private:
         SLEEP(500);
 
         reset_end:
-    RESET();
+        RESET();
         return ret;
     }
 };
