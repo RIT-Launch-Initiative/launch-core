@@ -20,7 +20,7 @@
 #define RESUME()\
     int _cached_index = sched_jump[sched_dispatched].index; \
     if(sched_jump[sched_dispatched].index++ < sched_jump[sched_dispatched].size) { \
-        goto *(sched_jump[sched_dispatched].jumps[sched_jump[sched_dispatched].index - 1]); \
+        goto *(sched_jump[sched_dispatched].jumps[_cached_index]); \
     } \
 
 #endif
