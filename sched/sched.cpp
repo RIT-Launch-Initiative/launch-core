@@ -12,10 +12,6 @@
 #include "sched/sched.h"
 #include "queue/allocated_queue.h"
 
-// global TID for currently dispatched thread
-// a TID equal to the max num tasks represents "system" execution
-tid_t sched_dispatched = MAX_NUM_TASKS;
-
 // preallocated task structures
 static task_t tasks[MAX_NUM_TASKS];
 
@@ -73,7 +69,6 @@ tid_t sched_start(task_func_t func, void* arg) {
         if(STATE_UNALLOCATED == tasks[i].state) {
             // we found one!
             tasks[i].state = STATE_ACTIVE;              // set active
-            // tasks[i].stack.curr = tasks[i].stack.block; // reset stack
             tasks[i].func = func;
             tasks[i].arg = arg;
             tasks[i].tid = i;
@@ -94,7 +89,7 @@ tid_t sched_start(task_func_t func, void* arg) {
 }
 
 // helper function to wake up tasks in the sleep queue
-void _sched_wakeup_tasks() {
+static void _sched_wakeup_tasks() {
     while(1) {
         task_t** task_p = sleep_q.peek();
 
@@ -123,43 +118,45 @@ void _sched_wakeup_tasks() {
     }
 }
 
-/// @brief dispatch the next task
-void  sched_dispatch() {
-    while(1) {
-        // wakeup any sleeping tasks
-        _sched_wakeup_tasks();
+/// @brief select the next task
+/// @return the next task scheduled, or NULl if no task is ready to be scheduled
+task_t* sched_select() {
+    // wakeup any sleeping tasks
+    _sched_wakeup_tasks();
 
-        task_t** task_p = ready_q.peek();
+    task_t** task_p = ready_q.peek();
 
-        if(NULL == task_p) {
-            // nothing to dispatch
-            break;
-        }
-
-        ready_q.pop();
-        task_t* task = *task_p;
-        task->ready_loc = NULL;
-
-        // dispatch the task
-        sched_dispatched = task->tid;
-        if(RET_ERROR == task->func(task->arg)) {
-            // don't put back on the ready queue
-            // free this task
-            task->state = STATE_UNALLOCATED;
-            break;
-        }
-
-        if(STATE_ACTIVE == task->state) {
-            // if the task was slept or blocked, don't put it back on the queue
-
-            task->ready_loc = ready_q.push(task);
-            // NOTE: we again assume we can always push to the ready queue
-        }
-
-        break;
+    if(NULL == task_p) {
+        // nothing ready
+        return NULL;
     }
 
-    sched_dispatched = MAX_NUM_TASKS;
+    ready_q.pop();
+    task_t* task = *task_p;
+
+    // requeue the task
+    task->ready_loc = ready_q.push(task);
+
+    return task;
+}
+
+/// @brief kill a task, removing it from the scheduler
+/// @param tid  the tid of the task to kill
+void sched_kill(tid_t tid) {
+    task_t* task = &(tasks[tid]); // TODO potential memory error, tid not bounds checked
+
+    // if the task is sleeping, take it off the sleep queue
+    if(NULL != task->sleep_loc) {
+        sleep_q.remove(task->sleep_loc);
+        task->sleep_loc = NULL;
+    // NOTE: this can be an else because a task cannot be on more than one queue at once
+    } else if(NULL != task->ready_loc) {
+    // if the task is on the ready queue, remove it
+        ready_q.remove(task->ready_loc);
+        task->ready_loc = NULL;
+    }
+
+    task->state = STATE_UNALLOCATED;
 }
 
 /// @brief sleep a task
@@ -231,30 +228,3 @@ void sched_block(tid_t tid) {
 
     task->state = STATE_BLOCKED;
 }
-
-// /// @brief save a variable to a task
-// template <typename T>
-// void sched_save(tid_t tid, T* var) {
-//     task_t* task = &(tasks[tid]); // TODO potential memory error, tid not bounds checked
-//     stack_t* stack = &(task->stack);
-//
-//     // TODO no error checking for saving
-//     // if you save too much, it will start overwriting memory
-//
-//     uint8_t* data = (uint8_t*)(var);
-//     // TODO this is basically memcpy, but don't want to be dependent on libc yet
-//     for(size_t i = 0; i < sizeof(T); i++) {
-//         *(stack->curr) = data[i];
-//         stack->curr++;
-//     }
-// }
-//
-// /// @brief restore a variable from a task
-// template <typename T>
-// T* sched_restore(tid_t tid) {
-//     task_t* task = &(tasks[tid]); // TODO potential memory error, tid not bounds checked
-//     stack_t* stack = &(task->stack);
-//
-//     stack->curr -= sizeof(T);
-//     return (T*)(stack->curr + sizeof(T));
-// }

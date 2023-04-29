@@ -7,17 +7,16 @@
 #ifndef LAUNCH_CORE_LIS3MDL_H
 #define LAUNCH_CORE_LIS3MDL_H
 
+#include "sched/macros/macros.h"
 #include "device/I2CDevice.h"
-#include "sched/macros/resume.h"
-#include "sched/macros/reset.h"
 #include "lis3mdl_reg.h"
-#include "sched/macros/call.h"
 
-class LIS3MDL {
+
+class LIS3MDL : public Device {
 public:
-    LIS3MDL(I2CDevice &i2cDevice) : mI2C(&i2cDevice) {}
+    LIS3MDL(I2CDevice &i2cDevice) : Device("LIS3MDL"), mI2C(&i2cDevice) {}
 
-    RetType init() {
+    RetType init() override {
         RESUME();
 
         static uint8_t whoAmI = 0;
@@ -507,6 +506,18 @@ public:
         }
 
         RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType obtain() override {
+        return RET_SUCCESS;
+    }
+
+    RetType release() override {
+        return RET_SUCCESS;
+    }
+
+    RetType poll() override {
         return RET_SUCCESS;
     }
 

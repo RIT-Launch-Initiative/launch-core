@@ -26,7 +26,7 @@
 #include "device/StreamDevice.h"
 #include "net/network_layer/NetworkLayer.h"
 #include "net/packet/Packet.h"
-#include "sched/macros.h"
+#include "sched/macros/macros.h"
 #include "return.h"
 
 #include "stm32f4xx_hal_uart.h"

@@ -6,7 +6,7 @@
 #include <sys/select.h>
 #include <sys/time.h>
 
-#include "sched/macros.h"
+#include "sched/macros/macros.h"
 #include "device/Device.h"
 #include "device/StreamDevice.h"
 #include "ringbuffer/RingBuffer.h"

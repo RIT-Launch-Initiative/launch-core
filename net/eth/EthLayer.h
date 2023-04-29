@@ -3,7 +3,7 @@
 
 #include "net/network_layer/NetworkLayer.h"
 #include "net/eth/eth.h"
-#include "sched/macros.h"
+#include "sched/macros/macros.h"
 
 using namespace eth;
 
@@ -127,16 +127,7 @@ public:
     }
 
     RetType transmit2(Packet& packet, netinfo_t& info, NetworkLayer*) {
-        static bool _init = false;\
-            static void* _current[static_cast<int>(MAX_NUM_TASKS) + 1];\
-            if(!_init) {\
-                for(int i = 0; i < static_cast<int>(MAX_NUM_TASKS) + 1; i++) {\
-                    _current[i] = &&_start;\
-                }\
-                _init = true;\
-            }\
-            goto *(_current[static_cast<int>(sched_dispatched)]);\
-            _start:\
+        RESUME();
 
         EthHeader_t* hdr = packet.allocate_header<EthHeader_t>();
         if(hdr == NULL) {

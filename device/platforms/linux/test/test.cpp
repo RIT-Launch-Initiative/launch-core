@@ -6,7 +6,7 @@
 #include "device/platforms/linux/test/map.h"
 #include "device/StreamDevice.h"
 #include "sched/sched.h"
-#include "sched/macros.h"
+#include "sched/macros/macros.h"
 #include "sync/BlockingSemaphore.h"
 
 // *** stolen from stack overflow to make terminal work *** //

@@ -3,6 +3,8 @@
 
 #include "sched/sched.h"
 #include "return.h"
+#include "sched/macros/macros.h"
+#include "macros.h"
 
 /* The CALL macro.
 *  Called as RetType ret = CALL(E)
@@ -20,7 +22,7 @@
 
 
 #define CALL2(F, RET, z)\
-    ({_current[static_cast<int>(sched_dispatched)] = TOKENPASTE2(&&_call, z); TOKENPASTE2(_call, z):; RetType RET = F; if(RET == RET_SLEEP || RET == RET_BLOCKED || RET == RET_YIELD){return RET;}; RET;})\
+    ({if(unlikely(sched_jump[sched_dispatched].size == MAX_CALL_DEPTH)) {return RET_ERROR;}; sched_jump[sched_dispatched].jumps[sched_jump[sched_dispatched].size++] = TOKENPASTE2(&&_call, z); TOKENPASTE2(_call, z):; RetType RET = F; if(RET == RET_YIELD) {return RET;}; sched_jump[sched_dispatched].index = _cached_index; sched_jump[sched_dispatched].size--; RET;})\
 
 /// @brief call a function 'F' and handle the return
 ///        useful for calling in a task so you don't need to check for SLEEP, BLOCKED, or YIELD

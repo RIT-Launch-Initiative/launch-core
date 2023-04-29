@@ -3,6 +3,7 @@
 
 #include "sched/sched.h"
 #include "return.h"
+#include "sched/macros/macros.h"
 
 /* The BLOCK macro.
 *  Called as BLOCK()
@@ -13,10 +14,14 @@
 #define TOKENPASTE2(x, y) TOKENPASTE(x, y)
 
 #define BLOCK2(z)\
-        _current[static_cast<int>(sched_dispatched)] = TOKENPASTE2(&&_block, z);\
+        if(unlikely(sched_jump[sched_dispatched].size == MAX_CALL_DEPTH)) {\
+            return RET_ERROR;\
+        }\
+        sched_jump[sched_dispatched].jumps[sched_jump[sched_dispatched].size++] = TOKENPASTE2(&&_block, z);\
         sched_block(sched_dispatched);\
-        return RET_BLOCKED;\
+        return RET_YIELD;\
         TOKENPASTE2(_block, z):\
+        sched_jump[sched_dispatched].size--;\
 
 /// @brief block the currently running task
 #define BLOCK() BLOCK2(__COUNTER__)

@@ -26,7 +26,7 @@
 
 #include <stdint.h>
 #include "device/I2CDevice.h"
-#include "sched/macros.h"
+#include "sched/macros/macros.h"
 #include "device/peripherals/LSM6DSL/LSM6DSL_Driver.h"
 
 
@@ -46,11 +46,11 @@ struct LSM6DSL_SENSOR_DATA_T {
     float angularVelocity;
 };
 
-class LSM6DSL {
+class LSM6DSL : public Device {
 public:
-    LSM6DSL(I2CDevice &i2CDevice) : mI2C(&i2CDevice), accelEnabled(false), gyroEnabled(false) {}
+    LSM6DSL(I2CDevice &i2CDevice) : Device("LSM6DSL"), mI2C(&i2CDevice), accelEnabled(false), gyroEnabled(false) {}
 
-    RetType init() {
+    RetType init() override {
         RESUME();
         i2cAddr = {
                 .dev_addr = 0x6A << 1,
@@ -848,6 +848,17 @@ public:
 
     // TODO: Maybe add wakeup detection functionality
 
+    RetType obtain() override {
+        return RET_SUCCESS;
+    }
+
+    RetType release() override {
+        return RET_SUCCESS;
+    }
+
+    RetType poll() override {
+        return RET_SUCCESS;
+    }
 
 private:
     I2CDevice *mI2C;

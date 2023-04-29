@@ -18,7 +18,7 @@
 #include <string.h>
 
 #include "net/network_layer/NetworkLayer.h"
-#include "sched/macros.h"
+#include "sched/macros/macros.h"
 #include "net/ipv4/ipv4.h"
 
 class SimpleArpLayer : public NetworkLayer {
