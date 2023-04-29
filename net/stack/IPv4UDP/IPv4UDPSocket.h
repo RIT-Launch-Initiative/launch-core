@@ -112,7 +112,8 @@ public:
         }
 
         // fill in information
-        sockinfo_t info;
+        netinfo_t info;
+        info.ignore_checksums = false;
         info.dst.udp_port = dst->port;
         ipv4::IPv4Address(dst->ip[0], dst->ip[1], dst->ip[2], dst->ip[3],
                                                         &(info.dst.ipv4_addr));
@@ -206,7 +207,7 @@ public:
     /// @param packet   the received packet
     /// @param info     information about the packet to be filled in
     /// @param caller   the layer that called this function one layer before
-    RetType receive(Packet& packet, sockinfo_t& info, NetworkLayer*) {
+    RetType receive(Packet& packet, netinfo_t& info, NetworkLayer*) {
         size_t size = packet.available();
 
         // check if this packet is properly sized
@@ -268,12 +269,12 @@ public:
     }
 
     /// @brief not implemented
-    RetType transmit(Packet& packet, sockinfo_t& info, NetworkLayer* caller) {
+    RetType transmit(Packet& packet, netinfo_t& info, NetworkLayer* caller) {
         return RET_ERROR;
     }
 
     /// @brief not implemented
-    RetType transmit2(Packet& packet, sockinfo_t& info, NetworkLayer* caller) {
+    RetType transmit2(Packet& packet, netinfo_t& info, NetworkLayer* caller) {
         return RET_ERROR;
     }
 

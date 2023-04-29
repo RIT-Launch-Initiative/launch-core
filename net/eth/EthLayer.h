@@ -39,7 +39,7 @@ public:
     /// @brief receive a packet
     ///        drops packet if dst is not this layers MAC or a broadcast/multicast
     /// @return
-    RetType receive(Packet& packet, sockinfo_t& info, NetworkLayer*) {
+    RetType receive(Packet& packet, netinfo_t& info, NetworkLayer*) {
         RESUME();
 
         EthHeader_t* hdr = packet.read_ptr<EthHeader_t>();
@@ -105,7 +105,7 @@ public:
 
     /// @brief transmit a packet
     /// @return
-    RetType transmit(Packet& packet, sockinfo_t& info, NetworkLayer*) {
+    RetType transmit(Packet& packet, netinfo_t& info, NetworkLayer*) {
         RESUME();
 
         EthHeader_t* hdr = packet.allocate_header<EthHeader_t>();
@@ -126,8 +126,25 @@ public:
         return ret;
     }
 
-    RetType transmit2(Packet& packet, sockinfo_t& info, NetworkLayer*) {
+    RetType transmit2(Packet& packet, netinfo_t& info, NetworkLayer*) {
         RESUME();
+
+        EthHeader_t* hdr = packet.allocate_header<EthHeader_t>();
+        if(hdr == NULL) {
+            return RET_ERROR;
+        }
+
+        // add padding if needed
+        ssize_t diff = (packet.size() + packet.header_size() - sizeof(eth::EthHeader_t)) \
+                       - eth::MIN_PAYLOAD_SIZE;
+        if(diff < 0) {
+            // add padding
+            uint8_t zero = 0;
+            while(diff < 0) {
+                packet.push<uint8_t>(zero);
+                diff++;
+            }
+        }
 
         // calculate the FCS if configured to
         if(m_fcs) {
