@@ -135,6 +135,11 @@ public:
         // match with addr/32 (since it's the longest match possible)
         RetType ret;
 
+        if(!ipv4::is_multicast(&addr)) {
+            // not a valid multicast address
+            return RET_ERROR;
+        }
+
         ret = m_ip.add_outgoing_route(addr, 0xFFFFFFFF, m_arp);
         if(RET_SUCCESS != ret) {
             return ret;

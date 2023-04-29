@@ -28,12 +28,12 @@ RetType PollDevice(void *dev) {
     RESUME();
 
     // returns blocked or yield to return back to the scheduler
-    RetType ret = CALL(((Device *) dev)->poll());
+    RetType ret = CALL(((Device*)dev)->poll());
 
     // in cases where we get an error, don't want to stop handling the device.
     // hopefully this doesn't happen, but if it does just pretend everything is
     // fine so this task gets scheduled again.
-    if (RET_ERROR == ret) {
+    if(RET_ERROR == ret) {
         RESET();
         return RET_SUCCESS;
     }
@@ -44,9 +44,9 @@ RetType PollDevice(void *dev) {
 
 /// Argument passed to the init task
 typedef struct {
-    DeviceMap *dev_map;     // platform device map
-    task_func_t *tasks;     // list of tasks to initialize and poll
-    void **args;            // list of arguments passed to these tasks
+    DeviceMap* dev_map;     // platform device map
+    task_func_t* tasks;     // list of tasks to initialize and poll
+    void** args;            // list of arguments passed to these tasks
     size_t num_tasks;       // number of tasks passed in the list
 } init_arg_t;
 
@@ -71,14 +71,14 @@ RetType init(void* init_args) {
     Device* dev = map->next();
 
     // iterate through all the devices
-    while (dev != NULL) {
+    while(NULL != dev) {
         RetType ret = CALL(dev->init());
 
         if (RET_SUCCESS == ret) {
             // add a handler for this device
             // NOTE: not checking the return here, nothing we can really do
             //       if it fails
-            sched_start(PollDevice, (void *) dev);
+            sched_start(PollDevice, (void*)dev);
         }
         // otherwise this device failed to init, don't add it's handler to
         // the scheduler
