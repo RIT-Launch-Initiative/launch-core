@@ -72,7 +72,7 @@ public:
         ipv4::IPv4Addr_t temp_addr;
         ipv4::IPv4Addr_t temp_subnet;
 
-        ipv4::IPv4Address(69, 69, 69, 69, &temp_addr);
+        ipv4::IPv4Address(127, 0, 0, 1, &temp_addr);
         ipv4::IPv4Address(255, 0, 0, 0, &temp_subnet);
 
         ret = m_ip.add_outgoing_route(temp_addr, temp_subnet, m_lo);
@@ -135,6 +135,11 @@ public:
         // match with addr/32 (since it's the longest match possible)
         RetType ret;
 
+        if(!ipv4::is_multicast(&addr)) {
+            // not a valid multicast address
+            return RET_ERROR;
+        }
+
         ret = m_ip.add_outgoing_route(addr, 0xFFFFFFFF, m_arp);
         if(RET_SUCCESS != ret) {
             return ret;
@@ -176,7 +181,7 @@ private:
 
     // pool of sockets
     // TODO don't hardcode this!
-    alloc::Pool<alloc::IPv4UDPSocket<10>, 4> m_socks;
+    alloc::Pool<alloc::IPv4UDPSocket<10>, 2> m_socks;
 };
 
 #endif
