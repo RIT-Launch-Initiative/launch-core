@@ -284,27 +284,35 @@ public:
         return RET_SUCCESS;
     }
 
-//    RetType recv_data(uint8_t* buff, uint16_t len) {
-//        RESUME();
-//        static uint16_t ptr;
-//
-//        if(len == 0) goto recv_data_end;
-//
-//        RetType ret = CALL(get_socket_read_ptr_reg(DEFAULT_SOCKET_NUM, &ptr));
-//        if (ret != RET_SUCCESS) goto recv_data_end;
-//
-//        ret = CALL(read_buff(ptr, buff, len, W5500_WIZCHIP_RXBUF_BLOCK(DEFAULT_SOCKET_NUM)));
-//        if (ret != RET_SUCCESS) goto recv_data_end;
-//
-//        ptr += len;
-//
-//        setSn_RX_RD(ptr);
-//
-//
-//        recv_data_end:
-//        RESET();
-//        return ret;
-//    }
+    RetType recv_data(uint8_t socket_num, uint8_t* buff, uint16_t len) {
+        RESUME();
+
+        static uint16_t ptr = 0;
+        static uint32_t addr_sel = 0;
+
+        ptr = 0;
+        addr_sel = 0;
+
+        if (len == 0) goto recv_data_end;
+
+        RetType ret = CALL(get_socket_register_tx_wr(socket_num, &ptr));
+        if (ret != RET_SUCCESS) goto recv_data_end;
+
+        addr_sel = ((uint32_t) ptr << 8) + (W5500_WIZCHIP_RXBUF_BLOCK(DEFAULT_SOCKET_NUM) << 3);
+        ret = CALL(read_buff(addr_sel, buff, len));
+        if (ret != RET_SUCCESS) goto recv_data_end;
+
+        ptr += len;
+        ret = CALL(set_socket_register_rx_rd(socket_num, ptr));
+        if (ret != RET_SUCCESS) goto recv_data_end;
+
+        ret = CALL(set_socket_control_reg(socket_num, RECV_SOCKET)); // TODO: Needs to be validated
+        if (ret != RET_SUCCESS) goto recv_data_end;
+
+        recv_data_end:
+        RESET();
+        return ret;
+    }
 
     RetType set_socket_mode_reg(uint8_t socket_num, uint8_t mode) {
         RESUME();
