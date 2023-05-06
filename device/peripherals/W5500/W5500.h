@@ -293,7 +293,10 @@ public:
         ptr = 0;
         addr_sel = 0;
 
-        if (len == 0) goto recv_data_end;
+        if (len == 0) {
+            RESET();
+            return RET_ERROR;
+        }
 
         RetType ret = CALL(get_socket_register_tx_wr(socket_num, &ptr));
         if (ret != RET_SUCCESS) goto recv_data_end;
