@@ -66,7 +66,7 @@ public:
     RetType init(uint8_t address = ADXL375_DEV_ADDR_PRIM) {
         RESUME();
 
-        i2cAddr.dev_addr = address;
+        i2cAddr.dev_addr = address << 1;
 
         static uint8_t id = 0;
 
