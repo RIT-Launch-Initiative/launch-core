@@ -161,9 +161,8 @@ public:
         data_len -= 2;
 
         if (data_len > packet.available()) {
-            // TODO call an ignore
-
-            ret = CALL(set_socket_control_reg(DEFAULT_SOCKET_NUM, RECV_SOCKET));
+            CALL(recv_ignore(DEFAULT_SOCKET_NUM, data_len));
+            CALL(set_socket_control_reg(DEFAULT_SOCKET_NUM, RECV_SOCKET));
             ret = RET_ERROR; // Either way, its an error
 
             goto receive_end;
@@ -311,6 +310,24 @@ public:
         if (ret != RET_SUCCESS) goto recv_data_end;
 
         recv_data_end:
+        RESET();
+        return ret;
+    }
+
+    RetType recv_ignore(uint8_t socket_num, size_t len) {
+        RESUME();
+
+        static uint16_t ptr;
+
+        RetType ret = CALL(get_socket_register_rx_rd(socket_num, &ptr));
+        if (ret != RET_SUCCESS) goto recv_ignore_end;
+
+        ptr += len;
+
+        ret = CALL(set_socket_register_rx_rd(socket_num, ptr));
+        if (ret != RET_SUCCESS) goto recv_ignore_end;
+
+        recv_ignore_end:
         RESET();
         return ret;
     }
