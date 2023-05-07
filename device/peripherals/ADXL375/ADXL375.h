@@ -15,7 +15,8 @@
 #define ADXL375_XYZ_READ_SCALE_FACTOR 49
 #define ADXL375_MG2G_MULTIPLIER 0.049
 #define ADXL375_GRAVITY 9.80665F
-#define DEFAULT_ADXL375(X) ADXL375_Readings X = {.id = 12053, .x_axis = NULL, .y_axis = NULL, .z_axis = NULL}
+
+#define ADXL375_DATA_STRUCT(variable_name) ADXL375_DATA_T variable_name = {.id = 12000, .x_axis = 0, .y_axis = 0, .z_axis = 0}
 
 #include <stdlib.h>
 #include <stdint.h>

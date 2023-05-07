@@ -6,7 +6,7 @@
 
 #ifndef LAUNCH_CORE_MS5607_H
 #define LAUNCH_CORE_MS5607_H
-#define DEFAULT_MS5607(X) MS5607_Readings X = {.id = 10076, .pressure = NULL, .temp = NULL}
+#define MS5607_DATA_STRUCT(variable_name) MS5607_DATA_T variable_name = {.id = 10000, .pressure = 0, .temp = 0}
 
 #include "device/GPIODevice.h"
 #include "sched/macros.h"

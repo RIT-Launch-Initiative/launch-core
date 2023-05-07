@@ -21,11 +21,11 @@
 #define bitSet(value, bit) ((value) |= (1UL << (bit)))
 #define bitClear(value, bit) ((value) &= ~(1UL << (bit)))
 #define bitWrite(value, bit, bitVal) (bitVal ? bitSet(value, bit) : bitClear(value, bit))
-#define DEFAULT_TEMP117(X) TMP117_Readings X = {.id = 16048, .temp = NULL}
+#define TMP117_DATA_STRUCT(variable_name) SHTC3_DATA_T variable_name = {.id = 16001, .temperature = 0}
 
 using TMP117_DATA_T = struct {
     uint16_t id;
-    float temp;
+    float temperature;
 };
 
 using TMP117_Register = enum {

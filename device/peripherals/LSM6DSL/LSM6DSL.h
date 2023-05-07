@@ -24,7 +24,7 @@
 #define LSM6DSL_WAKE_UP_THRESHOLD_MID_HIGH  0x2F
 #define LSM6DSL_WAKE_UP_THRESHOLD_HIGH      0x3F  /**< Highest value of wake up threshold */
 
-#define DEFAULT_LSM(X) LSM_Readings X = {.id = 11106, .accX = NULL, .accY = NULL, .accZ = NULL, .gyroX = NULL, .gyroY = NULL, .gyroZ = NULL}
+#define LSM6DSL_DATA_STRUCT(variable_name) LSM6DSL_DATA_T variable_name = {.id = 11000, .x_accel = 0, .x_gyro = 0, .y_accel = 0, .y_gyro = 0, .z_accel = 0, .z_gyro = 0}
 
 #include <stdint.h>
 #include "device/I2CDevice.h"
@@ -36,20 +36,14 @@ enum LSM6DSL_Interrupt_Pin_t {
     LSM6DSL_INT2_PIN
 };
 
-struct LSM6DSL_EVENT_STATUS_T {
-    uint8_t FreeFallStatus: 1;
-    uint8_t WakeUpStatus: 1;
-    uint8_t D6DOrientationStatus: 1;
-};
-
 using LSM6DSL_DATA_T = struct {
     uint16_t id;
-    uint32_t accel_x;
-    uint32_t accel_y;
-    uint32_t accel_z;
-    uint32_t gyro_x;
-    uint32_t gyro_y;
-    uint32_t gyro_z;
+    uint32_t x_accel;
+    uint32_t x_gyro;
+    uint32_t y_accel;
+    uint32_t y_gro;
+    uint32_t z_accel;
+    uint32_t z_gyro;
 };
 
 class LSM6DSL {

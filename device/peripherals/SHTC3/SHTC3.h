@@ -6,7 +6,7 @@
  */
 #ifndef LAUNCH_CORE_SHTC3_H
 #define LAUNCH_CORE_SHTC3_H
-#define DEFAULT_SHTC3(X) SHTC3_Readings X = {.id = 16070, .temp = NULL, .humidity = NULL}
+#define SHTC3_DATA_STRUCT(variable_name) SHTC3_DATA_T variable_name = {.id = 16000, .temperature = 0, .humidity = 0}
 
 #include "device/I2CDevice.h"
 #include "return.h"
@@ -20,7 +20,7 @@
 
 using SHTC3_DATA_T = struct {
     uint16_t id;
-    float temp;
+    float temperature;
     float humidity;
 };
 

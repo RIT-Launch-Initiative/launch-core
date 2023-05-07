@@ -6,7 +6,7 @@
 
 #ifndef LAUNCH_CORE_LIS3MDL_H
 #define LAUNCH_CORE_LIS3MDL_H
-#define DEFAULT_LIS(X) LIS_Readings X = {.id = 15028, .magX = NULL, .magY = NULL, .magZ = NULL, .temp = NULL}
+#define LIS3MDL_DATA_STRUCT(variable_name) LIS3MDL_DATA_T variable_name = {.id = 15000, .x_mag = 0, .y_mag = 0, .z_mag = 0, .temperature = 0}
 
 #include "device/I2CDevice.h"
 #include "sched/macros/resume.h"
@@ -17,9 +17,9 @@
 
 using LIS3MDL_DATA_T = struct {
     uint16_t id;
-    float mag_x;
-    float mag_y;
-    float mag_z;
+    float x_mag;
+    float y_mag;
+    float z_mag;
     float temperature;
 };
 
