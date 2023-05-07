@@ -114,8 +114,8 @@ enum RFM95_REGISTER_T {
 class RFM95W {
 public:
     RFM95W(SPIDevice *spiDevice, GPIODevice *csPin, GPIODevice *nrstPin) : mSpi(spiDevice),
-                                                      csPin(csPin),
-                                                      nrstPin(nrstPin) {}
+                                                                           csPin(csPin),
+                                                                           nrstPin(nrstPin) {}
 
     RetType init() {
         RESUME();
@@ -141,109 +141,109 @@ public:
         }
 
         //place module in sleep mode
-		ret = CALL(writeReg(RFM95_REGISTER_OP_MODE, RFM_MODE_SLEEP));
-		if (ret != RET_SUCCESS){
-			RESET();
-			return ret;
-		}
+        ret = CALL(writeReg(RFM95_REGISTER_OP_MODE, RFM_MODE_SLEEP));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
-		ret = CALL(writeReg(RFM95_REGISTER_OP_MODE, RFM_LongRangeMode)); // turn on LoRa
-		if (ret != RET_SUCCESS){
-			RESET();
-			return ret;
-		}
+        ret = CALL(writeReg(RFM95_REGISTER_OP_MODE, RFM_LongRangeMode)); // turn on LoRa
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
 
-	    RegModemConfig1 = RFM_Bw2 | RFM_Bw1 | RFM_Bw0;
-	    /* Set coding rate to 4/8 -> 100 */
-	    RegModemConfig1 |= RFM_CodingRate2;
-	    /* Implicit header mode */
-	    RegModemConfig1 |= RFM_ImplicitHeaderModeOn;
+        RegModemConfig1 = RFM_Bw2 | RFM_Bw1 | RFM_Bw0;
+        /* Set coding rate to 4/8 -> 100 */
+        RegModemConfig1 |= RFM_CodingRate2;
+        /* Implicit header mode */
+        RegModemConfig1 |= RFM_ImplicitHeaderModeOn;
 
-		ret = CALL(writeReg(RFM95_REGISTER_MODEM_CONFIG_1, RegModemConfig1));
-		if (ret != RET_SUCCESS){
-			RESET();
-			return ret;
-		}
+        ret = CALL(writeReg(RFM95_REGISTER_MODEM_CONFIG_1, RegModemConfig1));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
-	    /* Set SF9 = 256 chips/symbol */
+        /* Set SF9 = 256 chips/symbol */
 //	    RegModemConfig2 = RFM_SpreadingFactor3; // TODO: Uncomment when these are defined
-	    /* Enable CRCs: */
+        /* Enable CRCs: */
 //	    RegModemConfig2 |= RFM_RxPayloadCrcOn;
 
-		ret = CALL(writeReg(RFM95_REGISTER_MODEM_CONFIG_2, RegModemConfig2));
-		if (ret != RET_SUCCESS){
-			RESET();
-			return ret;
-		}
+        ret = CALL(writeReg(RFM95_REGISTER_MODEM_CONFIG_2, RegModemConfig2));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
-		//set to default interrupt config
-		ret = CALL(writeReg(RFM95_REGISTER_DIO_MAPPING_1, 0x00));
-		if (ret != RET_SUCCESS){
-			RESET();
-			return ret;
-		}
+        //set to default interrupt config
+        ret = CALL(writeReg(RFM95_REGISTER_DIO_MAPPING_1, 0x00));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
-		//config interrupts
+        //config interrupts
 
-		//set power
-		ret = setPower(17);
-		if (ret != RET_SUCCESS){
-			RESET();
-			return ret;
-		}
+        //set power
+        ret = setPower(17);
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
-		//set frequency to 915 MHz
-		ret = CALL(configFrequency(FREQ_915));
-		if (ret != RET_SUCCESS){
-			RESET();
-			return ret;
-		}
+        //set frequency to 915 MHz
+        ret = CALL(configFrequency(FREQ_915));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
-		//set preamble to 8 + 4.25 = 12.25 symbols.
-		ret = CALL(writeReg(RFM95_REGISTER_PREAMBLE_MSB, 0x00));
-		if (ret != RET_SUCCESS){
-			RESET();
-			return ret;
-		}
-		ret = CALL(writeReg(RFM95_REGISTER_PREAMBLE_LSB, 0x08));
-		if (ret != RET_SUCCESS){
-			RESET();
-			return ret;
-		}
+        //set preamble to 8 + 4.25 = 12.25 symbols.
+        ret = CALL(writeReg(RFM95_REGISTER_PREAMBLE_MSB, 0x00));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
+        ret = CALL(writeReg(RFM95_REGISTER_PREAMBLE_LSB, 0x08));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
-		//set ttn sync word 0x34
-		ret = CALL(writeReg(RFM95_REGISTER_SYNC_WORD, 0x34));
-		if (ret != RET_SUCCESS){
-			RESET();
-			return ret;
-		}
+        //set ttn sync word 0x34
+        ret = CALL(writeReg(RFM95_REGISTER_SYNC_WORD, 0x34));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
-		//set up base addresses for rx and tx
-		ret = CALL(writeReg(RFM95_REGISTER_FIFO_TX_BASE_ADDR, 0x80));
-		if (ret != RET_SUCCESS){
-			RESET();
-			return ret;
-		}
-		ret = CALL(writeReg(RFM95_REGISTER_FIFO_RX_BASE_ADDR, 0x00));
-		if (ret != RET_SUCCESS){
-			RESET();
-			return ret;
-		}
+        //set up base addresses for rx and tx
+        ret = CALL(writeReg(RFM95_REGISTER_FIFO_TX_BASE_ADDR, 0x80));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
+        ret = CALL(writeReg(RFM95_REGISTER_FIFO_RX_BASE_ADDR, 0x00));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
-		// Set Maximum payload length to 64
-		ret = CALL(writeReg(RFM95_REGISTER_MAX_PAYLOAD_LENGTH, 64));
-		if (ret != RET_SUCCESS){
-			RESET();
-			return ret;
-		}
+        // Set Maximum payload length to 64
+        ret = CALL(writeReg(RFM95_REGISTER_MAX_PAYLOAD_LENGTH, 64));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
-		// Let module sleep after init
-		ret = CALL(writeReg(RFM95_REGISTER_OP_MODE, 0x80));
-		if (ret != RET_SUCCESS){
-			RESET();
-			return ret;
-		}
+        // Let module sleep after init
+        ret = CALL(writeReg(RFM95_REGISTER_OP_MODE, 0x80));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
 
         RESET();
@@ -411,87 +411,86 @@ public:
 
     RetType receive(uint8_t *buf, uint8_t len) {
         RESUME();
-//        static uint8_t irq_flags; // make all variables are static
-//        bool valid = false;
-//
-//
-//        RetType ret = CALL(setMode(RFM_MODE_STANDBY));
-//        if (ret != RET_SUCCESS) {
-//            RESET();
-//            return ret;
-//        }
-//
-//        ret = CALL(writeReg(RFM95_REGISTER_PAYLOAD_LENGTH, len));
-//        if (ret != RET_SUCCESS) {
-//            RESET();
-//            return ret;
-//        }
-//
-//        do {
-//            static uint8_t rx_addr;
-//            RetType ret = CALL(readReg(RFM95_REGISTER_FIFO_RX_BASE_ADDR, &rx_addr, 1));
-//            if (ret != RET_SUCCESS) {
-//                RESET();
-//                return ret;
-//            }
-//
-//            ret = CALL(writeReg(RFM95_REGISTER_FIFO_ADDR_PTR, rx_addr));
-//            if (ret != RET_SUCCESS) {
-//                RESET();
-//                return ret;
-//            }
-//
-//            //set to rx mode
-//            ret = CALL(setMode(RFM_MODE_RXSINGLE));
-//            if (ret != RET_SUCCESS) {
-//                RESET();
-//                return ret;
-//            }
-//
-//            do {
-//                ret = CALL(readReg(RFM95_REGISTER_IRQ_FLAGS, &irq_flags, 1));
-//                if (ret != RET_SUCCESS) {
-//                    RESET();
-//                    return ret;
-//                }
-//            } while (!(irq_flags & (RFM_RxTimeout | RFM_RxDone)));
-//
-//            static uint8_t rec_len;
-//            ret = CALL(readReg(RFM95_REGISTER_FIFO_RX_BYTES_NB, &rec_len, 1));
-//            if (ret != RET_SUCCESS) {
-//                RESET();
-//                return ret;
-//            }
-//
-//            valid = (rec_len == len) && (irq_flags & RFM_RxDone) && !(irq_flags & RFM_PayloadCrcError);
-//
-//            ret = CALL(writeReg(RFM95_REGISTER_IRQ_FLAGS, RFM_RxDone | RFM_PayloadCrcError | RFM_RxTimeout));
-//            if (ret != RET_SUCCESS) {
-//                RESET();
-//                return ret;
-//            }
-//        } while (!valid);
-//
-//        static uint8_t curr_addr;
-//        ret = CALL(readReg(0x10, &curr_addr, 1)); // 0x10 = curr address register
-//        if (ret != RET_SUCCESS) {
-//            RESET();
-//            return ret;
-//        }
-//
-//        ret = CALL(writeReg(RFM95_REGISTER_FIFO_ADDR_PTR, curr_addr));
-//        if (ret != RET_SUCCESS) {
-//            RESET();
-//            return ret;
-//        }
-//
-//        //read packet into buffer from FIFO
-//        ret = CALL(readReg(RFM95_REGISTER_FIFO_RX_BASE_ADDR, &buf, len));
-//        if (ret != RET_SUCCESS) {
-//            RESET();
-//            return ret;
-//        }
-//
+        static uint8_t irq_flags; // make all variables are static
+        static bool valid = false;
+
+        RetType ret = CALL(setMode(RFM_MODE_STANDBY));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
+
+        ret = CALL(writeReg(RFM95_REGISTER_PAYLOAD_LENGTH, len));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
+
+        do {
+            static uint8_t rx_addr;
+            ret = CALL(readReg(RFM95_REGISTER_FIFO_RX_BASE_ADDR, &rx_addr, 1));
+            if (ret != RET_SUCCESS) {
+                RESET();
+                return ret;
+            }
+
+            ret = CALL(writeReg(RFM95_REGISTER_FIFO_ADDR_PTR, rx_addr));
+            if (ret != RET_SUCCESS) {
+                RESET();
+                return ret;
+            }
+
+            //set to rx mode
+            ret = CALL(setMode(RFM_MODE_RXSINGLE));
+            if (ret != RET_SUCCESS) {
+                RESET();
+                return ret;
+            }
+
+            do {
+                ret = CALL(readReg(RFM95_REGISTER_IRQ_FLAGS, &irq_flags, 1));
+                if (ret != RET_SUCCESS) {
+                    RESET();
+                    return ret;
+                }
+            } while (!(irq_flags & (RFM_RxTimeout | RFM_RxDone)));
+
+            static uint8_t rec_len;
+            ret = CALL(readReg(RFM95_REGISTER_FIFO_RX_BYTES_NB, &rec_len, 1));
+            if (ret != RET_SUCCESS) {
+                RESET();
+                return ret;
+            }
+
+            valid = (rec_len == len) && (irq_flags & RFM_RxDone) && !(irq_flags & RFM_PayloadCrcError);
+
+            ret = CALL(writeReg(RFM95_REGISTER_IRQ_FLAGS, RFM_RxDone | RFM_PayloadCrcError | RFM_RxTimeout));
+            if (ret != RET_SUCCESS) {
+                RESET();
+                return ret;
+            }
+        } while (!valid);
+
+        static uint8_t curr_addr;
+        ret = CALL(readReg(0x10, &curr_addr, 1)); // 0x10 = curr address register
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
+
+        ret = CALL(writeReg(RFM95_REGISTER_FIFO_ADDR_PTR, curr_addr));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
+
+        //read packet into buffer from FIFO
+        ret = CALL(readReg(RFM95_REGISTER_FIFO_RX_BASE_ADDR, buf, len));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
+
         RESET();
         return RET_SUCCESS;
 
