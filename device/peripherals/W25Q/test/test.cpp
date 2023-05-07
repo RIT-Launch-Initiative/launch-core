@@ -1,5 +1,5 @@
 /**
-* Test to ensure WQ25 functions won't die
+* Test to ensure there are no possibilities of a hard fault with W25Q
 */
 
 #include <stdio.h>

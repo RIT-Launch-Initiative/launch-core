@@ -5,8 +5,18 @@
 
 #include "net/socket/Socket.h"
 #include "net/eth/crctable.c"
+#include "net/common.h"
 
 namespace eth {
+
+// maximum size of an Ethernet frame including header and FCS in bytes
+static const size_t MAX_FRAME_SIZE = 1518;
+
+// minimum size of an ethernet frame payload in bytes
+static const size_t MIN_PAYLOAD_SIZE = 46;
+
+// the size of the FCS in bytes
+static const size_t FCS_LEN = sizeof(uint32_t);
 
 // layer 2 ethernet 2 frame
 typedef struct {
@@ -24,14 +34,6 @@ static const uint16_t IPV6_PROTO = 0x86DD;
 static const uint16_t ARP_PROTO  = 0x0806;
 static const uint16_t EXP_PROTO  = 0x0101;
 
-// maps socket types to protocol numbers
-static const uint16_t ETH_PROTO[NUM_SOCK_TYPES] =
-{
-    IPV4_PROTO,     // IPV4_UDP_SOCK
-    IPV4_PROTO,     // RAW_IPV4_UDP_SOCK
-    EXP_PROTO       // PACKET_SOCK
-};
-
 // outputs CRC32 Frame Check Sequence in network order
 // Uses Ethernet polynomial
 // CRC algorithm and table from Rocksoft
@@ -43,7 +45,7 @@ static inline uint32_t calculate_fcs(uint8_t* data, size_t len) {
 
     uint32_t crc = CRC_INIT;
 
-    for(size_t i = 0; i < len; i++)
+    for(size_t i = 0; i < len; i++) {
         crc = crctable[(crc ^ data[i]) & 0xFFL] ^ (crc >> 8);
     }
     crc = crc ^ XO_ROT;

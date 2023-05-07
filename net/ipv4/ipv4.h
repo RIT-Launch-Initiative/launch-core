@@ -17,13 +17,9 @@ static const uint8_t IGMP_PROTO         = 0x02;
 static const uint8_t EXPERIMENT1_PROTO  = 0xFD;
 static const uint8_t EXPERIMENT2_PROTO  = 0xFE;
 
-// maps socket types to protocol numbers
-static const uint8_t IPV4_PROTO[NUM_SOCK_TYPES] =
-{
-    UDP_PROTO,          // IPV4_UDP_SOCK
-    UDP_PROTO,          // RAW_IPV4_UDP_SOCK
-    EXPERIMENT1_PROTO   // PACKET_SOCK (this should probably never happen)
-};
+// address is 32 bits
+// always assume in system endianness
+typedef uint32_t IPv4Addr_t;
 
 // IP Header struct
 typedef struct {
@@ -35,14 +31,10 @@ typedef struct {
     uint8_t ttl;
     uint8_t protocol;
     uint16_t checksum;
-    uint32_t src;
-    uint32_t dst;
+    IPv4Addr_t src;
+    IPv4Addr_t dst;
     // options
 } IPv4Header_t;
-
-// address is 32 bits
-// always assume in system endianness
-typedef uint32_t IPv4Addr_t;
 
 /// @brief fill in the 'addr' field with an IPv4 address a.b.c.d
 static inline void IPv4Address(uint8_t a, uint8_t b, uint8_t c, uint8_t d, IPv4Addr_t* addr) {
@@ -52,6 +44,31 @@ static inline void IPv4Address(uint8_t a, uint8_t b, uint8_t c, uint8_t d, IPv4A
     *addr |= (a << 24);
 }
 
+
+/// @brief determine if a particular IP address is a multicast address
+/// @param addr     the address to check
+/// @return true if the address is a multicast address
+static inline bool is_multicast(IPv4Addr_t* addr) {
+    // the range of multicast IPv4 addresses are from
+    // 224.0.0.0 to 239.255.255.255
+
+    if(*addr < 0xE0000000 || *addr > 0xEFFFFFFF) {
+        return false;
+    }
+
+    return true;
+}
+
+/// @brief determine if a particular IP address is the broadast address
+/// @param addr     the address to check
+/// @return true if the address is a multicast address
+static inline bool is_broadcast(IPv4Addr_t* addr) {
+    // the broadcast address is 255.255.255.255
+
+    return *addr == 0xFFFFFFFF;
+}
+
+
 /// @brief calculates IPv4 checksum
 /// header checksum field must be zero before calling!
 uint16_t checksum(const uint16_t* data, uint16_t len) {
@@ -60,7 +77,7 @@ uint16_t checksum(const uint16_t* data, uint16_t len) {
         sum += data[i];
     }
 
-    // retrun one's complement
+    // return one's complement
     return ~sum;
 }
 

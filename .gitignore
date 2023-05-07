@@ -1,5 +1,11 @@
 build/
 CMakeLists.txt
 .idea/
+.vscode/
 *.o
 *.out
+.project
+.cproject
+.settings
+
+stm32*.*

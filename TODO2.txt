@@ -1,0 +1,14 @@
+Make scheduler take a function AND an argument
+
+Differentiate when a RetType means it needs the scheduler
+
+Figure out how init should work
+- top level init function
+- each device has an init function, added to scheduler by top level init
+- make an init task for each device
+- at the end of it's init task, it adds it's poll task to the scheduler
+- potentially just make the same function
+- "device daemon" or something
+- make a way to template making that daemon
+- how to know when init is complete??? that's when we should add the rest of the tasks
+    - a way to signal when a task ends?

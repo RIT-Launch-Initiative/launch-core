@@ -18,7 +18,8 @@
 
 namespace ipv4 {
 
-// number if routes and devices that can be stored
+// number of routes and layers that can be stored
+// TODO don't hardcode this!
 // TODO template with alloc::IPv4Router
 static const size_t SIZE = 25;
 
@@ -32,66 +33,44 @@ public:
     /// @brief constructor
     IPv4Router() : m_routingTable(route_sort) {};
 
-    /// @brief add route to/from a device
-    /// @param addr     the IPv4 address of the device
-    /// @param subnet   the subnet mask of the network the device is connected to
-    /// @param layer    the layer packets are sent to / received from
+    /// @brief add an outgoing route
+    /// @param addr     IPv4 address
+    /// @param subnet   subnet mask
+    /// @param layer    network layer
     /// If a transmitted packet's destination IP has the longest match with this
-    //  address/subnet the packet will be forwarded to 'layer'. A received packet
-    //  from 'layer' must have the exact destination address of 'addr' to be
-    //  forwarded to the next layer.
-    //  NOTE: this means for multicasts, each route needs to be added individually!
-    //        ex) add a route for the layer with address 234.0.0.1/32
-    // for now there can be only device per address (including multicast)
+    //  'addr' on subnet 'subnet', the packet will be forwarded to 'layer'.
+    //  NOTE: currently adding conflicting routes is undefined, whichever
+    //        route is matched first will be used
     /// @return
-    RetType add_route(IPv4Addr_t addr, IPv4Addr_t subnet, NetworkLayer& layer) {
+    RetType add_outgoing_route(IPv4Addr_t addr, IPv4Addr_t subnet,
+                                                          NetworkLayer& layer) {
         // check that it's a valid subnet
         if(!valid_subnet(subnet)) {
             return RET_ERROR;
         }
 
-        // add to the device map
-        NetworkLayer** dev_ptr = m_devMap[addr];
-        if(dev_ptr) {
-            // something else has this address
-            return RET_ERROR;
-        }
-
-        dev_ptr = m_devMap.add(addr);
-        if(dev_ptr == NULL) {
-            // failed to add
-            return RET_ERROR;
-        }
-
-        *dev_ptr = &layer;
-
         // add to the routing table
         Route route = {addr, subnet, &layer};
         if(!m_routingTable.push(route)) {
             // no room
-            // remove device from map
-            m_devMap.remove(addr);
-
             return RET_ERROR;
         }
 
         return RET_SUCCESS;
     }
 
-    /// @brief remove a device route
-    /// @param addr     the address of the device to remove
-    /// @return returns success if the route no longer exists (including if it never did)
-    RetType remove_route(IPv4Addr_t addr) {
-        // remove the device from the hashmap
-        // we don't check the return because if the address doesn't exist it's already removed
-        m_devMap.remove(addr);
-
+    /// @brief remove an outgoing route
+    /// @param addr     the address of the route to remove
+    /// @param subnet   the subnet of the route to remove
+    /// @return success if the route no longer exists (including if it never did)
+    /// NOTE: if there are conflicting routes, only one will be removed!
+    RetType remove_outgoing_route(IPv4Addr_t addr, IPv4Addr_t subnet) {
         // search for the address in the routing table
         QueueIterator<Route> it = m_routingTable.iterator();
 
         Route* curr;
         while(curr = *it) {
-            if(curr->addr == addr) {
+            if(curr->addr == addr && curr->subnet == subnet) {
                 // this is our guy
                 m_routingTable.remove(curr);
                 return RET_SUCCESS;
@@ -102,6 +81,39 @@ public:
 
         // couldn't find the route, so it's technically removed
         return RET_SUCCESS;
+    }
+
+    /// @brief add an incoming route
+    /// @param addr   address
+    /// @param layer  network layer
+    /// Add an incoming route. Packets that are received from 'layer' that have
+    /// a destination address of 'addr' will be forwarded to a higher layer.
+    /// All other packets, besides broadcasts, will be dropped.
+    /// NOTE: only one incoming layer is allowed per address, this is purely
+    ///       for implementation simplicity and could be changed
+    /// @return
+    RetType add_incoming_route(IPv4Addr_t addr, NetworkLayer& layer) {
+        NetworkLayer** ptr = m_incoming[addr];
+        if(ptr) {
+            // this address is already mapped to an incoming layer
+            return RET_ERROR;
+        }
+
+        ptr = m_incoming.add(addr);
+        if(NULL == ptr) {
+            // no room
+            return RET_ERROR;
+        }
+
+        *ptr = &layer;
+
+        return RET_SUCCESS;
+    }
+
+    /// @brief remove an incoming route
+    /// @param addr     the address of the route to remove
+    void remove_incoming_route(IPv4Addr_t addr) {
+        m_incoming.remove(addr);
     }
 
     /// @brief add a protocol layer to forward packets too
@@ -125,6 +137,13 @@ public:
 
         *ptr = &layer;
 
+        uint8_t* num_ptr = m_protNumMap.add(&layer);
+        if(num_ptr == NULL) {
+            // unable to add
+        }
+
+        *num_ptr = protocol;
+
         return RET_SUCCESS;
     }
 
@@ -132,25 +151,17 @@ public:
     /// @param protocol     the protocol layer to remove
     /// @return
     void remove_protocol(uint8_t protocol) {
-        m_protMap.remove(protocol);
-    }
+        NetworkLayer** ptr = m_protMap[protocol];
 
-    /// @brief lookup the next network layer for an IPv4 address
-    /// @param addr     the IPv4 address to lookup
-    /// @return the device, or NULL on error
-    NetworkLayer* device(IPv4Addr_t addr) {
-        NetworkLayer** ptr = m_devMap[addr];
-
-        if(ptr == NULL) {
-            return NULL;
+        if(ptr != NULL) {
+            m_protNumMap.remove(*ptr);
+            m_protMap.remove(protocol);
         }
-
-        return *ptr;
     }
 
     /// @brief receive a packet
     /// @return
-    RetType receive(Packet& packet, sockinfo_t& info, NetworkLayer* caller) {
+    RetType receive(Packet& packet, netinfo_t& info, NetworkLayer* caller) {
         RESUME();
 
         IPv4Header_t* hdr = packet.read_ptr<IPv4Header_t>();
@@ -215,9 +226,9 @@ public:
         // check the address
         IPv4Addr_t addr = ntoh32(hdr->dst);
 
-        NetworkLayer** dev_ptr = m_devMap[addr];
-        if(dev_ptr == NULL) {
-            // no device with this IP
+        NetworkLayer** incoming_ptr = m_incoming[addr];
+        if(incoming_ptr == NULL) {
+            // no layer with this IP
 
             #ifdef NET_STATISTICS
             NetworkStatistics::DroppedIncomingPackets++;
@@ -226,8 +237,8 @@ public:
             return RET_ERROR;
         }
 
-        if(*dev_ptr != caller) {
-            // the address doesn't match the device it should have come in on
+        if(*incoming_ptr != caller) {
+            // the address doesn't match the layer it should have come in on
 
             #ifdef NET_STATISTICS
             NetworkStatistics::DroppedIncomingPackets++;
@@ -250,19 +261,21 @@ public:
 
         NetworkLayer* next = *next_ptr;
 
-        // zero the checksum in order to calculate, cache first
-        uint16_t check = ntoh16(hdr->checksum);
-        hdr->checksum = 0;
+        if(!info.ignore_checksums) {
+            // zero the checksum in order to calculate, cache first
+            uint16_t check = ntoh16(hdr->checksum);
+            hdr->checksum = 0;
 
-        // check the checksum
-        if(check != checksum((uint16_t*)hdr, header_len / sizeof(uint16_t))) {
-            // invalid checksum
+            // check the checksum
+            if(check != checksum((uint16_t*)hdr, header_len / sizeof(uint16_t))) {
+                // invalid checksum
 
-            #ifdef NET_STATISTICS
-            NetworkStatistics::DroppedIncomingPackets++;
-            #endif
+                #ifdef NET_STATISTICS
+                NetworkStatistics::DroppedIncomingPackets++;
+                #endif
 
-            return RET_ERROR;
+                return RET_ERROR;
+            }
         }
 
         // record information about the packet
@@ -282,7 +295,7 @@ public:
 
     /// @brief transmit a packet
     /// @return
-    RetType transmit(Packet& packet, sockinfo_t& info, NetworkLayer*) {
+    RetType transmit(Packet& packet, netinfo_t& info, NetworkLayer* caller) {
         RESUME();
 
         // first find the route to send this packet over
@@ -313,6 +326,16 @@ public:
             return RET_ERROR;
         }
 
+        // look up the protocol number
+        uint8_t proto;
+        uint8_t* ptr = m_protNumMap[caller];
+        if(ptr == NULL) {
+            // no protocol for this caller
+            return RET_ERROR;
+        }
+
+        proto = *ptr;
+
         IPv4Header_t* hdr = packet.allocate_header<IPv4Header_t>();
         if(hdr == NULL) {
             // no room for header
@@ -326,17 +349,17 @@ public:
 
         hdr->version_ihl = DEFAULT_VERSION_IHL;
         hdr->dscp_ecn = 0;
-        hdr->total_len = hton16(packet.size() + packet.headerSize());
+        hdr->total_len = hton16(packet.size() + packet.header_size());
         hdr->identification = 0;
         hdr->flags_frag = 0;
         hdr->ttl = DEFAULT_TTL;
-        hdr->protocol = IPV4_PROTO[info.type];
+        hdr->protocol = proto;
         hdr->checksum = 0;
         hdr->dst = hton32(info.dst.ipv4_addr);
         hdr->src = hton32(m_route->addr);
 
         // calculate checksum
-        hdr->checksum = hton16(checksum((uint16_t*)hdr, sizeof(IPv4Header_t) / sizeof(uint16_t)));
+        hdr->checksum = checksum((uint16_t*)hdr, sizeof(IPv4Header_t));
 
         // record information about the packet for lower layers to use
         info.dst.ipv4_addr = hdr->dst;
@@ -349,7 +372,7 @@ public:
     }
 
     /// @brief second pass of transmitting a packet
-    RetType transmit2(Packet& packet, sockinfo_t& info, NetworkLayer* caller) {
+    RetType transmit2(Packet& packet, netinfo_t& info, NetworkLayer* caller) {
         RESUME();
 
         // don't do anything on the second pass, just move the header and pass it along
@@ -377,9 +400,9 @@ public:
 private:
     // IPv4 route to be used for longest prefix matching
     struct Route {
-        IPv4Addr_t addr;            // device or network address
+        IPv4Addr_t addr;            // network address
         IPv4Addr_t subnet;          // subnet
-        NetworkLayer* next;     // layer to forward to
+        NetworkLayer* next;         // lower layer to forward to
     };
 
     /// @brief helper function to validate a subnet address
@@ -424,15 +447,18 @@ private:
         return subnet_len(fst.subnet) > subnet_len(snd.subnet);
     }
 
-    // stores all outgoing routes
-    // stores with
+    // stores all outgoing routes to lower layers
     alloc::SortedQueue<Route, SIZE> m_routingTable;
 
-    // maps device addresses to layers those addresses should be received from
-    alloc::Hashmap<IPv4Addr_t, NetworkLayer*, SIZE, SIZE> m_devMap;
+    // stores incoming routes
+    // maps addresses to a layer packets from that address should come in on
+    alloc::Hashmap<IPv4Addr_t, NetworkLayer*, SIZE, SIZE> m_incoming;
 
-    // maps device protocol to a next layer
+    // maps higher level protocols to protocol numbers
     alloc::Hashmap<uint8_t, NetworkLayer*, SIZE, SIZE> m_protMap;
+
+    // maps higher layers to protocol numbers
+    alloc::Hashmap<NetworkLayer*, uint8_t, SIZE, SIZE> m_protNumMap;
 
     // the found route for a packet
     // stores information b/w transmit1 and transmit2

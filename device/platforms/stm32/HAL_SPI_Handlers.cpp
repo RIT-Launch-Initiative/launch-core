@@ -1,8 +1,13 @@
 #ifndef HAL_SPI_HANDLERS_H
 #define HAL_SPI_HANDLERS_H
 
+#ifdef STM32F446xx
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_spi.h"
+#elif STM32L476xx
+#include "stm32l4xx_hal.h"
+#include "stm32l4xx_hal_spi.h"
+#endif
 
 #include "device/platforms/stm32/HAL_Handlers.h"
 #include "hashmap/hashmap.h"
@@ -76,6 +81,24 @@ void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi) {
 void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi) {
     // lookup if there's a device registered for this SPI
     HALHandlers::dev_t* dev = HALHandlers::spi_rx_map[hspi];
+
+    // if there's a device, call it's callback function
+    if(dev) {
+        dev->dev->callback(dev->num);
+    }
+}
+
+void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi) {
+    // lookup if there's a device registered for this SPI
+    HALHandlers::dev_t* dev = HALHandlers::spi_tx_map[hspi];
+
+    // if there's a device, call it's callback function
+    if(dev) {
+        dev->dev->callback(dev->num);
+    }
+
+    // lookup if there's a device registered for this SPI
+    dev = HALHandlers::spi_rx_map[hspi];
 
     // if there's a device, call it's callback function
     if(dev) {

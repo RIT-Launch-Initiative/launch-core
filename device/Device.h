@@ -48,6 +48,11 @@ public:
 
     /// @brief poll the device
     ///        any synchronous work for the device should be done here
+    ///
+    ///        It can also be blocked and woken just like any task function.
+    ///        This can be used to block and wait for an ISR as a method to
+    ///        schedule interrupt handling.
+    ///
     /// @return
     virtual RetType poll() = 0;
 

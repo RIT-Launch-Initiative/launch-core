@@ -17,7 +17,8 @@
 
 #include "return.h"
 
-/// @brief task id, any tid < 0 is an error
+/// @brief task id, any tid < 0 or > MAX_NUM_TASKS is an error
+///        a tid equal to MAX_NUM_TASKS represents no task executing
 typedef int tid_t;
 
 /// @brief TID of currently dispatched task
@@ -28,18 +29,18 @@ extern tid_t sched_dispatched;
 typedef uint32_t (*time_func_t)();
 
 /// @brief task function type
-typedef RetType (*task_func_t)();
+typedef RetType (*task_func_t)(void* arg);
 
 // constants
-static const size_t SAVE_BLOCK_SIZE = 256;
-static const tid_t MAX_NUM_TASKS = 32;
+// static const size_t SAVE_BLOCK_SIZE = 256;
+static const tid_t MAX_NUM_TASKS = 64;
 
 /// @brief save stack
 ///        used for storing variables from a task
-typedef struct {
-    uint8_t block[SAVE_BLOCK_SIZE];     // block to store data in
-    uint8_t* curr;                      // current position in block
-} stack_t;
+// typedef struct {
+//     uint8_t block[SAVE_BLOCK_SIZE];     // block to store data in
+//     uint8_t* curr;                      // current position in block
+// } stack_t;
 
 /// @brief task states
 typedef enum {
@@ -51,13 +52,14 @@ typedef enum {
 
 /// @brief task information
 typedef struct task_s {
-    stack_t stack;
     state_t state;
-    uint32_t wake_time;
+    // stack_t stack;
     task_func_t func;
+    void* arg;
     tid_t tid;
-    bool queued; // if it's on the ready queue
-    struct task_s** sleep_loc; // references where the pointer on the sleep queue is
+    uint32_t wake_time;
+    struct task_s** ready_loc; // address of the task pointer on the ready queue
+    struct task_s** sleep_loc; // address of the task pointer on the ready queue
 } task_t;
 
 /// @brief initialize the scheduler
@@ -70,8 +72,9 @@ uint32_t sched_time();
 
 /// @brief start a task on the scheduler
 /// @param func     the task function
+/// @param arg      the argument to pass the task everytime it's executed
 /// @return the started task task id, or -1 on error
-tid_t sched_start(task_func_t func);
+tid_t sched_start(task_func_t func, void* arg);
 
 /// @brief dispatch the next task
 void sched_dispatch();
@@ -87,12 +90,12 @@ void sched_wake(tid_t tid);
 ///        task will not be dispatched until 'sched_wake' is called
 void sched_block(tid_t tid);
 
-/// @brief save a variable to a task
-template <typename T>
-void sched_save(tid_t tid, T* var);
-
-/// @brief restore a variable from a task
-template <typename T>
-T* sched_restore(tid_t tid);
+// /// @brief save a variable to a task
+// template <typename T>
+// void sched_save(tid_t tid, T* var);
+//
+// /// @brief restore a variable from a task
+// template <typename T>
+// T* sched_restore(tid_t tid);
 
 #endif
