@@ -134,120 +134,116 @@ public:
         }
 
         ret = CALL(readReg(RFM95_REGISTER_VERSION, &version, 1));
-        if (&version == 0) { // Couldn't read a version number
-            RESET();
-            return RET_ERROR;
-        }
-
         if (version != RFM9x_VER) {
             RESET();
             return RET_ERROR;
+
         }
 
         //place module in sleep mode
-//		ret = CALL(writeReg(RFM95_REGISTER_OP_MODE, RFM_MODE_SLEEP));
-//		if (ret != RET_SUCCESS){
-//			RESET();
-//			return ret;
-//		}
-//
-//		ret = CALL(writeReg(RFM95_REGISTER_OP_MODE, RFM_LongRangeMode)); // turn on LoRa
-//		if (ret != RET_SUCCESS){
-//			RESET();
-//			return ret;
-//		}
-//
-//
-//	    RegModemConfig1 = RFM_Bw2 | RFM_Bw1 | RFM_Bw0;
-//	    /* Set coding rate to 4/8 -> 100 */
-//	    RegModemConfig1 |= RFM_CodingRate2;
-//	    /* Implicit header mode */
-//	    RegModemConfig1 |= RFM_ImplicitHeaderModeOn;
-//
-//		ret = CALL(writeReg(RFM95_REGISTER_MODEM_CONFIG_1, RegModemConfig1));
-//		if (ret != RET_SUCCESS){
-//			RESET();
-//			return ret;
-//		}
-//
-//	    /* Set SF9 = 256 chips/symbol */
-//	    RegModemConfig2 = RFM_SpreadingFactor3;
-//	    /* Enable CRCs: */
+		ret = CALL(writeReg(RFM95_REGISTER_OP_MODE, RFM_MODE_SLEEP));
+		if (ret != RET_SUCCESS){
+			RESET();
+			return ret;
+		}
+
+		ret = CALL(writeReg(RFM95_REGISTER_OP_MODE, RFM_LongRangeMode)); // turn on LoRa
+		if (ret != RET_SUCCESS){
+			RESET();
+			return ret;
+		}
+
+
+	    RegModemConfig1 = RFM_Bw2 | RFM_Bw1 | RFM_Bw0;
+	    /* Set coding rate to 4/8 -> 100 */
+	    RegModemConfig1 |= RFM_CodingRate2;
+	    /* Implicit header mode */
+	    RegModemConfig1 |= RFM_ImplicitHeaderModeOn;
+
+		ret = CALL(writeReg(RFM95_REGISTER_MODEM_CONFIG_1, RegModemConfig1));
+		if (ret != RET_SUCCESS){
+			RESET();
+			return ret;
+		}
+
+	    /* Set SF9 = 256 chips/symbol */
+//	    RegModemConfig2 = RFM_SpreadingFactor3; // TODO: Uncomment when these are defined
+	    /* Enable CRCs: */
 //	    RegModemConfig2 |= RFM_RxPayloadCrcOn;
-//
-//		ret = CALL(writeReg(RFM95_REGISTER_MODEM_CONFIG_2, RegModemConfig2));
-//		if (ret != RET_SUCCESS){
-//			RESET();
-//			return ret;
-//		}
-//
-//		//set to default interrupt config
-//		ret = CALL(writeReg(RFM95_REGISTER_DIO_MAPPING_1, 0x00));
-//		if (ret != RET_SUCCESS){
-//			RESET();
-//			return ret;
-//		}
-//
-//		//config interrupts
-//
-//		//set power
-//		ret = setPower(17);
-//		if (ret != RET_SUCCESS){
-//			RESET();
-//			return ret;
-//		}
-//
-//		//set frequency to 915 MHz
-//		ret = CALL(configFrequency(FREQ_915));
-//		if (ret != RET_SUCCESS){
-//			RESET();
-//			return ret;
-//		}
-//
-//		//set preamble to 8 + 4.25 = 12.25 symbols.
-//		ret = CALL(writeReg(RFM95_REGISTER_PREAMBLE_MSB, 0x00));
-//		if (ret != RET_SUCCESS){
-//			RESET();
-//			return ret;
-//		}
-//		ret = CALL(writeReg(RFM95_REGISTER_PREAMBLE_LSB, 0x08));
-//		if (ret != RET_SUCCESS){
-//			RESET();
-//			return ret;
-//		}
-//
-//		//set ttn sync word 0x34
-//		ret = CALL(writeReg(RFM95_REGISTER_SYNC_WORD, 0x34));
-//		if (ret != RET_SUCCESS){
-//			RESET();
-//			return ret;
-//		}
-//
-//		//set up base addresses for rx and tx
-//		ret = CALL(writeReg(RFM95_REGISTER_FIFO_TX_BASE_ADDR, 0x80));
-//		if (ret != RET_SUCCESS){
-//			RESET();
-//			return ret;
-//		}
-//		ret = CALL(writeReg(RFM95_REGISTER_FIFO_RX_BASE_ADDR, 0x00));
-//		if (ret != RET_SUCCESS){
-//			RESET();
-//			return ret;
-//		}
-//
-//		// Set Maximum payload length to 64
-//		ret = CALL(writeReg(RFM95_REGISTER_MAX_PAYLOAD_LENGTH, 64));
-//		if (ret != RET_SUCCESS){
-//			RESET();
-//			return ret;
-//		}
-//
-//		// Let module sleep after init
-//		ret = CALL(writeReg(RFM95_REGISTER_OP_MODE, 0x80));
-//		if (ret != RET_SUCCESS){
-//			RESET();
-//			return ret;
-//		}
+
+		ret = CALL(writeReg(RFM95_REGISTER_MODEM_CONFIG_2, RegModemConfig2));
+		if (ret != RET_SUCCESS){
+			RESET();
+			return ret;
+		}
+
+		//set to default interrupt config
+		ret = CALL(writeReg(RFM95_REGISTER_DIO_MAPPING_1, 0x00));
+		if (ret != RET_SUCCESS){
+			RESET();
+			return ret;
+		}
+
+		//config interrupts
+
+		//set power
+		ret = setPower(17);
+		if (ret != RET_SUCCESS){
+			RESET();
+			return ret;
+		}
+
+		//set frequency to 915 MHz
+		ret = CALL(configFrequency(FREQ_915));
+		if (ret != RET_SUCCESS){
+			RESET();
+			return ret;
+		}
+
+		//set preamble to 8 + 4.25 = 12.25 symbols.
+		ret = CALL(writeReg(RFM95_REGISTER_PREAMBLE_MSB, 0x00));
+		if (ret != RET_SUCCESS){
+			RESET();
+			return ret;
+		}
+		ret = CALL(writeReg(RFM95_REGISTER_PREAMBLE_LSB, 0x08));
+		if (ret != RET_SUCCESS){
+			RESET();
+			return ret;
+		}
+
+		//set ttn sync word 0x34
+		ret = CALL(writeReg(RFM95_REGISTER_SYNC_WORD, 0x34));
+		if (ret != RET_SUCCESS){
+			RESET();
+			return ret;
+		}
+
+		//set up base addresses for rx and tx
+		ret = CALL(writeReg(RFM95_REGISTER_FIFO_TX_BASE_ADDR, 0x80));
+		if (ret != RET_SUCCESS){
+			RESET();
+			return ret;
+		}
+		ret = CALL(writeReg(RFM95_REGISTER_FIFO_RX_BASE_ADDR, 0x00));
+		if (ret != RET_SUCCESS){
+			RESET();
+			return ret;
+		}
+
+		// Set Maximum payload length to 64
+		ret = CALL(writeReg(RFM95_REGISTER_MAX_PAYLOAD_LENGTH, 64));
+		if (ret != RET_SUCCESS){
+			RESET();
+			return ret;
+		}
+
+		// Let module sleep after init
+		ret = CALL(writeReg(RFM95_REGISTER_OP_MODE, 0x80));
+		if (ret != RET_SUCCESS){
+			RESET();
+			return ret;
+		}
 
 
         RESET();
