@@ -7,6 +7,7 @@
 
 #ifndef LAUNCH_CORE_BMP3XX_H
 #define LAUNCH_CORE_BMP3XX_H
+#define TMP117_DATA_STRUCT(variable_name) SHTC3_DATA_T variable_name = {.id = 10001, .pressure = 0, temperature = 0}
 
 #include "device/peripherals/BMP3XX/bmp3_defs.h"
 #include "return.h"
@@ -18,6 +19,11 @@
 #include "sched/macros/call.h"
 #include "macros.h"
 
+using BMP3XX_DATA_T = struct {
+    uint16_t id;
+    double pressure;
+    double temp;
+};
 
 class BMP3XX {
 public:
@@ -318,8 +324,6 @@ public:
         RESET();
         return RET_SUCCESS;
     }
-
-
 
 private:
     bmp3_dev device = {};
@@ -888,6 +892,7 @@ private:
         settings.odr_filter.iir_filter = BMP3_GET_BITS(regData[index], BMP3_IIR_FILTER);
     }
 };
+
 
 
 #endif //LAUNCH_CORE_BMP3XX_H

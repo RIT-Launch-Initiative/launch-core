@@ -16,9 +16,12 @@
 #define ADXL375_MG2G_MULTIPLIER 0.049
 #define ADXL375_GRAVITY 9.80665F
 
+#define ADXL375_DATA_STRUCT(variable_name) ADXL375_DATA_T variable_name = {.id = 12000, .x_axis = 0, .y_axis = 0, .z_axis = 0}
+
 #include <stdlib.h>
 #include <stdint.h>
 
+#include "utils/conversion.h"
 #include "sched/macros.h"
 #include "return.h"
 #include "device/I2CDevice.h"
@@ -58,6 +61,12 @@ typedef enum {
     ADLX375_AUTOSLEEP_MODE = 0x10,
 } ADXL375_OP_MODE;
 
+using ADXL375_DATA_T = struct {
+    uint16_t id;
+    uint32_t x_accel;
+    uint32_t y_accel;
+    uint32_t z_accel;
+};
 
 class ADXL375 {
 public:
