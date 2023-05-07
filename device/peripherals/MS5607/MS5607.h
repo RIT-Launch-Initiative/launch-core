@@ -6,7 +6,7 @@
 
 #ifndef LAUNCH_CORE_MS5607_H
 #define LAUNCH_CORE_MS5607_H
-#define MS5607_DATA_STRUCT(variable_name) MS5607_DATA_T variable_name = {.id = 10000, .pressure = 0, .temp = 0}
+#define MS5607_DATA_STRUCT(variable_name) MS5607_DATA_T variable_name = {.id = 10000, .pressure = 0, .temperature = 0}
 
 #include "device/GPIODevice.h"
 #include "sched/macros.h"
@@ -22,7 +22,7 @@
 using MS5607_DATA_T = struct {
     uint16_t id;
     float pressure;
-    float temp;
+    float temperature;
 };
 
 typedef enum {
