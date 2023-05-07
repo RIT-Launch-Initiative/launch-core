@@ -7,7 +7,7 @@
 
 #ifndef LAUNCH_CORE_BMP3XX_H
 #define LAUNCH_CORE_BMP3XX_H
-#define TMP117_DATA_STRUCT(variable_name) SHTC3_DATA_T variable_name = {.id = 10001, .pressure = 0, temperature = 0}
+#define BMP3XX_DATA_STRUCT(variable_name) BMP3XX_DATA_T variable_name = {.id = 10001, .pressure = 0, temperature = 0}
 
 #include "device/peripherals/BMP3XX/bmp3_defs.h"
 #include "return.h"

@@ -21,7 +21,7 @@ using LIS3MDL_DATA_T = struct {
     float y_mag;
     float z_mag;
     float temperature;
-}
+};
 
 enum LIS3MDL_I2C_ADDR {
     LIS3MDL_I2C_ADDR_PRIMARY = 0x1C,

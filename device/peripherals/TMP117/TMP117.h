@@ -21,7 +21,7 @@
 #define bitSet(value, bit) ((value) |= (1UL << (bit)))
 #define bitClear(value, bit) ((value) &= ~(1UL << (bit)))
 #define bitWrite(value, bit, bitVal) (bitVal ? bitSet(value, bit) : bitClear(value, bit))
-#define TMP117_DATA_STRUCT(variable_name) SHTC3_DATA_T variable_name = {.id = 16001, .temperature = 0}
+#define TMP117_DATA_STRUCT(variable_name) TMP117_DATA_T variable_name = {.id = 16001, .temperature = 0}
 
 using TMP117_DATA_T = struct {
     uint16_t id;

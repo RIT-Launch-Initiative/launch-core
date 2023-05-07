@@ -34,7 +34,7 @@ typedef enum {
     COEFFICIENT_FIVE_ADDR = 10,
     COEFFICIENT_SIX_ADDR = 12,
     SERIAL_CRC_ADDR = 14,
-};
+} PROM_ADDR_T;
 
 
 enum COMMAND_T {

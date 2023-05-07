@@ -58,7 +58,7 @@ public:
     RetType init(LSM6DSL_I2C_ADDR address = LSM6DSL_I2C_ADDR_SECONDARY) {
         RESUME();
         i2cAddr = {
-                .dev_addr = address << 1,
+                .dev_addr = static_cast<uint16_t>(address << 1),
                 .mem_addr = LSM6DSL_ACC_GYRO_WHO_AM_I_REG,
                 .mem_addr_size = 1
         };
