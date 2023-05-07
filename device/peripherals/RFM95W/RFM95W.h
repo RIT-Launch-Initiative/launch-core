@@ -113,8 +113,9 @@ enum RFM95_REGISTER_T {
 
 class RFM95W {
 public:
-    RFM95W(SPIDevice *spiDevice, GPIODevice *csPin) : mSpi(spiDevice),
-                                                      csPin(csPin) {}
+    RFM95W(SPIDevice *spiDevice, GPIODevice *csPin, GPIODevice *nrstPin) : mSpi(spiDevice),
+                                                      csPin(csPin),
+                                                      nrstPin(nrstPin) {}
 
     RetType init() {
         RESUME();
@@ -715,7 +716,6 @@ private:
     SPIDevice *mSpi;
     GPIODevice *csPin;
     GPIODevice *nrstPin;
-    GPIODevice *nssPin;
 
     uint16_t txCount;
     uint16_t rxCount;
@@ -724,14 +724,14 @@ private:
     RetType writeReg(RFM95_REGISTER_T reg, uint8_t val) {
         RESUME();
 
-        RetType ret = CALL(this->nssPin->set(0));
+        RetType ret = CALL(this->csPin->set(0));
         if (ret != RET_SUCCESS) return ret;
 
         uint8_t txBuff[2] = {static_cast<uint8_t>((static_cast<uint8_t>(reg)) | 0x80u), val};
-        ret = this->mSpi->write(txBuff, 2);
+        ret = CALL(this->mSpi->write(txBuff, 2));
         if (ret != RET_SUCCESS) return ret;
 
-        ret = CALL(this->nssPin->set(1));
+        ret = CALL(this->csPin->set(1));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
@@ -743,17 +743,17 @@ private:
     RetType readReg(uint8_t reg, uint8_t *buff, size_t len) {
         RESUME();
 
-        RetType ret = CALL(this->nssPin->set(0));
+        RetType ret = CALL(this->csPin->set(0));
         if (ret != RET_SUCCESS) return ret;
 
-        uint8_t txBuff = static_cast<uint8_t>(reg) & 0x7fu;
-        ret = this->mSpi->write(&txBuff, 1);
+        static uint8_t txBuff = static_cast<uint8_t>(reg) & 0x7fu;
+        ret = CALL(this->mSpi->write(&txBuff, 1));
         if (ret != RET_SUCCESS) return ret;
 
-        ret = this->mSpi->read(buff, len);
+        ret = CALL(this->mSpi->read(buff, len));
         if (ret != RET_SUCCESS) return ret;
 
-        ret = CALL(this->nssPin->set(1));
+        ret = CALL(this->csPin->set(1));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
