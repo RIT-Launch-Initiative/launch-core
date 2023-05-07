@@ -89,7 +89,18 @@ public:
             return ret;
         }
 
-        SLEEP(100);
+        ret = CALL(setRange(0b00001011));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
+
+        ret = CALL(wakeup());
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
+
 
         RESET();
         return RET_SUCCESS;
@@ -297,6 +308,14 @@ public:
         }
 
 
+        RESET();
+        return ret;
+    }
+
+    RetType setRange(uint8_t range) {
+        RESUME();
+        i2cAddr.mem_addr = ADXL375_REG_DATA_FORMAT;
+        RetType ret = CALL(m_i2c.write(i2cAddr, &range, 1));
         RESET();
         return ret;
     }
