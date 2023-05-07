@@ -13,8 +13,6 @@
 #include "sched/macros/resume.h"
 #include "sched/macros/reset.h"
 #include "sched/macros/call.h"
-#include "utils/conversion.h"
-#include "device/peripherals/SensorDevice.h"
 
 #define TMP_117_DEVICE_ADDR 0x48
 #define DEVICE_ID_VALUE 0x0117
@@ -22,43 +20,15 @@
 #define bitRead(value, bit) (((value) >> (bit)) & 0x01)
 #define bitSet(value, bit) ((value) |= (1UL << (bit)))
 #define bitClear(value, bit) ((value) &= ~(1UL << (bit)))
-#define bitWrite(value, bit, bitVal) (bitVal ? bitSet(value, bit) : bitClear(value, bit))\
+#define bitWrite(value, bit, bitVal) (bitVal ? bitSet(value, bit) : bitClear(value, bit))
 #define DEFAULT_TEMP117(X) TMP117_Readings X = {.id = 16048, .temp = NULL}
 
-typedef union {
-    struct {
-        uint8_t EMPTY: 1;            // Empty bit in register
-        uint8_t TMP_SOFT_RESET: 1; // Software reset bit
-        uint8_t DR_ALERT: 1;        // ALERT pin select bit
-        uint8_t POL: 1;            // ALERT pin polarity bit
-        uint8_t T_NA: 1;            // Therm/alert mode select
-        uint8_t AVG: 2;            // Conversion averaging modes
-        uint8_t CONV: 3;            // Conversion cycle bit
-        uint8_t MOD: 2;            // Set conversion mode
-        uint8_t EEPROM_BUSY: 1;    // EEPROM busy flag
-        uint8_t DATA_READY: 1;        // Data ready flag
-        uint8_t LOW_ALERT: 1;        // Low Alert flag
-        uint8_t HIGH_ALERT: 1;        // High Alert flag
-    } CONFIGURATION_FIELDS;
-    uint16_t CONFIGURATION_COMBINED;
-} CONFIGURATION_REG;
-
-typedef struct
-{
+using TMP117_DATA_T = struct {
     uint16_t id;
     float temp;
-} TMP117_Readings
+};
 
-// Device ID Register used for checking if the device ID is the same as declared
-typedef union {
-    struct {
-        uint16_t DID: 12; // Indicates the device ID
-        uint8_t REV: 4;   // Indicates the revision number
-    } DEVICE_ID_FIELDS;
-    uint16_t DEVICE_ID_COMBINED;
-} DEVICE_ID_REG;
-
-enum TMP117_Register {
+using TMP117_Register = enum {
     TMP117_TEMP_RESULT = 0X00,
     TMP117_CONFIGURATION = 0x01,
     TMP117_T_HIGH_LIMIT = 0X02,
@@ -88,7 +58,7 @@ enum TMP117_HILO_ALERT_BIT {
 };
 
 
-class TMP117 : public SensorEncodeDecode{
+class TMP117 {
 public:
     TMP117(I2CDevice &i2CDevice) : mI2C(i2CDevice) {}
 
@@ -531,17 +501,6 @@ public:
         return RET_SUCCESS;
     }
 
-    void encode(void* sensor_struct, uint8_t buffer){
-        TMP117_Readings data = (TMP117_Readings)sensor_struct;
-        uint16_to_uint8(data->id, buffer);
-        int32_to_uint8(data->temp, buffer + 2);
-    }
-
-    void decode(void* sensor_struct, uint8_t buffer){
-        TMP117_Readings data = (TMP117_Readings)sensor_struct;
-        data->id = uint8_to_int16(buffer);
-        data->temp = uint8_to_int64(buffer + 2);
-    } 
 
 private:
     I2CDevice &mI2C;

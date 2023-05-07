@@ -17,19 +17,16 @@
 #include "device/I2CDevice.h"
 
 #include "sched/macros/call.h"
-#include "utils/conversion.h"
 #include "macros.h"
-#include "device/peripherals/SensorDevice.h"
 
-typedef struct
-{
+using BMP3XX_DATA_T = struct {
     uint16_t id;
     double pressure;
     double temp;
     double altitude;
-} BMP3XX_Readings
+};
 
-class BMP3XX : public SensorEncodeDecode{
+class BMP3XX {
 public:
     BMP3XX(I2CDevice &i2cDev) : mI2C(&i2cDev) {}
 
@@ -328,22 +325,6 @@ public:
         RESET();
         return RET_SUCCESS;
     }
-
-    void encode(void* sensor_struct, uint8_t buffer){
-        BMP3XX_Readings data = (BMP3XX_Readings)sensor_struct;
-        uint16_to_uint8(data->id, buffer);
-        uint64_to_uint8(data->pressure, buffer + 2);
-        uint64_to_uint8(data->temp, buffer + 10);
-        uint64_to_uint8(data->altitude, buffer + 18);
-    }
-
-    void decode(void* sensor_struct, uint8_t buffer){
-        BMP3XX_Readings data = (BMP3XX_Readings)sensor_struct;
-        data->id = uint8_to_int16(buffer);
-        data->pressure = uint8_to_int64(buffer+2);
-        data->temp = uint8_to_int64(buffer+10);
-        data->altitude = uint8_to_int64(buffer + 18);
-    } 
 
 private:
     bmp3_dev device = {};

@@ -13,20 +13,17 @@
 #include "sched/macros/reset.h"
 #include "lis3mdl_reg.h"
 #include "sched/macros/call.h"
-#include "device/peripherals/SensorDevice.h"
-#include "utils/conversion.h"
 
 
-typedef struct
-{
+using LIS3MDL_DATA_T = struct {
     uint16_t id;
-    float magX;
-    float magY;
-    float magZ;
-    float temp;
-} LIS_Readings
+    float mag_x;
+    float mag_y;
+    float mag_z;
+    float temperature;
+};
 
-class LIS3MDL : public SensorEncodeDecode{
+class LIS3MDL {
 public:
     LIS3MDL(I2CDevice &i2cDevice) : mI2C(&i2cDevice) {}
 
@@ -522,24 +519,6 @@ public:
         RESET();
         return RET_SUCCESS;
     }
-
-    void encode(void* sensor_struct, uint8_t buffer){
-        LIS_Readings data = (LIS_Readings)sensor_struct;
-        uint16_to_uint8(data->id, buffer);
-        int32_to_uint8(data->magX, buffer + 2);
-        int32_to_uint8(data->magY, buffer + 6);
-        int32_to_uint8(data->magZ, buffer + 10);
-        int32_to_uint8(data->temp, buffer + 14);
-    }
-
-    void decode(void* sensor_struct, uint8_t buffer){
-        LIS_Readings data = (LIS_Readings)sensor_struct;
-        data->id = uint8_to_int16(buffer);
-        data->magX = uint8_to_int64(buffer + 2);
-        data->magY = uint8_to_int64(buffer + 6);
-        data->magZ = uint8_to_int64(buffer + 10);
-        data->temp = uint8_to_int64(buffer + 14);
-    } 
 
 private:
     I2CDevice *mI2C;
