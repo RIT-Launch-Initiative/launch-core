@@ -37,7 +37,7 @@ enum LSM6DSL_Interrupt_Pin_t {
 };
 
 using LSM6DSL_DATA_T = struct {
-    uint16_t id;
+    const uint16_t id;
     int32_t x_accel;
     int32_t x_gyro;
     int32_t y_accel;

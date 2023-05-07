@@ -20,7 +20,7 @@
 
 
 using MS5607_DATA_T = struct {
-    uint16_t id;
+    const uint16_t id;
     float pressure;
     float temperature;
 };

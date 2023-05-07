@@ -16,7 +16,7 @@
 
 
 using LIS3MDL_DATA_T = struct {
-    uint16_t id;
+    const uint16_t id;
     float x_mag;
     float y_mag;
     float z_mag;

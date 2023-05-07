@@ -19,7 +19,7 @@
 
 
 using SHTC3_DATA_T = struct {
-    uint16_t id;
+    const uint16_t id;
     float temperature;
     float humidity;
 };

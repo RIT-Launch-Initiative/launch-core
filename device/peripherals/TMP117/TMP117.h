@@ -24,7 +24,7 @@
 #define TMP117_DATA_STRUCT(variable_name) TMP117_DATA_T variable_name = {.id = 16001, .temperature = 0}
 
 using TMP117_DATA_T = struct {
-    uint16_t id;
+    const uint16_t id;
     float temperature;
 };
 

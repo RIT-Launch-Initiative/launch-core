@@ -20,7 +20,7 @@
 #include "macros.h"
 
 using BMP3XX_DATA_T = struct {
-    uint16_t id;
+    const uint16_t id;
     double pressure;
     double temperature;
 };

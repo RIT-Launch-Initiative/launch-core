@@ -62,7 +62,7 @@ typedef enum {
 } ADXL375_OP_MODE;
 
 using ADXL375_DATA_T = struct {
-    uint16_t id;
+    const uint16_t id;
     int16_t x_accel;
     int16_t y_accel;
     int16_t z_accel;
