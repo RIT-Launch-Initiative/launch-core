@@ -124,7 +124,8 @@ public:
         static uint8_t RegOpMode;
         static uint8_t RegModemConfig1;
         static uint8_t RegModemConfig2;
-        static uint8_t version;
+        static uint8_t version = 0;
+
 
         RetType ret = CALL(reset());
         if (ret != RET_SUCCESS) {
@@ -133,9 +134,9 @@ public:
         }
 
         ret = CALL(readReg(RFM95_REGISTER_VERSION, &version, 1));
-        if (ret != RET_SUCCESS) {
+        if (&version == 0) { // Couldn't read a version number
             RESET();
-            return ret;
+            return RET_ERROR;
         }
 
         if (version != RFM9x_VER) {
@@ -283,14 +284,14 @@ public:
     RetType reset() {
         RESUME();
 
-        RetType ret = this->nrstPin->set(1);
+        RetType ret = this->nrstPin->set(0);
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
         }
 
         SLEEP(1000);
-        ret = this->nrstPin->set(0);
+        ret = this->nrstPin->set(1);
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
