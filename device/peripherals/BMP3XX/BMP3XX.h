@@ -32,12 +32,12 @@ public:
     /*************************************************************************************
      * Main Functionality
      *************************************************************************************/
-    RetType init(bool is388 = true) {
+    RetType init(bool is388 = true) { // TODO: Not working
         RESUME();
         this->device.dummy_byte = 0;
 
         this->i2cAddr = {
-                .dev_addr = BMP3_ADDR_I2C_SEC << 1,
+                .dev_addr = BMP3_ADDR_I2C_PRIM << 1,
                 .mem_addr = BMP3_REG_CHIP_ID,
                 .mem_addr_size = 1,
         };

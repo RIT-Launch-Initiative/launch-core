@@ -21,14 +21,21 @@ using LIS3MDL_DATA_T = struct {
     float y_mag;
     float z_mag;
     float temperature;
+}
+
+enum LIS3MDL_I2C_ADDR {
+    LIS3MDL_I2C_ADDR_PRIMARY = 0x1C,
+    LIS3MDL_I2C_ADDR_SECONDARY = 0x1E,
 };
 
 class LIS3MDL {
 public:
     LIS3MDL(I2CDevice &i2cDevice) : mI2C(&i2cDevice) {}
 
-    RetType init() {
+    RetType init(uint8_t address = LIS3MDL_I2C_ADDR_PRIMARY) {
         RESUME();
+
+        i2cAddr.dev_addr = address << 1;
 
         static uint8_t whoAmI = 0;
         RetType ret = CALL(readReg(LIS3MDL_WHO_AM_I, &whoAmI, 1, 50));

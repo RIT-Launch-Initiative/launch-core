@@ -46,14 +46,19 @@ using LSM6DSL_DATA_T = struct {
     uint32_t z_gyro;
 };
 
+enum LSM6DSL_I2C_ADDR {
+    LSM6DSL_I2C_ADDR_PRIMARY = 0x6A,
+    LSM6DSL_I2C_ADDR_SECONDARY = 0x6B
+};
+
 class LSM6DSL {
 public:
     LSM6DSL(I2CDevice &i2CDevice) : mI2C(&i2CDevice), accelEnabled(false), gyroEnabled(false) {}
 
-    RetType init() {
+    RetType init(LSM6DSL_I2C_ADDR address = LSM6DSL_I2C_ADDR_SECONDARY) {
         RESUME();
         i2cAddr = {
-                .dev_addr = 0x6A << 1,
+                .dev_addr = address << 1,
                 .mem_addr = LSM6DSL_ACC_GYRO_WHO_AM_I_REG,
                 .mem_addr_size = 1
         };

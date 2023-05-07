@@ -71,8 +71,10 @@ class SHTC3 {
      *
      * @return RetType The scheduler status
      */
-    RetType init() {
+    RetType init(uint8_t address = SHTC3_I2C_ADDR) {
         RESUME();
+
+        addr.dev_addr = address << 1;
 
         RetType ret = CALL(toggleSleep(false));
         if (ret != RET_SUCCESS)

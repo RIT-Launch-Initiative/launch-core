@@ -72,8 +72,10 @@ class ADXL375 {
 public:
     ADXL375(I2CDevice &i2c) : m_i2c(i2c) {}
 
-    RetType init() {
+    RetType init(uint8_t address = ADXL375_DEV_ADDR_PRIM) {
         RESUME();
+
+        i2cAddr.dev_addr = address << 1;
 
         static uint8_t id = 0;
 
@@ -96,7 +98,18 @@ public:
             return ret;
         }
 
-        SLEEP(100);
+        ret = CALL(setRange(0b00001011));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
+
+        ret = CALL(wakeup());
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
+
 
         RESET();
         return RET_SUCCESS;
@@ -308,10 +321,18 @@ public:
         return ret;
     }
 
+    RetType setRange(uint8_t range) {
+        RESUME();
+        i2cAddr.mem_addr = ADXL375_REG_DATA_FORMAT;
+        RetType ret = CALL(m_i2c.write(i2cAddr, &range, 1));
+        RESET();
+        return ret;
+    }
+
 private:
     I2CDevice &m_i2c;
     I2CAddr_t i2cAddr{
-            .dev_addr = ADXL375_DEV_ADDR_SEC << 1,
+            .dev_addr = ADXL375_DEV_ADDR_PRIM << 1,
             .mem_addr = 0x00,
             .mem_addr_size = 1
     };

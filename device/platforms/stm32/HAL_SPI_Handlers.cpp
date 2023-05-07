@@ -88,4 +88,22 @@ void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi) {
     }
 }
 
+void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi) {
+    // lookup if there's a device registered for this SPI
+    HALHandlers::dev_t* dev = HALHandlers::spi_tx_map[hspi];
+
+    // if there's a device, call it's callback function
+    if(dev) {
+        dev->dev->callback(dev->num);
+    }
+
+    // lookup if there's a device registered for this SPI
+    dev = HALHandlers::spi_rx_map[hspi];
+
+    // if there's a device, call it's callback function
+    if(dev) {
+        dev->dev->callback(dev->num);
+    }
+}
+
 #endif

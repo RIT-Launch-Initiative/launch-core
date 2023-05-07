@@ -37,12 +37,27 @@ typedef struct {
     uint8_t rx_buff;    // receive buffer block select address
 } W5500SocketDescriptor_t;
 
-/// @brief socket mode
-// TODO only UDP is supported at the moment
 typedef enum {
-    UDP_MODE,
-    RAW_MODE // only valid for SOCKET0
+    CLOSED_MODE = 0x00,
+    TCP_MODE = 0x01,
+    UDP_MODE = 0x02,
+    IP_RAW_MODE = 0x02,
+    MAC_RAW_MODE = 0x04
 } W5500SocketMode_t;
+
+typedef enum {
+    OPEN_SOCKET = 0x01,
+    LISTEN_SOCKET = 0x02,
+    CONNECT_SOCKET = 0x04,
+    DISCONNECT_SOCKET = 0x08,
+    CLOSE_SOCKET = 0x10,
+
+    SEND_SOCKET = 0x20,
+    SEND_MAC_SOCKET = 0x21,
+    SEND_KEEP_SOCKET = 0x22,
+
+    RECV_SOCKET = 0x40
+} W5500SocketCtrl_t;
 
 /// @brief current state of a socket
 typedef struct {

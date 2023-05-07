@@ -65,6 +65,7 @@ public:
     RetType init() {
         RESUME();
 
+
         i2cAddr = {
                 .dev_addr = TMP_117_DEVICE_ADDR << 1,
                 .mem_addr = TMP117_DEVICE_ID,
