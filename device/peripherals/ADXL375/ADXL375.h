@@ -57,8 +57,8 @@ typedef enum {
 
 typedef enum {
     ADXL375_MEASURING_MODE = 0x08,
-    ADLX375_SLEEP_MODE = 0x04,
-    ADLX375_AUTOSLEEP_MODE = 0x10,
+    ADXL375_SLEEP_MODE = 0x04,
+    ADXL375_AUTOSLEEP_MODE = 0x10,
 } ADXL375_OP_MODE;
 
 using ADXL375_DATA_T = struct {
@@ -85,6 +85,12 @@ public:
             return ret;
         }
         if (id != 0xE5) return RET_ERROR;
+
+        ret = CALL(setOperatingMode(ADXL375_SLEEP_MODE));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         ret = CALL(setDataRateAndLowPower(ADXL375_DR_100HZ, false));
         if (ret != RET_SUCCESS) {
