@@ -3,11 +3,13 @@
  * @brief Platform Independent Driver for the MAX-M10S GPS module
  * @details This is the I2C Implementation.
  *          UART and PIO are also supported but are NYI.
+ *
+ *          https://content.u-blox.com/sites/default/files/MAX-M10S_IntegrationManual_UBX-20053088.pdf
+ *
  *          Im not even sure if we are going to need them but the option
  *          is there. 🤯. Also note this sensor is not writeable with
- *          2 exceptions. Those being writing NMEA and UBX messages.
- *          The datasheet is not very clear on how to do this.
  * @author Nate Aquino
+ * @author Aaron Chan
  */
 #ifndef LAUNCH_CORE_MAXM10S_H
 #define LAUNCH_CORE_MAXM10S_H
@@ -46,7 +48,7 @@ public:
      * @brief CTOR For MAXM10S
      * @param i2CDevice the I2C device to use
      */
-    MAXM10S(I2CDevice &i2CDevice, StreamDevice &streamDevice, GPIODevice &resetPin) : mI2C(i2CDevice), mStream(streamDevice), resetPin(resetPin) {};
+    MAXM10S(I2CDevice &i2CDevice, StreamDevice &streamDevice, GPIODevice &resetPin) : m_i2c(i2CDevice), m_stream(streamDevice), reset_pin(resetPin) {};
 
     /**
      * @brief Initialize the MAXM10S sensor
@@ -56,9 +58,10 @@ public:
     RetType init() {
         RESUME();
 
+        RetType ret = CALL(reset());
+        if (ret != RET_SUCCESS) goto init_end;
 
-
-
+        init_end:
         RESET();
         return RET_SUCCESS;  /// @todo NYI
     }
@@ -70,15 +73,15 @@ public:
      * @param numBytes the number of bytes to read
      * @return RetType the scheduler status
      */
-    RetType readDataRandAccess(uint8_t *buff, int *readBytes) {  /// @todo TESTME!
+    RetType read_data_rand_access(uint8_t *buff, int *readBytes) {  /// @todo TESTME!
         RESUME();
 
-        RetType ret = CALL(getAmtData(readBytes));
+        RetType ret = CALL(get_amt_data(readBytes));
         if (*readBytes == 0)
             return RET_SUCCESS;  // no data available
 
         // read the data
-        ret = CALL(readRegister(DATA_STREAM, buff, *readBytes));
+        ret = CALL(read_reg(DATA_STREAM, buff, *readBytes));
         if (ret != RET_SUCCESS)
             return ret;
 
@@ -92,15 +95,15 @@ public:
      * @param amt ptr to the amount of data available
      * @return RetType the scheduler status
      */
-    RetType getAmtData(int *amt) {
+    RetType get_amt_data(int *amt) {
         RESUME();
 
         // read the amount of data available
         static uint8_t byteCount[2];
-        RetType ret = CALL(readRegister(BYTE_COUNT_HIGH, byteCount, 1));
+        RetType ret = CALL(read_reg(BYTE_COUNT_HIGH, byteCount, 1));
         if (ret != RET_SUCCESS)
             return ret;
-        ret = CALL(readRegister(BYTE_COUNT_HIGH, byteCount + 1, 1));
+        ret = CALL(read_reg(BYTE_COUNT_HIGH, byteCount + 1, 1));
         if (ret != RET_SUCCESS)
             return ret;
         *amt = (byteCount[0] << 8) | byteCount[1];
@@ -115,7 +118,7 @@ public:
      * @param buff the gps data buffer
      * @return RetType the scheduler status
      */
-    RetType readDataCurrentAccess(uint8_t *buff) {  /// @todo TESTME!
+    RetType read_data_curr_access(uint8_t *buff) {  /// @todo TESTME!
         RESUME();
 
         RetType ret;
@@ -124,7 +127,7 @@ public:
         // read as much data as possible (assuming RET_ERROR means NACK?)
         // I know for sure 0xFF is the end of the data stream
         do {
-            ret = CALL(mI2C.read(addr, buff, 1, 1500));  // sensor timeout
+            ret = CALL(m_i2c.read(addr, buff, 1, 1500));  // sensor timeout
             if (ret == RET_SUCCESS)
                 buff++;
         } while (ret != RET_ERROR || *(buff - 1) != 0xFF);
@@ -148,17 +151,17 @@ public:
 
     RetType reset() {
         RESUME();
-        CALL(resetPin.set(0));
-        CALL(resetPin.set(1));
+        CALL(reset_pin.set(0));
+        CALL(reset_pin.set(1));
         RESET();
         return RET_SUCCESS;
     }
 
 private:
     /* The I2C object */
-    I2CDevice &mI2C;
-    StreamDevice &mStream;
-    GPIODevice &resetPin;
+    I2CDevice &m_i2c;
+    StreamDevice &m_stream;
+    GPIODevice &reset_pin;
     /* The I2C address of the sensor */
     I2CAddr_t addr = {.dev_addr = MAXM10S_I2C_ADDR << 1, .mem_addr = 0, .mem_addr_size = 2};
     using m_read = RetType (*)(uint8_t *buff, size_t len);
@@ -171,11 +174,11 @@ private:
      * @param numBytes the number of bytes to read
      * @return RetType the scheduler status
      */
-    RetType readRegister(enum MAXM10S_REG reg, uint8_t *buff, int numBytes) {  /// @todo TESTME!
+    RetType read_reg(enum MAXM10S_REG reg, uint8_t *buff, int numBytes) {  /// @todo TESTME!
         RESUME();
 
         addr.mem_addr = reg;
-        RetType ret = CALL(mI2C.read(addr, buff, numBytes, 1500));  // sensor timeout
+        RetType ret = CALL(m_i2c.read(addr, buff, numBytes, 1500));  // sensor timeout
         if (ret != RET_SUCCESS)
             return ret;
 
@@ -193,7 +196,7 @@ private:
     RetType sendCommand(uint8_t *cmdBuff, int cmdLen) {  /// @todo TESTME!
         RESUME();
 
-        RetType ret = CALL(mI2C.transmit(addr, cmdBuff, cmdLen, 50));
+        RetType ret = CALL(m_i2c.transmit(addr, cmdBuff, cmdLen, 50));
         if (ret != RET_SUCCESS)
             return ret;
 
