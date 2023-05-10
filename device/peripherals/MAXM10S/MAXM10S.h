@@ -95,19 +95,21 @@ public:
      * @param amt ptr to the amount of data available
      * @return RetType the scheduler status
      */
-    RetType get_amt_data(int *amt) {
+    RetType get_amt_data(size_t *amt) {
         RESUME();
 
         // read the amount of data available
         static uint8_t byteCount[2];
+
         RetType ret = CALL(read_reg(BYTE_COUNT_HIGH, byteCount, 1));
-        if (ret != RET_SUCCESS)
-            return ret;
+        if (ret != RET_SUCCESS) goto get_amt_data_end;
+
         ret = CALL(read_reg(BYTE_COUNT_HIGH, byteCount + 1, 1));
-        if (ret != RET_SUCCESS)
-            return ret;
+        if (ret != RET_SUCCESS) goto get_amt_data_end;
+
         *amt = (byteCount[0] << 8) | byteCount[1];
 
+        get_amt_data_end:
         RESET();
         return RET_SUCCESS;
     }
@@ -128,8 +130,7 @@ public:
         // I know for sure 0xFF is the end of the data stream
         do {
             ret = CALL(m_i2c.read(addr, buff, 1, 1500));  // sensor timeout
-            if (ret == RET_SUCCESS)
-                buff++;
+            if (ret == RET_SUCCESS) buff++;
         } while (ret != RET_ERROR || *(buff - 1) != 0xFF);
 
         RESET();
@@ -145,6 +146,9 @@ public:
 
     RetType read_i2c(uint8_t *buff, size_t len) {
         RESUME();
+
+        RetType ret =
+
         RESET();
         return RET_SUCCESS;
     }
