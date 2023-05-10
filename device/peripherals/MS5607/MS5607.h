@@ -60,8 +60,10 @@ class MS5607 {
 public:
     MS5607(I2CDevice &i2cDevice) : mI2C(&i2cDevice) {}
 
-    RetType init() {
+    RetType init(uint8_t address = 0x76) {
         RESUME();
+
+        mAddr.dev_addr = address << 1;
 
         RetType ret = CALL(reset());
         if (ret != RET_SUCCESS) {
@@ -128,7 +130,7 @@ public:
 private:
     I2CDevice *mI2C;
     I2CAddr_t mAddr = {
-            .dev_addr = 0x77 << 1,
+            .dev_addr = 0x76 << 1,
             .mem_addr = 0,
             .mem_addr_size = 1,
     };

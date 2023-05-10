@@ -63,8 +63,10 @@ class ADXL375 {
 public:
     ADXL375(I2CDevice &i2c) : m_i2c(i2c) {}
 
-    RetType init() {
+    RetType init(uint8_t address = ADXL375_DEV_ADDR_PRIM) {
         RESUME();
+
+        i2cAddr.dev_addr = address;
 
         static uint8_t id = 0;
 
@@ -302,7 +304,7 @@ public:
 private:
     I2CDevice &m_i2c;
     I2CAddr_t i2cAddr{
-            .dev_addr = ADXL375_DEV_ADDR_SEC << 1,
+            .dev_addr = ADXL375_DEV_ADDR_PRIM << 1,
             .mem_addr = 0x00,
             .mem_addr_size = 1
     };
