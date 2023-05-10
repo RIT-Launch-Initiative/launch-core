@@ -41,18 +41,12 @@ enum MAXM10S_REG {
  * @brief Platform Independent Driver for the MAXM10S GPS module
  */
 class MAXM10S {
-   public:
+public:
     /**
      * @brief CTOR For MAXM10S
      * @param i2CDevice the I2C device to use
      */
-    MAXM10S(I2CDevice &i2CDevice)
-        : mI2C(i2CDevice),
-          addr({
-              .dev_addr = MAXM10S_I2C_ADDR << 1,
-              .mem_addr = 0,
-              .mem_addr_size = 2,
-          }) {}
+    MAXM10S(I2CDevice &i2CDevice, StreamDevice &streamDevice, GPIODevice &resetPin) : mI2C(i2CDevice), mStream(streamDevice), resetPin(resetPin) {};
 
     /**
      * @brief Initialize the MAXM10S sensor
@@ -61,6 +55,10 @@ class MAXM10S {
      */
     RetType init() {
         RESUME();
+
+
+
+
         RESET();
         return RET_SUCCESS;  /// @todo NYI
     }
@@ -135,6 +133,36 @@ class MAXM10S {
         return ret;
     }
 
+
+    RetType read_uart(uint8_t *buff, size_t len) {
+        RESUME();
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType read_i2c(uint8_t *buff, size_t len) {
+        RESUME();
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType reset() {
+        RESUME();
+        CALL(resetPin.set(0));
+        CALL(resetPin.set(1));
+        RESET();
+        return RET_SUCCESS;
+    }
+
+private:
+    /* The I2C object */
+    I2CDevice &mI2C;
+    StreamDevice &mStream;
+    GPIODevice &resetPin;
+    /* The I2C address of the sensor */
+    I2CAddr_t addr = {.dev_addr = MAXM10S_I2C_ADDR << 1, .mem_addr = 0, .mem_addr_size = 2};
+    using m_read = RetType (*)(uint8_t *buff, size_t len);
+
     /**
      * @brief Reads a register from the MAXM10S sensor
      *
@@ -172,12 +200,6 @@ class MAXM10S {
         RESET();
         return RET_SUCCESS;
     }
-
-   private:
-    /* The I2C object */
-    I2CDevice &mI2C;
-    /* The I2C address of the sensor */
-    I2CAddr_t addr;
 };
 
 #endif  // LAUNCH_CORE_MAXM10S_H
