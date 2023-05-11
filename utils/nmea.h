@@ -10,6 +10,7 @@
 
 #include <cstdint>
 #include <cstdlib>
+#include <cstdio>
 
 typedef struct {
     float time; // seconds since midnight
