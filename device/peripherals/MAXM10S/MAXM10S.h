@@ -21,6 +21,10 @@
 #include "sched/macros/call.h"
 #include "sched/macros/reset.h"
 #include "sched/macros/resume.h"
+#include "stm32f4xx_hal_i2c.h"
+
+extern I2C_HandleTypeDef hi2c1;
+
 
 /* The MAXM10S (default) I2C address (8 bits) */
 #define MAXM10S_I2C_ADDR 0x42
@@ -147,9 +151,9 @@ public:
 
     RetType reset() {
         RESUME();
-        CALL(reset_pin.set(1));
-        SLEEP(10);
         CALL(reset_pin.set(0));
+        SLEEP(10);
+        CALL(reset_pin.set(1));
         RESET();
         return RET_SUCCESS;
     }
@@ -177,12 +181,16 @@ private:
 //        RetType ret = CALL(m_i2c.transmit(addr, (uint8_t *) reg, 1, 150));
 //        if (ret != RET_SUCCESS) goto read_reg_end;
 
-        addr.mem_addr = reg;
+        addr.mem_addr = static_cast<uint8_t>(reg);
         RetType ret = CALL(m_i2c.read(addr, buff, numBytes, 1500));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return RET_ERROR;
+        }
 
         read_reg_end:
         RESET();
-        return ret;
+        return RET_SUCCESS;
     }
 
     /**
