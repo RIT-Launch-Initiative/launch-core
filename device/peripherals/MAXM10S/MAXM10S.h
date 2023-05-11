@@ -4,18 +4,17 @@
  * @details This is the I2C Implementation.
  *          UART and PIO are also supported but are NYI.
  *
- *          https://content.u-blox.com/sites/default/files/MAX-M10S_IntegrationManual_UBX-20053088.pdf
  *
  *          Im not even sure if we are going to need them but the option
  *          is there. 🤯. Also note this sensor is not writeable with
  * @author Nate Aquino
  * @author Aaron Chan
+ *
+ *
+ * @link https://content.u-blox.com/sites/default/files/MAX-M10S_IntegrationManual_UBX-20053088.pdf
  */
 #ifndef LAUNCH_CORE_MAXM10S_H
 #define LAUNCH_CORE_MAXM10S_H
-
-/// @note Documentation for this device lives here:
-/// @link https://content.u-blox.com/sites/default/files/MAX-M10S_IntegrationManual_UBX-20053088.pdf
 
 #include "device/I2CDevice.h"
 #include "return.h"
@@ -30,14 +29,14 @@
  * @brief The MAXM10S Registers
  *
  */
-enum MAXM10S_REG {
+typedef enum {
     /* The hight byte of the amount of data available from the sensor */
     BYTE_COUNT_HIGH = 0xFD,
     /* The low byte of the amount of data available from the sensor */
     BYTE_COUNT_LOW = 0xFE,
     /* The data stream register */
     DATA_STREAM = 0xFF
-};
+} MAXM10S_REG;
 
 /**
  * @brief Platform Independent Driver for the MAXM10S GPS module
@@ -73,20 +72,20 @@ public:
      * @param numBytes the number of bytes to read
      * @return RetType the scheduler status
      */
-    RetType read_data_rand_access(uint8_t *buff, int *readBytes) {  /// @todo TESTME!
+    RetType read_data_rand_access(uint8_t *buff, size_t *readBytes) {
         RESUME();
 
         RetType ret = CALL(get_amt_data(readBytes));
-        if (*readBytes == 0)
+        if (*readBytes == 0) {
+            RESET();
             return RET_SUCCESS;  // no data available
+        }
 
         // read the data
         ret = CALL(read_reg(DATA_STREAM, buff, *readBytes));
-        if (ret != RET_SUCCESS)
-            return ret;
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     /**
@@ -101,10 +100,7 @@ public:
         // read the amount of data available
         static uint8_t byteCount[2];
 
-        RetType ret = CALL(read_reg(BYTE_COUNT_HIGH, byteCount, 1));
-        if (ret != RET_SUCCESS) goto get_amt_data_end;
-
-        ret = CALL(read_reg(BYTE_COUNT_HIGH, byteCount + 1, 1));
+        RetType ret = CALL(read_reg(BYTE_COUNT_HIGH, byteCount, 2));
         if (ret != RET_SUCCESS) goto get_amt_data_end;
 
         *amt = (byteCount[0] << 8) | byteCount[1];
@@ -138,25 +134,22 @@ public:
     }
 
 
-    RetType read_uart(uint8_t *buff, size_t len) {
-        RESUME();
-        RESET();
-        return RET_SUCCESS;
-    }
-
-    RetType read_i2c(uint8_t *buff, size_t len) {
+    RetType read_uart(uint8_t *buff, size_t max_buff_size) {
         RESUME();
 
-        RetType ret =
+        RetType ret = CALL(m_stream.read(buff, max_buff_size));
+        if (ret != RET_SUCCESS) goto read_uart_end;
 
+        read_uart_end:
         RESET();
         return RET_SUCCESS;
     }
 
     RetType reset() {
         RESUME();
-        CALL(reset_pin.set(0));
         CALL(reset_pin.set(1));
+        SLEEP(10);
+        CALL(reset_pin.set(0));
         RESET();
         return RET_SUCCESS;
     }
@@ -167,8 +160,7 @@ private:
     StreamDevice &m_stream;
     GPIODevice &reset_pin;
     /* The I2C address of the sensor */
-    I2CAddr_t addr = {.dev_addr = MAXM10S_I2C_ADDR << 1, .mem_addr = 0, .mem_addr_size = 2};
-    using m_read = RetType (*)(uint8_t *buff, size_t len);
+    I2CAddr_t addr = {.dev_addr = MAXM10S_I2C_ADDR << 1, .mem_addr = 0, .mem_addr_size = 1};
 
     /**
      * @brief Reads a register from the MAXM10S sensor
@@ -178,16 +170,19 @@ private:
      * @param numBytes the number of bytes to read
      * @return RetType the scheduler status
      */
-    RetType read_reg(enum MAXM10S_REG reg, uint8_t *buff, int numBytes) {  /// @todo TESTME!
+    RetType read_reg(MAXM10S_REG reg, uint8_t *buff, size_t numBytes) {  /// @todo TESTME!
         RESUME();
 
-        addr.mem_addr = reg;
-        RetType ret = CALL(m_i2c.read(addr, buff, numBytes, 1500));  // sensor timeout
-        if (ret != RET_SUCCESS)
-            return ret;
+//        addr.mem_addr = 0;
+//        RetType ret = CALL(m_i2c.transmit(addr, (uint8_t *) reg, 1, 150));
+//        if (ret != RET_SUCCESS) goto read_reg_end;
 
+        addr.mem_addr = reg;
+        RetType ret = CALL(m_i2c.read(addr, buff, numBytes, 1500));
+
+        read_reg_end:
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     /**

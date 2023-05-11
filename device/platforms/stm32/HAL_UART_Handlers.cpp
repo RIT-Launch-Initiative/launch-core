@@ -86,3 +86,4 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
         dev->dev->callback(dev->num);
     }
 }
+
