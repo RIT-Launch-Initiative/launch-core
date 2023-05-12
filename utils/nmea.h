@@ -50,7 +50,7 @@ namespace nmea {
         // format includes all fields to validate that this is a GGA sentence
         int ret = sscanf(
                 sentence,
-                "$%*2cGGA,%2d%2d%f,%2d%f,%c,%3d%f,%c,%1d,%2d,%*f,%f,%*f,%*f,%*f,%*2c\r\n",
+                "$%*2cGGA,%2s%2s%f,%2s%f,%c,%3s%f,%c,%1d,%2d,%*f,%f,%*f,%*f,%*f,%*2c\r\n",
                 &hours, &minutes, &(dest->time), // parts of time
                 &lat_deg, &lat_min, &north, &lon_deg, &lon_min, &east, // parts of lat/lon
                 &(dest->quality), &(dest->num_sats), &(dest->alt) // can be read directly
