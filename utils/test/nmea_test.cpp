@@ -2,14 +2,15 @@
 * Test NMEA parser
 */
 
+// TODO: Write real tests
+
 #include <utils/nmea.h>
 #include <stdio.h>
-
-constexpr bool test_gga_parse() {
-    const char* test = "$GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,46.9,M,,*47\r\n";
-    GPS_PACKET_T packet;
+#include <assert.h>
+bool test_gga_parse() {
+    const char* test = "$GPGGA,172814.0,3723.46587704,N,12202.26957864,W,2,6,1.2,18.893,M,-25.669,M,2.0 0031*4F";
+    nmea::GGA_PACKET_T packet;
     int ret = nmea::parse_gga(test, &packet, 100);
-
 
     return ret == 0 &&
         packet.time == 123519 &&
@@ -21,6 +22,7 @@ constexpr bool test_gga_parse() {
 }
 
 int main() {
-    static_assert(test_gga_parse(), "test_gga_parse failed");
+    assert(test_gga_parse());
+
     return 0;
 }

@@ -12,16 +12,18 @@
 #include <cstdlib>
 #include <cstdio>
 
-typedef struct {
-    float time; // seconds since midnight
-    float latitude; // degrees (N positive)
-    float longitude; // degrees (E positive)
-    float alt; // meters ASL
-    int quality; // fix indicator
-    int num_sats; // number of satellites used
-} GPS_PACKET_T;
+
 namespace nmea {
-    int parse_gga(const char *sentence, GPS_PACKET_T *dest, size_t n) {
+    using GGA_PACKET_T = struct {
+        float time; // seconds since midnight
+        float latitude; // degrees (N positive)
+        float longitude; // degrees (E positive)
+        float alt; // meters ASL
+        int quality; // fix indicator
+        int num_sats; // number of satellites used
+    };
+
+    int parse_gga(const char *sentence, GGA_PACKET_T *dest, size_t n) {
         // check for terminator
         int i;
         for (i = 0; i < n; i++) {
