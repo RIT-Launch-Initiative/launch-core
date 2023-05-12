@@ -138,15 +138,18 @@ public:
     }
 
 
-    RetType read_uart(uint8_t *buff, size_t max_buff_size) {
+    RetType uart_read_posllh_data(uint8_t *buff) {
         RESUME();
 
-        RetType ret = CALL(m_stream.read(buff, max_buff_size));
-        if (ret != RET_SUCCESS) goto read_uart_end;
+        static constexpr uint8_t posllh[] = {0xB5, 0x62, 0x01, 0x21, 0x00, 0x00, 0x22, 0x67};
+        RetType ret = CALL(m_stream.write(const_cast<uint8_t *>(posllh), 8));
+        if (ret != RET_SUCCESS) goto uart_read_posllh_data_end;
 
-        read_uart_end:
+        ret = CALL(m_stream.read(buff, 28));
+
+        uart_read_posllh_data_end:
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     RetType reset() {
@@ -177,20 +180,16 @@ private:
     RetType read_reg(MAXM10S_REG reg, uint8_t *buff, size_t numBytes) {  /// @todo TESTME!
         RESUME();
 
-//        addr.mem_addr = 0;
-//        RetType ret = CALL(m_i2c.transmit(addr, (uint8_t *) reg, 1, 150));
-//        if (ret != RET_SUCCESS) goto read_reg_end;
+        addr.mem_addr = 0;
+        RetType ret = CALL(m_i2c.transmit(addr, (uint8_t *) reg, 1, 150));
+        if (ret != RET_SUCCESS) goto read_reg_end;
 
         addr.mem_addr = static_cast<uint8_t>(reg);
-        RetType ret = CALL(m_i2c.read(addr, buff, numBytes, 1500));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return RET_ERROR;
-        }
+        ret = CALL(m_i2c.read(addr, buff, numBytes, 1500));
 
         read_reg_end:
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     /**
