@@ -29,7 +29,7 @@ public:
     /// @param buff     the buffer to write
     /// @param len      the size of 'buff' in bytes
     /// @return
-    virtual RetType write(uint8_t* buff, size_t len) = 0;
+    virtual RetType write(uint8_t* buff, size_t lenz) = 0;
 
     /// @brief read from the stream
     /// @param buff     the buffer to read into
