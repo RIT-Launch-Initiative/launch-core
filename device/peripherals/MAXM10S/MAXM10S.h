@@ -73,20 +73,22 @@ public:
      * @brief Reads the amount of data available from the sensor
      * @details This is a random access read (all at once)
      * @param buff the gps data buffer
-     * @param numBytes the number of bytes to read
+     * @param buff_len the length of the buffer
+     * @param bytes_available pointer to the number of bytes available to be read
      * @return RetType the scheduler status
      */
-    RetType read_data_rand_access(uint8_t *buff, size_t *readBytes) {
+    RetType read_data_rand_access(uint8_t *buff, size_t buff_len, size_t *bytes_available) {
         RESUME();
 
-        RetType ret = CALL(get_amt_data(readBytes));
-        if (*readBytes == 0) {
+
+        RetType ret = CALL(get_amt_data(bytes_available));
+        if (*bytes_available == 0 || *bytes_available > buff_len) {
             RESET();
-            return RET_SUCCESS;  // no data available
+            return RET_ERROR;  // no data available or buffer too small
         }
 
         // read the data
-        ret = CALL(read_reg(DATA_STREAM, buff, *readBytes));
+        ret = CALL(read_reg(DATA_STREAM, buff, *bytes_available));
 
         RESET();
         return ret;
@@ -120,7 +122,7 @@ public:
      * @param buff the gps data buffer
      * @return RetType the scheduler status
      */
-    RetType read_data_curr_access(uint8_t *buff) {  /// @todo TESTME!
+    RetType read_data_curr_access(uint8_t *buff) {  // TODO: Untested
         RESUME();
 
         RetType ret;
