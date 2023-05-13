@@ -106,7 +106,7 @@ public:
         if (ret != RET_SUCCESS) goto init_end;
 
         // Enable interrupts for socket 0
-        ret = CALL(set_socket_interrupt(0b00000001));
+        ret = CALL(set_socket_mask_interrupt(0b00000001));
         if (ret != RET_SUCCESS) goto init_end;
 
         ret = CALL(set_socket_interrupt_reg(DEFAULT_SOCKET_NUM, 0));
@@ -881,10 +881,10 @@ public:
         return ret;
     }
 
-    RetType set_socket_interrupt(uint8_t interrupt) {
+    RetType set_socket_mask_interrupt(uint8_t enabled_bits) {
         RESUME();
 
-        RetType ret = CALL(write_reg(W5500_SIMR, interrupt));
+        RetType ret = CALL(write_reg(W5500_SIMR, enabled_bits));
 
         RESET();
         return ret;
