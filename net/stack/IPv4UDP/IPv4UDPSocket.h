@@ -178,6 +178,7 @@ public:
 
         // NOTE: this should never fail
         if(!m_pool.free(packet)) {
+            RESET();
             return RET_ERROR;
         }
 

@@ -6,6 +6,7 @@
 
 #ifndef LAUNCH_CORE_MS5607_H
 #define LAUNCH_CORE_MS5607_H
+#define MS5607_DATA_STRUCT(variable_name) MS5607_DATA_T variable_name = {.id = 10000, .pressure = 0, .temperature = 0}
 
 #include "device/GPIODevice.h"
 #include "sched/macros.h"
@@ -16,6 +17,13 @@
 
 #define CHECK_RET {if (ret != RET_SUCCESS) {RESET(); return ret;}}
 #define CONCAT(a, b) a ## b
+
+
+using MS5607_DATA_T = struct {
+    const uint16_t id;
+    float pressure;
+    float temperature;
+};
 
 typedef enum {
     FACTORY_DATA_ADDR = 0,

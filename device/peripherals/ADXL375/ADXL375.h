@@ -16,9 +16,12 @@
 #define ADXL375_MG2G_MULTIPLIER 0.049
 #define ADXL375_GRAVITY 9.80665F
 
+#define ADXL375_DATA_STRUCT(variable_name) ADXL375_DATA_T variable_name = {.id = 12000, .x_accel = 0, .y_accel = 0, .z_accel = 0}
+
 #include <stdlib.h>
 #include <stdint.h>
 
+#include "utils/conversion.h"
 #include "sched/macros.h"
 #include "return.h"
 #include "device/I2CDevice.h"
@@ -54,10 +57,16 @@ typedef enum {
 
 typedef enum {
     ADXL375_MEASURING_MODE = 0x08,
-    ADLX375_SLEEP_MODE = 0x04,
-    ADLX375_AUTOSLEEP_MODE = 0x10,
+    ADXL375_SLEEP_MODE = 0x04,
+    ADXL375_AUTOSLEEP_MODE = 0x10,
 } ADXL375_OP_MODE;
 
+using ADXL375_DATA_T = struct {
+    const uint16_t id;
+    int16_t x_accel;
+    int16_t y_accel;
+    int16_t z_accel;
+};
 
 class ADXL375 {
 public:
@@ -66,7 +75,7 @@ public:
     RetType init(uint8_t address = 0x53) {
         RESUME();
 
-        i2cAddr.dev_addr = address;
+        i2cAddr.dev_addr = address << 1;
 
         static uint8_t id = 0;
 
@@ -76,6 +85,12 @@ public:
             return ret;
         }
         if (id != 0xE5) return RET_ERROR;
+
+        ret = CALL(setOperatingMode(ADXL375_SLEEP_MODE));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         ret = CALL(setDataRateAndLowPower(ADXL375_DR_100HZ, false));
         if (ret != RET_SUCCESS) {
@@ -89,7 +104,18 @@ public:
             return ret;
         }
 
-        SLEEP(100);
+        ret = CALL(setRange(0b00001011));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
+
+        ret = CALL(wakeup());
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
+
 
         RESET();
         return RET_SUCCESS;
@@ -297,6 +323,14 @@ public:
         }
 
 
+        RESET();
+        return ret;
+    }
+
+    RetType setRange(uint8_t range) {
+        RESUME();
+        i2cAddr.mem_addr = ADXL375_REG_DATA_FORMAT;
+        RetType ret = CALL(m_i2c.write(i2cAddr, &range, 1));
         RESET();
         return ret;
     }

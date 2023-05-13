@@ -6,12 +6,22 @@
 
 #ifndef LAUNCH_CORE_LIS3MDL_H
 #define LAUNCH_CORE_LIS3MDL_H
+#define LIS3MDL_DATA_STRUCT(variable_name) LIS3MDL_DATA_T variable_name = {.id = 15000, .x_mag = 0, .y_mag = 0, .z_mag = 0, .temperature = 0}
 
 #include "device/I2CDevice.h"
 #include "sched/macros/resume.h"
 #include "sched/macros/reset.h"
 #include "lis3mdl_reg.h"
 #include "sched/macros/call.h"
+
+
+using LIS3MDL_DATA_T = struct {
+    const uint16_t id;
+    float x_mag;
+    float y_mag;
+    float z_mag;
+    float temperature;
+};
 
 enum LIS3MDL_I2C_ADDR {
     LIS3MDL_I2C_ADDR_PRIMARY = 0x1C,
@@ -22,10 +32,10 @@ class LIS3MDL {
 public:
     LIS3MDL(I2CDevice &i2cDevice) : mI2C(&i2cDevice) {}
 
-    RetType init(uint8_t address = LIS3MDL_I2C_ADDR_PRIMARY) { // TODO: Not being detected
+    RetType init(uint8_t address = LIS3MDL_I2C_ADDR_PRIMARY) {
         RESUME();
 
-        i2cAddr.dev_addr = address;
+        i2cAddr.dev_addr = address << 1;
 
         static uint8_t whoAmI = 0;
         RetType ret = CALL(readReg(LIS3MDL_WHO_AM_I, &whoAmI, 1, 50));
@@ -516,7 +526,6 @@ public:
         RESET();
         return RET_SUCCESS;
     }
-
 
 private:
     I2CDevice *mI2C;

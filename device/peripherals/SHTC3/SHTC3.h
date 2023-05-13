@@ -6,6 +6,7 @@
  */
 #ifndef LAUNCH_CORE_SHTC3_H
 #define LAUNCH_CORE_SHTC3_H
+#define SHTC3_DATA_STRUCT(variable_name) SHTC3_DATA_T variable_name = {.id = 16000, .temperature = 0, .humidity = 0}
 
 #include "device/I2CDevice.h"
 #include "return.h"
@@ -16,11 +17,18 @@
 /* The SHTC3 I2C address (8 bits) */
 #define SHTC3_I2C_ADDR 0x70
 
+
+using SHTC3_DATA_T = struct {
+    const uint16_t id;
+    float temperature;
+    float humidity;
+};
+
 /**
  * @brief The SHTC3 Commands
  *
  */
-enum SHTC3_CMD {
+using SHTC3_CMD = enum {
     /* Sleep command */
     SLEEP_CMD = 0xB098,
     /* Wakeup command */
@@ -63,8 +71,10 @@ class SHTC3 {
      *
      * @return RetType The scheduler status
      */
-    RetType init() {
+    RetType init(uint8_t address = SHTC3_I2C_ADDR) {
         RESUME();
+
+        addr.dev_addr = address << 1;
 
         RetType ret = CALL(toggleSleep(false));
         if (ret != RET_SUCCESS)
@@ -293,6 +303,7 @@ class SHTC3 {
         }
         return crc;
     }
+
 };
 
 #endif  // LAUNCH_CORE_SHTC3_H
