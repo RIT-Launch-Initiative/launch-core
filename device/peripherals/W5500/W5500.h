@@ -102,11 +102,14 @@ public:
         ret = CALL(set_socket_control_reg(DEFAULT_SOCKET_NUM, OPEN_SOCKET));
         if (ret != RET_SUCCESS) goto init_end;
 
-// TODO: Check if Sn_SR is in MAC_RAW mode
         ret = CALL(set_socket_mode_tx_size(DEFAULT_SOCKET_NUM, 16));
         if (ret != RET_SUCCESS) goto init_end;
 
         ret = CALL(set_socket_mode_rx_size(DEFAULT_SOCKET_NUM, 16));
+        if (ret != RET_SUCCESS) goto init_end;
+
+        // Enable interrupts for socket 0
+        ret = CALL(set_socket_interrupt(0b00000001));
         if (ret != RET_SUCCESS) goto init_end;
 
         // gateway address
@@ -871,6 +874,15 @@ public:
         RESUME();
 
         RetType ret = CALL(read_reg(W5500_VERSIONR, version));
+
+        RESET();
+        return ret;
+    }
+
+    RetType set_socket_interrupt(uint8_t interrupt) {
+        RESUME();
+
+        RetType ret = CALL(write_reg(W5500_SIMR, interrupt));
 
         RESET();
         return ret;
