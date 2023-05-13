@@ -29,10 +29,6 @@
 #include "sched/macros.h"
 #include "return.h"
 
-#include "stm32f4xx_hal_uart.h"
-
-extern UART_HandleTypeDef huart2;
-
 #define DEFAULT_SOCKET_NUM 0
 
 
@@ -96,7 +92,8 @@ public:
         ret = CALL(set_mac_addr(mac));
         if (ret != RET_SUCCESS) goto init_end;
 
-        ret = CALL(set_socket_mode_reg(DEFAULT_SOCKET_NUM, MAC_RAW_MODE));
+//        ret = CALL(set_socket_mode_reg(DEFAULT_SOCKET_NUM, MAC_RAW_MODE)); // TODO: Check difference
+        ret = CALL(set_socket_mode_reg(DEFAULT_SOCKET_NUM, W5500_SOCK_MACRAW));
         if (ret != RET_SUCCESS) goto init_end;
 
         ret = CALL(set_socket_control_reg(DEFAULT_SOCKET_NUM, OPEN_SOCKET));
@@ -110,6 +107,9 @@ public:
 
         // Enable interrupts for socket 0
         ret = CALL(set_socket_interrupt(0b00000001));
+        if (ret != RET_SUCCESS) goto init_end;
+
+        ret = CALL(set_socket_interrupt_reg(DEFAULT_SOCKET_NUM, 0));
         if (ret != RET_SUCCESS) goto init_end;
 
         // gateway address
@@ -429,6 +429,8 @@ public:
     RetType get_socket_interrupt_reg(uint8_t socket_num, uint8_t *result) {
         RESUME();
 
+        *result &= 0x1F;
+
         RetType ret = CALL(read_reg(W5500_Sn_IR(socket_num), result));
 
         RESET();
@@ -439,7 +441,7 @@ public:
     RetType set_socket_interrupt_reg(uint8_t socket_num, uint8_t val) {
         RESUME();
 
-        RetType ret = CALL(write_reg(W5500_Sn_IR(socket_num), val));
+        RetType ret = CALL(write_reg(W5500_Sn_IR(socket_num), (val & 0x1F)));
 
         RESET();
 
