@@ -156,6 +156,10 @@ public:
         return m_ip.remove_outgoing_route(addr, 0xFFFFFFFF);
     }
 
+    NetworkLayer* get_eth_layer() {
+        return &m_eth;
+    }
+
 private:
     // UDP Router
     udp::UDPRouter m_udp;

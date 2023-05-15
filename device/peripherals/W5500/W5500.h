@@ -93,16 +93,26 @@ public:
         if (ret != RET_SUCCESS) goto init_end;
 
 //        ret = CALL(set_socket_mode_reg(DEFAULT_SOCKET_NUM, MAC_RAW_MODE)); // TODO: Check difference
-        ret = CALL(set_socket_mode_reg(DEFAULT_SOCKET_NUM, W5500_SOCK_MACRAW));
-        if (ret != RET_SUCCESS) goto init_end;
 
-        ret = CALL(set_socket_control_reg(DEFAULT_SOCKET_NUM, OPEN_SOCKET));
-        if (ret != RET_SUCCESS) goto init_end;
 
         ret = CALL(set_socket_mode_tx_size(DEFAULT_SOCKET_NUM, 16));
         if (ret != RET_SUCCESS) goto init_end;
 
         ret = CALL(set_socket_mode_rx_size(DEFAULT_SOCKET_NUM, 16));
+        if (ret != RET_SUCCESS) goto init_end;
+
+        ret = CALL(set_socket_mode_reg(DEFAULT_SOCKET_NUM, W5500_SOCK_MACRAW));
+        if (ret != RET_SUCCESS) goto init_end;
+
+        static uint8_t sock_mode = 0;
+        ret = CALL(get_socket_mode_reg(DEFAULT_SOCKET_NUM, &sock_mode));
+        if (ret != RET_SUCCESS) goto init_end;
+        if (sock_mode != W5500_SOCK_MACRAW) {
+            ret = RET_ERROR;
+            goto init_end;
+        }
+
+        ret = CALL(set_socket_control_reg(DEFAULT_SOCKET_NUM, OPEN_SOCKET));
         if (ret != RET_SUCCESS) goto init_end;
 
         // Enable interrupts for socket 0
@@ -247,7 +257,7 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType poll_recv(NetworkLayer *upper_layer, Packet packet) {
+    RetType poll_recv(NetworkLayer *upper_layer, Packet &packet) {
         RESUME();
 
         static uint16_t len;
@@ -259,7 +269,11 @@ public:
 
         len = 0;
         RetType ret = CALL(get_socket_rx_rsr(DEFAULT_SOCKET_NUM, &len));
-        if (len == 0 || ret != RET_SUCCESS) goto receive_end;
+        if (ret != RET_SUCCESS) goto receive_end;
+        if (len == 0) {
+//            ret = RET_ERROR;
+            goto receive_end;
+        }
 
         // Reading the size of the packet first
         ret = CALL(recv_data(DEFAULT_SOCKET_NUM, head, 2));
