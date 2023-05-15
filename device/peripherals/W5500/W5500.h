@@ -142,47 +142,7 @@ public:
     }
 
     RetType receive(Packet &packet, netinfo_t &info, NetworkLayer *caller) override {
-        RESUME();
-
-        static uint16_t len;
-        static uint8_t head[2];
-        static uint16_t data_len;
-
-        len = 0;
-
-        RetType ret = get_socket_rx_rsr(DEFAULT_SOCKET_NUM, &len);
-        if (len == 0) goto receive_end;
-
-        ret = CALL(recv_data(DEFAULT_SOCKET_NUM, head, 2));
-        if (ret != RET_SUCCESS) goto receive_end;
-
-        ret = CALL(set_socket_control_reg(DEFAULT_SOCKET_NUM, RECV_SOCKET));
-        if (ret != RET_SUCCESS) goto receive_end;
-
-        data_len = head[0];
-        data_len = (data_len << 8) | head[1];
-        data_len -= 2;
-
-        if (data_len > packet.available()) {
-            CALL(recv_ignore(DEFAULT_SOCKET_NUM, data_len));
-            CALL(set_socket_control_reg(DEFAULT_SOCKET_NUM, RECV_SOCKET));
-            ret = RET_ERROR; // Either way, its an error
-
-            goto receive_end;
-        }
-
-        ret = CALL(recv_data(DEFAULT_SOCKET_NUM, packet.raw(), data_len));
-        if (ret != RET_SUCCESS) goto receive_end;
-
-        ret = CALL(set_socket_control_reg(DEFAULT_SOCKET_NUM, RECV_SOCKET));
-        if (ret != RET_SUCCESS) goto receive_end;
-
-        // TODO: Filtering?
-
-
-        receive_end:
-        RESET();
-        return ret;
+        return RET_ERROR; // End of net stack
     }
 
     RetType transmit(Packet &packet, netinfo_t &info, NetworkLayer *caller) override {
@@ -287,6 +247,55 @@ public:
         return RET_SUCCESS;
     }
 
+    RetType poll_recv(NetworkLayer *upper_layer, Packet packet) {
+        RESUME();
+
+        static uint16_t len;
+        static uint8_t head[2];
+        static uint16_t data_len;
+        static netinfo_t info;
+        info.ignore_checksums = false;
+        info.dst.udp_port = 0b1; // TODO: Everyone gets data for now!
+
+        len = 0;
+        RetType ret = CALL(get_socket_rx_rsr(DEFAULT_SOCKET_NUM, &len));
+        if (len == 0 || ret != RET_SUCCESS) goto receive_end;
+
+        // Reading the size of the packet first
+        ret = CALL(recv_data(DEFAULT_SOCKET_NUM, head, 2));
+        if (ret != RET_SUCCESS) goto receive_end;
+
+        ret = CALL(set_socket_control_reg(DEFAULT_SOCKET_NUM, RECV_SOCKET));
+        if (ret != RET_SUCCESS) goto receive_end;
+
+        data_len = head[0];
+        data_len = (data_len << 8) | head[1];
+        data_len -= 2;
+
+        // If there isn't enough space, ignore the packet
+        if (data_len > packet.available()) {
+            CALL(recv_ignore(DEFAULT_SOCKET_NUM, data_len));
+            CALL(set_socket_control_reg(DEFAULT_SOCKET_NUM, RECV_SOCKET));
+            ret = RET_ERROR; // Either way, its an error
+
+            goto receive_end;
+        }
+
+        // Otherwise, read the rest of the packet
+        ret = CALL(recv_data(DEFAULT_SOCKET_NUM, packet.raw(), data_len));
+        if (ret != RET_SUCCESS) goto receive_end;
+
+        ret = CALL(set_socket_control_reg(DEFAULT_SOCKET_NUM, RECV_SOCKET));
+        if (ret != RET_SUCCESS) goto receive_end;
+
+        // Let the software do the remaining magic
+        ret = CALL(upper_layer->receive(packet, info, this));
+
+        receive_end:
+        RESET();
+        return ret;
+    }
+
     RetType recv_data(uint8_t socket_num, uint8_t* buff, uint16_t len) {
         RESUME();
 
@@ -301,7 +310,7 @@ public:
             return RET_ERROR;
         }
 
-        RetType ret = CALL(get_socket_register_tx_wr(socket_num, &ptr));
+        RetType ret = CALL(get_socket_register_rx_rd(socket_num, &ptr));
         if (ret != RET_SUCCESS) goto recv_data_end;
 
         addr_sel = ((uint32_t) ptr << 8) + (W5500_WIZCHIP_RXBUF_BLOCK(DEFAULT_SOCKET_NUM) << 3);
