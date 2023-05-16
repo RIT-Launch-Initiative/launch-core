@@ -197,48 +197,64 @@ private:
         return ret;
     }
 
-    void WIZCHIP_WRITE_BUF(uint32_t addr_sel, uint8_t *pBuf, uint16_t len) {
-        uint8_t spi_data[3];
-        uint16_t i;
-
+    RetType WIZCHIP_WRITE_BUF(uint32_t addr_sel, uint8_t *buff, size_t len) {
+        RESUME();
+        static uint8_t spi_data[3];
 
         RetType ret = CALL(m_gpio.set(0));
 
         addr_sel |= (_W5500_SPI_WRITE_ | _W5500_SPI_VDM_OP_);
 
-        if (!WIZCHIP.IF.SPI._write_burst)    // byte operation
-        {
-            WIZCHIP.IF.SPI._write_byte((addr_sel & 0x00FF0000) >> 16);
-            WIZCHIP.IF.SPI._write_byte((addr_sel & 0x0000FF00) >> 8);
-            WIZCHIP.IF.SPI._write_byte((addr_sel & 0x000000FF) >> 0);
-            for (i = 0; i < len; i++)
-                WIZCHIP.IF.SPI._write_byte(pBuf[i]);
-        } else                                    // burst operation
-        {
-            spi_data[0] = (addr_sel & 0x00FF0000) >> 16;
-            spi_data[1] = (addr_sel & 0x0000FF00) >> 8;
-            spi_data[2] = (addr_sel & 0x000000FF) >> 0;
-            WIZCHIP.IF.SPI._write_burst(spi_data, 3);
-            WIZCHIP.IF.SPI._write_burst(pBuf, len);
-        }
+        spi_data[0] = (addr_sel & 0x00FF0000) >> 16;
+        spi_data[1] = (addr_sel & 0x0000FF00) >> 8;
+        spi_data[2] = (addr_sel & 0x000000FF) >> 0;
 
-        ret = CALL(m_gpio.set(1));
+        ret = CALL(m_spi.write(spi_data, 3));
+        if (ret != RET_SUCCESS) goto WIZCHIP_WRITE_BUF_END;
 
+        ret = CALL(m_spi.write(buff, len));
+
+        WIZCHIP_WRITE_BUF_END:
+        CALL(m_gpio.set(1));
+        RESET();
+        return ret;
     }
 
 
-    uint16_t getSn_TX_FSR(uint8_t sn) {
-        uint16_t val = 0, val1 = 0;
+    uint16_t getSn_TX_FSR(uint8_t sn, uint8_t *result) {
+        RESUME();
 
+        static uint16_t val = 0;
+        static uint16_t val1 = 0;
+        static uint16_t tmp = 0;
+        val = 0;
+        val1 = 0;
+        tmp = 0;
+
+        RetType ret;
         do {
-            val1 = WIZCHIP_READ(Sn_TX_FSR(sn));
-            val1 = (val1 << 8) + WIZCHIP_READ(WIZCHIP_OFFSET_INC(Sn_TX_FSR(sn), 1));
+            ret = CALL(WIZCHIP_READ(Sn_TX_FSR(sn), (uint8_t *) &val));
+            if (ret != RET_SUCCESS) goto GET_SN_TX_FSR_END;
+
+            ret = CALL(WIZCHIP_READ(WIZCHIP_OFFSET_INC(Sn_TX_FSR(sn), 1), (uint8_t *) &tmp));
+            if (ret != RET_SUCCESS) goto GET_SN_TX_FSR_END;
+
+            val1 = (val << 8) + tmp;
+
             if (val1 != 0) {
-                val = WIZCHIP_READ(Sn_TX_FSR(sn));
-                val = (val << 8) + WIZCHIP_READ(WIZCHIP_OFFSET_INC(Sn_TX_FSR(sn), 1));
+                ret = CALL(WIZCHIP_READ(Sn_TX_FSR(sn), (uint8_t *) &val));
+                if (ret != RET_SUCCESS) goto GET_SN_TX_FSR_END;
+
+                ret = CALL(WIZCHIP_READ(WIZCHIP_OFFSET_INC(Sn_TX_FSR(sn), 1), (uint8_t *) &tmp));
+                if (ret != RET_SUCCESS) goto GET_SN_TX_FSR_END;
             }
         } while (val != val1);
-        return val;
+
+        *result = val;
+
+        GET_SN_TX_FSR_END:
+        RESET();
+        return ret;
     }
 
 
