@@ -233,13 +233,13 @@ private:
 
         RetType ret;
         do {
-            ret = CALL(WIZCHIP_READ(Sn_TX_FSR(sn), (uint8_t *) &val));
+            ret = CALL(WIZCHIP_READ(Sn_TX_FSR(sn), (uint8_t *) &val1));
             if (ret != RET_SUCCESS) goto GET_SN_TX_FSR_END;
 
             ret = CALL(WIZCHIP_READ(WIZCHIP_OFFSET_INC(Sn_TX_FSR(sn), 1), (uint8_t *) &tmp));
             if (ret != RET_SUCCESS) goto GET_SN_TX_FSR_END;
 
-            val1 = (val << 8) + tmp;
+            val1 = (val1 << 8) + tmp;
 
             if (val1 != 0) {
                 ret = CALL(WIZCHIP_READ(Sn_TX_FSR(sn), (uint8_t *) &val));
@@ -258,18 +258,37 @@ private:
     }
 
 
-    uint16_t getSn_RX_RSR(uint8_t sn) {
-        uint16_t val = 0, val1 = 0;
+    uint16_t getSn_RX_RSR(uint8_t sn, uint16_t *result) {
+        RESUME();
+        static uint16_t val = 0;
+        static uint16_t val1 = 0;
+        static uint16_t tmp = 0;
 
+        RetType ret;
         do {
-            val1 = WIZCHIP_READ(Sn_RX_RSR(sn));
-            val1 = (val1 << 8) + WIZCHIP_READ(WIZCHIP_OFFSET_INC(Sn_RX_RSR(sn), 1));
+            ret = CALL(WIZCHIP_READ(Sn_RX_RSR(sn), (uint8_t *) &val1));
+            if (ret != RET_SUCCESS) goto GET_SN_RX_RSR_END;
+
+            ret = CALL(WIZCHIP_READ(WIZCHIP_OFFSET_INC(Sn_RX_RSR(sn), 1), (uint8_t *) &tmp));
+            if (ret != RET_SUCCESS) goto GET_SN_RX_RSR_END;
+
+            val1 = (val1 << 8) + tmp;
+
             if (val1 != 0) {
-                val = WIZCHIP_READ(Sn_RX_RSR(sn));
-                val = (val << 8) + WIZCHIP_READ(WIZCHIP_OFFSET_INC(Sn_RX_RSR(sn), 1));
+                ret = CALL(WIZCHIP_READ(Sn_RX_RSR(sn), (uint8_t *) &val));
+                if (ret != RET_SUCCESS) goto GET_SN_RX_RSR_END;
+
+                ret = CALL(WIZCHIP_READ(WIZCHIP_OFFSET_INC(Sn_RX_RSR(sn), 1), (uint8_t *) &tmp));
+                if (ret != RET_SUCCESS) goto GET_SN_RX_RSR_END;
+
+                val = (val << 8) + tmp;
             }
         } while (val != val1);
-        return val;
+
+        *result = val;
+        GET_SN_RX_RSR_END:
+        RESET();
+        return ret;
     }
 
 }

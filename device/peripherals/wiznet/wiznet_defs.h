@@ -1199,41 +1199,7 @@ extern "C" {
 ////////////////////////
 // Basic I/O Function //
 ////////////////////////
-
-/**
- * @ingroup Basic_IO_function
- * @brief It reads 1 byte value from a register.
- * @param AddrSel Register address
- * @return The value of register
- */
-uint8_t  WIZCHIP_READ (uint32_t AddrSel);
-
-/**
- * @ingroup Basic_IO_function
- * @brief It writes 1 byte value to a register.
- * @param AddrSel Register address
- * @param wb Write data
- * @return void
- */
-void     WIZCHIP_WRITE(uint32_t AddrSel, uint8_t wb );
-
-/**
- * @ingroup Basic_IO_function
- * @brief It reads sequence data from registers.
- * @param AddrSel Register address
- * @param pBuf Pointer buffer to read data
- * @param len Data length
- */
-void     WIZCHIP_READ_BUF (uint32_t AddrSel, uint8_t* pBuf, uint16_t len);
-
-/**
- * @ingroup Basic_IO_function
- * @brief It writes sequence data to registers.
- * @param AddrSel Register address
- * @param pBuf Pointer buffer to write data
- * @param len Data length
- */
-void     WIZCHIP_WRITE_BUF(uint32_t AddrSel, uint8_t* pBuf, uint16_t len);
+// In the wiznet class now
 
 /////////////////////////////////
 // Common Register I/O function //
@@ -2107,46 +2073,6 @@ uint16_t getSn_RX_RSR(uint8_t sn);
 #define getSn_TxMAX(sn) \
         (((uint16_t)getSn_TXBUF_SIZE(sn)) << 10)
 
-/**
- * @ingroup Basic_IO_function
- * @brief It copies data to internal TX memory
- *
- * @details This function reads the Tx write pointer register and after that,
- * it copies the <i>wizdata(pointer buffer)</i> of the length of <i>len(variable)</i> bytes to internal TX memory
- * and updates the Tx write pointer register.
- * This function is being called by send() and sendto() function also.
- *
- * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
- * @param wizdata Pointer buffer to write data
- * @param len Data length
- * @sa wiz_recv_data()
- */
-void wiz_send_data(uint8_t sn, uint8_t *wizdata, uint16_t len);
-
-/**
- * @ingroup Basic_IO_function
- * @brief It copies data to your buffer from internal RX memory
- *
- * @details This function read the Rx read pointer register and after that,
- * it copies the received data from internal RX memory
- * to <i>wizdata(pointer variable)</i> of the length of <i>len(variable)</i> bytes.
- * This function is being called by recv() also.
- *
- * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
- * @param wizdata Pointer buffer to read data
- * @param len Data length
- * @sa wiz_send_data()
- */
-void wiz_recv_data(uint8_t sn, uint8_t *wizdata, uint16_t len);
-
-/**
- * @ingroup Basic_IO_function
- * @brief It discard the received data in RX memory.
- * @details It discards the data of the length of <i>len(variable)</i> bytes in internal RX memory.
- * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
- * @param len Data length
- */
-void wiz_recv_ignore(uint8_t sn, uint16_t len);
 
 #ifdef __cplusplus
 }
