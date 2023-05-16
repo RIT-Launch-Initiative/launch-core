@@ -1196,117 +1196,6 @@ extern "C" {
 #define WIZCHIP_CRITICAL_EXIT()     WIZCHIP.CRIS._exit()
 
 
-////////////////////////
-// Basic I/O Function //
-////////////////////////
-// In the wiznet class now
-
-/////////////////////////////////
-// Common Register I/O function //
-/////////////////////////////////
-/**
- * @ingroup Common_register_access_function
- * @brief Set Mode Register
- * @param (uint8_t)mr The value to be set.
- * @sa getMR()
- */
-#define setMR(mr) \
-    WIZCHIP_WRITE(MR,mr)
-
-
-/**
- * @ingroup Common_register_access_function
- * @brief Get Mode Register
- * @return uint8_t. The value of Mode register.
- * @sa setMR()
- */
-#define getMR() \
-        WIZCHIP_READ(MR)
-
-/**
- * @ingroup Common_register_access_function
- * @brief Set gateway IP address
- * @param (uint8_t*)gar Pointer variable to set gateway IP address. It should be allocated 4 bytes.
- * @sa getGAR()
- */
-#define setGAR(gar) \
-        WIZCHIP_WRITE_BUF(GAR,gar,4)
-
-/**
- * @ingroup Common_register_access_function
- * @brief Get gateway IP address
- * @param (uint8_t*)gar Pointer variable to get gateway IP address. It should be allocated 4 bytes.
- * @sa setGAR()
- */
-#define getGAR(gar) \
-        WIZCHIP_READ_BUF(GAR,gar,4)
-
-/**
- * @ingroup Common_register_access_function
- * @brief Set subnet mask address
- * @param (uint8_t*)subr Pointer variable to set subnet mask address. It should be allocated 4 bytes.
- * @sa getSUBR()
- */
-#define setSUBR(subr) \
-        WIZCHIP_WRITE_BUF(SUBR, subr,4)
-
-
-/**
- * @ingroup Common_register_access_function
- * @brief Get subnet mask address
- * @param (uint8_t*)subr Pointer variable to get subnet mask address. It should be allocated 4 bytes.
- * @sa setSUBR()
- */
-#define getSUBR(subr) \
-        WIZCHIP_READ_BUF(SUBR, subr, 4)
-
-/**
- * @ingroup Common_register_access_function
- * @brief Set local MAC address
- * @param (uint8_t*)shar Pointer variable to set local MAC address. It should be allocated 6 bytes.
- * @sa getSHAR()
- */
-#define setSHAR(shar) \
-        WIZCHIP_WRITE_BUF(SHAR, shar, 6)
-
-/**
- * @ingroup Common_register_access_function
- * @brief Get local MAC address
- * @param (uint8_t*)shar Pointer variable to get local MAC address. It should be allocated 6 bytes.
- * @sa setSHAR()
- */
-#define getSHAR(shar) \
-        WIZCHIP_READ_BUF(SHAR, shar, 6)
-
-/**
- * @ingroup Common_register_access_function
- * @brief Set local IP address
- * @param (uint8_t*)sipr Pointer variable to set local IP address. It should be allocated 4 bytes.
- * @sa getSIPR()
- */
-#define setSIPR(sipr) \
-        WIZCHIP_WRITE_BUF(SIPR, sipr, 4)
-
-/**
- * @ingroup Common_register_access_function
- * @brief Get local IP address
- * @param (uint8_t*)sipr Pointer variable to get local IP address. It should be allocated 4 bytes.
- * @sa setSIPR()
- */
-#define getSIPR(sipr) \
-        WIZCHIP_READ_BUF(SIPR, sipr, 4)
-
-/**
- * @ingroup Common_register_access_function
- * @brief Set INTLEVEL register
- * @param (uint16_t)intlevel Value to set @ref INTLEVEL register.
- * @sa getINTLEVEL()
- */
-#define setINTLEVEL(intlevel)  {\
-        WIZCHIP_WRITE(INTLEVEL,   (uint8_t)(intlevel >> 8)); \
-        WIZCHIP_WRITE(WIZCHIP_OFFSET_INC(INTLEVEL,1), (uint8_t) intlevel); \
-    }
-
 
 /**
  * @ingroup Common_register_access_function
@@ -1895,14 +1784,6 @@ extern "C" {
 
 /**
  * @ingroup Socket_register_access_function
- * @brief Get @ref Sn_TX_FSR register
- * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
- * @return uint16_t. Value of @ref Sn_TX_FSR.
- */
-uint16_t getSn_TX_FSR(uint8_t sn);
-
-/**
- * @ingroup Socket_register_access_function
  * @brief Get @ref Sn_TX_RD register
  * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
  * @return uint16_t. Value of @ref Sn_TX_RD.
@@ -1941,15 +1822,6 @@ uint16_t getSn_TX_FSR(uint8_t sn);
 */
 #define getSn_TX_WR(sn) \
         (((uint16_t)WIZCHIP_READ(Sn_TX_WR(sn)) << 8) + WIZCHIP_READ(WIZCHIP_OFFSET_INC(Sn_TX_WR(sn),1)))
-
-
-/**
- * @ingroup Socket_register_access_function
- * @brief Get @ref Sn_RX_RSR register
- * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
- * @return uint16_t. Value of @ref Sn_RX_RSR.
- */
-uint16_t getSn_RX_RSR(uint8_t sn);
 
 
 /**

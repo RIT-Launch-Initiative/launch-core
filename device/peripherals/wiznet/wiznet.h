@@ -133,7 +133,7 @@ public:
         *result += tmp;
 
         GET_SN_RX_RD_END:
-        RESET();
+    RESET();
         return ret;
     }
 
@@ -310,6 +310,162 @@ private:
         return ret;
     }
 
+/////////////////////////////////
+// Common Register I/O function //
+/////////////////////////////////
+
+    /**
+    * @ingroup Common_register_access_function
+    * @brief Set Mode Register
+    * @param (uint8_t)mr The value to be set.
+    * @sa getMR()
+    */
+    RetType setMR(uint8_t mode_reg) {
+        RESUME();
+        RetType ret = CALL(WIZCHIP_WRITE(MR, mode_reg));
+        RESET();
+        return ret;
+    }
+
+    /**
+    * @ingroup Common_register_access_function
+    * @brief Get Mode Register
+    * @return uint8_t. The value of Mode register.
+    * @sa setMR()
+    */
+    RetType setMR(uint8_t *mode_reg) {
+        RESUME();
+        RetType ret = CALL(WIZCHIP_READ(MR, mode_reg));
+        RESET();
+        return ret;
+    }
+
+    /**
+    * @ingroup Common_register_access_function
+    * @brief Set gateway IP address
+    * @param (uint8_t*)gar Pointer variable to set gateway IP address. It should be allocated 4 bytes.
+    * @sa getGAR()
+    */
+    RetType setGAR(uint8_t *gar) {
+        RESUME();
+        RetType ret = CALL(WIZCHIP_WRITE_BUF(GAR, gar, 4));
+        RESET();
+        return ret;
+    }
+
+
+    /**
+     * @ingroup Common_register_access_function
+     * @brief Get gateway IP address
+     * @param (uint8_t*)gar Pointer variable to get gateway IP address. It should be allocated 4 bytes.
+     * @sa setGAR()
+     */
+    RetType getGAR(uint8_t *gar) {
+        RESUME();
+        RetType ret = CALL(WIZCHIP_READ_BUF(GAR, gar, 4));
+        RESET();
+        return ret;
+    }
+
+
+    /**
+    * @ingroup Common_register_access_function
+    * @brief Set subnet mask address
+    * @param (uint8_t*)subr Pointer variable to set subnet mask address. It should be allocated 4 bytes.
+    * @sa getSUBR()
+    */
+    RetType setSUBR(uint8_t *subr) {
+        RESUME();
+        RetType ret = CALL(WIZCHIP_WRITE_BUF(SUBR, subr, 4));
+        RESET();
+        return ret;
+    }
+
+    /**
+    * @ingroup Common_register_access_function
+    * @brief Get subnet mask address
+    * @param (uint8_t*)subr Pointer variable to get subnet mask address. It should be allocated 4 bytes.
+    * @sa setSUBR()
+    */
+    RetType getSUBR(uint8_t *subr) {
+        RESUME();
+        RetType ret = CALL(WIZCHIP_READ_BUF(SUBR, subr, 4));
+        RESET();
+        return ret;
+    }
+
+    /**
+    * @ingroup Common_register_access_function
+    * @brief Set local MAC address
+    * @param (uint8_t*)shar Pointer variable to set local MAC address. It should be allocated 6 bytes.
+    * @sa getSHAR()
+    */
+    RetType setSHAR(uint8_t *shar) {
+        RESUME();
+        RetType ret = CALL(WIZCHIP_WRITE_BUF(SHAR, shar, 6));
+        RESET();
+        return ret;
+    }
+
+    /**
+    * @ingroup Common_register_access_function
+    * @brief Get local MAC address
+    * @param (uint8_t*)shar Pointer variable to get local MAC address. It should be allocated 6 bytes.
+    * @sa setSHAR()
+    */
+    RetType getSHAR(uint8_t *shar)  {
+        RESUME();
+        RetType ret = CALL(WIZCHIP_READ_BUF(SHAR, shar, 6));
+        RESET();
+        return ret;
+    }
+
+    /**
+    * @ingroup Common_register_access_function
+    * @brief Set local IP address
+    * @param (uint8_t*)sipr Pointer variable to set local IP address. It should be allocated 4 bytes.
+    * @sa getSIPR()
+    */
+    RetType setSIPR(uint8_t *sipr) {
+        RESUME();
+        RetType ret = CALL(WIZCHIP_WRITE_BUF(SIPR, sipr, 4));
+        RESET();
+        return ret;
+    }
+
+
+    /**
+    * @ingroup Common_register_access_function
+    * @brief Get local IP address
+    * @param (uint8_t*)sipr Pointer variable to get local IP address. It should be allocated 4 bytes.
+    * @sa setSIPR()
+    */
+    RetType getSIPR(uint8_t *sipr) {
+        RESUME();
+        RetType ret = CALL(WIZCHIP_READ_BUF(SIPR, sipr, 4));
+        RESET();
+        return ret;
+    }
+
+
+    /**
+    * @ingroup Common_register_access_function
+    * @brief Set INTLEVEL register
+    * @param (uint16_t)intlevel Value to set @ref INTLEVEL register.
+    * @sa getINTLEVEL()
+    */
+    RetType setINTLEVEL(uint16_t intlevel) {
+        RESUME();
+
+        RetType ret = CALL(WIZCHIP_WRITE(INTLEVEL, (uint8_t) (intlevel >> 8)));
+        if (ret != RET_SUCCESS) goto SET_INT_LEVEL_END;
+
+        ret = CALL(WIZCHIP_WRITE(WIZCHIP_OFFSET_INC(INTLEVEL, 1), (uint8_t) intlevel));
+
+        SET_INT_LEVEL_END:
+        RESET();
+        return ret;
+    }
 };
 
 #endif //WIZNET_H
