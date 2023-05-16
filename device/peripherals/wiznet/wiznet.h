@@ -608,8 +608,7 @@ private:
     RetType getSIMR(uint8_t *simr) {
         RESUME();
 
-        RetType ret =
-        CALL(WIZCHIP_READ(SIMR, simr);
+        RetType ret = CALL(WIZCHIP_READ(SIMR, simr));
 
         RESET();
         return ret;
@@ -644,12 +643,12 @@ private:
         RESUME();
         static uint8_t tmp;
 
-        RetType ret = CALL(WIZCHIP_READ(_RTR_), &tmp);
+        RetType ret = CALL(WIZCHIP_READ(_RTR_, &tmp));
         if (ret != RET_SUCCESS) goto GET_RTR_END;
 
         *rtr = (uint16_t) tmp << 8;
 
-        ret = CALL(WIZCHIP_READ(WIZCHIP_OFFSET_INC(_RTR_, 1), &tmp);
+        ret = CALL(WIZCHIP_READ(WIZCHIP_OFFSET_INC(_RTR_, 1), &tmp));
               * rtr += tmp;
 
 
@@ -683,12 +682,12 @@ private:
     RetType getRCR(uint8_t *rcr) {
         RESUME();
 
-        RetType ret =
-        CALL(WIZCHIP_READ(_RCR_, rcr);
+        RetType ret = CALL(WIZCHIP_READ(_RCR_, rcr));
 
         RESET();
         return ret;
     }
+
 };
 
 #endif //WIZNET_H
