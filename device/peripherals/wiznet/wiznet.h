@@ -955,145 +955,237 @@ private:
         RESET();
         return ret;
     }
-    
-    ///////////////////////////////////
+
+///////////////////////////////////
 // Socket N register I/O function //
 ///////////////////////////////////
-/**
- * @ingroup Socket_register_access_function
- * @brief Set @ref Sn_MR register
- * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
- * @param (uint8_t)mr Value to set @ref Sn_MR
- * @sa getSn_MR()
- */
-RetType setSn_MR(sn, mr) \
-        WIZCHIP_WRITE(Sn_MR(sn),mr)
+    /**
+     * @ingroup Socket_register_access_function
+     * @brief Set @ref Sn_MR register
+     * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
+     * @param (uint8_t)mr Value to set @ref Sn_MR
+     * @sa getSn_MR()
+     */
+    RetType setSn_MR(uint8_t sn, uint8_t mr) {
+        RESUME();
 
-/**
- * @ingroup Socket_register_access_function
- * @brief Get @ref Sn_MR register
- * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
- * @return uint8_t. Value of @ref Sn_MR.
- * @sa setSn_MR()
- */
-RetType getSn_MR(sn) \
-    WIZCHIP_READ(Sn_MR(sn))
+        RetType ret = CALL(WIZCHIP_WRITE(Sn_MR(sn),mr));
 
-/**
- * @ingroup Socket_register_access_function
- * @brief Set @ref Sn_CR register
- * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
- * @param (uint8_t)cr Value to set @ref Sn_CR
- * @sa getSn_CR()
- */
-RetType setSn_CR(sn, cr) \
-        WIZCHIP_WRITE(Sn_CR(sn), cr)
+        RESET();
+        return ret;
+    }
+    
+    /**
+     * @ingroup Socket_register_access_function
+     * @brief Get @ref Sn_MR register
+     * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
+     * @return uint8_t. Value of @ref Sn_MR.
+     * @sa setSn_MR()
+     */
+    RetType getSn_MR(uint8_t sn, uint8_t *mr) {
+        RESUME();
 
-/**
- * @ingroup Socket_register_access_function
- * @brief Get @ref Sn_CR register
- * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
- * @return uint8_t. Value of @ref Sn_CR.
- * @sa setSn_CR()
- */
-RetType getSn_CR(sn) \
-        WIZCHIP_READ(Sn_CR(sn))
+        RetType ret = CALL(WIZCHIP_READ(Sn_MR(sn), mr));
 
-/**
- * @ingroup Socket_register_access_function
- * @brief Set @ref Sn_IR register
- * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
- * @param (uint8_t)ir Value to set @ref Sn_IR
- * @sa getSn_IR()
- */
-RetType setSn_IR(sn, ir) \
-        WIZCHIP_WRITE(Sn_IR(sn), (ir & 0x1F))
-
-/**
- * @ingroup Socket_register_access_function
- * @brief Get @ref Sn_IR register
- * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
- * @return uint8_t. Value of @ref Sn_IR.
- * @sa setSn_IR()
- */
-RetType getSn_IR(sn) \
-        (WIZCHIP_READ(Sn_IR(sn)) & 0x1F)
-
-/**
- * @ingroup Socket_register_access_function
- * @brief Set @ref Sn_IMR register
- * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
- * @param (uint8_t)imr Value to set @ref Sn_IMR
- * @sa getSn_IMR()
- */
-RetType setSn_IMR(sn, imr) \
-        WIZCHIP_WRITE(Sn_IMR(sn), (imr & 0x1F))
-
-/**
- * @ingroup Socket_register_access_function
- * @brief Get @ref Sn_IMR register
- * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
- * @return uint8_t. Value of @ref Sn_IMR.
- * @sa setSn_IMR()
- */
-RetType getSn_IMR(sn) \
-        (WIZCHIP_READ(Sn_IMR(sn)) & 0x1F)
-
-/**
- * @ingroup Socket_register_access_function
- * @brief Get @ref Sn_SR register
- * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
- * @return uint8_t. Value of @ref Sn_SR.
- */
-RetType getSn_SR(sn) \
-        WIZCHIP_READ(Sn_SR(sn))
-
-/**
- * @ingroup Socket_register_access_function
- * @brief Set @ref Sn_PORT register
- * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
- * @param (uint16_t)port Value to set @ref Sn_PORT.
- * @sa getSn_PORT()
- */
-RetType setSn_PORT(sn, port)  { \
-        WIZCHIP_WRITE(Sn_PORT(sn),   (uint8_t)(port >> 8)); \
-        WIZCHIP_WRITE(WIZCHIP_OFFSET_INC(Sn_PORT(sn),1), (uint8_t) port); \
+        RESET();
+        return ret;
     }
 
-/**
- * @ingroup Socket_register_access_function
- * @brief Get @ref Sn_PORT register
- * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
- * @return uint16_t. Value of @ref Sn_PORT.
- * @sa setSn_PORT()
- */
-//M20150401 : Type explict declaration
-/*
-RetType getSn_PORT(sn) \
-        ((WIZCHIP_READ(Sn_PORT(sn)) << 8) + WIZCHIP_READ(WIZCHIP_OFFSET_INC(Sn_PORT(sn),1)))
-*/
-RetType getSn_PORT(sn) \
-        (((uint16_t)WIZCHIP_READ(Sn_PORT(sn)) << 8) + WIZCHIP_READ(WIZCHIP_OFFSET_INC(Sn_PORT(sn),1)))
 
-/**
- * @ingroup Socket_register_access_function
- * @brief Set @ref Sn_DHAR register
- * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
- * @param (uint8_t*)dhar Pointer variable to set socket n destination hardware address. It should be allocated 6 bytes.
- * @sa getSn_DHAR()
- */
-RetType setSn_DHAR(sn, dhar) \
-        WIZCHIP_WRITE_BUF(Sn_DHAR(sn), dhar, 6)
+    /**
+     * @ingroup Socket_register_access_function
+     * @brief Set @ref Sn_CR register
+     * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
+     * @param (uint8_t)cr Value to set @ref Sn_CR
+     * @sa getSn_CR()
+     */
+    RetType setSn_CR(uint8_t sn, uint8_t cr) {
+        RESUME();
 
-/**
- * @ingroup Socket_register_access_function
- * @brief Get @ref Sn_MR register
- * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
- * @param (uint8_t*)dhar Pointer variable to get socket n destination hardware address. It should be allocated 6 bytes.
- * @sa setSn_DHAR()
- */
-RetType getSn_DHAR(sn, dhar) \
-        WIZCHIP_READ_BUF(Sn_DHAR(sn), dhar, 6)
+        RetType ret = CALL(WIZCHIP_WRITE(Sn_CR(sn), cr));
+
+        RESET();
+        return ret;
+    }
+
+
+    /**
+     * @ingroup Socket_register_access_function
+     * @brief Get @ref Sn_CR register
+     * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
+     * @return uint8_t. Value of @ref Sn_CR.
+     * @sa setSn_CR()
+     */
+    RetType getSn_CR(uint8_t sn, uint8_t *cr) {
+        RESUME();
+
+        RetType ret = CALL(WIZCHIP_READ(Sn_CR(sn), cr));
+
+        RESET();
+        return ret;
+    }
+
+
+    /**
+     * @ingroup Socket_register_access_function
+     * @brief Set @ref Sn_IR register
+     * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
+     * @param (uint8_t)ir Value to set @ref Sn_IR
+     * @sa getSn_IR()
+     */
+    RetType setSn_IR(uint8_t sn, uint8_t ir) {
+        RESUME();
+
+        RetType ret = CALL(WIZCHIP_WRITE(Sn_IR(sn), (ir & 0x1F)));
+
+        RESET();
+        return ret;
+    }
+
+
+    /**
+     * @ingroup Socket_register_access_function
+     * @brief Get @ref Sn_IR register
+     * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
+     * @return uint8_t. Value of @ref Sn_IR.
+     * @sa setSn_IR()
+     */
+    RetType getSn_IR(uint8_t sn, uint8_t *ir) {
+        RESUME();
+
+        RetType ret = CALL(WIZCHIP_READ(Sn_IR(sn), ir));
+        *ir &= 0x1F;
+
+        RESET();
+        return ret;
+    }
+
+
+    /**
+     * @ingroup Socket_register_access_function
+     * @brief Set @ref Sn_IMR register
+     * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
+     * @param (uint8_t)imr Value to set @ref Sn_IMR
+     * @sa getSn_IMR()
+     */
+    RetType setSn_IMR(uint8_t sn, uint8_t imr) {
+        RESUME();
+
+        RetType ret = CALL(WIZCHIP_WRITE(Sn_IMR(sn), (imr & 0x1F)));
+
+        RESET();
+        return ret;
+    }
+
+
+    /**
+     * @ingroup Socket_register_access_function
+     * @brief Get @ref Sn_IMR register
+     * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
+     * @return uint8_t. Value of @ref Sn_IMR.
+     * @sa setSn_IMR()
+     */
+    RetType getSn_IMR(uint8_t sn, uint8_t *imr) {
+        RESUME();
+
+        RetType ret = CALL(WIZCHIP_READ(Sn_IMR(sn), imr));
+        *imr &= 0x1F;
+
+        RESET();
+        return ret;
+    }
+
+    /**
+     * @ingroup Socket_register_access_function
+     * @brief Get @ref Sn_SR register
+     * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
+     * @return uint8_t. Value of @ref Sn_SR.
+     */
+    RetType getSn_SR(uint8_t sn, uint8_t *mr) {
+        RESUME();
+
+        RetType ret = CALL(WIZCHIP_READ(Sn_SR(sn), mr));
+
+        RESET();
+        return ret;
+    }
+
+    /**
+     * @ingroup Socket_register_access_function
+     * @brief Set @ref Sn_PORT register
+     * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
+     * @param (uint16_t)port Value to set @ref Sn_PORT.
+     * @sa getSn_PORT()
+     */
+    RetType setSn_PORT(uint8_t sn, uint8_t port) {
+        RESUME();
+        RetType ret = CALL(WIZCHIP_WRITE(Sn_PORT(sn), (uint8_t) (port >> 8)));
+        if (ret != RET_SUCCESS) goto SET_SN_PORT_END;
+
+        ret = CALL(WIZCHIP_WRITE(WIZCHIP_OFFSET_INC(Sn_PORT(sn), 1), (uint8_t) port)); \
+
+        SET_SN_PORT_END:
+        RESET();
+        return ret;
+    }
+
+    /**
+     * @ingroup Socket_register_access_function
+     * @brief Get @ref Sn_PORT register
+     * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
+     * @return uint16_t. Value of @ref Sn_PORT.
+     * @sa setSn_PORT()
+     */
+    RetType getSn_PORT(uint8_t sn, uint16_t *sn_port) {
+        RESUME();
+
+        static uint8_t tmp;
+
+        RetType ret = CALL(WIZCHIP_READ(Sn_PORT(sn), &tmp));
+        if (ret != RET_SUCCESS) goto GET_SN_PORT_END;
+        *sn_port = (uint16_t) tmp << 8;
+
+        ret = CALL(WIZCHIP_READ(WIZCHIP_OFFSET_INC(Sn_PORT(sn),1), &tmp));
+        *sn_port += tmp;
+
+        GET_SN_PORT_END:
+        RESET();
+        return ret;
+    }
+
+    /**
+     * @ingroup Socket_register_access_function
+     * @brief Set @ref Sn_DHAR register
+     * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
+     * @param (uint8_t*)dhar Pointer variable to set socket n destination hardware address. It should be allocated 6 bytes.
+     * @sa getSn_DHAR()
+     */
+    RetType setSn_DHAR(uint8_t sn, uint8_t *dhar) {
+        RESUME();
+
+        RetType ret = CALL(WIZCHIP_WRITE_BUF(Sn_DHAR(sn), dhar, 6));
+
+        RESET();
+        return ret;
+    }
+
+
+    /**
+     * @ingroup Socket_register_access_function
+     * @brief Get @ref Sn_MR register
+     * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
+     * @param (uint8_t*)dhar Pointer variable to get socket n destination hardware address. It should be allocated 6 bytes.
+     * @sa setSn_DHAR()
+     */
+    RetType getSn_DHAR(uint8_t sn, uint8_t *dhar) {
+        RESUME();
+
+        RetType ret = CALL(WIZCHIP_READ_BUF(Sn_DHAR(sn), dhar, 6));
+
+        RESET();
+        return ret;
+    }
+
 
 /**
  * @ingroup Socket_register_access_function
