@@ -649,7 +649,7 @@ private:
         *rtr = (uint16_t) tmp << 8;
 
         ret = CALL(WIZCHIP_READ(WIZCHIP_OFFSET_INC(_RTR_, 1), &tmp));
-              * rtr += tmp;
+        *rtr += tmp;
 
 
         GET_RTR_END;
@@ -691,163 +691,270 @@ private:
 ///////////////////////////////////
 //    Configuration Functions   //
 /////////////////////////////////
-/**
- * @ingroup Common_register_access_function
- * @brief Set @ref PTIMER register
- * @param (uint8_t)ptimer Value to set @ref PTIMER register.
- * @sa getPTIMER()
- */
-#define setPTIMER(ptimer) \
-        WIZCHIP_WRITE(PTIMER, ptimer)
 
-/**
- * @ingroup Common_register_access_function
- * @brief Get @ref PTIMER register
- * @return uint8_t. Value of @ref PTIMER register.
- * @sa setPTIMER()
- */
-#define getPTIMER() \
-        WIZCHIP_READ(PTIMER)
+    /**
+    * @ingroup Common_register_access_function
+    * @brief Set @ref PTIMER register
+    * @param (uint8_t)ptimer Value to set @ref PTIMER register.
+    * @sa getPTIMER()
+    */
+    RetType setPTIMER(uint8_t ptimer) {
+        RESUME();
 
-/**
- * @ingroup Common_register_access_function
- * @brief Set @ref PMAGIC register
- * @param (uint8_t)pmagic Value to set @ref PMAGIC register.
- * @sa getPMAGIC()
- */
-#define setPMAGIC(pmagic) \
-        WIZCHIP_WRITE(PMAGIC, pmagic)
+        RetType ret = CALL(WIZCHIP_WRITE(PTIMER, ptimer));
 
-/**
- * @ingroup Common_register_access_function
- * @brief Get @ref PMAGIC register
- * @return uint8_t. Value of @ref PMAGIC register.
- * @sa setPMAGIC()
- */
-#define getPMAGIC() \
-        WIZCHIP_READ(PMAGIC)
-
-/**
- * @ingroup Common_register_access_function
- * @brief Set @ref PHAR address
- * @param (uint8_t*)phar Pointer variable to set PPP destination MAC register address. It should be allocated 6 bytes.
- * @sa getPHAR()
- */
-#define setPHAR(phar) \
-        WIZCHIP_WRITE_BUF(PHAR, phar, 6)
-
-/**
- * @ingroup Common_register_access_function
- * @brief Get @ref PHAR address
- * @param (uint8_t*)phar Pointer variable to PPP destination MAC register address. It should be allocated 6 bytes.
- * @sa setPHAR()
- */
-#define getPHAR(phar) \
-        WIZCHIP_READ_BUF(PHAR, phar, 6)
-
-/**
- * @ingroup Common_register_access_function
- * @brief Set @ref PSID register
- * @param (uint16_t)psid Value to set @ref PSID register.
- * @sa getPSID()
- */
-#define setPSID(psid)  {\
-        WIZCHIP_WRITE(PSID,   (uint8_t)(psid >> 8)); \
-        WIZCHIP_WRITE(WIZCHIP_OFFSET_INC(PSID,1), (uint8_t) psid); \
+        RESET();
+        return ret;
     }
 
-/**
- * @ingroup Common_register_access_function
- * @brief Get @ref PSID register
- * @return uint16_t. Value of @ref PSID register.
- * @sa setPSID()
- */
-//uint16_t getPSID(void);
-//M20150401 : Type explict declaration
-/*
-#define getPSID() \
-        ((WIZCHIP_READ(PSID) << 8) + WIZCHIP_READ(WIZCHIP_OFFSET_INC(PSID,1)))
-*/
-#define getPSID() \
-        (((uint16_t)WIZCHIP_READ(PSID) << 8) + WIZCHIP_READ(WIZCHIP_OFFSET_INC(PSID,1)))
 
-/**
- * @ingroup Common_register_access_function
- * @brief Set @ref PMRU register
- * @param (uint16_t)pmru Value to set @ref PMRU register.
- * @sa getPMRU()
- */
-#define setPMRU(pmru) { \
-        WIZCHIP_WRITE(PMRU,   (uint8_t)(pmru>>8)); \
-        WIZCHIP_WRITE(WIZCHIP_OFFSET_INC(PMRU,1), (uint8_t) pmru); \
+    /**
+     * @ingroup Common_register_access_function
+     * @brief Get @ref PTIMER register
+     * @return uint8_t. Value of @ref PTIMER register.
+     * @sa setPTIMER()
+     */
+    RetType getPTIMER(uint8_t *ptimer) {
+        RESUME();
+
+        RetType ret = CALL(WIZCHIP_READ(PTIMER, ptimer));
+
+        RESET();
+        return ret;
     }
 
-/**
- * @ingroup Common_register_access_function
- * @brief Get @ref PMRU register
- * @return uint16_t. Value of @ref PMRU register.
- * @sa setPMRU()
- */
-//M20150401 : Type explict declaration
-/*
-#define getPMRU() \
-        ((WIZCHIP_READ(PMRU) << 8) + WIZCHIP_READ(WIZCHIP_OFFSET_INC(PMRU,1)))
-*/
-#define getPMRU() \
-        (((uint16_t)WIZCHIP_READ(PMRU) << 8) + WIZCHIP_READ(WIZCHIP_OFFSET_INC(PMRU,1)))
 
-/**
- * @ingroup Common_register_access_function
- * @brief Get unreachable IP address
- * @param (uint8_t*)uipr Pointer variable to get unreachable IP address. It should be allocated 4 bytes.
- */
-//M20150401 : Size Error of UIPR (6 -> 4)
-/*
-#define getUIPR(uipr) \
-        WIZCHIP_READ_BUF(UIPR,uipr,6)
-*/
-#define getUIPR(uipr) \
-        WIZCHIP_READ_BUF(UIPR,uipr,4)
+    /**
+     * @ingroup Common_register_access_function
+     * @brief Set @ref PMAGIC register
+     * @param (uint8_t)pmagic Value to set @ref PMAGIC register.
+     * @sa getPMAGIC()
+     */
+    RetType setPMAGIC(uint8_t pmagic) {
+        RESUME();
 
-/**
- * @ingroup Common_register_access_function
- * @brief Get @ref UPORTR register
- * @return uint16_t. Value of @ref UPORTR register.
- */
-//M20150401 : Type explict declaration
-/*
-#define getUPORTR() \
-    ((WIZCHIP_READ(UPORTR) << 8) + WIZCHIP_READ(WIZCHIP_OFFSET_INC(UPORTR,1)))
-*/
-#define getUPORTR() \
-    (((uint16_t)WIZCHIP_READ(UPORTR) << 8) + WIZCHIP_READ(WIZCHIP_OFFSET_INC(UPORTR,1)))
+        RetType ret = CALL(WIZCHIP_WRITE(PMAGIC, pmagic));
 
-/**
- * @ingroup Common_register_access_function
- * @brief Set @ref PHYCFGR register
- * @param (uint8_t)phycfgr Value to set @ref PHYCFGR register.
- * @sa getPHYCFGR()
- */
-#define setPHYCFGR(phycfgr) \
-        WIZCHIP_WRITE(PHYCFGR, phycfgr)
+        RESET();
+        return ret;
+    }
 
-/**
- * @ingroup Common_register_access_function
- * @brief Get @ref PHYCFGR register
- * @return uint8_t. Value of @ref PHYCFGR register.
- * @sa setPHYCFGR()
- */
-#define getPHYCFGR() \
-        WIZCHIP_READ(PHYCFGR)
 
-/**
- * @ingroup Common_register_access_function
- * @brief Get @ref VERSIONR register
- * @return uint8_t. Value of @ref VERSIONR register.
- */
-#define getVERSIONR() \
-        WIZCHIP_READ(VERSIONR)
+    /**
+     * @ingroup Common_register_access_function
+     * @brief Get @ref PMAGIC register
+     * @return uint8_t. Value of @ref PMAGIC register.
+     * @sa setPMAGIC()
+     */
+    RetType getPMAGIC(uint8_t *pmagic) {
+        RESUME();
 
+        RetType ret = CALL(WIZCHIP_READ(PMAGIC, pmagic));
+
+        RESET();
+        return ret;
+    }
+
+
+    /**
+     * @ingroup Common_register_access_function
+     * @brief Set @ref PHAR address
+     * @param (uint8_t*)phar Pointer variable to set PPP destination MAC register address. It should be allocated 6 bytes.
+     * @sa getPHAR()
+     */
+    RetType setPHAR(uint8_t *phar) {
+        RESUME();
+
+        RetType ret = CALL(WIZCHIP_WRITE_BUF(PHAR, phar, 6));
+
+        RESET();
+        return ret;
+    }
+
+
+    /**
+     * @ingroup Common_register_access_function
+     * @brief Get @ref PHAR address
+     * @param (uint8_t*)phar Pointer variable to PPP destination MAC register address. It should be allocated 6 bytes.
+     * @sa setPHAR()
+     */
+    RetType getPHAR(uint8_t *phar) {
+        RESUME();
+
+        RetType ret = CALL(WIZCHIP_READ_BUF(PHAR, phar, 6));
+
+        RESET();
+        return ret;
+    }
+
+
+    /**
+     * @ingroup Common_register_access_function
+     * @brief Set @ref PSID register
+     * @param (uint16_t)psid Value to set @ref PSID register.
+     * @sa getPSID()
+     */
+    RetType setPSID(uint16_t psid)  {
+        RESUME();
+
+        RetType ret = CALL(WIZCHIP_WRITE(PSID, (uint8_t) (psid >> 8)));
+        if (ret != RET_SUCCESS) goto SET_PSID_END;
+
+        ret = CALL(WIZCHIP_WRITE(WIZCHIP_OFFSET_INC(PSID, 1), (uint8_t) psid));
+
+        SET_PSID_END:
+        RESET();
+        return ret;
+    }
+
+    /**
+     * @ingroup Common_register_access_function
+     * @brief Get @ref PSID register
+     * @return uint16_t. Value of @ref PSID register.
+     * @sa setPSID()
+     */
+    RetType getPSID(uint16_t psid) {
+        RESUME();
+
+        static uint8_t tmp;
+
+        RetType ret = CALL(WIZCHIP_READ(PSID, &tmp));
+        if (ret != RET_SUCCESS) goto GET_PSID_END;
+        psid = (uint16_t) tmp << 8;
+
+        ret = CALL(WIZCHIP_READ(WIZCHIP_OFFSET_INC(PSID, 1), &tmp));
+        psid += tmp;
+
+        GET_PSID_END:
+        RESET();
+        return ret;
+    }
+
+    /**
+     * @ingroup Common_register_access_function
+     * @brief Set @ref PMRU register
+     * @param (uint16_t)pmru Value to set @ref PMRU register.
+     * @sa getPMRU()
+     */
+    RetType setPMRU(uint16_t pmru) {
+        RESUME();
+
+        RetType ret = CALL(WIZCHIP_WRITE(PMRU, (uint8_t) (pmru >> 8)));
+        if (ret != RET_SUCCESS) goto SET_PMRU_END;
+
+        ret = CALL(WIZCHIP_WRITE(WIZCHIP_OFFSET_INC(PMRU, 1), (uint8_t) pmru));
+
+        SET_PMRU_END:
+        RESET();
+        return ret;
+    }
+
+    /**
+     * @ingroup Common_register_access_function
+     * @brief Get @ref PMRU register
+     * @return uint16_t. Value of @ref PMRU register.
+     * @sa setPMRU()
+     */
+    RetType getPMRU(uint16_t *pmru) {
+        RESUME();
+
+        static uint8_t tmp;
+
+        RetType ret = CALL(WIZCHIP_READ(PMRU, &tmp));
+        *pmru = (uint16_t) tmp << 8;
+
+        ret = CALL(WIZCHIP_READ(WIZCHIP_OFFSET_INC(PMRU, 1), &tmp));
+
+        *pmru += tmp;
+        RESET();
+        return ret;
+    }
+
+
+    /**
+     * @ingroup Common_register_access_function
+     * @brief Get unreachable IP address
+     * @param (uint8_t*)uipr Pointer variable to get unreachable IP address. It should be allocated 4 bytes.
+     */
+
+    RetType getUIPR(uint8_t *uipr) {
+        RESUME();
+
+        RetType ret = CALL(WIZCHIP_READ_BUF(UIPR,uipr,4));
+
+        RESET();
+        return ret;
+    }
+
+
+
+    /**
+     * @ingroup Common_register_access_function
+     * @brief Get @ref UPORTR register
+     * @return uint16_t. Value of @ref UPORTR register.
+     */
+
+    RetType getUPORTR(uint16_t *uportr) {
+        RESUME();
+
+        static uint8_t tmp;
+
+        RetType ret = CALL(WIZCHIP_READ(UPORTR, &tmp));
+        if (ret != RET_SUCCESS) goto GET_UPORTR_END;
+        *uportr = (uint16_t) tmp << 8;
+
+        ret = CALL(WIZCHIP_READ(WIZCHIP_OFFSET_INC(UPORTR, 1), &tmp));
+        *uportr += tmp;
+
+        GET_UPORTR_END:
+        RESET();
+        return ret;
+    }
+
+
+    /**
+     * @ingroup Common_register_access_function
+     * @brief Set @ref PHYCFGR register
+     * @param (uint8_t)phycfgr Value to set @ref PHYCFGR register.
+     * @sa getPHYCFGR()
+     */
+    RetType setPHYCFGR(uint8_t phycfgr) {
+        RESUME();
+
+        RetType ret = CALL(WIZCHIP_WRITE(PHYCFGR, phycfgr));
+
+        RESET();
+        return ret;
+    }
+
+    /**
+     * @ingroup Common_register_access_function
+     * @brief Get @ref PHYCFGR register
+     * @return uint8_t. Value of @ref PHYCFGR register.
+     * @sa setPHYCFGR()
+     */
+    RetType getPHYCFGR(uint8_t *phycfgr) {
+        RESUME();
+
+        RetType ret = CALL(WIZCHIP_READ(PHYCFGR, phycfgr));
+
+        RESET();
+        return ret;
+    }
+
+    /**
+     * @ingroup Common_register_access_function
+     * @brief Get @ref VERSIONR register
+     * @return uint8_t. Value of @ref VERSIONR register.
+     */
+    RetType getVERSIONR(uint8_t *version) {
+        RESUME();
+
+        RetType ret = CALL(WIZCHIP_READ(VERSIONR, version));
+
+        RESET();
+        return ret;
+    }
 };
 
 #endif //WIZNET_H
