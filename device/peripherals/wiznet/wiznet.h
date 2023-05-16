@@ -125,7 +125,7 @@ public:
         RetType ret = CALL(WIZCHIP_READ(Sn_RX_RD(sn), &tmp));
         if (ret != RET_SUCCESS) goto GET_SN_RX_RD_END;
 
-        *result = (tmp << 8);
+        *result = (uint16_t) tmp << 8;
 
         ret = WIZCHIP_READ(WIZCHIP_OFFSET_INC(Sn_RX_RD(sn), 1), &tmp);
         if (ret != RET_SUCCESS) goto GET_SN_RX_RD_END;
@@ -413,7 +413,7 @@ private:
     * @param (uint8_t*)shar Pointer variable to get local MAC address. It should be allocated 6 bytes.
     * @sa setSHAR()
     */
-    RetType getSHAR(uint8_t *shar)  {
+    RetType getSHAR(uint8_t *shar) {
         RESUME();
         RetType ret = CALL(WIZCHIP_READ_BUF(SHAR, shar, 6));
         RESET();
@@ -463,6 +463,229 @@ private:
         ret = CALL(WIZCHIP_WRITE(WIZCHIP_OFFSET_INC(INTLEVEL, 1), (uint8_t) intlevel));
 
         SET_INT_LEVEL_END:
+    RESET();
+        return ret;
+    }
+
+    /**
+    * @ingroup Common_register_access_function
+    * @brief Get INTLEVEL register
+    * @return uint16_t. Value of @ref INTLEVEL register.
+    * @sa setINTLEVEL()
+    */
+    RetType getINTLEVEL(uint16_t *intlevel) {
+        RESUME();
+        static uint8_t tmp;
+        RetType ret = CALL(WIZCHIP_READ(INTLEVEL, &tmp));
+        if (ret != RET_SUCCESS) goto GET_INT_LEVEL_END;
+
+        *intlevel = (uint16_t) tmp << 8;
+
+        ret = CALL(WIZCHIP_READ(WIZCHIP_OFFSET_INC(INTLEVEL, 1), &tmp));
+        *intlevel += tmp;
+
+        GET_INT_LEVEL_END:
+    RESET();
+        return ret;
+    }
+
+    /**
+    * @ingroup Common_register_access_function
+    * @brief Set @ref IR register
+    * @param (uint8_t)ir Value to set @ref IR register.
+    * @sa getIR()
+    */
+    RetType setIR(uint8_t ir) {
+        RESUME();
+
+        RetType ret = CALL(WIZCHIP_WRITE(IR, (ir & 0xF0)));
+
+        RESET();
+        return ret;
+    }
+
+    /**
+    * @ingroup Common_register_access_function
+    * @brief Get @ref IR register
+    * @return uint8_t. Value of @ref IR register.
+    * @sa setIR()
+    */
+    RetType getIR(uint8_t *ir) {
+        RESUME();
+
+        RetType ret = CALL(WIZCHIP_READ(IR, ir));
+        *ir &= 0xF0;
+        RESET();
+        return ret;
+    }
+
+
+    /**
+    * @ingroup Common_register_access_function
+    * @brief Set @ref _IMR_ register
+    * @param (uint8_t)imr Value to set @ref _IMR_ register.
+    * @sa getIMR()
+    */
+    RetType setIMR(uint8_t imr) {
+        RESUME();
+
+        RetType ret = CALL(WIZCHIP_WRITE(_IMR_, imr));
+
+        RESET();
+        return ret;
+    }
+
+
+    /**
+    * @ingroup Common_register_access_function
+    * @brief Get @ref _IMR_ register
+    * @return uint8_t. Value of @ref _IMR_ register.
+    * @sa setIMR()
+    */
+    RetType getIMR(uint8_t *imr) {
+        RESUME();
+
+        RetType ret = CALL(WIZCHIP_READ(_IMR_, imr));
+
+        RESET();
+        return ret;
+    }
+
+    /**
+    * @ingroup Common_register_access_function
+    * @brief Set @ref SIR register
+    * @param (uint8_t)sir Value to set @ref SIR register.
+    * @sa getSIR()
+    */
+    RetType setSIR(uint8_t sir) {
+        RESUME();
+
+        RetType ret = CALL(WIZCHIP_WRITE(SIR, sir));
+
+        RESET();
+        return ret;
+    }
+
+
+    /**
+    * @ingroup Common_register_access_function
+    * @brief Get @ref SIR register
+    * @return uint8_t. Value of @ref SIR register.
+    * @sa setSIR()
+    */
+    RetType getSIR(uint8_t *sir) {
+        RESUME();
+
+        RetType ret = CALL(WIZCHIP_READ(SIR, sir));
+
+        RESET();
+        return ret;
+    }
+
+
+    /**
+    * @ingroup Common_register_access_function
+    * @brief Set @ref SIMR register
+    * @param (uint8_t)simr Value to set @ref SIMR register.
+    * @sa getSIMR()
+    */
+    RetType setSIMR(uint8_t simr) {
+        RESUME();
+
+        RetType ret = CALL(WIZCHIP_WRITE(SIMR, simr));
+
+        RESET();
+        return ret;
+    }
+
+
+    /**
+    * @ingroup Common_register_access_function
+    * @brief Get @ref SIMR register
+    * @return uint8_t. Value of @ref SIMR register.
+    * @sa setSIMR()
+    */
+    RetType getSIMR(uint8_t *simr) {
+        RESUME();
+
+        RetType ret =
+        CALL(WIZCHIP_READ(SIMR, simr);
+
+        RESET();
+        return ret;
+    }
+
+    /**
+    * @ingroup Common_register_access_function
+    * @brief Set @ref _RTR_ register
+    * @param (uint16_t)rtr Value to set @ref _RTR_ register.
+    * @sa getRTR()
+    */
+    RetType setRTR(uint16_t rtr) {
+        RESUME();
+
+        RetType ret = CALL(WIZCHIP_WRITE(_RTR_, (uint8_t) (rtr >> 8)));
+        if (ret != RET_SUCCESS) goto SET_RTR_END;
+
+        ret = CALL(WIZCHIP_WRITE(WIZCHIP_OFFSET_INC(_RTR_, 1), (uint8_t) rtr));
+
+        SET_RTR_END:
+    RESET();
+        return ret;
+    }
+
+    /**
+    * @ingroup Common_register_access_function
+    * @brief Get @ref _RTR_ register
+    * @return uint16_t. Value of @ref _RTR_ register.
+    * @sa setRTR()
+    */
+    RetType getRTR(uint16_t *rtr) {
+        RESUME();
+        static uint8_t tmp;
+
+        RetType ret = CALL(WIZCHIP_READ(_RTR_), &tmp);
+        if (ret != RET_SUCCESS) goto GET_RTR_END;
+
+        *rtr = (uint16_t) tmp << 8;
+
+        ret = CALL(WIZCHIP_READ(WIZCHIP_OFFSET_INC(_RTR_, 1), &tmp);
+              * rtr += tmp;
+
+
+        GET_RTR_END;
+        RESET();
+        return ret;
+    }
+
+    /**
+    * @ingroup Common_register_access_function
+    * @brief Set @ref _RCR_ register
+    * @param (uint8_t)rcr Value to set @ref _RCR_ register.
+    * @sa getRCR()
+    */
+    RetType setRCR(uint8_t rcr) {
+        RESUME();
+
+        RetType ret = CALL(WIZCHIP_WRITE(_RCR_, rcr));
+
+        RESET();
+        return ret;
+    }
+
+
+    /**
+    * @ingroup Common_register_access_function
+    * @brief Get @ref _RCR_ register
+    * @return uint8_t. Value of @ref _RCR_ register.
+    * @sa setRCR()
+    */
+    RetType getRCR(uint8_t *rcr) {
+        RESUME();
+
+        RetType ret =
+        CALL(WIZCHIP_READ(_RCR_, rcr);
+
         RESET();
         return ret;
     }
