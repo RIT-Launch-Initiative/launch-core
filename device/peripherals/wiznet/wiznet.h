@@ -118,6 +118,25 @@ public:
         setSn_RX_RD(sn, ptr);
     }
 
+    RetType getSn_RX_RD(uint8_t sn, uint16_t *result) {
+        RESUME();
+        static uint8_t tmp;
+
+        RetType ret = CALL(WIZCHIP_READ(Sn_RX_RD(sn), &tmp));
+        if (ret != RET_SUCCESS) goto GET_SN_RX_RD_END;
+
+        *result = (tmp << 8);
+
+        ret = WIZCHIP_READ(WIZCHIP_OFFSET_INC(Sn_RX_RD(sn), 1), &tmp);
+        if (ret != RET_SUCCESS) goto GET_SN_RX_RD_END;
+
+        *result += tmp;
+
+        GET_SN_RX_RD_END:
+        RESET();
+        return ret;
+    }
+
 private:
     // passed in SPI controller
     SPIDevice &m_spi;
@@ -253,7 +272,7 @@ private:
         *result = val;
 
         GET_SN_TX_FSR_END:
-        RESET();
+    RESET();
         return ret;
     }
 
@@ -287,10 +306,10 @@ private:
 
         *result = val;
         GET_SN_RX_RSR_END:
-        RESET();
+    RESET();
         return ret;
     }
 
-}
+};
 
 #endif //WIZNET_H

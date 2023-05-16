@@ -1976,8 +1976,7 @@ uint16_t getSn_RX_RSR(uint8_t sn);
 #define getSn_RX_RD(sn) \
         ((WIZCHIP_READ(Sn_RX_RD(sn)) << 8) + WIZCHIP_READ(WIZCHIP_OFFSET_INC(Sn_RX_RD(sn),1)))
 */
-#define getSn_RX_RD(sn) \
-        (((uint16_t)WIZCHIP_READ(Sn_RX_RD(sn)) << 8) + WIZCHIP_READ(WIZCHIP_OFFSET_INC(Sn_RX_RD(sn),1)))
+// getSn_RX_RD() is replaced with class function
 
 /**
  * @ingroup Socket_register_access_function
