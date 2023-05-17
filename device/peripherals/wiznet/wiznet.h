@@ -116,6 +116,31 @@ public:
         return ret;
     }
 
+    RetType hw_reset() {
+        RESUME();
+
+        CALL(m_reset.set(0));
+        SLEEP(50);
+        CALL(m_reset.set(1));
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+private:
+    // passed in SPI controller
+    SPIDevice &m_spi;
+    GPIODevice &m_cs;
+    GPIODevice &m_reset;
+
+    // SPI Transaction Buffers
+    // Reduce static memory usage by using a single buffer for all SPI transactions
+    uint8_t tx_buffer[16] = {};
+    uint8_t rx_buffer[16] = {};
+
+    uint8_t rx_int_flag = 0;
+    uint8_t tx_int_flag = 0;
+
     RetType wiz_send_data(uint8_t sn, uint8_t *wizdata, uint16_t len) {
         RESUME();
         static uint16_t ptr = 0;
@@ -185,31 +210,6 @@ public:
         RESET();
         return ret;
     }
-
-    RetType hw_reset() {
-        RESUME();
-
-        CALL(m_reset.set(0));
-        SLEEP(50);
-        CALL(m_reset.set(1));
-
-        RESET();
-        return RET_SUCCESS;
-    }
-
-private:
-    // passed in SPI controller
-    SPIDevice &m_spi;
-    GPIODevice &m_cs;
-    GPIODevice &m_reset;
-
-    // SPI Transaction Buffers
-    // Reduce static memory usage by using a single buffer for all SPI transactions
-    uint8_t tx_buffer[16] = {};
-    uint8_t rx_buffer[16] = {};
-
-    uint8_t rx_int_flag = 0;
-    uint8_t tx_int_flag = 0;
 
     RetType WIZCHIP_READ(uint32_t addr_sel, uint8_t *read_byte) {
         RESUME();
