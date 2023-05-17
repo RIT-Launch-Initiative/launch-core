@@ -77,48 +77,75 @@ class Wiznet : public NetworkLayer {
 public:
     Wiznet(SPIDevice &spi, GPIODevice &gpio) : m_spi(spi), m_gpio(gpio) {};
 
-    void wiz_send_data(uint8_t sn, uint8_t *wizdata, uint16_t len) {
-        uint16_t ptr = 0;
-        uint32_t addr_sel = 0;
+    RetType wiz_send_data(uint8_t sn, uint8_t *wizdata, uint16_t len) {
+        RESUME();
+        static uint16_t ptr = 0;
+        static uint32_t addr_sel = 0;
 
-        if (len == 0) return;
-        ptr = getSn_TX_WR(sn);
-        //M20140501 : implict type casting -> explict type casting
-        //addr_sel = (ptr << 8) + (WIZCHIP_TXBUF_BLOCK(sn) << 3);
+        RetType ret;
+        if (len == 0) {
+            ret = RET_ERROR;
+            goto SEND_DATA_END;
+        }
+
+        ret = CALL(getSn_TX_WR(sn, &ptr));
+        if (ret != RET_SUCCESS) goto SEND_DATA_END;
+
         addr_sel = ((uint32_t) ptr << 8) + (WIZCHIP_TXBUF_BLOCK(sn) << 3);
-        //
-        WIZCHIP_WRITE_BUF(addr_sel, wizdata, len);
+        ret = CALL(WIZCHIP_WRITE_BUF(addr_sel, wizdata, len));
+        if (ret != RET_SUCCESS) goto SEND_DATA_END;
 
         ptr += len;
-        setSn_TX_WR(sn, ptr);
+        ret = CALL(setSn_TX_WR(sn, ptr));
+
+        SEND_DATA_END:
+        RESET();
+        return ret;
     }
 
-    void wiz_recv_data(uint8_t sn, uint8_t *wizdata, uint16_t len) {
-        uint16_t ptr = 0;
-        uint32_t addr_sel = 0;
+    RetType wiz_recv_data(uint8_t sn, uint8_t *wizdata, uint16_t len) {
+        RESUME();
+        static uint16_t ptr = 0;
+        static uint32_t addr_sel = 0;
 
-        if (len == 0) return;
-        ptr = getSn_RX_RD(sn);
-        //M20140501 : implict type casting -> explict type casting
-        //addr_sel = ((ptr << 8) + (WIZCHIP_RXBUF_BLOCK(sn) << 3);
+        RetType ret;
+        if (len == 0) {
+            ret = RET_ERROR;
+            goto RECV_DATA_END;
+        }
+        ret = CALL(getSn_RX_RD(sn, &ptr));
+        if (ret != RET_SUCCESS) goto RECV_DATA_END;
         addr_sel = ((uint32_t) ptr << 8) + (WIZCHIP_RXBUF_BLOCK(sn) << 3);
-        //
-        WIZCHIP_READ_BUF(addr_sel, wizdata, len);
+
+        ret = CALL(WIZCHIP_READ_BUF(addr_sel, wizdata, len));
+        if (ret != RET_SUCCESS) goto RECV_DATA_END;
+
         ptr += len;
 
-        setSn_RX_RD(sn, ptr);
+        ret = CALL(setSn_RX_RD(sn, ptr));
+        if (ret != RET_SUCCESS) goto RECV_DATA_END;
+
+        RECV_DATA_END:
+        RESET();
+        return ret;
     }
 
 
-    void wiz_recv_ignore(uint8_t sn, uint16_t len) {
-        uint16_t ptr = 0;
+    RetType wiz_recv_ignore(uint8_t sn, uint16_t len) {
+        RESUME();
 
-        ptr = getSn_RX_RD(sn);
+        static uint16_t ptr;
+
+        RetType ret = CALL(getSn_RX_RD(sn, &ptr));
+        if (ret != RET_SUCCESS) goto RECV_IGNORE_END;
+
         ptr += len;
-        setSn_RX_RD(sn, ptr);
-    }
+        ret = CALL(setSn_RX_RD(sn, ptr));
 
-    
+        RECV_IGNORE_END:
+        RESET();
+        return ret;
+    }
 
 private:
     // passed in SPI controller
