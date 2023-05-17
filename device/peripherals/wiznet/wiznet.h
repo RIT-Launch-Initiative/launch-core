@@ -61,7 +61,6 @@ public:
         if (ret != RET_SUCCESS) goto init_end;
 
         ret = CALL(getSn_CR(DEFAULT_SOCKET_NUM, &tmp));
-        if (ret != RET_SUCCESS) goto init_end;
         if (tmp != SOCK_MACRAW) ret = RET_ERROR;
 
         init_end:
@@ -78,7 +77,43 @@ public:
     }
 
     RetType transmit2(Packet& packet, netinfo_t& info, NetworkLayer* caller) {
-        return RET_ERROR; // TODO: Unimplemented
+        RESUME();
+
+        static uint8_t tmp;
+        static uint16_t free_size;
+
+        RetType ret = CALL(setSn_DIPR(DEFAULT_SOCKET_NUM, reinterpret_cast<uint8_t *>(info.dst.ipv4_addr)));
+        if (ret != RET_SUCCESS) goto transmit2_end;
+
+        ret = CALL(setSn_DPORT(DEFAULT_SOCKET_NUM, info.dst.udp_port));
+        if (ret != RET_SUCCESS) goto transmit2_end;
+
+        // TODO: Packet sizing checks?
+
+        ret = CALL(wiz_send_data(DEFAULT_SOCKET_NUM, packet.read_ptr<uint8_t>(), packet.size()));
+        if (ret != RET_SUCCESS) goto transmit2_end;
+
+        ret = CALL(setSn_CR(DEFAULT_SOCKET_NUM, Sn_CR_SEND));
+        if (ret != RET_SUCCESS) goto transmit2_end;
+
+        while (true) {
+            ret = CALL(getSn_IR(DEFAULT_SOCKET_NUM, &tmp));
+            if (ret != RET_SUCCESS) goto transmit2_end;
+
+            if (tmp & Sn_IR_SENDOK) {
+                ret = CALL(setSn_IR(DEFAULT_SOCKET_NUM, Sn_IR_SENDOK));
+                break;
+            } else if (tmp & Sn_IR_TIMEOUT) {
+                ret = CALL(setSn_IR(DEFAULT_SOCKET_NUM, Sn_IR_TIMEOUT));
+
+                RESET();
+                return RET_ERROR;
+            }
+        }
+
+        transmit2_end:
+        RESET();
+        return ret;
     }
 
     RetType wiz_send_data(uint8_t sn, uint8_t *wizdata, uint16_t len) {
