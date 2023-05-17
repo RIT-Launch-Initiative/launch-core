@@ -1690,7 +1690,7 @@ private:
          RESUME();
          static uint8_t tmp;
 
-         RetType ret = CALL(getSn_RXBUF_SIZE(sn, tmp));
+         RetType ret = CALL(getSn_RXBUF_SIZE(sn, &tmp));
          *rx_max = tmp << 10;
 
          RESET();
@@ -1707,7 +1707,7 @@ private:
          RESUME();
          static uint8_t tmp;
 
-         RetType ret = CALL(getSn_TXBUF_SIZE(sn, tmp));
+         RetType ret = CALL(getSn_TXBUF_SIZE(sn, &tmp));
          *tx_max = tmp << 10;
 
          RESET();
