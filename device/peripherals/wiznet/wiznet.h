@@ -127,13 +127,13 @@ public:
 
         *result = (uint16_t) tmp << 8;
 
-        ret = WIZCHIP_READ(WIZCHIP_OFFSET_INC(Sn_RX_RD(sn), 1), &tmp);
+        ret = CALL(WIZCHIP_READ(WIZCHIP_OFFSET_INC(Sn_RX_RD(sn), 1), &tmp));
         if (ret != RET_SUCCESS) goto GET_SN_RX_RD_END;
 
         *result += tmp;
 
         GET_SN_RX_RD_END:
-    RESET();
+        RESET();
         return ret;
     }
 
@@ -485,7 +485,7 @@ private:
         *intlevel += tmp;
 
         GET_INT_LEVEL_END:
-    RESET();
+        RESET();
         return ret;
     }
 
@@ -651,8 +651,7 @@ private:
         ret = CALL(WIZCHIP_READ(WIZCHIP_OFFSET_INC(_RTR_, 1), &tmp));
         *rtr += tmp;
 
-
-        GET_RTR_END;
+        GET_RTR_END:
         RESET();
         return ret;
     }
@@ -864,8 +863,8 @@ private:
         *pmru = (uint16_t) tmp << 8;
 
         ret = CALL(WIZCHIP_READ(WIZCHIP_OFFSET_INC(PMRU, 1), &tmp));
-
         *pmru += tmp;
+
         RESET();
         return ret;
     }
@@ -1187,188 +1186,308 @@ private:
     }
 
 
-/**
- * @ingroup Socket_register_access_function
- * @brief Set @ref Sn_DIPR register
- * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
- * @param (uint8_t*)dipr Pointer variable to set socket n destination IP address. It should be allocated 4 bytes.
- * @sa getSn_DIPR()
- */
-RetType setSn_DIPR(sn, dipr) \
-        WIZCHIP_WRITE_BUF(Sn_DIPR(sn), dipr, 4)
+    /**
+     * @ingroup Socket_register_access_function
+     * @brief Set @ref Sn_DIPR register
+     * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
+     * @param (uint8_t*)dipr Pointer variable to set socket n destination IP address. It should be allocated 4 bytes.
+     * @sa getSn_DIPR()
+     */
+    RetType setSn_DIPR(uint8_t sn, uint8_t *dipr) {
+        RESUME();
 
-/**
- * @ingroup Socket_register_access_function
- * @brief Get @ref Sn_DIPR register
- * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
- * @param (uint8_t*)dipr Pointer variable to get socket n destination IP address. It should be allocated 4 bytes.
- * @sa setSn_DIPR()
- */
-RetType getSn_DIPR(sn, dipr) \
-        WIZCHIP_READ_BUF(Sn_DIPR(sn), dipr, 4)
+        RetType ret = CALL(WIZCHIP_WRITE_BUF(Sn_DIPR(sn), dipr, 4));
 
-/**
- * @ingroup Socket_register_access_function
- * @brief Set @ref Sn_DPORT register
- * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
- * @param (uint16_t)dport Value to set @ref Sn_DPORT
- * @sa getSn_DPORT()
- */
-RetType setSn_DPORT(sn, dport) { \
-        WIZCHIP_WRITE(Sn_DPORT(sn),   (uint8_t) (dport>>8)); \
-        WIZCHIP_WRITE(WIZCHIP_OFFSET_INC(Sn_DPORT(sn),1), (uint8_t)  dport); \
+        RESET();
+        return ret;
     }
 
-/**
- * @ingroup Socket_register_access_function
- * @brief Get @ref Sn_DPORT register
- * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
- * @return uint16_t. Value of @ref Sn_DPORT.
- * @sa setSn_DPORT()
- */
-//M20150401 : Type explict declaration
-/*
-RetType getSn_DPORT(sn) \
-        ((WIZCHIP_READ(Sn_DPORT(sn)) << 8) + WIZCHIP_READ(WIZCHIP_OFFSET_INC(Sn_DPORT(sn),1)))
-*/
-RetType getSn_DPORT(sn) \
-        (((uint16_t)WIZCHIP_READ(Sn_DPORT(sn)) << 8) + WIZCHIP_READ(WIZCHIP_OFFSET_INC(Sn_DPORT(sn),1)))
 
-/**
- * @ingroup Socket_register_access_function
- * @brief Set @ref Sn_MSSR register
- * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
- * @param (uint16_t)mss Value to set @ref Sn_MSSR
- * @sa setSn_MSSR()
- */
-RetType setSn_MSSR(sn, mss) { \
-        WIZCHIP_WRITE(Sn_MSSR(sn),   (uint8_t)(mss>>8)); \
-        WIZCHIP_WRITE(WIZCHIP_OFFSET_INC(Sn_MSSR(sn),1), (uint8_t) mss); \
+    /**
+     * @ingroup Socket_register_access_function
+     * @brief Get @ref Sn_DIPR register
+     * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
+     * @param (uint8_t*)dipr Pointer variable to get socket n destination IP address. It should be allocated 4 bytes.
+     * @sa setSn_DIPR()
+     */
+    RetType getSn_DIPR(uint8_t sn, uint8_t *dipr) {
+        RESUME();
+
+        RetType ret = CALL(WIZCHIP_READ_BUF(Sn_DIPR(sn), dipr, 4));
+
+        RESET();
+        return ret;
     }
 
-/**
- * @ingroup Socket_register_access_function
- * @brief Get @ref Sn_MSSR register
- * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
- * @return uint16_t. Value of @ref Sn_MSSR.
- * @sa setSn_MSSR()
- */
-//M20150401 : Type explict declaration
-/*
-RetType getSn_MSSR(sn) \
-        ((WIZCHIP_READ(Sn_MSSR(sn)) << 8) + WIZCHIP_READ(WIZCHIP_OFFSET_INC(Sn_MSSR(sn),1)))
-*/
-RetType getSn_MSSR(sn) \
-        (((uint16_t)WIZCHIP_READ(Sn_MSSR(sn)) << 8) + WIZCHIP_READ(WIZCHIP_OFFSET_INC(Sn_MSSR(sn),1)))
+    /**
+     * @ingroup Socket_register_access_function
+     * @brief Set @ref Sn_DPORT register
+     * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
+     * @param (uint16_t)dport Value to set @ref Sn_DPORT
+     * @sa getSn_DPORT()
+     */
+    RetType setSn_DPORT(uint8_t sn, uint16_t dport) {
+        RESUME();
 
-/**
- * @ingroup Socket_register_access_function
- * @brief Set @ref Sn_TOS register
- * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
- * @param (uint8_t)tos Value to set @ref Sn_TOS
- * @sa getSn_TOS()
- */
-RetType setSn_TOS(sn, tos) \
-        WIZCHIP_WRITE(Sn_TOS(sn), tos)
+        RetType ret = CALL(WIZCHIP_WRITE(Sn_DPORT(sn), (uint8_t) (dport >> 8)));
+        if (ret != RET_SUCCESS) goto SET_SN_DPORT_END;
 
-/**
- * @ingroup Socket_register_access_function
- * @brief Get @ref Sn_TOS register
- * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
- * @return uint8_t. Value of Sn_TOS.
- * @sa setSn_TOS()
- */
-RetType getSn_TOS(sn) \
-        WIZCHIP_READ(Sn_TOS(sn))
+        ret = CALL(WIZCHIP_WRITE(WIZCHIP_OFFSET_INC(Sn_DPORT(sn), 1), (uint8_t) dport));
 
-/**
- * @ingroup Socket_register_access_function
- * @brief Set @ref Sn_TTL register
- * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
- * @param (uint8_t)ttl Value to set @ref Sn_TTL
- * @sa getSn_TTL()
- */
-RetType setSn_TTL(sn, ttl) \
-        WIZCHIP_WRITE(Sn_TTL(sn), ttl)
+        SET_SN_DPORT_END:
+        RESET();
+        return ret;
+    }
+
+    /**
+     * @ingroup Socket_register_access_function
+     * @brief Get @ref Sn_DPORT register
+     * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
+     * @return uint16_t. Value of @ref Sn_DPORT.
+     * @sa setSn_DPORT()
+     */
+    RetType getSn_DPORT(uint8_t sn, uint16_t *dport) {
+        RESUME();
+        static uint8_t tmp;
+
+        RetType ret = CALL(WIZCHIP_READ(Sn_DPORT(sn), &tmp));
+        if (ret != RET_SUCCESS) goto GET_SN_DPORT_END;
+
+        *dport = (uint16_t) tmp << 8;
+
+        ret = CALL(WIZCHIP_READ(WIZCHIP_OFFSET_INC(Sn_DPORT(sn),1), &tmp));
+
+        *dport += tmp;
+
+        GET_SN_DPORT_END:
+        RESET();
+        return ret;
+    }
+
+    /**
+     * @ingroup Socket_register_access_function
+     * @brief Set @ref Sn_MSSR register
+     * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
+     * @param (uint16_t)mss Value to set @ref Sn_MSSR
+     * @sa setSn_MSSR()
+     */
+    RetType setSn_MSSR(uint8_t sn, uint16_t mss) {
+        RESUME();
+
+        RetType ret = CALL(WIZCHIP_WRITE(Sn_MSSR(sn), (uint8_t) (mss >> 8)));
+        if (ret != RET_SUCCESS) goto SET_SN_MSSR;
+
+        ret = CALL(WIZCHIP_WRITE(WIZCHIP_OFFSET_INC(Sn_MSSR(sn), 1), (uint8_t) mss));
+
+        SET_SN_MSSR:
+        RESET();
+        return ret;
+    }
+
+    /**
+     * @ingroup Socket_register_access_function
+     * @brief Get @ref Sn_MSSR register
+     * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
+     * @return uint16_t. Value of @ref Sn_MSSR.
+     * @sa setSn_MSSR()
+     */
+    RetType getSn_MSSR(uint8_t sn, uint16_t *mssr) {
+        RESUME();
+
+        static uint8_t tmp;
+        RetType ret = CALL(WIZCHIP_READ(Sn_MSSR(sn), &tmp));
+        if (ret != RET_SUCCESS) goto GET_SN_MSSR_END;
+
+        *mssr = (uint16_t) tmp << 8;
+
+        ret = CALL(WIZCHIP_READ(WIZCHIP_OFFSET_INC(Sn_MSSR(sn), 1), &tmp));
+        *mssr += tmp;
+
+        GET_SN_MSSR_END:
+        RESET();
+        return ret;
+    }
+
+    /**
+     * @ingroup Socket_register_access_function
+     * @brief Set @ref Sn_TOS register
+     * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
+     * @param (uint8_t)tos Value to set @ref Sn_TOS
+     * @sa getSn_TOS()
+     */
+    RetType setSn_TOS(uint8_t sn, uint8_t tos) {
+        RESUME();
+
+        RetType ret = CALL(WIZCHIP_WRITE(Sn_TOS(sn), tos));
+
+        RESET();
+        return ret;
+    }
 
 
-/**
- * @ingroup Socket_register_access_function
- * @brief Get @ref Sn_TTL register
- * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
- * @return uint8_t. Value of @ref Sn_TTL.
- * @sa setSn_TTL()
- */
-RetType getSn_TTL(sn) \
-        WIZCHIP_READ(Sn_TTL(sn))
+    /**
+     * @ingroup Socket_register_access_function
+     * @brief Get @ref Sn_TOS register
+     * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
+     * @return uint8_t. Value of Sn_TOS.
+     * @sa setSn_TOS()
+     */
+    RetType getSn_TOS(uint8_t sn, uint8_t *tos) {
+        RESUME();
+
+        RetType ret = CALL(WIZCHIP_READ(Sn_TOS(sn), tos));
+
+        RESET();
+        return ret;
+    }
+
+    /**
+     * @ingroup Socket_register_access_function
+     * @brief Set @ref Sn_TTL register
+     * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
+     * @param (uint8_t)ttl Value to set @ref Sn_TTL
+     * @sa getSn_TTL()
+     */
+    RetType setSn_TTL(uint8_t sn, uint8_t ttl) {
+        RESUME();
+
+        RetType ret = CALL(WIZCHIP_WRITE(Sn_TTL(sn), ttl));
+
+        RESET();
+        return ret;
+    }
 
 
-/**
- * @ingroup Socket_register_access_function
- * @brief Set @ref Sn_RXBUF_SIZE register
- * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
- * @param (uint8_t)rxbufsize Value to set @ref Sn_RXBUF_SIZE
- * @sa getSn_RXBUF_SIZE()
- */
-RetType setSn_RXBUF_SIZE(sn, rxbufsize) \
-        WIZCHIP_WRITE(Sn_RXBUF_SIZE(sn),rxbufsize)
+
+    /**
+     * @ingroup Socket_register_access_function
+     * @brief Get @ref Sn_TTL register
+     * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
+     * @return uint8_t. Value of @ref Sn_TTL.
+     * @sa setSn_TTL()
+     */
+    RetType getSn_TTL(uint8_t sn, uint8_t *ttl) {
+        RESUME();
+
+        RetType ret = CALL(WIZCHIP_READ(Sn_TTL(sn), ttl));
+
+        RESET();
+        return ret;
+    }
 
 
-/**
- * @ingroup Socket_register_access_function
- * @brief Get @ref Sn_RXBUF_SIZE register
- * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
- * @return uint8_t. Value of @ref Sn_RXBUF_SIZE.
- * @sa setSn_RXBUF_SIZE()
- */
-RetType getSn_RXBUF_SIZE(sn) \
-        WIZCHIP_READ(Sn_RXBUF_SIZE(sn))
 
-/**
- * @ingroup Socket_register_access_function
- * @brief Set @ref Sn_TXBUF_SIZE register
- * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
- * @param (uint8_t)txbufsize Value to set @ref Sn_TXBUF_SIZE
- * @sa getSn_TXBUF_SIZE()
- */
-RetType setSn_TXBUF_SIZE(sn, txbufsize) \
-        WIZCHIP_WRITE(Sn_TXBUF_SIZE(sn), txbufsize)
+    /**
+     * @ingroup Socket_register_access_function
+     * @brief Set @ref Sn_RXBUF_SIZE register
+     * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
+     * @param (uint8_t)rxbufsize Value to set @ref Sn_RXBUF_SIZE
+     * @sa getSn_RXBUF_SIZE()
+     */
+    RetType setSn_RXBUF_SIZE(uint8_t sn, uint8_t rx_buf_size) {
+        RESUME();
 
-/**
- * @ingroup Socket_register_access_function
- * @brief Get @ref Sn_TXBUF_SIZE register
- * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
- * @return uint8_t. Value of @ref Sn_TXBUF_SIZE.
- * @sa setSn_TXBUF_SIZE()
- */
-RetType getSn_TXBUF_SIZE(sn) \
-        WIZCHIP_READ(Sn_TXBUF_SIZE(sn))
+        RetType ret = CALL(WIZCHIP_WRITE(Sn_RXBUF_SIZE(sn), rx_buf_size));
 
-/**
- * @ingroup Socket_register_access_function
- * @brief Get @ref Sn_TX_RD register
- * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
- * @return uint16_t. Value of @ref Sn_TX_RD.
- */
-//M20150401 : Type explict declaration
-/*
-RetType getSn_TX_RD(sn) \
-        ((WIZCHIP_READ(Sn_TX_RD(sn)) << 8) + WIZCHIP_READ(WIZCHIP_OFFSET_INC(Sn_TX_RD(sn),1)))
-*/
-RetType getSn_TX_RD(sn) \
-        (((uint16_t)WIZCHIP_READ(Sn_TX_RD(sn)) << 8) + WIZCHIP_READ(WIZCHIP_OFFSET_INC(Sn_TX_RD(sn),1)))
+        RESET();
+        return ret;
+    }
 
-/**
- * @ingroup Socket_register_access_function
- * @brief Set @ref Sn_TX_WR register
- * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
- * @param (uint16_t)txwr Value to set @ref Sn_TX_WR
- * @sa GetSn_TX_WR()
- */
-RetType setSn_TX_WR(sn, txwr) { \
-        WIZCHIP_WRITE(Sn_TX_WR(sn),   (uint8_t)(txwr>>8)); \
-        WIZCHIP_WRITE(WIZCHIP_OFFSET_INC(Sn_TX_WR(sn),1), (uint8_t) txwr); \
-        }
+    /**
+     * @ingroup Socket_register_access_function
+     * @brief Get @ref Sn_RXBUF_SIZE register
+     * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
+     * @return uint8_t. Value of @ref Sn_RXBUF_SIZE.
+     * @sa setSn_RXBUF_SIZE()
+     */
+    RetType getSn_RXBUF_SIZE(uint8_t sn, uint8_t *rx_buf_size) {
+        RESUME();
+
+        RetType ret = CALL(WIZCHIP_READ(Sn_RXBUF_SIZE(sn), rx_buf_size));
+
+        RESET();
+        return ret;
+    }
+
+
+    /**
+     * @ingroup Socket_register_access_function
+     * @brief Set @ref Sn_TXBUF_SIZE register
+     * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
+     * @param (uint8_t)txbufsize Value to set @ref Sn_TXBUF_SIZE
+     * @sa getSn_TXBUF_SIZE()
+     */
+    RetType setSn_TXBUF_SIZE(uint8_t sn, uint8_t tx_buf_size) {
+        RESUME();
+
+        RetType ret = CALL(WIZCHIP_WRITE(Sn_TXBUF_SIZE(sn), tx_buf_size));
+
+        RESET();
+        return ret;
+    }
+
+
+    /**
+     * @ingroup Socket_register_access_function
+     * @brief Get @ref Sn_TXBUF_SIZE register
+     * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
+     * @return uint8_t. Value of @ref Sn_TXBUF_SIZE.
+     * @sa setSn_TXBUF_SIZE()
+     */
+    RetType getSn_TXBUF_SIZE(uint8_t sn, uint8_t *tx_buf_size) {
+        RESUME();
+
+        RetType ret = CALL(WIZCHIP_READ(Sn_TXBUF_SIZE(sn), tx_buf_size));
+
+        RESET();
+        return ret;
+    }
+
+
+    /**
+     * @ingroup Socket_register_access_function
+     * @brief Get @ref Sn_TX_RD register
+     * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
+     * @return uint16_t. Value of @ref Sn_TX_RD.
+     */
+    RetType getSn_TX_RD(uint8_t sn, uint16_t *tx_rd) {
+        RESUME();
+        static uint8_t tmp;
+
+        RetType ret = CALL(WIZCHIP_READ(Sn_TX_RD(sn), &tmp));
+        if (ret != RET_SUCCESS) goto GET_SN_RX_RD_END;
+
+        *tx_rd = (uint16_t) tmp << 8;
+
+        ret = CALL(WIZCHIP_READ(WIZCHIP_OFFSET_INC(Sn_TX_RD(sn),1), &tmp));
+        if (ret != RET_SUCCESS) goto GET_SN_RX_RD_END;
+
+        *tx_rd += tmp;
+
+        GET_SN_RX_RD_END:
+        RESET();
+        return ret;
+    }
+
+    /**
+     * @ingroup Socket_register_access_function
+     * @brief Set @ref Sn_TX_WR register
+     * @param (uint8_t)sn Socket number. It should be <b>0 ~ 7</b>.
+     * @param (uint16_t)txwr Value to set @ref Sn_TX_WR
+     * @sa GetSn_TX_WR()
+     */
+    RetType setSn_TX_WR(uint16_t sn, uint16_t txwr) {
+        RESUME();
+
+        RetType ret = CALL(WIZCHIP_WRITE(Sn_TX_WR(sn), (uint8_t) (txwr >> 8)));
+        if (ret != RET_SUCCESS) goto SET_SN_TX_WR_END;
+
+        ret = CALL(WIZCHIP_WRITE(WIZCHIP_OFFSET_INC(Sn_TX_WR(sn), 1), (uint8_t) txwr));
+
+        SET_SN_TX_WR_END:
+        RESET();
+        return ret;
+    }
 
 /**
  * @ingroup Socket_register_access_function
@@ -1377,11 +1496,7 @@ RetType setSn_TX_WR(sn, txwr) { \
  * @return uint16_t. Value of @ref Sn_TX_WR.
  * @sa setSn_TX_WR()
  */
-//M20150401 : Type explict declaration
-/*
-RetType getSn_TX_WR(sn) \
-        ((WIZCHIP_READ(Sn_TX_WR(sn)) << 8) + WIZCHIP_READ(WIZCHIP_OFFSET_INC(Sn_TX_WR(sn),1)))
-*/
+
 RetType getSn_TX_WR(sn) \
         (((uint16_t)WIZCHIP_READ(Sn_TX_WR(sn)) << 8) + WIZCHIP_READ(WIZCHIP_OFFSET_INC(Sn_TX_WR(sn),1)))
 
