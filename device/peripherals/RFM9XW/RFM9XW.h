@@ -9,6 +9,8 @@
 #include "device/GPIODevice.h"
 #include "device/SPIDevice.h"
 
+#define RFM9XW_VERSION 0x12
+
 using RFM9XW_EEPROM_CONFIG_T = struct {
     uint16_t magic;
     uint16_t rx_frame_count;
@@ -19,14 +21,35 @@ using RFM9XW_EEPROM_CONFIG_T = struct {
 };
 
 using RFM9XW_REGISTER_T = enum {
-    RFM9X_FIFO_ACCESS = 0x00,
-    RFM9X_OP_MODE = 0x01,
-
-    RFM9X_FR_MSB = 0x06,
-    RFM9X_FR_MID = 0x07,
-    RFM9X_FR_LSB = 0x08,
-
-    RFM9X_VERSION = 0x42,
+    RFM9XW_REG_FIFO_ACCESS = 0x00,
+    RFM9XW_REG_OP_MODE = 0x01,
+    RFM9XW_REG_FR_MSB = 0x06,
+    RFM9XW_REG_FR_MID = 0x07,
+    RFM9XW_REG_FR_LSB = 0x08,
+    RFM9XW_REG_PA_CONFIG = 0x09,
+    RFM9XW_REG_LNA = 0x0C,
+    RFM9XW_REG_FIFO_ADDR_PTR = 0x0D,
+    RFM9XW_REG_FIFO_TX_BASE_ADDR = 0x0E,
+    RFM9XW_REG_FIFO_RX_BASE_ADDR = 0x0F,
+    RFM9XW_REG_IRQ_FLAGS = 0x12,
+    RFM9XW_REG_FIFO_RX_BYTES_NB = 0x13,
+    RFM9XW_REG_PACKET_SNR = 0x19,
+    RFM9XW_REG_MODEM_CONFIG_1 = 0x1D,
+    RFM9XW_REG_MODEM_CONFIG_2 = 0x1E,
+    RFM9XW_REG_SYMB_TIMEOUT_LSB = 0x1F,
+    RFM9XW_REG_PREAMBLE_MSB = 0x20,
+    RFM9XW_REG_PREAMBLE_LSB = 0x21,
+    RFM9XW_REG_PAYLOAD_LENGTH = 0x22,
+    RFM9XW_REG_MAX_PAYLOAD_LENGTH = 0x23,
+    RFM9XW_REG_MODEM_CONFIG_3 = 0x26,
+    RFM9XW_REG_DETECTION_OPTIMIZE = 0x31,
+    RFM9XW_REG_INVERT_IQ_1 = 0x33,
+    RFM9XW_REG_DETECTION_THRESHOLD = 0x37,
+    RFM9XW_REG_SYNC_WORD = 0x39,
+    RFM9XW_REG_INVERT_IQ_2 = 0x3B,
+    RFM9XW_REG_DIO_MAPPING_1 = 0x40,
+    RFM9XW_REG_VERSION = 0x42,
+    RFM9XW_REG_PA_DAC = 0x4D
 };
 
 class RFM9XW : public NetworkLayer {
@@ -37,8 +60,12 @@ public:
         RESUME();
 
         static uint8_t tmp;
-        RetType ret = CALL(read_reg(RFM9X_VERSION, &tmp, 1));
+        RetType ret = CALL(read_reg(RFM9XW_REG_VERSION, &tmp, 1));
         if (ret != RET_SUCCESS) goto init_end;
+        if (ret != RFM9XW_VERSION) {
+            ret = RET_ERROR;
+            goto init_end;
+        }
 
 
         init_end:
