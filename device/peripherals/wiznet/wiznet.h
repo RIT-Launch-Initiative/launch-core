@@ -109,6 +109,8 @@ public:
                 RESET();
                 return RET_ERROR;
             }
+
+            YIELD();
         }
 
         transmit2_end:
@@ -1121,7 +1123,7 @@ private:
         RESET();
         return ret;
     }
-    
+
     /**
      * @ingroup Socket_register_access_function
      * @brief Get @ref Sn_MR register
@@ -1673,12 +1675,12 @@ private:
      */
     RetType setSn_RX_RD(uint8_t sn, uint16_t rx_rd) {
         RESUME();
-        
+
         RetType ret = CALL(WIZCHIP_WRITE(Sn_RX_RD(sn), (uint8_t)(rx_rd >> 8)));
         if (ret != RET_SUCCESS) goto SET_SN_RX_RD_END;
-        
+
         ret = CALL(WIZCHIP_WRITE(WIZCHIP_OFFSET_INC(Sn_RX_RD(sn), 1), (uint8_t) rx_rd));
-        
+
         SET_SN_RX_RD_END:
         RESET();
         return ret;
@@ -1742,14 +1744,14 @@ private:
      * @param (uint16_t)frag Value to set @ref Sn_FRAG
      * @sa getSn_FRAD()
      */
-    RetType setSn_FRAG(uint8_t sn, uint16_t frag) { 
+    RetType setSn_FRAG(uint8_t sn, uint16_t frag) {
         RESUME();
-        
+
         RetType ret = CALL(WIZCHIP_WRITE(Sn_FRAG(sn),  (uint8_t) (frag >> 8)));
         if (ret != RET_SUCCESS) goto SET_SN_FRAG_END;
-        
+
         ret = CALL(WIZCHIP_WRITE(WIZCHIP_OFFSET_INC(Sn_FRAG(sn),1), (uint8_t) frag));
-        
+
         SET_SN_FRAG_END:
         RESET();
         return ret;
@@ -1780,7 +1782,7 @@ private:
         RESET();
         return ret;
     }
-    
+
     /**
      * @ingroup Socket_register_access_function
      * @brief Set @ref Sn_KPALVTR register
