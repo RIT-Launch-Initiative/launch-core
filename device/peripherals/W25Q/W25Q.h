@@ -370,6 +370,157 @@ public:
         return RET_SUCCESS;
     }
 
+    RetType read_byte(uint8_t *byte, size_t read_address) {
+        RESUME();
+
+        RetType ret = CALL(m_cs.set(0));
+        RET_CHECK(ret);
+
+        tx_buff[0] = FAST_READ_DUAL_IO;
+        tx_buff[1] = (read_address & 0xFF0000) >> 16;
+        tx_buff[2] = (read_address & 0x00FF00) >> 8;
+        tx_buff[3] = (read_address & 0x0000FF);
+        tx_buff[4] = 0;
+
+        // Can prob consolidate into one call
+        ret = CALL(m_spi.write(tx_buff, 5));
+        RET_CHECK(ret);
+
+        *byte = DUMMY_BYTE;
+        ret = CALL(m_spi.write_read(byte, byte, 1));
+        RET_CHECK(ret);
+
+        ret = CALL(m_cs.set(1));
+        RESET();
+        return ret;
+    }
+
+    RetType read_bytes(uint8_t *buff, size_t len, uint32_t read_address) {
+        RESUME();
+
+        RetType ret = CALL(m_cs.set(0));
+        RET_CHECK(ret);
+
+        tx_buff[0] = FAST_READ_DUAL_IO;
+        tx_buff[1] = (read_address & 0xFF0000) >> 16;
+        tx_buff[2] = (read_address & 0x00FF00) >> 8;
+        tx_buff[3] = (read_address & 0x0000FF);
+        tx_buff[4] = 0;
+
+        ret = CALL(m_spi.write(tx_buff, 5));
+        RET_CHECK(ret);
+
+        ret = CALL(m_spi.read(buff, len, 2000));
+        RET_CHECK(ret);
+
+        ret = CALL(m_cs.set(1));
+        RESET();
+        return ret;
+    }
+
+    RetType read_page(uint8_t *buff, size_t len, uint32_t page_address, uint32_t byte_offset) {
+        RESUME();
+
+        if (len == 0) { // Nothing to do
+            RESET();
+            return RET_SUCCESS;
+        }
+
+        if ((len + byte_offset) > page_size) len = page_size - byte_offset;
+
+        page_address = (page_address * page_size) + byte_offset;
+
+        RetType ret = CALL(m_cs.set(0));
+        RET_CHECK(ret);
+
+        tx_buff[0] = FAST_READ_DUAL_IO;
+        tx_buff[1] = (page_address & 0xFF0000) >> 16;
+        tx_buff[2] = (page_address & 0x00FF00) >> 8;
+        tx_buff[3] = (page_address & 0x0000FF);
+        tx_buff[4] = 0;
+
+        ret = CALL(m_spi.write(tx_buff, 5));
+        RET_CHECK(ret);
+
+        ret = CALL(m_spi.read(buff, len, 100));
+        RET_CHECK(ret);
+
+
+        ret = CALL(m_cs.set(1));
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType read_sector(uint8_t *buff, size_t len, uint32_t sector_address, uint32_t byte_offset) {
+        RESUME();
+        static uint32_t start_page;
+        static uint32_t bytes_to_read;
+        static uint32_t local_offset;
+
+        if (len == 0) { // Nothing to do
+            RESET();
+            return RET_SUCCESS;
+        }
+
+        if (len > sector_size) len = sector_size;
+        if (byte_offset > sector_size) RET_CHECK(RET_ERROR);
+
+        if ((byte_offset + len) > sector_size) {
+            bytes_to_read = sector_size - byte_offset;
+        } else {
+            bytes_to_read = len;
+        }
+
+        start_page = sectorToPage(sector_address) + (byte_offset / page_size);
+        local_offset = byte_offset % page_size;
+
+        do {
+            RetType ret = CALL(read_page(buff, bytes_to_read, start_page, local_offset)); // TODO: Update
+            RET_CHECK(ret);
+
+            start_page++;
+            bytes_to_read -= page_size - local_offset;
+            buff += page_size - local_offset;
+            local_offset = 0;
+        } while (bytes_to_read > 0);
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType read_block(uint8_t *buff, size_t len, uint32_t block_address, uint32_t byte_offset) {
+        RESUME();
+        static uint32_t start_page;
+        static uint32_t bytes_to_read;
+        static uint32_t local_offset;
+
+        if (len == 0) {
+            RESET();
+            return RET_SUCCESS;
+        }
+        if (byte_offset > block_size) RET_CHECK(RET_ERROR);
+        if (len > block_size) len = block_size;
+
+        if ((byte_offset + len) > block_size) {
+            bytes_to_read = block_size - byte_offset;
+        } else {
+            bytes_to_read = len;
+        }
+
+        start_page = blockToPage(block_address);
+        local_offset = byte_offset % page_size;
+        do {
+            RetType ret = CALL(read_page(buff, bytes_to_read, start_page, local_offset));
+            RET_CHECK(ret);
+            bytes_to_read -= page_size - local_offset;
+            buff += page_size - local_offset;
+            local_offset = 0;
+        } while (bytes_to_read > 0);
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
 
     RetType erase_chip() {
         RESUME();
