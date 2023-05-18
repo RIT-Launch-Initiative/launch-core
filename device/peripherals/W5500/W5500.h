@@ -109,7 +109,7 @@ public:
         if (ret != RET_SUCCESS) goto init_end;
 
         // Enable interrupts for socket 0
-        ret = CALL(set_socket_interrupt(0b00000001));
+        ret = CALL(set_socket_interrupt(0b11111111));
         if (ret != RET_SUCCESS) goto init_end;
 
         // gateway address
