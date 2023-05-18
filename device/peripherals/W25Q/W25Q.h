@@ -137,7 +137,7 @@ public:
     RetType write(size_t block, uint8_t *buff) override {
         RESUME();
 
-        RetType ret = CALL(writeData(PAGE_PROGRAM, block, buff, getblock_size()));
+        RetType ret = CALL(write_block(buff, block_size, block, 0));
         RET_CHECK(ret);
 
         RESET();
@@ -147,12 +147,91 @@ public:
     RetType read(size_t block, uint8_t *buff) override {
         RESUME();
 
-        uint8_t commandBuff[4];
-        RetType ret = CALL(readData(READ_DATA, block, commandBuff, buff, getblock_size()));
+        RetType ret = CALL(read_block(buff, block_size, block, 0));
         RET_CHECK(ret);
 
         RESET();
         return RET_SUCCESS;
+    }
+
+    RetType obtain() override {
+        return RET_SUCCESS;
+    }
+
+    RetType release() override {
+        return RET_SUCCESS;
+    }
+
+    RetType poll() override {
+        return RET_SUCCESS;
+    }
+
+private:
+    SPIDevice &m_spi;
+    GPIODevice &m_cs;
+    GPIODevice &clockPin;
+
+    uint16_t page_size;
+    uint32_t page_count;
+    uint32_t sector_size;
+    uint32_t sector_count;
+    uint32_t block_size;
+    uint32_t block_count;
+    uint32_t kb_capacity;
+    uint8_t status_reg_one;
+    uint8_t status_reg_two;
+    uint8_t status_reg_three;
+    uint8_t tx_buff[8];
+
+
+    RetType readID(uint32_t *deviceID) {
+        RESUME();
+
+        static uint8_t writeBuff[4] = {0x9F, 0xA5, 0xA5, 0xA5};
+        static uint8_t readBuff[4] = {};
+
+        RetType ret = CALL(m_cs.set(0));
+        RET_CHECK(ret);
+
+        ret = CALL(m_spi.write_read(&writeBuff[0], &readBuff[0], 1));
+        RET_CHECK(ret);
+
+        for (int i = 1; i < 4; i++) {
+            ret = CALL(m_spi.write_read(&writeBuff[i], &readBuff[i], 1));
+            RET_CHECK(ret);
+        }
+
+        ret = CALL(m_cs.set(1));
+        RET_CHECK(ret);
+
+        *deviceID = (readBuff[0] << 24) | (readBuff[1] << 16) | (readBuff[2] << 8) | readBuff[3];
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    size_t pageToSector(size_t pageAddr) {
+        return (pageAddr * this->page_size) / this->sector_size;
+    }
+
+    size_t sectorToPage(size_t sectorAddr) {
+        return (sectorAddr * this->sector_size) / this->page_size;
+    }
+
+    size_t pageToBlock(size_t pageAddr) {
+        return (pageAddr * this->page_size) / this->block_size;
+    }
+
+    size_t blockToPage(size_t blockAddr) {
+        return (blockAddr * this->block_size) / this->page_size;
+    }
+
+    size_t sectorToBlock(size_t sectorAddr) {
+        return (sectorAddr * this->sector_size) / this->block_size;
+    }
+
+    size_t blockToSector(size_t blockAddr) {
+        return (blockAddr * this->block_size) / this->sector_size;
     }
 
     RetType readRegister(READ_STATUS_REGISTER_T reg, uint8_t *receiveBuff) {
@@ -167,7 +246,6 @@ public:
         ret = m_cs.set(1);
         RET_CHECK(ret)
 
-        // TODO: Figure out possibility m_cs memory to be borked
         ret = CALL(m_spi.read(receiveBuff, 1));
         RET_CHECK(ret)
 
@@ -191,59 +269,6 @@ public:
 
         RESET();
         return ret;
-    }
-
-
-    RetType
-    readData(READ_COMMAND_T readCommand, uint32_t address, uint8_t *buff, uint8_t *receivedData, size_t receivedSize) {
-        RESUME();
-
-        RetType ret = CALL(m_cs.set(0));
-        RET_CHECK(ret);
-
-        uint8_t buffSize = 6;
-
-        switch (readCommand) {
-            case READ_DATA: {
-                buffSize = 4;
-                uint8_t buffArr[] = {static_cast<uint8_t>(readCommand),
-                                     static_cast<uint8_t>((address & 0xFF000000) >> 16),
-                                     static_cast<uint8_t>((address & 0xFF000000) >> 8),
-                                     static_cast<uint8_t>((address & 0xFF000000))};
-
-                buff = buffArr;
-                break;
-            }
-
-            case FAST_READ: {
-                buffSize = 14;
-                uint8_t buffArr[] = {static_cast<uint8_t>(readCommand),
-                                     static_cast<uint8_t>((address & 0xFF000000) >> 16),
-                                     static_cast<uint8_t>((address & 0xFF000000) >> 8),
-                                     static_cast<uint8_t>((address & 0xFF000000)),
-                                     DUMMY_BYTE, DUMMY_BYTE, DUMMY_BYTE, DUMMY_BYTE,
-                                     DUMMY_BYTE, DUMMY_BYTE, DUMMY_BYTE, DUMMY_BYTE};
-
-                buff = buffArr;
-                break;
-            }
-            default: {
-                RESET();
-                return RET_ERROR;
-            }
-        }
-
-        ret = CALL(m_spi.write(buff, buffSize));
-        RET_CHECK(ret)
-
-        ret = CALL(m_spi.read(receivedData, receivedSize));
-        RET_CHECK(ret)
-
-        ret = CALL(m_cs.set(1));
-        RET_CHECK(ret)
-
-        RESET();
-        return RET_SUCCESS;
     }
 
     RetType write_byte(uint8_t byte, size_t write_address) {
@@ -579,89 +604,6 @@ public:
 
         RESET();
         return ret;
-    }
-
-
-    // TODO: Should these need to be implemented?
-    RetType obtain() override {
-        return RET_SUCCESS;
-    }
-
-    RetType release() override {
-        return RET_SUCCESS;
-    }
-
-    RetType poll() override {
-        return RET_SUCCESS;
-    }
-
-private:
-    SPIDevice &m_spi;
-    GPIODevice &m_cs;
-    GPIODevice &clockPin;
-
-    uint16_t page_size;
-    uint32_t page_count;
-    uint32_t sector_size;
-    uint32_t sector_count;
-    uint32_t block_size;
-    uint32_t block_count;
-    uint32_t kb_capacity;
-    uint8_t status_reg_one;
-    uint8_t status_reg_two;
-    uint8_t status_reg_three;
-    uint8_t tx_buff[8];
-
-    Semaphore lock;
-
-    RetType readID(uint32_t *deviceID) {
-        RESUME();
-
-        static uint8_t writeBuff[4] = {0x9F, 0xA5, 0xA5, 0xA5};
-        static uint8_t readBuff[4] = {};
-
-        RetType ret = CALL(m_cs.set(0));
-        RET_CHECK(ret);
-
-        ret = CALL(m_spi.write_read(&writeBuff[0], 1, &readBuff[0], 1));
-        RET_CHECK(ret);
-
-        for (int i = 1; i < 4; i++) {
-            ret = CALL(m_spi.write_read(&writeBuff[i], 1, &readBuff[i], 1));
-            RET_CHECK(ret);
-        }
-
-        ret = CALL(m_cs.set(1));
-        RET_CHECK(ret);
-
-        *deviceID = (readBuff[0] << 24) | (readBuff[1] << 16) | (readBuff[2] << 8) | readBuff[3];
-
-        RESET();
-        return RET_SUCCESS;
-    }
-
-    size_t pageToSector(size_t pageAddr) {
-        return (pageAddr * this->page_size) / this->sector_size;
-    }
-
-    size_t sectorToPage(size_t sectorAddr) {
-        return (sectorAddr * this->sector_size) / this->page_size;
-    }
-
-    size_t pageToBlock(size_t pageAddr) {
-        return (pageAddr * this->page_size) / this->block_size;
-    }
-
-    size_t blockToPage(size_t blockAddr) {
-        return (blockAddr * this->block_size) / this->page_size;
-    }
-
-    size_t sectorToBlock(size_t sectorAddr) {
-        return (sectorAddr * this->sector_size) / this->block_size;
-    }
-
-    size_t blockToSector(size_t blockAddr) {
-        return (blockAddr * this->block_size) / this->sector_size;
     }
 };
 
