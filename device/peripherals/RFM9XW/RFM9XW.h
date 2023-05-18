@@ -18,10 +18,33 @@ using RFM9XW_EEPROM_CONFIG_T = struct {
     uint16_t channel_mask;
 };
 
-class RFM95WX : public NetworkLayer {
-public:
-    RFM95WX(SPIDevice &spi, GPIODevice &cs, GPIODevice &rst) : m_spi(spi), m_cs(cs), m_rst(rst)  {}
+using RFM9XW_REGISTER_T = enum {
+    RFM9X_FIFO_ACCESS = 0x00,
+    RFM9X_OP_MODE = 0x01,
 
+    RFM9X_FR_MSB = 0x06,
+    RFM9X_FR_MID = 0x07,
+    RFM9X_FR_LSB = 0x08,
+
+    RFM9X_VERSION = 0x42,
+};
+
+class RFM9XW : public NetworkLayer {
+public:
+    RFM9XW(SPIDevice &spi, GPIODevice &cs, GPIODevice &rst) : m_spi(spi), m_cs(cs), m_rst(rst)  {}
+
+    RetType init() {
+        RESUME();
+
+        static uint8_t tmp;
+        RetType ret = CALL(read_reg(RFM9X_VERSION, &tmp, 1));
+        if (ret != RET_SUCCESS) goto init_end;
+
+
+        init_end:
+        RESET();
+        return ret;
+    }
 
     RetType receive(Packet& packet, netinfo_t& info, NetworkLayer* caller) override {
         return RET_ERROR; // TODO:
@@ -39,8 +62,6 @@ private:
     SPIDevice &m_spi;
     GPIODevice &m_cs;
     GPIODevice &m_rst;
-
-
 
     RetType read_reg(uint8_t reg, uint8_t *buff, size_t len) {
         RESUME();
@@ -64,7 +85,7 @@ private:
         RESUME();
 
         static uint8_t buff[2];
-        buff[0] = (reg | 0x80U);
+        buff[0] = reg | 0x80U;
         buff[1] = reg;
 
         RetType ret = CALL(m_cs.set(0));
