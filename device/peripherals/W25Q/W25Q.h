@@ -246,33 +246,26 @@ public:
         return ret;
     }
 
-    // Make sure end of page is 0
-    RetType writeData(PROGRAM_COMMAND_T programCommand, uint32_t address, uint8_t *page, size_t page_size) {
+    RetType write_byte(uint8_t byte, size_t write_address) {
         RESUME();
 
-        // TODO: Maybe return an error if writing is disabled. Should probably do the same for others
-        static uint8_t *buff;
-        RetType ret = m_cs.set(0);
+        RetType ret = CALL(m_cs.set(0));
         RET_CHECK(ret);
 
-        static uint8_t buffer[5] = {static_cast<uint8_t>(programCommand),
-                             static_cast<uint8_t>((address & 0xFF000000) >> 16),
-                             static_cast<uint8_t>((address & 0xFF000000) >> 8),
-                             static_cast<uint8_t>((address & 0xFF000000))};
+        tx_buff[0] = PAGE_PROGRAM;
+        tx_buff[1] = (write_address & 0xFF0000) >> 16;
+        tx_buff[2] = (write_address & 0x00FF00) >> 8;
+        tx_buff[3] = (write_address & 0x0000FF);
+        tx_buff[4] = byte;
 
-        buff = buffer;
+        ret = CALL(m_spi.write(tx_buff, 5));
+        RET_CHECK(ret);
 
-        ret = CALL(m_spi.write(buff, 5));
-        RET_CHECK(ret)
-
-        ret = CALL(m_spi.write(page, page_size));
-        RET_CHECK(ret)
-
-        ret = m_cs.set(1);
-        RET_CHECK(ret)
+        ret = CALL(m_cs.set(1));
+        RET_CHECK(ret);
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     RetType erase_chip() {
