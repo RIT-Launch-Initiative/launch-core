@@ -116,6 +116,92 @@ public:
         return ret;
     }
 
+    RetType recv_data(NetworkLayer &upper, Packet packet) {
+        RESUME();
+
+        static uint8_t mr;
+        static uint8_t tmp;
+        static uint8_t head[8];
+        static uint16_t packet_len;
+        static netinfo_t info;
+
+        RetType ret = CALL(getSn_MR(DEFAULT_SOCKET_NUM, &mr));
+        if (ret != RET_SUCCESS) goto RECV_DATA_END;
+        if (!sock_remaining_size[DEFAULT_SOCKET_NUM]) {
+            while (true) {
+                ret = CALL(getSn_RX_RSR(DEFAULT_SOCKET_NUM, &packet_len));
+                if (ret != RET_SUCCESS) goto RECV_DATA_END;
+
+                ret = CALL(getSn_SR(DEFAULT_SOCKET_NUM, &tmp));
+                if (ret != RET_SUCCESS) goto RECV_DATA_END;
+                if (tmp == SOCK_CLOSED) {
+                    ret = RET_ERROR;
+                    goto RECV_DATA_END;
+                }
+
+                if ((sock_io_mode & (1 << DEFAULT_SOCKET_NUM) && (packet_len == 0))) {
+                    ret = RET_ERROR; // Maybe we can just YIELD instead?
+                    goto RECV_DATA_END;
+                }
+                if (packet_len != 0) break;
+                YIELD(); // Don't want this loop to hog everything
+            }
+        }
+
+        // Only supporting MACRAW for now.
+        // Original code also checked for same conditional as above for some reason?
+        ret = CALL(wiz_recv_data(DEFAULT_SOCKET_NUM, head, 2));
+        if (ret != RET_SUCCESS) goto RECV_DATA_END;
+
+        ret = CALL(setSn_CR(DEFAULT_SOCKET_NUM, Sn_CR_RECV));
+        if (ret != RET_SUCCESS) goto RECV_DATA_END;
+
+        // Read IP, port and packet length
+        static uint8_t current_cr;
+        ret = CALL(getSn_CR(DEFAULT_SOCKET_NUM, &current_cr));
+        if (ret != RET_SUCCESS) goto RECV_DATA_END;
+
+        while (current_cr) {
+            YIELD();
+            CALL(getSn_CR(DEFAULT_SOCKET_NUM, &current_cr));
+        }
+
+        sock_remaining_size[DEFAULT_SOCKET_NUM] = (head[0] << 8) + head[1] - 2;
+        if (sock_remaining_size[DEFAULT_SOCKET_NUM] > 1514) { // Exceeded size
+            // TODO: Close the socket here
+            ret = RET_ERROR;
+            goto RECV_DATA_END;
+        }
+
+        if (packet.available() < sock_remaining_size[DEFAULT_SOCKET_NUM]) {
+            packet_len = packet.available();
+        } else {
+            packet_len = sock_remaining_size[DEFAULT_SOCKET_NUM];
+        }
+
+        ret = CALL(wiz_recv_data(DEFAULT_SOCKET_NUM, packet.read_ptr<uint8_t>(), packet_len));
+        if (ret != RET_SUCCESS) goto RECV_DATA_END;
+
+        ret = CALL(upper.receive(packet, info, this));
+        if (ret != RET_SUCCESS) goto RECV_DATA_END;
+
+        RECV_DATA_END:
+        RESET();
+        return ret;
+    }
+
+
+    // TODO: Should enable interrupts in Wiznet and enable a GPIO callback
+    // but, currently not working
+    RetType check_interrupts(uint8_t sn, uint8_t *bit_val) {
+        RESUME();
+
+        RetType ret = CALL(getSn_IR(sn, bit_val));
+
+        RESET();
+        return ret;
+    }
+
     RetType hw_reset() {
         RESUME();
 
@@ -132,6 +218,8 @@ private:
     SPIDevice &m_spi;
     GPIODevice &m_cs;
     GPIODevice &m_reset;
+    uint16_t sock_remaining_size[8] = {0};
+    uint16_t sock_io_mode = 0;
 
     // SPI Transaction Buffers
     // Reduce static memory usage by using a single buffer for all SPI transactions
@@ -338,7 +426,7 @@ private:
     }
 
 
-    uint16_t getSn_RX_RSR(uint8_t sn, uint16_t *result) {
+    RetType getSn_RX_RSR(uint8_t sn, uint16_t *result) {
         RESUME();
         static uint16_t val = 0;
         static uint16_t val1 = 0;
@@ -366,7 +454,7 @@ private:
 
         *result = val;
         GET_SN_RX_RSR_END:
-    RESET();
+        RESET();
         return ret;
     }
 
