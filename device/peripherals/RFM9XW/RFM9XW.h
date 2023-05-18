@@ -85,6 +85,35 @@ public:
         return RET_ERROR; // TODO
     }
 
+    RetType set_frequency(uint32_t freq) {
+        RESUME();
+
+        RetType ret;
+
+        set_frequency_end:
+        RESET();
+        return ret;
+    }
+
+    RetType set_channel(uint8_t channel) {
+        RESUME();
+
+        RetType ret;
+
+        set_frequency_end:
+        RESET();
+        return ret;
+    }
+
+    RetType set_power(int8_t power) {
+        RESUME();
+
+        RetType ret;
+
+        set_frequency_end:
+        RESET();
+        return ret;
+    }
 private:
     SPIDevice &m_spi;
     GPIODevice &m_cs;
