@@ -348,7 +348,7 @@ private:
         local_offset = byte_offset % page_size;
 
         do {
-            RetType ret = CALL(write_page(buff, bytes_to_write, start_page, local_offset)); // TODO: Update
+            RetType ret = CALL(write_page(buff, bytes_to_write, start_page, local_offset));
             RET_CHECK(ret);
 
             start_page++;
