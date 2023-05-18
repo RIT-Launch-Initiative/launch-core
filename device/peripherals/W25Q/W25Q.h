@@ -187,24 +187,23 @@ private:
     RetType readID(uint32_t *deviceID) {
         RESUME();
 
-        static uint8_t writeBuff[4] = {0x9F, 0xA5, 0xA5, 0xA5};
-        static uint8_t readBuff[4] = {};
+        static uint8_t read_buff[4] = {};
+
+        tx_buff[0] = 0x9F;
+        tx_buff[1] = 0xA5;
+        tx_buff[2] = 0xA5;
+        tx_buff[3] = 0xA5;
 
         RetType ret = CALL(m_cs.set(0));
         RET_CHECK(ret);
 
-        ret = CALL(m_spi.write_read(&writeBuff[0], &readBuff[0], 1));
+        ret = CALL(m_spi.write_read(tx_buff, read_buff, 4));
         RET_CHECK(ret);
-
-        for (int i = 1; i < 4; i++) {
-            ret = CALL(m_spi.write_read(&writeBuff[i], &readBuff[i], 1));
-            RET_CHECK(ret);
-        }
 
         ret = CALL(m_cs.set(1));
         RET_CHECK(ret);
 
-        *deviceID = (readBuff[0] << 24) | (readBuff[1] << 16) | (readBuff[2] << 8) | readBuff[3];
+        *deviceID = (read_buff[0] << 24) | (read_buff[1] << 16) | (read_buff[2] << 8) | read_buff[3];
 
         RESET();
         return RET_SUCCESS;
