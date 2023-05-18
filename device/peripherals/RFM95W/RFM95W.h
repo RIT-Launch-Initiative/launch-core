@@ -161,18 +161,25 @@ public:
             return ret;
         }
 
-
-        RegModemConfig1 = RFM_Bw2 | RFM_Bw1 | RFM_Bw0;
+		// Set BW to 500K
+        RegModemConfig1 = RFM_Bw3 | RFM_Bw0;
         /* Set coding rate to 4/8 -> 100 */
-        RegModemConfig1 |= RFM_CodingRate2;
+        RegModemConfig1 |= RFM_CodingRate1;
         /* Implicit header mode */
-        RegModemConfig1 |= RFM_ImplicitHeaderModeOn;
+        RegModemConfig1 &= ~RFM_ImplicitHeaderModeOn;
 
         ret = CALL(writeReg(RFM95_REGISTER_MODEM_CONFIG_1, RegModemConfig1));
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
         }
+		
+		//Set to maximum gain
+        ret = CALL(writeReg(RFM95_REGISTER_LNA, (1 << 5)));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }		
 
         /* Set SF9 = 256 chips/symbol */
 //	    RegModemConfig2 = RFM_SpreadingFactor3; // TODO: Uncomment when these are defined
