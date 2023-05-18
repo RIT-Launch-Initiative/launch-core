@@ -63,6 +63,10 @@ public:
         ret = CALL(getSn_CR(DEFAULT_SOCKET_NUM, &tmp));
         if (tmp != SOCK_MACRAW) ret = RET_ERROR;
 
+        // Enable interrupts for sock 0
+        ret = CALL(setSn_IMR(DEFAULT_SOCKET_NUM, 0b00000001));
+        if (ret != RET_SUCCESS) goto init_end;
+
         init_end:
         RESET();
         return ret;
@@ -193,8 +197,7 @@ public:
     }
 
 
-    // TODO: Should enable interrupts in Wiznet and enable a GPIO callback
-    // but, currently not working
+    // TODO: Should enable interrupts in Wiznet and enable a GPIO callback, but encountering weird behaviors
     RetType check_interrupts(uint8_t sn, uint8_t *bit_val) {
         RESUME();
 
