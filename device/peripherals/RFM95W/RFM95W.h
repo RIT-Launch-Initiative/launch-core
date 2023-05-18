@@ -23,6 +23,14 @@
 
 #define FREQ_915 15169815u
 
+#define RFM_FIFO_SIZE 255
+
+#define RFM_MAX_PAYLOAD_LENGTH 255
+
+#define RFM_HEADER_LEN 4
+
+#define RFM_MAX_MESSAGE_LEN (RFM_MAX_PAYLOAD_LENGTH - RFM_HEADER_LEN)
+
 
 enum RFM_MODEM_CONFIG_T {
     RFM_Bw3 = (1 << 7),
@@ -546,7 +554,7 @@ public:
                 RESET();
                 return ret;
             }
-            if ((mode_check & 0b00000111) == 0x03) {
+            if ((mode_check & 0b00000111) == RFM_MODE_TX) {
                 break;
             }
         }
@@ -578,7 +586,7 @@ public:
             return ret;
         }
 
-        ret = CALL(writeReg(RFM95_REGISTER_IRQ_FLAGS, (1 << 6) | (1 << 5) | (1 << 7)));
+        ret = CALL(writeReg(RFM95_REGISTER_IRQ_FLAGS, RFM_RxDone | RFM_PayloadCrcError | RFM_RxTimeout));
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
@@ -592,6 +600,12 @@ public:
         }
 
         ret = CALL(writeReg(RFM95_REGISTER_FIFO_ADDR_PTR, curr_addr));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
+		
+		RetType ret = CALL(setMode(RFM_MODE_RXCONTINUOUS));
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
