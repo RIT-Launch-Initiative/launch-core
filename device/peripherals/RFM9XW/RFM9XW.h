@@ -88,7 +88,15 @@ public:
     RetType set_frequency(uint32_t freq) {
         RESUME();
 
-        RetType ret;
+        static uint64_t new_freq;
+        new_freq = (static_cast<uint64_t>(freq) << 19) / 32000000;
+        RetType ret = CALL(write_reg(RFM9XW_REG_FR_MSB, static_cast<uint8_t>(new_freq >> 16)));
+        if (ret != RET_SUCCESS) goto set_frequency_end;
+
+        ret = CALL(write_reg(RFM9XW_REG_FR_MID, static_cast<uint8_t>(new_freq >> 8)));
+        if (ret != RET_SUCCESS) goto set_frequency_end;
+
+        ret = CALL(write_reg(RFM9XW_REG_FR_LSB, static_cast<uint8_t>(new_freq)));
 
         set_frequency_end:
         RESET();
@@ -98,9 +106,10 @@ public:
     RetType set_channel(uint8_t channel) {
         RESUME();
 
+
         RetType ret;
 
-        set_frequency_end:
+        set_channel_end:
         RESET();
         return ret;
     }
@@ -110,7 +119,7 @@ public:
 
         RetType ret;
 
-        set_frequency_end:
+        set_power_end:
         RESET();
         return ret;
     }
