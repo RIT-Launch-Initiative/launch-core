@@ -85,8 +85,20 @@ public:
 
         static uint8_t tmp;
         static uint16_t free_size;
+        static uint8_t *buff;
+        static uint16_t len;
+        buff = packet.raw();
+        len = packet.header_size() + packet.size();
 
-        RetType ret = CALL(setSn_DIPR(DEFAULT_SOCKET_NUM, reinterpret_cast<uint8_t *>(info.dst.ipv4_addr)));
+
+        static uint8_t ip[4] = {
+                static_cast<uint8_t>((info.dst.ipv4_addr & 0x00FF0000) >> 24),
+                static_cast<uint8_t>((info.dst.ipv4_addr & 0x0000FF00) >> 16),
+                static_cast<uint8_t>((info.dst.ipv4_addr & 0x000000FF) >> 8),
+                static_cast<uint8_t>((info.dst.ipv4_addr & 0x000000FF) >> 0),
+        };
+
+        RetType ret = CALL(setSn_DIPR(DEFAULT_SOCKET_NUM, ip));
         if (ret != RET_SUCCESS) goto transmit2_end;
 
         ret = CALL(setSn_DPORT(DEFAULT_SOCKET_NUM, info.dst.udp_port));
@@ -94,7 +106,7 @@ public:
 
         // TODO: Packet sizing checks?
 
-        ret = CALL(wiz_send_data(DEFAULT_SOCKET_NUM, packet.read_ptr<uint8_t>(), packet.size()));
+        ret = CALL(wiz_send_data(DEFAULT_SOCKET_NUM, buff, len));
         if (ret != RET_SUCCESS) goto transmit2_end;
 
         ret = CALL(setSn_CR(DEFAULT_SOCKET_NUM, Sn_CR_SEND));
@@ -318,7 +330,7 @@ private:
         ret = CALL(m_spi.write(spi_data, 3)); // TODO: Might be able to do this in a single call
         if (ret != RET_SUCCESS) goto WIZCHIP_READ_END;
 
-        ret = m_spi.read(read_byte, 1);
+        ret = CALL(m_spi.read(read_byte, 1));
 
         WIZCHIP_READ_END:
         CALL(m_cs.set(1));
@@ -341,8 +353,8 @@ private:
 
         ret = CALL(m_spi.write(spi_data, 4));
 
-        RESET();
         CALL(m_cs.set(1));
+        RESET();
         return ret;
     }
 
