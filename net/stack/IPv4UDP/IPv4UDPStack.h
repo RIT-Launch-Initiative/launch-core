@@ -120,6 +120,10 @@ public:
         return sock;
     }
 
+    NetworkLayer& get_eth() {
+        return m_eth;
+    }
+
     /// @brief free a socket, returning it back to the stack
     /// @return
     void free_socket(IPv4UDPSocket* sock) {
