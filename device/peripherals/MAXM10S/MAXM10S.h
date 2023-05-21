@@ -140,6 +140,12 @@ public:
     }
 
 
+    /**
+     * @brief Requests and reads positional data
+     * @details This is a current access read (stream read)
+     * @param buff the buffer to read data into
+     * @return RetType the scheduler status
+     */
     RetType uart_read_posllh_data(uint8_t *buff) {
         RESUME();
 
