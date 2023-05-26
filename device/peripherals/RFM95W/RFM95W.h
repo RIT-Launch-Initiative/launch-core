@@ -19,6 +19,11 @@
 #include "device/StreamDevice.h"
 #include "device/GPIODevice.h"
 
+#include "main.h"
+#include "device/platforms/stm32/HAL_GPIODevice.h"
+#include "device/platforms/stm32/HAL_UARTDevice.h"
+#include "device/platforms/stm32/HAL_SPIDevice.h"
+
 #define RFM9x_VER 0x12
 
 #define FREQ_915 15169815u
@@ -127,40 +132,61 @@ public:
 
     RetType init() {
         RESUME();
-
+	
         // add potential asserts here
         static uint8_t RegOpMode;
         static uint8_t RegModemConfig1;
         static uint8_t RegModemConfig2;
         static uint8_t version = 0;
 
-
         RetType ret = CALL(reset());
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
         }
-
+		
+		/*
         ret = CALL(readReg(RFM95_REGISTER_VERSION, &version, 1));
         if (version != RFM9x_VER) {
             RESET();
             return RET_ERROR;
 
         }
-
+*/
         //place module in sleep mode
-        ret = CALL(writeReg(RFM95_REGISTER_OP_MODE, RFM_MODE_SLEEP));
+        ret = CALL(writeReg(RFM95_REGISTER_OP_MODE, 0x00));
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
         }
 
-        ret = CALL(writeReg(RFM95_REGISTER_OP_MODE, RFM_LongRangeMode)); // turn on LoRa
+        ret = CALL(writeReg(RFM95_REGISTER_OP_MODE, 0x80)); // turn on LoRa
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
         }
-
+		
+		//set to default interrupt config
+        ret = CALL(writeReg(RFM95_REGISTER_DIO_MAPPING_1, 0x00));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
+		
+		//set power
+        ret = CALL(setPower(17));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
+		
+		//Set to maximum gain
+        ret = CALL(writeReg(RFM95_REGISTER_LNA, 0x23));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }		
+		
 		// Set BW to 500K
         RegModemConfig1 = RFM_Bw3 | RFM_Bw0;
         /* Set coding rate to 4/8 -> 100 */
@@ -173,40 +199,23 @@ public:
             RESET();
             return ret;
         }
-		
-		//Set to maximum gain
-        ret = CALL(writeReg(RFM95_REGISTER_LNA, (1 << 5)));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }		
+	
 
         /* Set SF9 = 256 chips/symbol */
 //	    RegModemConfig2 = RFM_SpreadingFactor3; // TODO: Uncomment when these are defined
         /* Enable CRCs: */
 //	    RegModemConfig2 |= RFM_RxPayloadCrcOn;
 
+		/*
         ret = CALL(writeReg(RFM95_REGISTER_MODEM_CONFIG_2, RegModemConfig2));
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
         }
-
-        //set to default interrupt config
-        ret = CALL(writeReg(RFM95_REGISTER_DIO_MAPPING_1, 0x00));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
+		
+		*/
 
         //config interrupts
-
-        //set power
-        ret = setPower(17);
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
 
         //set frequency to 915 MHz
         ret = CALL(configFrequency(FREQ_915));
@@ -301,14 +310,14 @@ public:
             return ret;
         }
 
-        SLEEP(1000);
+        SLEEP(100);
         ret = this->nrstPin->set(1);
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
         }
 
-        SLEEP(1000);
+        SLEEP(100);
         RESET();
         return RET_SUCCESS;
     }
@@ -612,7 +621,7 @@ public:
             return ret;
         }
 		
-		RetType ret = CALL(setMode(RFM_MODE_RXCONTINUOUS));
+		ret = CALL(setMode(RFM_MODE_RXCONTINUOUS));
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
