@@ -523,18 +523,33 @@ public:
 
     RetType transmit(uint8_t *buffer, uint8_t len) {
         RESUME();
-
-        RetType ret = CALL(setMode(RFM_MODE_STANDBY));
+		
+		RetType ret = CALL(writeReg(RFM95_REGISTER_PAYLOAD_LENGTH, len));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }		
+		
+		// Enable tx done interrupt
+		ret = CALL(writeReg(RFM95_REGISTER_DIO_MAPPING_1, 0x40));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
+		//clear IRQ flags
+		ret = CALL(writeReg(RFM95_REGISTER_IRQ_FLAGS, 0xFF));
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
         }
 
-        ret = CALL(writeReg(RFM95_REGISTER_PAYLOAD_LENGTH, len));
+		//Set to standby mode
+		ret = CALL(writeReg(RFM95_REGISTER_OP_MODE, 0x81));
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
         }
+
 
         static uint8_t tx_addr;
         ret = CALL(readReg(RFM95_REGISTER_FIFO_TX_BASE_ADDR, &tx_addr, 1));
@@ -557,25 +572,11 @@ public:
             return ret;
         }
 
-        ret = CALL(setMode(RFM_MODE_TX));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
-        while (1) {
-            uint8_t mode_check;
-            RetType ret = CALL(readReg(RFM95_REGISTER_OP_MODE, &mode_check, 1));
-            if (ret != RET_SUCCESS) {
-                RESET();
-                return ret;
-            }
-            if ((mode_check & 0b00000111) == RFM_MODE_TX) {
-                break;
-            }
-        }
-
-        ret = CALL(writeReg(RFM95_REGISTER_OP_MODE, RFM_TxDone));
+   
+		//TODO: wait for transfer complete interrupt
+		
+		//set to sleep
+        ret = CALL(writeReg(RFM95_REGISTER_OP_MODE, 0x80));
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
