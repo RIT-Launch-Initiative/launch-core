@@ -549,7 +549,7 @@ private:
         }
 
         // Set ODR
-        ret = CALL(setDataRate(LIS3MDL_HP_1Hz25));
+        ret = CALL(setDataRate(LIS3MDL_HP_80Hz));
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
