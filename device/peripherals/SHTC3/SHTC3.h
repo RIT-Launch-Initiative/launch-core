@@ -74,32 +74,29 @@ class SHTC3 {
     RetType init(uint8_t address = SHTC3_I2C_ADDR) {
         RESUME();
 
-        addr.dev_addr = address << 1;
+//        RetType ret = CALL(toggleSleep(false));
+//        if (ret != RET_SUCCESS) goto init_end;
 
-        RetType ret = CALL(toggleSleep(false));
-        if (ret != RET_SUCCESS)
-            return ret;
+//        ret = CALL(reset());
+//        if (ret != RET_SUCCESS) goto init_end;
+//
+//        ret = CALL(getID(&this->id));
+//        if (ret != RET_SUCCESS) goto init_end;
+//
+//        if ((this->id & 0x083F) != 0x807) {
+//            ret = RET_ERROR;
+//            goto init_end;
+//        }
 
-        ret = CALL(reset());
-        if (ret != RET_SUCCESS)
-            return ret;
+//        if (inLowPowerMode) {
+//            ret = CALL(writeCommand(LOW_POW_MEAS_TEMP));
+//            SLEEP(1000);
+//        } else {
+//            ret = CALL(writeCommand(NORMAL_POW_MEAS_TEMP));
+//            SLEEP(1000);
+//        }
 
-        ret = CALL(getID(&this->id));
-        if (ret != RET_SUCCESS)
-            return ret;
-
-        if ((this->id & 0x083F) != 0x807) {
-            return RET_ERROR;
-        }
-
-        if (inLowPowerMode) {
-            ret = CALL(writeCommand(LOW_POW_MEAS_TEMP));
-            SLEEP(1000);
-        } else {
-            ret = CALL(writeCommand(NORMAL_POW_MEAS_TEMP));
-            SLEEP(1000);
-        }
-
+        init_end:
         RESET();
         return RET_SUCCESS;
     }
@@ -118,15 +115,19 @@ class SHTC3 {
 
         static uint8_t buffer[2] = {};
         RetType ret = CALL(readCommand(NORMAL_POW_MEAS_HUM_STRETCH, buffer, 2));
-        if (ret != RET_SUCCESS)
+        if (ret != RET_SUCCESS) {
+            RESET();
             return ret;
+        }
 
         rawHumidity = (buffer[0] << 8) | buffer[1];
         *humidity = calcHumidity(rawHumidity);
 
         ret = CALL(readCommand(NORMAL_POW_MEAS_TEMP_STRETCH, buffer, 2));
-        if (ret != RET_SUCCESS)
+        if (ret != RET_SUCCESS){
+            RESET();
             return ret;
+        }
 
         rawTemp = (buffer[0] << 8) | buffer[1];
         *temperature = calcTemp(rawTemp);
@@ -172,11 +173,8 @@ class SHTC3 {
             SLEEP(1);
         }
 
-        if (ret != RET_SUCCESS)
-            return ret;
-
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     /**
@@ -188,7 +186,10 @@ class SHTC3 {
         RESUME();
 
         RetType ret = CALL(writeCommand(RESET_CMD));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         SLEEP(100);
 
@@ -213,7 +214,7 @@ class SHTC3 {
             return ret;
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     /**
@@ -226,16 +227,19 @@ class SHTC3 {
      */
     RetType readCommand(SHTC3_CMD command16, uint8_t *buff, uint8_t numBytes) {
         RESUME();
-        uint16ToUint8(command16, buff);
-        static uint8_t secondAddr = addr.dev_addr;
-        secondAddr |= 0x01 << 0;
+        addr.dev_addr = (SHTC3_I2C_ADDR << 1);
 
-        RetType ret = CALL(mI2C.transmitReceive(addr, buff, 2, numBytes, 50, secondAddr));
-        if (ret != RET_SUCCESS)
+        RetType ret = CALL(mI2C.transmit(addr, reinterpret_cast<uint8_t*>(&command16), 2, 50));
+        if (ret != RET_SUCCESS) {
+            RESET();
             return ret;
+        }
+
+        addr.dev_addr = (SHTC3_I2C_ADDR << 1) | 0x01;
+        ret = CALL(mI2C.receive(addr, buff, numBytes, 50));
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     /**
@@ -249,13 +253,10 @@ class SHTC3 {
 
         static uint8_t data[2] = {};
         RetType ret = CALL(readCommand(READ_ID_CMD, data, 2));
-        if (ret != RET_SUCCESS)
-            return ret;
-
         *id = data[0] << 8 | data[1];
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     //    RetType setPowerMode(bool lowPowerMode) {
