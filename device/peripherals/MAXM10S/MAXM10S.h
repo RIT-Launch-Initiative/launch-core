@@ -49,9 +49,9 @@ class MAXM10S {
 public:
     /**
      * @brief CTOR For MAXM10S
-     * @param i2CDevice the I2C device to use
+     * @param i2c_device the I2C device to use
      */
-    MAXM10S(I2CDevice &i2CDevice, StreamDevice &streamDevice, GPIODevice &resetPin) : m_i2c(i2CDevice), m_stream(streamDevice), reset_pin(resetPin) {};
+    MAXM10S(I2CDevice &i2c_device, StreamDevice &stream_device, GPIODevice &reset_pin, GPIODevice &interrupt_pin) : m_i2c(i2c_device), m_stream(stream_device), m_reset_pin(reset_pin), m_interrupt_pin(interrupt_pin) {};
 
     /**
      * @brief Initialize the MAXM10S sensor
@@ -64,9 +64,11 @@ public:
         RetType ret = CALL(reset());
         if (ret != RET_SUCCESS) goto init_end;
 
+        ret = CALL(m_interrupt_pin.set(0));
+
         init_end:
         RESET();
-        return RET_SUCCESS;  /// @todo NYI
+        return RET_SUCCESS;
     }
 
     /**
@@ -162,9 +164,9 @@ public:
 
     RetType reset() {
         RESUME();
-        CALL(reset_pin.set(0));
+        CALL(m_reset_pin.set(0));
         SLEEP(10);
-        CALL(reset_pin.set(1));
+        CALL(m_reset_pin.set(1));
         RESET();
         return RET_SUCCESS;
     }
@@ -173,7 +175,8 @@ private:
     /* The I2C object */
     I2CDevice &m_i2c;
     StreamDevice &m_stream;
-    GPIODevice &reset_pin;
+    GPIODevice &m_reset_pin;
+    GPIODevice &m_interrupt_pin;
     /* The I2C address of the sensor */
     I2CAddr_t addr = {.dev_addr = MAXM10S_I2C_ADDR << 1, .mem_addr = 0, .mem_addr_size = 1};
 
