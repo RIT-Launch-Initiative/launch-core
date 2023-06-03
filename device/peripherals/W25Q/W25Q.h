@@ -80,13 +80,13 @@ class W25Q : public BlockDevice {
 public:
     const uint8_t DUMMY_BYTE = 0xA5;
 
-    W25Q(SPIDevice &spiDevice, GPIODevice &csPin, GPIODevice &clkPin) :
-            BlockDevice("FlashDevice"), m_spi(spiDevice), m_cs(csPin), clockPin(clkPin) {}
+    W25Q(SPIDevice &spiDevice, GPIODevice &csPin) :
+            BlockDevice("FlashDevice"), m_spi(spiDevice), m_cs(csPin) {}
 
 
     RetType init() {
         RESUME();
-        uint32_t deviceID = 0;
+        static uint32_t deviceID = 0;
 
         RetType ret = CALL(readID(&deviceID));
         if (ret != RET_SUCCESS) return ret;
@@ -166,10 +166,18 @@ public:
         return RET_SUCCESS;
     }
 
+    size_t getBlockSize() {
+        return block_size;
+    }
+
+    size_t getNumBlocks() {
+        return block_count;
+    }
+
 private:
     SPIDevice &m_spi;
     GPIODevice &m_cs;
-    GPIODevice &clockPin;
+//    GPIODevice &clockPin;
 
     uint16_t page_size;
     uint32_t page_count;
