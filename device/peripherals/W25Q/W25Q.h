@@ -1,7 +1,7 @@
 /**
  * Platform Independent Implementation for a W25Q Flash Memory Chip
  *
- * @author Aaron Chan
+ * @author Aaron Chan, Yevgeniy Gorbachev
  */
 
 #ifndef LAUNCH_CORE_W25Q_H
@@ -9,138 +9,51 @@
 
 #include "device/SPIDevice.h"
 #include "device/GPIODevice.h"
+#include "sched/sched.h"
 #include "sched/macros.h"
 #include "device/BlockDevice.h"
 
+extern void swprint(const char*);
+extern int swprintf(const char* fmt, ...);
 
-#define WQ25Q_CMD(command) { \
-    chipSelectPin.set(0); \
-    command; \
-    chipSelectPin.set(1); \
-}
-
-
-#define RET_CHECK(ret) {if (ret != RET_SUCCESS) {RESET(); return ret;}}
-
-// TODO: Might be a better and the actually correct way of doing 32 bit addresses?
-#define ADDR_CMD(address) { \
-    dataInPin.set((address & 0xFF000000) >> 16); \
-    dataInPin.set((address & 0xFF00) >> 8); \
-    dataInPin.set((address & 0xFF)); \
-}
-
-typedef enum {
-    READ_DATA = 0x03,
-    FAST_READ = 0x00,
-
-    FAST_READ_DUAL = 0x03,
-    FAST_READ_QUAD = 0x06,
-
-    FAST_READ_DUAL_IO = 0x0B,
-    FAST_READ_QUAD_IO = 0x0E,
-
-    WORD_READ_QUAD_IO = 0xE7,
-    OCTAL_WORD_READ_QUAD_IO = 0xE3,
-} READ_COMMAND_T;
-
-typedef enum {
-    PAGE_PROGRAM = 0x02,
-    QUAD_PAGE_PROGRAM = 0x32
-} PROGRAM_COMMAND_T;
-
-typedef enum {
-    SECTOR_ERASE = 0x20,
-    BLOCK_32_ERASE = 0x52,
-    BLOCK_64_ERASE = 0xD8,
-
-    CHIP_ERASE = 0xC7, // Can also be 0x60
-    SUSPEND_ERASE = 0x75,
-    RESUME_ERASE = 0x7A,
-} ERASE_COMMAND_T;
-
-typedef enum {
-    WRITE_SET_ENABLE = 0x06,
-    WRITE_SET_ENABLE_VOLATILE = 0x50,
-    WRITE_SET_DISABLE = 0x04,
-} WRITE_SET_T;
-
-typedef enum {
-    REGISTER_ONE_READ = 0x05,
-    REGISTER_TWO_READ = 0x35,
-    REGISTER_THREE_READ = 0x15,
-} READ_STATUS_REGISTER_T;
-
-typedef enum {
-    REGISTER_ONE_WRITE = 0x01,
-    REGISTER_TWO_WRITE = 0x31,
-    REGISTER_THREE_WRITE = 0x11,
-} WRITE_STATUS_REGISTER_T;
+#define CHECK_CALL(expr) {if (RET_SUCCESS != CALL(expr)) {RESET(); return RET_ERROR;}}
 
 class W25Q : public BlockDevice {
 public:
-    const uint8_t DUMMY_BYTE = 0xA5;
 
-    W25Q(SPIDevice &spiDevice, GPIODevice &csPin, GPIODevice &clkPin) :
-            BlockDevice("FlashDevice"), spiDevice(spiDevice), chipSelectPin(csPin), clockPin(clkPin) {}
-
+    W25Q(const char* name, SPIDevice &m_spi, GPIODevice &csPin, uint8_t erase = 0) :
+            BlockDevice(name), m_spi(m_spi), m_cs(csPin), init_erase(erase) {}
 
     RetType init() {
         RESUME();
-        uint32_t deviceID = 0;
 
-        RetType ret = CALL(readID(&deviceID));
-        if (ret != RET_SUCCESS) return ret;
-
-        switch (deviceID & 0x000000FF) {
-            case 0x18: // W25Q128FV
-                this->blockSize = 256;
-                this->numBlocks = 65536;
-
-                break;
-            default: // Currently only using W25Q128FV. Can add more in the future
-                return RET_ERROR;
+        CHECK_CALL(read_id(&device_id));
+        if (device_id != 0x17) {
+        	swprintf("Incorrect device ID: 0x%08x\n", device_id);
+        	RESET();
+        	return RET_ERROR;
         }
 
-        this->pageSize = 256;
-        this->sectorSize = 4096;
-        this->blockSize = this->sectorSize * 16;
-        this->sectorCount = this->numBlocks * 16;
-        this->pageCount = (this->sectorCount * this->sectorSize) / this->pageSize;
+        page_size = 0xFF;
+        page_count = 0xFFFF;
 
-        uint8_t regResult = 0;
-        ret = CALL(readRegister(REGISTER_ONE_READ, &regResult));
-        RET_CHECK(ret);
-
-        ret = CALL(readRegister(REGISTER_TWO_READ, &regResult));
-        RET_CHECK(ret);
-
-        ret = CALL(readRegister(REGISTER_THREE_READ, &regResult));
-        RET_CHECK(ret);
+        if (init_erase) {
+        	// TODO: Erase chip
+        }
 
         RESET();
         return RET_SUCCESS;
     }
 
-    RetType toggleWrite(WRITE_SET_T command) {
-        RESUME();
-        RetType ret = CALL(chipSelectPin.set(0));
-        RET_CHECK(ret)
-
-        ret = CALL(spiDevice.write(reinterpret_cast<uint8_t *>(&command), 1));
-        RET_CHECK(ret)
-
-        ret = CALL(chipSelectPin.set(1));
-        RET_CHECK(ret)
-
-        RESET();
-        return ret;
-    }
 
     RetType write(size_t block, uint8_t *buff) override {
         RESUME();
+        if (block > getNumBlocks()) {
+        	RESET();
+        	return RET_ERROR;
+        };
 
-        RetType ret = CALL(writeData(PAGE_PROGRAM, block, buff, getBlockSize()));
-        RET_CHECK(ret);
+        CHECK_CALL(mem_program(PAGE_PROGRAM, block << 8, buff, getBlockSize()));
 
         RESET();
         return RET_SUCCESS;
@@ -148,153 +61,12 @@ public:
 
     RetType read(size_t block, uint8_t *buff) override {
         RESUME();
+        if (block > getNumBlocks()) {
+        	RESET();
+        	return RET_ERROR;
+        };
 
-        uint8_t commandBuff[4];
-        RetType ret = CALL(readData(READ_DATA, block, commandBuff, buff, getBlockSize()));
-        RET_CHECK(ret);
-
-        RESET();
-        return RET_SUCCESS;
-    }
-
-    RetType readRegister(READ_STATUS_REGISTER_T reg, uint8_t *receiveBuff) {
-        RESUME();
-
-        RetType ret = CALL(chipSelectPin.set(0));
-        RET_CHECK(ret)
-
-        ret = spiDevice.write(reinterpret_cast<uint8_t *>(&reg), 1);
-        RET_CHECK(ret)
-
-        ret = chipSelectPin.set(1);
-        RET_CHECK(ret)
-
-        // TODO: Figure out possibility chipSelectPin memory to be borked
-        ret = CALL(spiDevice.read(receiveBuff, 1));
-        RET_CHECK(ret)
-
-        RESET();
-        return ret;
-    }
-
-    RetType writeRegister(WRITE_STATUS_REGISTER_T reg, uint8_t data, bool isVolatile = false) {
-        RESUME();
-
-        RetType ret = CALL(toggleWrite(isVolatile ? WRITE_SET_ENABLE_VOLATILE : WRITE_SET_ENABLE));
-        RET_CHECK(ret)
-        ret = CALL(chipSelectPin.set(0));
-        RET_CHECK(ret)
-
-        ret = CALL(spiDevice.write(&data, 1));
-        RET_CHECK(ret)
-
-        ret = CALL(chipSelectPin.set(1));
-        RET_CHECK(ret)
-
-        RESET();
-        return ret;
-    }
-
-
-    RetType
-    readData(READ_COMMAND_T readCommand, uint32_t address, uint8_t *buff, uint8_t *receivedData, size_t receivedSize) {
-        RESUME();
-
-        RetType ret = CALL(chipSelectPin.set(0));
-        RET_CHECK(ret);
-
-        uint8_t buffSize = 6;
-
-        switch (readCommand) {
-            case READ_DATA: {
-                buffSize = 4;
-                uint8_t buffArr[] = {static_cast<uint8_t>(readCommand),
-                                     static_cast<uint8_t>((address & 0xFF000000) >> 16),
-                                     static_cast<uint8_t>((address & 0xFF000000) >> 8),
-                                     static_cast<uint8_t>((address & 0xFF000000))};
-
-                buff = buffArr;
-                break;
-            }
-
-            case FAST_READ: {
-                buffSize = 14;
-                uint8_t buffArr[] = {static_cast<uint8_t>(readCommand),
-                                     static_cast<uint8_t>((address & 0xFF000000) >> 16),
-                                     static_cast<uint8_t>((address & 0xFF000000) >> 8),
-                                     static_cast<uint8_t>((address & 0xFF000000)),
-                                     DUMMY_BYTE, DUMMY_BYTE, DUMMY_BYTE, DUMMY_BYTE,
-                                     DUMMY_BYTE, DUMMY_BYTE, DUMMY_BYTE, DUMMY_BYTE};
-
-                buff = buffArr;
-                break;
-            }
-            default: {
-                RESET();
-                return RET_ERROR;
-            }
-        }
-
-        ret = CALL(spiDevice.write(buff, buffSize));
-        RET_CHECK(ret)
-
-        ret = CALL(spiDevice.read(receivedData, receivedSize));
-        RET_CHECK(ret)
-
-        ret = CALL(chipSelectPin.set(1));
-        RET_CHECK(ret)
-
-        RESET();
-        return ret;
-    }
-
-    // Make sure end of page is 0
-    RetType writeData(PROGRAM_COMMAND_T programCommand, uint32_t address, uint8_t *page, size_t pageSize) {
-        RESUME();
-
-        // TODO: Maybe return an error if writing is disabled. Should probably do the same for others
-        static uint8_t *buff;
-        RetType ret = chipSelectPin.set(0);
-        RET_CHECK(ret);
-
-        uint8_t buffer[5] = {static_cast<uint8_t>(programCommand),
-                             static_cast<uint8_t>((address & 0xFF000000) >> 16),
-                             static_cast<uint8_t>((address & 0xFF000000) >> 8),
-                             static_cast<uint8_t>((address & 0xFF000000))};
-
-        buff = buffer;
-
-        ret = CALL(spiDevice.write(buff, 5));
-        RET_CHECK(ret)
-
-        ret = CALL(spiDevice.write(page, pageSize));
-        RET_CHECK(ret)
-
-        ret = chipSelectPin.set(1);
-        RET_CHECK(ret)
-
-        RESET();
-        return RET_SUCCESS;
-    }
-
-    RetType eraseData(ERASE_COMMAND_T eraseCommand, uint32_t address) {
-        RESUME();
-
-        this->toggleWrite(WRITE_SET_ENABLE);
-
-        uint8_t buff[5] = {static_cast<uint8_t>(eraseCommand),
-                           static_cast<uint8_t>((address & 0xFF000000) >> 16),
-                           static_cast<uint8_t>((address & 0xFF000000) >> 8),
-                           static_cast<uint8_t>((address & 0xFF000000))};
-
-        RetType ret = CALL(chipSelectPin.set(0));
-        RET_CHECK(ret);
-
-        ret = CALL(spiDevice.write(buff, 5));
-        RET_CHECK(ret);
-
-        ret = CALL(chipSelectPin.set(1));
-        RET_CHECK(ret);
+        CHECK_CALL(mem_read(block << 8, buff, getBlockSize()));
 
         RESET();
         return RET_SUCCESS;
@@ -302,86 +74,305 @@ public:
 
 
     size_t getBlockSize() override {
-        return blockSize;
+        return page_size;
     }
 
     size_t getNumBlocks() override {
-        return numBlocks;
+        return page_count;
     }
 
-    // TODO: Should these need to be implemented?
+    // Might want to implement this at some point
+    // Many async calls between a WEL and the actual write, so this could be useful
+    // to prevent interruption
+    /// @brief Not implemented
     RetType obtain() override {
         return RET_SUCCESS;
     }
 
+    /// @brief Not implemented
     RetType release() override {
         return RET_SUCCESS;
     }
 
+    /* @brief Reads "busy" register, unblocks task when device is not busy
+     * @return Always succeeds
+     */
     RetType poll() override {
+    	RESUME();
+    	if (TID_UNBLOCKED != m_blocked) { // if a task is blocked on this device
+			uint8_t status;
+			uint8_t mask = (uint8_t) S_BUSY;
+
+			CHECK_CALL(read_status(READ_ONE, &status)); // is the chip still busy?
+
+			if (0 == (status & mask)) { // if not, unblock the blocked task
+				m_blocked = TID_UNBLOCKED;
+				WAKE(m_blocked);
+			}
+    	}
+    	RESET();
         return RET_SUCCESS;
     }
 
-private:
-    SPIDevice &spiDevice;
-    GPIODevice &chipSelectPin;
-    GPIODevice &clockPin;
+//private:
 
-    size_t blockSize = 0;
-    size_t pageSize = 0;
-    size_t sectorSize = 0;
-    size_t numBlocks = 0;
-    size_t sectorCount = 0;
-    size_t pageCount = 0;
+    const uint8_t DUMMY_BYTE = 0xA5;
+    const tid_t TID_UNBLOCKED = -1;
 
-    RetType readID(uint32_t *deviceID) {
+    const uint32_t CS_ACTIVE = 0U;
+    const uint32_t CS_INACTIVE = 1U;
+
+	enum read_command_t {
+		READ_DATA = 0x03,
+//		FAST_READ = 0x00,
+//
+//		FAST_READ_DUAL = 0x03,
+//		FAST_READ_QUAD = 0x06,
+//
+//		FAST_READ_DUAL_IO = 0x0B,
+//		FAST_READ_QUAD_IO = 0x0E,
+//
+//		WORD_READ_QUAD_IO = 0xE7,
+//		OCTAL_WORD_READ_QUAD_IO = 0xE3,
+	};
+
+	enum program_command_t {
+		PAGE_PROGRAM = 0x02,
+//		QUAD_PAGE_PROGRAM = 0x32
+	};
+
+	enum erase_command_t {
+		SECTOR_ERASE = 0x20,
+		BLOCK_32_ERASE = 0x52,
+		BLOCK_64_ERASE = 0xD8,
+
+		CHIP_ERASE = 0xC7, // Can also be 0x60
+		SUSPEND_ERASE = 0x75,
+		RESUME_ERASE = 0x7A,
+	};
+
+	enum write_set_t {
+		WRITE_ENABLE = 0x06,
+		WRITE_ENABLE_VOLTATILE = 0x50,
+		WRITE_DISABLE = 0x04,
+	};
+
+	enum read_status_t {
+		READ_ONE = 0x05,
+		READ_TWO = 0x35,
+		READ_THREE = 0x15,
+	};
+
+	enum write_status_t {
+		WRITE_ONE = 0x01,
+		WRITE_TWO = 0x31,
+		WRITE_THREE = 0x11,
+	};
+
+	enum status_mask_t {
+		S_SRP = 1 << 7,
+		S_SEC = 1 << 6,
+		S_TB = 1 << 5,
+		S_BP2 = 1 << 4,
+		S_BP1 = 1 << 3,
+		S_BP0 = 1 << 2,
+		S_WEL = 1 << 1,
+		S_BUSY = 1 << 0,
+	};
+
+    // device could be busy doing a write op, need to have a block/unblock mechanism
+    tid_t m_blocked = TID_UNBLOCKED; // the task blocked on this device
+
+    // necessary peripherals
+	SPIDevice &m_spi;
+    GPIODevice &m_cs;
+
+    // device properties
+    uint8_t init_erase = 0; // erase on startup
+    uint32_t device_id = 0;
+    size_t page_size = 0; // unit of bytes
+    size_t page_count = 0;
+
+    /* @brief uses a read operation to check the BUSY register
+     * stores the currently dispatched task in m_blocked and blocks if the mem is busy
+     * @return if there is already a task blocked on this device, RET_ERROR
+     * 			if register read does not succeed, its return value
+     * 			if device is busy flushing, RET_BLOCKED
+     * 			otherwise RET_SUCCESS
+     */
+    RetType block_if_busy() {
+    	RESUME();
+    	if (TID_UNBLOCKED != m_blocked) {
+    		// the blocked ID has been changed from default, so someone else is using this
+    		RESET();
+    		return RET_ERROR;
+    	}
+
+    	uint8_t status;
+    	uint8_t mask = (uint8_t) S_BUSY;
+
+    	CHECK_CALL(read_status(READ_ONE, &status));
+
+    	if (status & mask) { // busy bit set, we block
+    		m_blocked = sched_dispatched;
+    		BLOCK();
+    	}
+
+    	RESET();
+    	return RET_SUCCESS;
+    }
+
+    RetType read_id(uint32_t* id) {
         RESUME();
-
-        uint8_t writeBuff[4] = {0x9F, 0xA5, 0xA5, 0xA5};
-        uint8_t readBuff[4] = {};
-
-        RetType ret = CALL(chipSelectPin.set(0));
-        RET_CHECK(ret);
-
-        ret = CALL(spiDevice.write_read(&writeBuff[0], 1, &readBuff[0], 1));
-        RET_CHECK(ret);
-
-        for (int i = 1; i < 4; i++) {
-            ret = CALL(spiDevice.write_read(&writeBuff[i], 1, &readBuff[i], 1));
-            RET_CHECK(ret);
+        if (nullptr == id) {
+        	RESET();
+        	return RET_ERROR;
         }
 
-        ret = CALL(chipSelectPin.set(1));
-        RET_CHECK(ret);
+        uint8_t cmd_bytes[1] = {0x9F};
+    	uint8_t id_bytes[3] = {0xFF, 0xFF, 0xFF};
 
-        *deviceID = (readBuff[0] << 24) | (readBuff[1] << 16) | (readBuff[2] << 8) | readBuff[3];
+    	CHECK_CALL(m_cs.set(CS_ACTIVE));
+    	CHECK_CALL(m_spi.write(cmd_bytes, sizeof(cmd_bytes)));
+    	CHECK_CALL(m_spi.read(id_bytes, sizeof(id_bytes)));
+    	CHECK_CALL(m_cs.set(CS_INACTIVE));
+
+    	uint32_t result = (id_bytes[0] << 16) + (id_bytes[1] << 8) + id_bytes[2];
+    	swprintf("Read ID: 0x%06x\n", result);
+    	*id = result;
 
         RESET();
         return RET_SUCCESS;
     }
 
-    size_t pageToSector(size_t pageAddr) {
-        return (pageAddr * this->pageSize) / this->sectorSize;
+    RetType read_status(read_status_t cmd, uint8_t* dst) {
+    	RESUME();
+    	if (nullptr == dst) {
+    		RESET();
+    		return RET_ERROR;
+    	}
+
+    	uint8_t cmd_bytes[1] = {(uint8_t) cmd};
+    	uint8_t cmd_byte = (uint8_t) cmd;
+
+    	CHECK_CALL(m_cs.set(CS_ACTIVE));
+    	CHECK_CALL(m_spi.write(&cmd_byte, 1));
+    	CHECK_CALL(m_spi.read(dst, 1));
+    	CHECK_CALL(m_cs.set(CS_INACTIVE));
+
+    	RESET();
+    	return RET_SUCCESS;
     }
 
-    size_t sectorToPage(size_t sectorAddr) {
-        return (sectorAddr * this->sectorSize) / this->pageSize;
+    RetType write_status(write_status_t cmd, uint8_t src) {
+    	RESUME();
+
+    	uint8_t cmd_bytes[2] = {(uint8_t) cmd, src};
+
+    	// TODO: Appropriately set volatile status registers
+    	CHECK_CALL(write_enable_set(WRITE_ENABLE));
+
+    	CHECK_CALL(m_cs.set(CS_ACTIVE));
+    	CHECK_CALL(m_spi.write(cmd_bytes, sizeof(cmd_bytes)));
+    	CHECK_CALL(m_cs.set(CS_INACTIVE));
+
+    	RESET();
+    	return RET_SUCCESS;
     }
 
-    size_t pageToBlock(size_t pageAddr) {
-        return (pageAddr * this->pageSize) / this->blockSize;
+    RetType mem_read(uint32_t addr, uint8_t* dst, size_t len) {
+    	RESUME();
+    	if ((nullptr == dst) || (0 >= len)) {
+    		RESET();
+    		return RET_ERROR;
+    	}
+
+    	CHECK_CALL(block_if_busy());
+
+    	// TODO: Add extra speed modes
+
+    	read_command_t cmd = READ_DATA;
+    	uint8_t cmd_bytes[4];
+    	cmd_bytes[0] = (uint8_t) cmd;
+    	addr_to_24(addr, cmd_bytes + 1);
+
+    	CHECK_CALL(m_cs.set(CS_ACTIVE));
+    	CHECK_CALL(m_spi.write(cmd_bytes, sizeof(cmd_bytes)));
+    	CHECK_CALL(m_spi.read(dst, len));
+    	CHECK_CALL(m_cs.set(CS_INACTIVE));
+
+    	RESET();
+    	return RET_SUCCESS;
     }
 
-    size_t blockToPage(size_t blockAddr) {
-        return (blockAddr * this->blockSize) / this->pageSize;
+    RetType mem_program(program_command_t cmd, uint32_t addr, uint8_t* src, size_t len) {
+    	RESUME();
+    	if ((nullptr == src) || (0 >= len)) {
+    		RESET();
+    		return RET_ERROR;
+    	}
+
+    	CHECK_CALL(block_if_busy());
+    	CHECK_CALL(write_enable_set(WRITE_ENABLE));
+    	// TODO: Add extra speed modes
+
+    	uint8_t cmd_bytes[4];
+    	cmd_bytes[0] = (uint8_t) cmd;
+    	addr_to_24(addr, cmd_bytes + 1);
+
+    	CHECK_CALL(m_cs.set(CS_ACTIVE));
+    	CHECK_CALL(m_spi.write(cmd_bytes, sizeof(cmd_bytes)));
+    	CHECK_CALL(m_spi.write(src, len));
+    	CHECK_CALL(m_cs.set(CS_INACTIVE));
+
+    	RESET();
+    	return RET_SUCCESS;
     }
 
-    size_t sectorToBlock(size_t sectorAddr) {
-        return (sectorAddr * this->sectorSize) / this->blockSize;
+    RetType write_enable_set(write_set_t mode) {
+    	RESUME();
+
+    	uint8_t cmd = (uint8_t) mode;
+
+    	CHECK_CALL(m_cs.set(CS_ACTIVE));
+    	CHECK_CALL(m_spi.write(&cmd, 1));
+    	CHECK_CALL(m_cs.set(CS_INACTIVE));
+
+    	RESET();
+    	return RET_SUCCESS;
     }
 
-    size_t blockToSector(size_t blockAddr) {
-        return (blockAddr * this->blockSize) / this->sectorSize;
+    RetType erase(erase_command_t cmd, uint32_t addr, uint8_t force = 0) {
+    	RESUME();
+
+    	// for ERASE commands, device can't be busy and
+    	CHECK_CALL(block_if_busy());
+    	CHECK_CALL(write_enable_set(WRITE_ENABLE));
+
+    	uint8_t cmd_bytes[4];
+    	cmd_bytes[0] = (uint8_t) cmd;
+    	addr_to_24(addr, cmd_bytes + 1);
+    	size_t cmd_len = sizeof(cmd_bytes);
+
+    	if (CHIP_ERASE == cmd) {
+    		cmd_len = 1;
+    	}
+
+    	CHECK_CALL(m_cs.set(CS_ACTIVE));
+    	if (force) {
+    		// TODO: Disable all protections
+    	}
+    	CHECK_CALL(m_spi.write(cmd_bytes, cmd_len));
+    	CHECK_CALL(m_cs.set(CS_INACTIVE));
+
+    	RESET();
+    	return RET_SUCCESS;
+    }
+	// TODO: Inline this once the normal version works
+    void addr_to_24(uint32_t addr, uint8_t* dest) {
+    	dest[0] = (uint8_t) ((addr & 0x00FF0000U) >> 16);
+    	dest[1] = (uint8_t) ((addr & 0x0000FF00U) >> 8);
+    	dest[2] = (uint8_t) (addr & 0x000000FFU);
     }
 };
 
