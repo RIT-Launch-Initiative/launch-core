@@ -13,7 +13,7 @@
 #include "sched/macros.h"
 #include "device/BlockDevice.h"
 
-#include "swdebug.h"
+#include "device/platforms/stm32/swdebug.h"
 
 #define W25Q128JV_JEDEC_ID 0x00EF4018
 #define CHECK_CALL(expr) {if (RET_SUCCESS != CALL(expr)) {RESET(); return RET_ERROR;}}
