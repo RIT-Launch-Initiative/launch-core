@@ -13,9 +13,9 @@
 #include "sched/macros.h"
 #include "device/BlockDevice.h"
 
-extern void swprint(const char*);
-extern int swprintf(const char* fmt, ...);
+#include "swdebug.h"
 
+#define W25Q128JV_JEDEC_ID 0x00EF4018
 #define CHECK_CALL(expr) {if (RET_SUCCESS != CALL(expr)) {RESET(); return RET_ERROR;}}
 
 class W25Q : public BlockDevice {
@@ -25,15 +25,18 @@ public:
             BlockDevice(name), m_spi(m_spi), m_cs(csPin), init_erase(erase) {}
 
     RetType init() {
+        uint32_t dev_id;
         RESUME();
 
-        CHECK_CALL(read_id(&device_id));
-        if (device_id != 0x17) {
-        	swprintf("Incorrect device ID: 0x%08x\n", device_id);
+        CHECK_CALL(read_id(&dev_id));
+        if (dev_id != W25Q128JV_JEDEC_ID) {
+            swprintf("Expected JEDEC ID: 0x%06X\n", W25Q128JV_JEDEC_ID);
+        	swprintf("Incorrect JEDEC ID: 0x%06X\n", dev_id);
         	RESET();
         	return RET_ERROR;
         }
 
+        m_dev_id = dev_id;
         page_size = 0xFF;
         page_count = 0xFFFF;
 
@@ -84,6 +87,7 @@ public:
     // Might want to implement this at some point
     // Many async calls between a WEL and the actual write, so this could be useful
     // to prevent interruption
+
     /// @brief Not implemented
     RetType obtain() override {
         return RET_SUCCESS;
@@ -98,10 +102,11 @@ public:
      * @return Always succeeds
      */
     RetType poll() override {
+        uint8_t status;
+        uint8_t mask = (uint8_t) S_BUSY;
+
     	RESUME();
     	if (TID_UNBLOCKED != m_blocked) { // if a task is blocked on this device
-			uint8_t status;
-			uint8_t mask = (uint8_t) S_BUSY;
 
 			CHECK_CALL(read_status(READ_ONE, &status)); // is the chip still busy?
 
@@ -109,7 +114,7 @@ public:
 				m_blocked = TID_UNBLOCKED;
 				WAKE(m_blocked);
 			}
-    	}
+        }
     	RESET();
         return RET_SUCCESS;
     }
@@ -189,7 +194,7 @@ public:
 
     // device properties
     uint8_t init_erase = 0; // erase on startup
-    uint32_t device_id = 0;
+    uint32_t m_dev_id = 0;
     size_t page_size = 0; // unit of bytes
     size_t page_count = 0;
 
@@ -201,15 +206,15 @@ public:
      * 			otherwise RET_SUCCESS
      */
     RetType block_if_busy() {
+        uint8_t status;
+        uint8_t mask = (uint8_t) S_BUSY;
+
     	RESUME();
     	if (TID_UNBLOCKED != m_blocked) {
     		// the blocked ID has been changed from default, so someone else is using this
     		RESET();
     		return RET_ERROR;
     	}
-
-    	uint8_t status;
-    	uint8_t mask = (uint8_t) S_BUSY;
 
     	CHECK_CALL(read_status(READ_ONE, &status));
 
@@ -223,151 +228,156 @@ public:
     }
 
     RetType read_id(uint32_t* id) {
-        RESUME();
-        if (nullptr == id) {
-        	RESET();
-        	return RET_ERROR;
-        }
-
         uint8_t cmd_bytes[1] = {0x9F};
-    	uint8_t id_bytes[3] = {0xFF, 0xFF, 0xFF};
+        uint8_t id_bytes[3] = {0x00, 0x00, 0x00};
+        RESUME();
 
-    	CHECK_CALL(m_cs.set(CS_ACTIVE));
-    	CHECK_CALL(m_spi.write(cmd_bytes, sizeof(cmd_bytes)));
-    	CHECK_CALL(m_spi.read(id_bytes, sizeof(id_bytes)));
-    	CHECK_CALL(m_cs.set(CS_INACTIVE));
+    	CHECK_CALL(m_spi_wr(cmd_bytes, sizeof(cmd_bytes), id_bytes, sizeof(id_bytes)));
 
-    	uint32_t result = (id_bytes[0] << 16) + (id_bytes[1] << 8) + id_bytes[2];
-    	swprintf("Read ID: 0x%06x\n", result);
-    	*id = result;
+
+    	*id = (id_bytes[0] << 16) + (id_bytes[1] << 8) + id_bytes[2];
 
         RESET();
         return RET_SUCCESS;
     }
 
     RetType read_status(read_status_t cmd, uint8_t* dst) {
+        uint8_t cmd_byte = (uint8_t) cmd;
+
     	RESUME();
-    	if (nullptr == dst) {
-    		RESET();
-    		return RET_ERROR;
-    	}
 
-    	uint8_t cmd_bytes[1] = {(uint8_t) cmd};
-    	uint8_t cmd_byte = (uint8_t) cmd;
-
-    	CHECK_CALL(m_cs.set(CS_ACTIVE));
-    	CHECK_CALL(m_spi.write(&cmd_byte, 1));
-    	CHECK_CALL(m_spi.read(dst, 1));
-    	CHECK_CALL(m_cs.set(CS_INACTIVE));
+        CHECK_CALL(m_spi_wr(&cmd_byte, 1, dst, 1));
 
     	RESET();
     	return RET_SUCCESS;
     }
 
     RetType write_status(write_status_t cmd, uint8_t src) {
-    	RESUME();
+        uint8_t cmd_bytes[2] = {(uint8_t) cmd, src};
 
-    	uint8_t cmd_bytes[2] = {(uint8_t) cmd, src};
+    	RESUME();
 
     	// TODO: Appropriately set volatile status registers
     	CHECK_CALL(write_enable_set(WRITE_ENABLE));
 
-    	CHECK_CALL(m_cs.set(CS_ACTIVE));
-    	CHECK_CALL(m_spi.write(cmd_bytes, sizeof(cmd_bytes)));
-    	CHECK_CALL(m_cs.set(CS_INACTIVE));
+        CHECK_CALL(m_spi_w(cmd_bytes, sizeof(cmd_bytes)));
 
     	RESET();
     	return RET_SUCCESS;
     }
 
     RetType mem_read(uint32_t addr, uint8_t* dst, size_t len) {
+        read_command_t cmd = READ_DATA;
+        uint8_t cmd_bytes[4];
+        cmd_bytes[0] = (uint8_t) cmd;
+        addr_to_24(addr, cmd_bytes + 1);
+
     	RESUME();
-    	if ((nullptr == dst) || (0 >= len)) {
-    		RESET();
-    		return RET_ERROR;
-    	}
 
     	CHECK_CALL(block_if_busy());
 
     	// TODO: Add extra speed modes
 
-    	read_command_t cmd = READ_DATA;
-    	uint8_t cmd_bytes[4];
-    	cmd_bytes[0] = (uint8_t) cmd;
-    	addr_to_24(addr, cmd_bytes + 1);
 
-    	CHECK_CALL(m_cs.set(CS_ACTIVE));
-    	CHECK_CALL(m_spi.write(cmd_bytes, sizeof(cmd_bytes)));
-    	CHECK_CALL(m_spi.read(dst, len));
-    	CHECK_CALL(m_cs.set(CS_INACTIVE));
+        CHECK_CALL(m_spi_wr(cmd_bytes, sizeof(cmd_bytes), dst, len));
 
     	RESET();
     	return RET_SUCCESS;
     }
 
     RetType mem_program(program_command_t cmd, uint32_t addr, uint8_t* src, size_t len) {
-    	RESUME();
-    	if ((nullptr == src) || (0 >= len)) {
-    		RESET();
-    		return RET_ERROR;
-    	}
+        uint8_t cmd_bytes[4];
+        cmd_bytes[0] = (uint8_t) cmd;
+        addr_to_24(addr, cmd_bytes + 1);
+
+        RESUME();
 
     	CHECK_CALL(block_if_busy());
     	CHECK_CALL(write_enable_set(WRITE_ENABLE));
     	// TODO: Add extra speed modes
 
-    	uint8_t cmd_bytes[4];
-    	cmd_bytes[0] = (uint8_t) cmd;
-    	addr_to_24(addr, cmd_bytes + 1);
-
-    	CHECK_CALL(m_cs.set(CS_ACTIVE));
-    	CHECK_CALL(m_spi.write(cmd_bytes, sizeof(cmd_bytes)));
-    	CHECK_CALL(m_spi.write(src, len));
-    	CHECK_CALL(m_cs.set(CS_INACTIVE));
+        CHECK_CALL(m_spi_ww(cmd_bytes, sizeof(cmd_bytes), src, len));
 
     	RESET();
     	return RET_SUCCESS;
     }
 
     RetType write_enable_set(write_set_t mode) {
+        uint8_t cmd = (uint8_t) mode;
+
     	RESUME();
 
-    	uint8_t cmd = (uint8_t) mode;
-
-    	CHECK_CALL(m_cs.set(CS_ACTIVE));
-    	CHECK_CALL(m_spi.write(&cmd, 1));
-    	CHECK_CALL(m_cs.set(CS_INACTIVE));
+        CHECK_CALL(m_spi_w(&cmd, 1))
 
     	RESET();
     	return RET_SUCCESS;
     }
 
     RetType erase(erase_command_t cmd, uint32_t addr, uint8_t force = 0) {
+        uint8_t cmd_bytes[4];
+        cmd_bytes[0] = (uint8_t) cmd;
+        addr_to_24(addr, cmd_bytes + 1);
+        size_t cmd_len = sizeof(cmd_bytes);
+
     	RESUME();
 
     	// for ERASE commands, device can't be busy and
     	CHECK_CALL(block_if_busy());
     	CHECK_CALL(write_enable_set(WRITE_ENABLE));
 
-    	uint8_t cmd_bytes[4];
-    	cmd_bytes[0] = (uint8_t) cmd;
-    	addr_to_24(addr, cmd_bytes + 1);
-    	size_t cmd_len = sizeof(cmd_bytes);
-
     	if (CHIP_ERASE == cmd) {
     		cmd_len = 1;
     	}
 
-    	CHECK_CALL(m_cs.set(CS_ACTIVE));
-    	if (force) {
-    		// TODO: Disable all protections
-    	}
-    	CHECK_CALL(m_spi.write(cmd_bytes, cmd_len));
-    	CHECK_CALL(m_cs.set(CS_INACTIVE));
+        if (force) {
+            // TODO: Disable all protections
+        }
+
+        CHECK_CALL(m_spi_w(cmd_bytes, cmd_len));
 
     	RESET();
     	return RET_SUCCESS;
     }
+
+	RetType m_spi_w(uint8_t* buf, size_t len) {
+		RESUME();
+        swprintx("SPI writing: ", buf, len);
+        swprint("\n");
+    	CHECK_CALL(m_cs.set(CS_ACTIVE));
+    	CHECK_CALL(m_spi.write(buf, len));
+    	CHECK_CALL(m_cs.set(CS_INACTIVE));
+    	RESET();
+    	return RET_SUCCESS;
+    }
+
+	RetType m_spi_ww(uint8_t* buf1, size_t len1, uint8_t* buf2, size_t len2) {
+		RESUME();
+        swprintx("SPI writing 1: ", buf1, len1);
+        swprint("\n");
+        swprintx("SPI writing 2: ", buf2, len2);
+        swprint("\n");
+    	CHECK_CALL(m_cs.set(CS_ACTIVE));
+    	CHECK_CALL(m_spi.write(buf1, len1));
+    	CHECK_CALL(m_spi.write(buf2, len2));
+    	CHECK_CALL(m_cs.set(CS_INACTIVE));
+    	RESET();
+    	return RET_SUCCESS;
+    }
+
+	RetType m_spi_wr(uint8_t* buf1, size_t len1, uint8_t* buf2, size_t len2) {
+		RESUME();
+        swprintx("SPI writing: ", buf1, len1);
+        swprint("\n");
+    	CHECK_CALL(m_cs.set(CS_ACTIVE));
+    	CHECK_CALL(m_spi.write(buf1, len1));
+        CHECK_CALL(m_spi.read(buf2, len2));
+    	CHECK_CALL(m_cs.set(CS_INACTIVE));
+        swprintx("SPI read: ", buf2, len2);
+        swprint("\n");
+    	RESET();
+    	return RET_SUCCESS;
+    }
+
 	// TODO: Inline this once the normal version works
     void addr_to_24(uint32_t addr, uint8_t* dest) {
     	dest[0] = (uint8_t) ((addr & 0x00FF0000U) >> 16);
