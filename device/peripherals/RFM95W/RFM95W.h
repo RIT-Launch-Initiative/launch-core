@@ -566,7 +566,7 @@ public:
 
 
         //fill fifo
-        ret = CALL(readReg(RFM95_REGISTER_FIFO_ACCESS, buffer, len));
+        ret = CALL(writeReg(RFM95_REGISTER_FIFO_ACCESS, buffer[0]));
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
@@ -588,7 +588,7 @@ public:
 
     }
 
-    RetType receiveAsync(uint8_t *buf, uint8_t len) {
+    RetType startReceive(uint8_t len) {
         RESUME();
 
         RetType ret = CALL(setMode(RFM_MODE_STANDBY));
@@ -627,18 +627,69 @@ public:
             RESET();
             return ret;
         }
+		
+		
 
         RESET();
         return RET_SUCCESS;
 
     }
+	
+	RetType receivePacket(uint8_t* buf, uint8_t len){
+		RESUME();
+		static uint8_t rx_len;
+		static uint8_t irq_flags;
+		static uint8_t curr_addr;
+		
+        RetType ret = CALL(readReg(RFM95_REGISTER_IRQ_FLAGS, &irq_flags, 1)); 
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }		
+		
+		ret = CALL(readReg(RFM95_REGISTER_FIFO_RX_BYTES_NB, &rx_len, 1)); 
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
+
+		if((irq_flags & RFM_RxDone) && !(irq_flags & RFM_PayloadCrcError) && (rx_len == len)){
+			ret = CALL(readReg(0x10, &curr_addr, 1)); // 0x10 = curr address register
+			if (ret != RET_SUCCESS) {
+				RESET();
+				return ret;
+			}
+		
+			ret = CALL(writeReg(RFM95_REGISTER_FIFO_ADDR_PTR, curr_addr));
+			if (ret != RET_SUCCESS) {
+				RESET();
+				return ret;
+			}
+			
+			ret = CALL(readReg(RFM95_REGISTER_FIFO_ACCESS, buf, len));
+			if (ret != RET_SUCCESS) {
+				RESET();
+				return ret;
+			}
+			
+			ret = CALL(writeReg(RFM95_REGISTER_IRQ_FLAGS, RFM_RxDone | RFM_PayloadCrcError | RFM_RxTimeout));
+			if (ret != RET_SUCCESS) {
+				RESET();
+				return ret;
+			}
+			
+		}
+		
+		RESET();
+        return RET_SUCCESS;
+	}
 
     RetType packetWaiting(int *status) {
         RESUME();
 
         static uint8_t irq_flags;
 
-        RetType ret = CALL(readReg(RFM95_REGISTER_IRQ_FLAGS, &irq_flags, 1)); // 0x10 = curr address register
+        RetType ret = CALL(readReg(RFM95_REGISTER_IRQ_FLAGS, &irq_flags, 1)); 
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
