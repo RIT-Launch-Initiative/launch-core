@@ -141,7 +141,7 @@ public:
         RET_CHECK(ret);
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     RetType read(size_t block, uint8_t *buff) override {
@@ -278,6 +278,42 @@ private:
         return ret;
     }
 
+    RetType write_enable() {
+        RESUME();
+
+        RetType ret = CALL(m_cs.set(0));
+        RET_CHECK(ret);
+
+        tx_buff[0] = WRITE_SET_ENABLE;
+
+        ret = CALL(m_spi.write(tx_buff, 1));
+        RET_CHECK(ret);
+
+        ret = CALL(m_cs.set(1));
+        RET_CHECK(ret);
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType write_disable() {
+        RESUME();
+
+        RetType ret = CALL(m_cs.set(0));
+        RET_CHECK(ret);
+
+        tx_buff[0] = WRITE_SET_DISABLE;
+
+        ret = CALL(m_spi.write(tx_buff, 1));
+        RET_CHECK(ret);
+
+        ret = CALL(m_cs.set(1));
+        RET_CHECK(ret);
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
     RetType write_byte(uint8_t byte, size_t write_address) {
         RESUME();
 
@@ -308,17 +344,22 @@ private:
             return RET_SUCCESS;
         }
 
+        RetType ret = CALL(write_enable());
+        RET_CHECK(ret);
+
         if ((len + byte_offset) > page_size) len = page_size - byte_offset;
 
         page_address = (page_address * page_size) + byte_offset;
 
-        RetType ret = CALL(m_cs.set(0));
-        RET_CHECK(ret);
+
 
         tx_buff[0] = PAGE_PROGRAM;
         tx_buff[1] = (page_address & 0xFF0000) >> 16;
         tx_buff[2] = (page_address & 0x00FF00) >> 8;
         tx_buff[3] = (page_address & 0x0000FF);
+
+        ret = CALL(m_cs.set(0));
+        RET_CHECK(ret);
 
         ret = CALL(m_spi.write(tx_buff, 4));
         RET_CHECK(ret);
