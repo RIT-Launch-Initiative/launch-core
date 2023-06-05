@@ -38,14 +38,46 @@ public:
 
         static uint8_t tmp;
 
+        // mode configuration:
+        //  reset = 1
+        //  reserved
+        //  wake on lan = 0
+        //  ping block = 0
+        //  PPPoE = 0
+        //  reserved
+        //  force ARP = 0
+        //  reserved
+        static const uint8_t mode = 0b1000000;
+
+        // PHY configuration:
+        //  reset = 1
+        //  config operation mode = 1 (use the next 3 bits instead of HW pins)
+        //  operation mode = 111 (all capable, auto negotation)
+        //  all else read only
+        static const uint8_t phy_cfg = 0b11111000;
+
 //        RetType ret = CALL(hw_reset()); // Should always return success
+
         RetType ret = CALL(getVERSIONR(&tmp)); // Make sure we can read the Wiznet
         if (tmp != 4) {
             ret = RET_ERROR;
             goto init_end;
         }
 
+        ret = CALL(setMR(MR_RST));
+
         ret = CALL(setSHAR(mac_addr));
+        if (ret != RET_SUCCESS) goto init_end;
+
+        ret = CALL(setPHYCFGR(0b0));
+        if (ret != RET_SUCCESS) goto init_end;
+
+        SLEEP(30);
+
+        ret = CALL(setPHYCFGR(phy_cfg));
+        if (ret != RET_SUCCESS) goto init_end;
+
+        ret = CALL(setMR(mode));
         if (ret != RET_SUCCESS) goto init_end;
 
         ret = CALL(setSn_RXBUF_SIZE(DEFAULT_SOCKET_NUM, 16));
@@ -63,9 +95,14 @@ public:
         ret = CALL(getSn_CR(DEFAULT_SOCKET_NUM, &tmp));
         if (tmp != SOCK_MACRAW) ret = RET_ERROR;
 
+        ret = CALL(getPHYCFGR(&tmp));
+//        if (tmp != phy_cfg) ret = RET_ERROR;
+
         // Enable interrupts for sock 0
         ret = CALL(setSn_IMR(DEFAULT_SOCKET_NUM, 0b00000001));
         if (ret != RET_SUCCESS) goto init_end;
+
+
 
         init_end:
         RESET();
