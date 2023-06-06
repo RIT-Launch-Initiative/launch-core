@@ -54,7 +54,7 @@ public:
         //  config operation mode = 1 (use the next 3 bits instead of HW pins)
         //  operation mode = 111 (all capable, auto negotation)
         //  all else read only
-        static const uint8_t phy_cfg = 0b11111000;
+        static const uint8_t phy_cfg = 0b11011000;
 
 //        RetType ret = CALL(hw_reset()); // Should always return success
 
