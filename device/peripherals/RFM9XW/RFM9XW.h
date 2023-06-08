@@ -83,7 +83,7 @@ class RFM9XW : public NetworkLayer {
 public:
     RFM9XW(SPIDevice &spi, GPIODevice &cs, GPIODevice &rst) : m_spi(spi), m_cs(cs), m_rst(rst) {}
 
-    RetType init() {
+    RetType init(const uint32_t frequency) {
         RESUME();
 
         static uint8_t tmp;
@@ -117,6 +117,8 @@ public:
         ret = CALL(set_mode(RFM9XW_SLEEP_MODE_LORA_SLEEP));
         if (ret != RET_SUCCESS) goto init_end;
 
+        ret = CALL(set_frequency(frequency));
+
         init_end:
         RESET();
         return ret;
@@ -134,9 +136,81 @@ public:
         return RET_ERROR; // TODO
     }
 
+    RetType recv_data(uint8_t *buff, size_t *len, int8_t* snr, uint32_t tx_ticks) {
+        RESUME();
+        *len = 0;
 
+        static uint32_t rx1_target;
+        static uint32_t rx1_window_symbols;
+        static uint8_t irq_flags;
+        static int8_t packet_snr;
+        static uint8_t calc_len;
 
+        calculate_rx_timings(125000, 7, tx_ticks, &rx1_target, &rx1_window_symbols);
 
+        if (rx1_window_symbols > 0x3ff) {
+            RESET();
+            return RET_ERROR;
+        }
+
+        // Configure modem (125kHz, 4/6 error coding rate, SF7, single packet, CRC enable, AGC auto on)
+        RetType ret = CALL(write_reg(RFM9XW_REG_MODEM_CONFIG_1, 0x72));
+        if (ret != RET_SUCCESS) goto recv_data_end;
+
+        ret = CALL(write_reg(RFM9XW_REG_MODEM_CONFIG_2, 0x74 | ((rx1_window_symbols >> 8) & 0x3)));
+        if (ret != RET_SUCCESS) goto recv_data_end;
+
+        ret = CALL(write_reg(RFM9XW_REG_MODEM_CONFIG_3, rx1_window_symbols & 0xff));
+        if (ret != RET_SUCCESS) goto recv_data_end;
+
+        // Set maximum symbol timeout.
+        ret = CALL(write_reg(RFM9XW_REG_SYMB_TIMEOUT_LSB, rx1_window_symbols));
+        if (ret != RET_SUCCESS) goto recv_data_end;
+
+        // Set IQ registers according to AN1200.24.
+        ret = CALL(write_reg(RFM9XW_REG_INVERT_IQ_1, RFM9XW_REG_INVERT_IQ_1));
+        if (ret != RET_SUCCESS) goto recv_data_end;
+
+        ret = CALL(write_reg(RFM9XW_REG_INVERT_IQ_2, RFM9XW_REG_INVERT_IQ_2));
+        if (ret != RET_SUCCESS) goto recv_data_end;
+
+        // TODO: Interrupts
+
+        ret = CALL(read_reg(RFM9XW_REG_IRQ_FLAGS, &irq_flags, 1));
+        if (ret != RET_SUCCESS) goto recv_data_end;
+
+        // CRC Check
+        if (irq_flags & 0x20) {
+            RESET();
+            return RET_ERROR;
+        }
+
+        ret = CALL(read_reg(RFM9XW_REG_PACKET_SNR, reinterpret_cast<uint8_t *>(&packet_snr), 1));
+
+        *snr = packet_snr / 4;
+
+        // Read packet len and then data
+        ret = CALL(read_reg(RFM9XW_REG_FIFO_RX_BYTES_NB, &calc_len, 1));
+        if (ret != RET_SUCCESS) goto recv_data_end;
+
+        ret = CALL(write_reg(RFM9XW_REG_FIFO_ADDR_PTR, 0));
+        if (ret != RET_SUCCESS) goto recv_data_end;
+
+        ret = CALL(read_reg(RFM9XW_REG_FIFO_ACCESS, buff, calc_len));
+        if (ret != RET_SUCCESS) goto recv_data_end;
+
+        // Return modem to sleep.
+        ret = CALL(set_mode(RFM9XW_SLEEP_MODE_LORA_SLEEP));
+        if (ret != RET_SUCCESS) goto recv_data_end;
+
+        // Successful payload receive, set payload length to tell caller.
+        *len = calc_len;
+
+        recv_data_end:
+        RESET();
+        return ret;
+
+    }
 
     RetType poll() {
         return RET_SUCCESS;
@@ -157,7 +231,7 @@ private:
     uint32_t irq_times[RFM9XW_NUM_IRQS] = {};
 
 
-    RetType read_reg(uint8_t reg, uint8_t *buff, size_t len) {
+    RetType read_reg(const uint8_t reg, uint8_t* const buff, const size_t len) {
         RESUME();
 
         RetType ret = CALL(m_cs.set(0));
@@ -175,7 +249,7 @@ private:
         return RET_SUCCESS;
     }
 
-    RetType write_reg(uint8_t reg, uint8_t val) {
+    RetType write_reg(const uint8_t reg, const uint8_t val) {
         RESUME();
 
         static uint8_t buff[2];
@@ -193,7 +267,7 @@ private:
         return RET_SUCCESS;
     }
 
-    RetType set_frequency(uint32_t freq) {
+    RetType set_frequency(const uint32_t freq) {
         RESUME();
 
         static uint64_t new_freq;
@@ -211,7 +285,7 @@ private:
         return ret;
     }
 
-    RetType set_channel(uint8_t channel) {
+    RetType set_channel(const uint8_t channel) {
         RESUME();
 
         if (!(channel_mask & (1 << channel))) {
@@ -258,7 +332,7 @@ private:
         return ret;
     }
 
-    RetType set_mode(RFM9XW_MODE_T sleep_mode) {
+    RetType set_mode(const RFM9XW_MODE_T sleep_mode) {
         RESUME();
 
         RetType ret = CALL(write_reg(RFM9XW_REG_OP_MODE, sleep_mode));
@@ -267,7 +341,7 @@ private:
         return ret;
     }
 
-    RetType set_payload_len(size_t len) {
+    RetType set_payload_len(const size_t len) {
         RESUME();
 
         RetType ret = CALL(write_reg(RFM9XW_REG_PAYLOAD_LENGTH, len));
@@ -276,7 +350,7 @@ private:
         return ret;
     }
 
-    RetType set_preamble(uint8_t msb, uint8_t lsb) {
+    RetType set_preamble(const uint8_t msb, const uint8_t lsb) {
         RESUME();
 
         RetType ret = CALL(write_reg(RFM9XW_REG_PREAMBLE_MSB, msb));
@@ -289,7 +363,7 @@ private:
         return ret;
     }
 
-    RetType set_lna(uint8_t val) {
+    RetType set_lna(const uint8_t val) {
         RESUME();
 
         RetType ret = CALL(write_reg(RFM9XW_REG_LNA, val));
@@ -307,7 +381,8 @@ private:
         return RET_SUCCESS;
     }
 
-
+    void calculate_rx_timings(const uint32_t bw, const uint8_t sf, const uint32_t tx_ticks, uint32_t* const rx_target, uint32_t* const rx_window_symbols) {
+    }
 };
 
 #endif //RADIO_MODULE_RFM9XW_H

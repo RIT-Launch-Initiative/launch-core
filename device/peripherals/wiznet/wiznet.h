@@ -31,15 +31,15 @@
 
 class Wiznet : public NetworkLayer {
 public:
-    Wiznet(SPIDevice &spi, GPIODevice &cs_pin, GPIODevice &reset_pin) : m_spi(spi), m_cs(cs_pin), m_reset(reset_pin) {};
+    Wiznet(SPIDevice &spi, GPIODevice &cs_pin, GPIODevice &reset_pin, LED wiz_led) : m_spi(spi), m_cs(cs_pin), m_reset(reset_pin), m_led(wiz_led) {};
 
     RetType init(uint8_t *mac_addr) {
         RESUME();
 
         static uint8_t tmp;
 
-        RetType ret = CALL(hw_reset()); // Should always return success
-        ret = CALL(getVERSIONR(&tmp)); // Make sure we can read the Wiznet
+//        RetType ret = CALL(hw_reset()); // Should always return success
+        RetType ret = CALL(getVERSIONR(&tmp)); // Make sure we can read the Wiznet
         if (tmp != 4) {
             ret = RET_ERROR;
             goto init_end;
@@ -112,6 +112,8 @@ public:
         ret = CALL(setSn_CR(DEFAULT_SOCKET_NUM, Sn_CR_SEND));
         if (ret != RET_SUCCESS) goto transmit2_end;
 
+//        CALL(m_led.setState(LED_ON));
+
         while (true) {
             ret = CALL(getSn_IR(DEFAULT_SOCKET_NUM, &tmp));
             if (ret != RET_SUCCESS) goto transmit2_end;
@@ -130,6 +132,8 @@ public:
         }
 
         transmit2_end:
+//        CALL(m_led.setState(LED_OFF));
+
         RESET();
         return ret;
     }
@@ -235,6 +239,7 @@ private:
     SPIDevice &m_spi;
     GPIODevice &m_cs;
     GPIODevice &m_reset;
+    LED &m_led;
     uint16_t sock_remaining_size[8] = {0};
     uint16_t sock_io_mode = 0;
 
