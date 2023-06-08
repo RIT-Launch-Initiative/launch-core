@@ -82,12 +82,14 @@ using RFM9XW_INT_T = enum {
 class RFM9XW : public NetworkLayer {
 public:
     RFM9XW(SPIDevice &spi, GPIODevice &cs, GPIODevice &rst) : m_spi(spi), m_cs(cs), m_rst(rst) {}
-
-    RetType init(const uint32_t frequency) {
+    RetType init(const uint32_t frequency = 920, const RFM9XW_RX_MODE_T rx_mode = RFM9XW_RX_MODE_1_2) {
         RESUME();
 
         static uint8_t tmp;
-        RetType ret = CALL(read_reg(RFM9XW_REG_VERSION, &tmp, 1));
+        RetType ret = CALL(reset());
+        if (ret != RET_SUCCESS) goto init_end;
+
+        ret = CALL(read_reg(RFM9XW_REG_VERSION, &tmp, 1));
         if (ret != RET_SUCCESS) goto init_end;
         if (tmp != RFM9XW_VERSION) {
             ret = RET_ERROR;
@@ -136,7 +138,7 @@ public:
         return RET_ERROR; // TODO
     }
 
-    RetType send_data(const uint8_t const *buff, const size_t len) {
+    RetType send_data(const uint8_t *buff, const size_t len) {
         RESUME();
 
         static int i = 0;
@@ -183,7 +185,7 @@ public:
         if (ret != RET_SUCCESS) goto send_data_end;
 
         // Wait
-        // TODO: Interrupt
+        ret = CALL(wait_for_irq(RFM9XW_INT_DIO0, timeout_time));
 
         ret = CALL(set_mode(RFM9XW_MODE_STANDBY));
         if (ret != RET_SUCCESS) goto send_data_end;
@@ -290,6 +292,22 @@ private:
     uint16_t channel_mask;
     RFM9XW_RX_MODE_T rx_mode;
     uint32_t irq_times[RFM9XW_NUM_IRQS] = {};
+    uint32_t precision_tick_freq;
+    uint32_t timeout_time = 10;
+
+    RetType wait_for_irq(const RFM9XW_INT_T irq, const uint32_t timeout) {
+        RESUME();
+
+        SLEEP(timeout * (precision_tick_freq / 1000));
+
+        if (irq_times[irq] == 0) {
+            RESET();
+            return RET_ERROR;
+        }
+
+        RESET();
+        return RET_SUCCESS;
+    }
 
 
     RetType read_reg(const uint8_t reg, uint8_t* const buff, const size_t len) {
@@ -332,7 +350,7 @@ private:
         RESUME();
 
         static uint64_t new_freq;
-        new_freq = (static_cast<uint64_t>(freq) << 19) / 32000000;
+        new_freq = (static_cast<uint64_t>(freq * 1000000) << 19) / 32000000;
         RetType ret = CALL(write_reg(RFM9XW_REG_FR_MSB, static_cast<uint8_t>(new_freq >> 16)));
         if (ret != RET_SUCCESS) goto set_frequency_end;
 
