@@ -310,7 +310,7 @@ private:
     }
 
 
-    RetType read_reg(const uint8_t reg, uint8_t* const buff, const size_t len) {
+    RetType read_reg(const uint8_t reg, uint8_t* buff, const size_t len) {
         RESUME();
 
         RetType ret = CALL(m_cs.set(0));
@@ -319,7 +319,13 @@ private:
         buff[0] = reg & 0x7FU;
 
         // TODO: Write one byte and then proceed to read or is this ok?
-        ret = CALL(m_spi.write_read(buff, buff, len));
+//        ret = CALL(m_spi.write_read(buff, buff, len));
+//        if (ret != RET_SUCCESS) goto read_reg_end;
+
+        ret = CALL(m_spi.write(buff, len));
+        if (ret != RET_SUCCESS) goto read_reg_end;
+
+        ret = CALL(m_spi.read(buff, len));
         if (ret != RET_SUCCESS) goto read_reg_end;
 
         read_reg_end:
