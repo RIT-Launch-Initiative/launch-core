@@ -60,11 +60,11 @@ using RFM9XW_REGISTER_T = enum {
 };
 
 using RFM9XW_MODE_T = enum {
-    RFM9XW_SLEEP_MODE_SLEEP = 0x00,
-    RFM9XW_SLEEP_MODE_LORA_SLEEP = 0x80,
-    RFM9XW_SLEEP_MODE_STANDBY = 0x81,
-    RFM9XW_SLEEP_MODE_TX = 0x83,
-    RFM9XW_SLEEP_MODE_RX_SINGLE = 0x86
+    RFM9XW_MODE_SLEEP = 0x00,
+    RFM9XW_MODE_LORA_SLEEP = 0x80,
+    RFM9XW_MODE_STANDBY = 0x81,
+    RFM9XW_MODE_TX = 0x83,
+    RFM9XW_MODE_RX_SINGLE = 0x86
 };
 
 using RFM9XW_RX_MODE_T = enum {
@@ -94,10 +94,10 @@ public:
             goto init_end;
         }
 
-        ret = CALL(set_mode(RFM9XW_SLEEP_MODE_SLEEP));
+        ret = CALL(set_mode(RFM9XW_MODE_SLEEP));
         if (ret != RET_SUCCESS) goto init_end;
 
-        ret = CALL(set_mode(RFM9XW_SLEEP_MODE_LORA_SLEEP));
+        ret = CALL(set_mode(RFM9XW_MODE_LORA_SLEEP));
         if (ret != RET_SUCCESS) goto init_end;
 
         // TODO: Don't know enough about RF to config this yet
@@ -114,7 +114,7 @@ public:
         ret = CALL(set_lna(0b01000000));
         if (ret != RET_SUCCESS) goto init_end;
 
-        ret = CALL(set_mode(RFM9XW_SLEEP_MODE_LORA_SLEEP));
+        ret = CALL(set_mode(RFM9XW_MODE_LORA_SLEEP));
         if (ret != RET_SUCCESS) goto init_end;
 
         ret = CALL(set_frequency(frequency));
@@ -135,6 +135,67 @@ public:
     RetType transmit2(Packet &packet, netinfo_t &info, NetworkLayer *caller) override {
         return RET_ERROR; // TODO
     }
+
+    RetType send_data(const uint8_t const *buff, const size_t len) {
+        RESUME();
+
+        static int i = 0;
+
+        // Configure modem
+        RetType ret = CALL(write_reg(RFM9XW_REG_MODEM_CONFIG_1, 0x72));
+        if (ret != RET_SUCCESS) goto send_data_end;
+
+        ret = CALL(write_reg(RFM9XW_REG_MODEM_CONFIG_2, 0x74));
+        if (ret != RET_SUCCESS) goto send_data_end;
+
+        ret = CALL(write_reg(RFM9XW_REG_MODEM_CONFIG_3, 0x04));
+        if (ret != RET_SUCCESS) goto send_data_end;
+
+        // Payload Length
+        ret = CALL(set_payload_len(len));
+        if (ret != RET_SUCCESS) goto send_data_end;
+
+        // IQ Registers
+        ret = CALL(write_reg(RFM9XW_REG_INVERT_IQ_1, 0x27));
+        if (ret != RET_SUCCESS) goto send_data_end;
+
+        ret = CALL(write_reg(RFM9XW_REG_INVERT_IQ_2, 0x1D));
+        if (ret != RET_SUCCESS) goto send_data_end;
+
+        // LORA Standby
+        ret = CALL(set_mode(RFM9XW_MODE_STANDBY));
+        if (ret != RET_SUCCESS) goto send_data_end;
+
+        // TODO: Interrupt
+
+        // FIFO Write
+        ret = CALL(write_reg(RFM9XW_REG_FIFO_ADDR_PTR, 0x80));
+        if (ret != RET_SUCCESS) goto send_data_end;
+
+        for (; i < len; i++) {
+            ret = CALL(write_reg(RFM9XW_REG_FIFO_ACCESS, buff[i]));
+            if (ret != RET_SUCCESS) goto send_data_end;
+        }
+        i = 0;
+
+        // Transmit
+        ret = CALL(set_mode(RFM9XW_MODE_TX));
+        if (ret != RET_SUCCESS) goto send_data_end;
+
+        // Wait
+        // TODO: Interrupt
+
+        ret = CALL(set_mode(RFM9XW_MODE_STANDBY));
+        if (ret != RET_SUCCESS) goto send_data_end;
+
+        tx_frame_count++;
+
+        send_data_end:
+        RESET();
+        return RET_SUCCESS;
+    }
+
+
 
     RetType recv_data(uint8_t *buff, size_t *len, int8_t* snr, uint32_t tx_ticks) {
         RESUME();
@@ -200,7 +261,7 @@ public:
         if (ret != RET_SUCCESS) goto recv_data_end;
 
         // Return modem to sleep.
-        ret = CALL(set_mode(RFM9XW_SLEEP_MODE_LORA_SLEEP));
+        ret = CALL(set_mode(RFM9XW_MODE_LORA_SLEEP));
         if (ret != RET_SUCCESS) goto recv_data_end;
 
         // Successful payload receive, set payload length to tell caller.
