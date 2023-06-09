@@ -10,13 +10,8 @@ void swprint(const char* msg);
 int swprintf(const char* fmt, ...);
 void swprintx(const char* leader, const uint8_t* bytes, size_t len);
 
-extern uint32_t ITM_SendChar(uint32_t ch); // don't know where this comes from
+#include "core_cm4.h"
 
-// boy I love header-only programming
-
-/*
- * @brief send a plain message down ITM channel 0 using ITM_SendChar
- */
 /// @brief send a plain string using ITM_SendChar if DEBUG is defined
 void swprint(const char* msg) {
 #ifdef DEBUG
@@ -57,6 +52,7 @@ void swprintx(const char* leader, const uint8_t* bytes, size_t len) {
     for (int i = 0; i < len; i++) {
         swprintf("%02X ", bytes[i]);
     }
+    swprint("\n");
 #endif
 }
 #endif //SENSOR_MODULE_SWDEBUG_H
