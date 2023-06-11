@@ -41,6 +41,7 @@
 #include "net/device/StreamDevice.h"
 #include "net/slip/slip.h"
 #include "net/packet/Packet.h"
+#include "sched/macros/macros.h"
 
 
 class SlipRingDevice : public NetworkLayer, public Device {
@@ -70,18 +71,55 @@ public:
 
     /// @brief poll the device
     RetType poll() {
-        // TODO
+        RESUME();
+        RetType ret;
 
-        // grab new serial data
-        // deecode
-        // if got whole frame:
-        //      send to net layer
-        //      decrement TTL
-        //      if TTL > 0:
-        //          re-encode and transmit
-        // repeat
+        uint8_t dat;
 
-        return RET_SUCCESS;
+        ret = CALL(m_serial.read(&dat, 1));
+        if(RET_SUCCESS != ret) {
+            return RET_ERROR;
+        }
+
+        slip_buffer_t* buff = m_decoder.push(dat);
+        if(NULL == buff) {
+            // not a complete frame yet
+            return RET_SUCCESS;
+        }
+
+        // we got a complete frame
+        if(buff->len <= sizeof(slip_ring_header_t)) {
+            // bad frame, not big enough
+            // ignore
+            return RET_SUCCESS;
+        }
+
+        // check if the frame should be retransmitted
+        slip_ring_header_t* hdr = (slip_ring_header_t*)buff->data;
+        hdr->ttl--;
+
+        if(hdr->ttl > 0) {
+            // retransmit, we are not the last device in the ring
+            buff = m_encoder.encode(buff->data, buff->len);
+
+            if(NULL != buff) {
+                // if this fails, we can't do any more, so we don't care about
+                // the return value
+                CALL(m_serial.write(buff->data, buff->len));
+            } // otherwise error retransmitting, not much more we can do :/
+        }
+
+        // copy the decoded payload into a packet
+        m_packet.clear();
+        ret = m_packet.push(buff->data + sizeof(slip_ring_header_t),
+                            buff->len - sizeof(slip_ring_header_t));
+        if(RET_SUCCESS != ret) {
+            return RET_ERROR;
+        }
+
+        // pass it up the stack
+        netinfo_t info;
+        return CALL(m_net.receive(packet, info, this));
     }
 
     /// @brief transmit a packet over the SLIP ring
