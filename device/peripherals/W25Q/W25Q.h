@@ -22,7 +22,7 @@ class W25Q : public BlockDevice {
 public:
 
     W25Q(const char* name, SPIDevice &m_spi, GPIODevice &csPin, uint8_t erase = 0) :
-            BlockDevice(name), m_spi(m_spi), m_cs(csPin), init_erase(erase) {}
+            BlockDevice(name), m_spi(m_spi), m_cs(csPin), init_erase(erase), m_lock(1) {}
 
     RetType init() {
         uint32_t dev_id;
@@ -187,6 +187,7 @@ public:
 
     // device could be busy doing a write op, need to have a block/unblock mechanism
     tid_t m_blocked = TID_UNBLOCKED; // the task blocked on this device
+    BlockingSemaphore m_lock;
 
     // necessary peripherals
 	SPIDevice &m_spi;
@@ -294,8 +295,6 @@ public:
 
     	CHECK_CALL(block_if_busy());
     	CHECK_CALL(write_enable_set(WRITE_ENABLE));
-    	// TODO: Add extra speed modes
-
         CHECK_CALL(m_spi_ww(cmd_bytes, sizeof(cmd_bytes), src, len));
 
     	RESET();
@@ -341,17 +340,20 @@ public:
 
 	RetType m_spi_w(uint8_t* buf, size_t len) {
 		RESUME();
+        CALL(m_lock.acquire());
         swprintx("SPI writing: ", buf, len);
         swprint("\n");
     	CHECK_CALL(m_cs.set(CS_ACTIVE));
     	CHECK_CALL(m_spi.write(buf, len));
     	CHECK_CALL(m_cs.set(CS_INACTIVE));
+        CALL(m_lock.release());
     	RESET();
     	return RET_SUCCESS;
     }
 
 	RetType m_spi_ww(uint8_t* buf1, size_t len1, uint8_t* buf2, size_t len2) {
 		RESUME();
+        CALL(m_lock.acquire());
         swprintx("SPI writing 1: ", buf1, len1);
         swprint("\n");
         swprintx("SPI writing 2: ", buf2, len2);
@@ -360,18 +362,21 @@ public:
     	CHECK_CALL(m_spi.write(buf1, len1));
     	CHECK_CALL(m_spi.write(buf2, len2));
     	CHECK_CALL(m_cs.set(CS_INACTIVE));
+        CALL(m_lock.release());
     	RESET();
     	return RET_SUCCESS;
     }
 
 	RetType m_spi_wr(uint8_t* buf1, size_t len1, uint8_t* buf2, size_t len2) {
 		RESUME();
+        CALL(m_lock.acquire());
         swprintx("SPI writing: ", buf1, len1);
         swprint("\n");
     	CHECK_CALL(m_cs.set(CS_ACTIVE));
     	CHECK_CALL(m_spi.write(buf1, len1));
         CHECK_CALL(m_spi.read(buf2, len2));
     	CHECK_CALL(m_cs.set(CS_INACTIVE));
+        CALL(m_lock.release());
         swprintx("SPI read: ", buf2, len2);
         swprint("\n");
     	RESET();
