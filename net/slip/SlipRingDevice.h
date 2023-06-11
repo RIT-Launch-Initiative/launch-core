@@ -126,10 +126,15 @@ public:
     /// @param packet   the packet to transmit
     /// @return
     RetType transmit(Packet& packet, netinfo_t&, NetworkLayer*) {
-        // TODO
+        // allocate the header for the ring frame
+        slip_ring_header_t* hdr = m_packet.allocate_header<slip_ring_header_t>();
+        if(NULL == hdr) {
+            // no room :(
+            return RET_ERROR;
+        }
 
-        // allocate header for slip ring frame
         // set TTL = ring length - 1
+        hdr->ttl = m_size - 1;
 
         return RET_SUCCESS
     }
@@ -137,13 +142,25 @@ public:
     /// @brief transmit a packet over the SLIP ring (second pass)
     /// @param packet   the packet to transmit
     /// @return
-    RetType transmit(Packet& packet, netinfo_t&, NetworkLayer*) {
-        // TODO
+    RetType transmit2(Packet& packet, netinfo_t&, NetworkLayer*) {
+        RESUME();
 
         // encode into SLIP frame
-        // transmit
+        packet.seek_read(true);
 
-        return RET_SUCCESS
+        uint8_t* ptr = packet.read_ptr<uint8_t>();
+        if(NULL == ptr) {
+            return RET_ERROR;
+        }
+
+        slip_buffer_t* buff = m_encoder.encoder(ptr, packet.available());
+        if(NULL == buff) {
+            // failed to encode
+            return RET_ERROR;
+        }
+
+        // transmit over serial
+        return CALL(m_serial.write(buff->data, buff->len));
     }
 
     /// @brief invalid
