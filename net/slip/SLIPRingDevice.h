@@ -1,6 +1,6 @@
 /*******************************************************************************
 *
-*  Name: SlipRingDevice.h
+*  Name: SLIPRingDevice.h
 *
 *  Purpose: Implements a network layer that communicates using the Serial
 *           Line Internet Protocol.
@@ -36,15 +36,15 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#include "net/NetworkLayer.h"
-#include "net/device/Device.h"
-#include "net/device/StreamDevice.h"
+#include "net/network_layer/NetworkLayer.h"
+#include "device/Device.h"
+#include "device/StreamDevice.h"
 #include "net/slip/slip.h"
 #include "net/packet/Packet.h"
 #include "sched/macros/macros.h"
 
 
-class SlipRingDevice : public NetworkLayer, public Device {
+class SLIPRingDevice : public NetworkLayer, public Device {
 public:
     /// @brief header for a slip ring frame
     typedef struct {
@@ -119,7 +119,7 @@ public:
 
         // pass it up the stack
         netinfo_t info;
-        return CALL(m_net.receive(packet, info, this));
+        return CALL(m_net.receive(m_packet, info, this));
     }
 
     /// @brief transmit a packet over the SLIP ring
@@ -136,7 +136,7 @@ public:
         // set TTL = ring length - 1
         hdr->ttl = m_size - 1;
 
-        return RET_SUCCESS
+        return RET_SUCCESS;
     }
 
     /// @brief transmit a packet over the SLIP ring (second pass)
@@ -153,7 +153,7 @@ public:
             return RET_ERROR;
         }
 
-        slip_buffer_t* buff = m_encoder.encoder(ptr, packet.available());
+        slip_buffer_t* buff = m_encoder.encode(ptr, packet.available());
         if(NULL == buff) {
             // failed to encode
             return RET_ERROR;
@@ -165,7 +165,7 @@ public:
 
     /// @brief invalid
     RetType receive(Packet&, netinfo_t&, NetworkLayer*) {
-        return RET_FAILURE;
+        return RET_ERROR;
     }
 
 protected:
@@ -176,36 +176,60 @@ protected:
     /// @param packet   an allocated packet
     /// @param encoder  SLIP encoder
     /// @param decoder  SLIP decoder
-    SlipRingDevice(size_t size,
+    SLIPRingDevice(size_t size,
                    StreamDevice& serial,
                    NetworkLayer& net,
                    Packet& packet,
                    UnallocatedSLIPEncoder& encoder,
-                   UnallocatedSLIPDecoder& decoder,) : m_size(size),
+                   UnallocatedSLIPDecoder& decoder)  : m_size(size),
                                                        m_serial(serial),
                                                        m_net(net),
                                                        m_packet(packet),
                                                        m_encoder(encoder),
-                                                       m_decoder(decoder) {};
+                                                       m_decoder(decoder),
+                                                ::Device("SLIP ring device") {};
 
 private:
     // number of devices in the ring
     size_t m_size;
 
     // serial device
-    StreamDevice& m_stream;
+    StreamDevice& m_serial;
 
     // network layer to pass packets up to
-    NetworkLayer& net;
+    NetworkLayer& m_net;
 
     // packet
     Packet& m_packet;
 
     // encoder
-    UnallocatedSLIPEncoder& m_decoder;
+    UnallocatedSLIPEncoder& m_encoder;
 
     // decoder
-    UnallocatedSLIPDecoder& m_encoder;
+    UnallocatedSLIPDecoder& m_decoder;
 };
+
+namespace alloc {
+
+/// @brief SLIPRingDevice with preallocated buffers
+/// @tparam SIZE    the maximum size of a packet to be encoded
+template <const size_t SIZE>
+class SLIPRingDevice : public ::SLIPRingDevice {
+public:
+    /// @brief protected constructor
+    /// @brief size     the number of devices in the ring
+    /// @param serial   the serial device
+    /// @param net      the network layer to pass received frames to
+    SLIPRingDevice(size_t size, StreamDevice& serial, NetworkLayer& net) :
+                                             ::SLIPRingDevice(size, serial, net,
+                                               packet, m_encoder, m_decoder) {};
+
+private:
+    SLIPEncoder<(SIZE + 1) * 2> m_encoder;
+    SLIPDecoder<(SIZE + 1) * 2> m_decoder;
+    Packet<SIZE, 0> packet;
+};
+
+}
 
 #endif
