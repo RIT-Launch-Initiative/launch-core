@@ -21,8 +21,8 @@
 class W25Q : public BlockDevice {
 public:
 
-    W25Q(const char* name, SPIDevice &m_spi, GPIODevice &csPin, uint8_t erase = 0) :
-            BlockDevice(name), m_spi(m_spi), m_cs(csPin), init_erase(erase), m_lock(1) {}
+    W25Q(const char* name, SPIDevice &spi, GPIODevice &cs, uint8_t erase = 0) :
+            BlockDevice(name), m_spi(spi), m_cs(cs), init_erase(erase), m_lock(1) {}
 
     RetType init() {
         uint32_t dev_id;
@@ -340,45 +340,40 @@ public:
 
 	RetType m_spi_w(uint8_t* buf, size_t len) {
 		RESUME();
-        CALL(m_lock.acquire());
+//        CALL(m_lock.acquire());
         swprintx("SPI writing: ", buf, len);
-        swprint("\n");
     	CHECK_CALL(m_cs.set(CS_ACTIVE));
     	CHECK_CALL(m_spi.write(buf, len));
     	CHECK_CALL(m_cs.set(CS_INACTIVE));
-        CALL(m_lock.release());
+//        CALL(m_lock.release());
     	RESET();
     	return RET_SUCCESS;
     }
 
 	RetType m_spi_ww(uint8_t* buf1, size_t len1, uint8_t* buf2, size_t len2) {
 		RESUME();
-        CALL(m_lock.acquire());
+//        CALL(m_lock.acquire());
         swprintx("SPI writing 1: ", buf1, len1);
-        swprint("\n");
         swprintx("SPI writing 2: ", buf2, len2);
-        swprint("\n");
     	CHECK_CALL(m_cs.set(CS_ACTIVE));
     	CHECK_CALL(m_spi.write(buf1, len1));
     	CHECK_CALL(m_spi.write(buf2, len2));
     	CHECK_CALL(m_cs.set(CS_INACTIVE));
-        CALL(m_lock.release());
+//        CALL(m_lock.release());
     	RESET();
     	return RET_SUCCESS;
     }
 
 	RetType m_spi_wr(uint8_t* buf1, size_t len1, uint8_t* buf2, size_t len2) {
 		RESUME();
-        CALL(m_lock.acquire());
+//        CALL(m_lock.acquire());
         swprintx("SPI writing: ", buf1, len1);
-        swprint("\n");
     	CHECK_CALL(m_cs.set(CS_ACTIVE));
     	CHECK_CALL(m_spi.write(buf1, len1));
         CHECK_CALL(m_spi.read(buf2, len2));
     	CHECK_CALL(m_cs.set(CS_INACTIVE));
-        CALL(m_lock.release());
+//        CALL(m_lock.release());
         swprintx("SPI read: ", buf2, len2);
-        swprint("\n");
     	RESET();
     	return RET_SUCCESS;
     }
