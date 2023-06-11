@@ -2,7 +2,7 @@
 *
 *  Name: SLIPRingDevice.h
 *
-*  Purpose: Implements a network layer that communicates using the Serial
+*  Purpose: Implements a network device that communicates using the Serial
 *           Line Internet Protocol.
 *
 *           The serial devices should be chained in a ring, for example:
@@ -12,10 +12,11 @@
 *           The TX of device 1 is connected to the RX of 2, the TX of 2 is
 *           connected to the RX of 3, the TX of 3 is connected to the TX of 1.
 *
+*
 *           Network layer (IPv4 typically) frames are encapsulated in custom
 *           "ring" frames, which will be transmitted to each device in the ring
-*           until every device has received the frame. This is accomplished very
-*           simply with a TTL the size of the ring, the TTL is set to the ring
+*           until every device has received the frame. This is accomplished with
+*           a simple "Time To Live" 32-bit integer, the TTL is set to the ring
 *           size minus 1 and decremented each receive, when it reaches zero at
 *           the last device in the ring the frame is dropped to avoid routing
 *           circles.
