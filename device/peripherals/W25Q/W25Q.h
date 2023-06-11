@@ -96,6 +96,7 @@ public:
                 this->block_count = 128;
                 break;
             default: // Currently only using W25Q128FV. Can add more in the future
+                RESET();
                 return RET_ERROR;
         }
 
