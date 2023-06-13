@@ -81,7 +81,7 @@ public:
     const uint8_t DUMMY_BYTE = 0xA5;
 
     W25Q(SPIDevice &spiDevice, GPIODevice &csPin) :
-            BlockDevice("FlashDevice"), m_spi(spiDevice), m_cs(csPin) {}
+            BlockDevice("FlashDevice"), m_spi(spiDevice), m_cs(csPin), m_lock(-1) {}
 
 
     RetType init() {
@@ -93,7 +93,7 @@ public:
 
         switch (deviceID & 0x000000FF) {
             case 0x18: // W25Q128FV
-                this->block_count = 128;
+                this->block_count = 256;
                 break;
             default: // Currently only using W25Q128FV. Can add more in the future
                 RESET();
@@ -178,7 +178,9 @@ public:
 private:
     SPIDevice &m_spi;
     GPIODevice &m_cs;
-//    GPIODevice &clockPin;
+
+    BlockingSemaphore m_lock;
+    tid_t m_blocked;
 
     uint16_t page_size;
     uint32_t page_count;
@@ -318,8 +320,30 @@ private:
     RetType write_byte(uint8_t byte, size_t write_address) {
         RESUME();
 
-        RetType ret = CALL(m_cs.set(0));
-        RET_CHECK(ret);
+        RetType ret = CALL(m_lock.acquire());
+        if (ret != RET_SUCCESS) {
+            // some error
+            RESET();
+            return ret;
+        }
+
+        m_blocked = sched_dispatched;
+
+        ret = CALL(toggleWrite(WRITE_SET_ENABLE));
+        if (RET_SUCCESS != ret) {
+            m_blocked = -1;
+            CALL(m_lock.release());
+            RESET();
+            return RET_ERROR;
+        }
+
+        ret = CALL(m_cs.set(0));
+        if (RET_SUCCESS != ret) {
+            m_blocked = -1;
+            CALL(m_lock.release());
+            RESET();
+            return RET_ERROR;
+        }
 
         tx_buff[0] = PAGE_PROGRAM;
         tx_buff[1] = (write_address & 0xFF0000) >> 16;
@@ -328,10 +352,20 @@ private:
         tx_buff[4] = byte;
 
         ret = CALL(m_spi.write(tx_buff, 5));
-        RET_CHECK(ret);
+        if (RET_SUCCESS != ret) {
+            m_blocked = -1;
+            CALL(m_lock.release());
+            RESET();
+            return RET_ERROR;
+        }
 
         ret = CALL(m_cs.set(1));
-        RET_CHECK(ret);
+        if (RET_SUCCESS != ret) {
+            m_blocked = -1;
+            CALL(m_lock.release());
+            RESET();
+            return RET_ERROR;
+        }
 
         RESET();
         return RET_SUCCESS;
@@ -345,7 +379,16 @@ private:
             return RET_SUCCESS;
         }
 
-        RetType ret = CALL(write_enable());
+        RetType ret = CALL(m_lock.acquire());
+        if (ret != RET_SUCCESS) {
+            // some error
+            RESET();
+            return ret;
+        }
+
+        m_blocked = sched_dispatched;
+
+        ret = CALL(write_enable());
         RET_CHECK(ret);
 
         if ((len + byte_offset) > page_size) len = page_size - byte_offset;
@@ -360,15 +403,44 @@ private:
         tx_buff[3] = (page_address & 0x0000FF);
 
         ret = CALL(m_cs.set(0));
-        RET_CHECK(ret);
+        if (RET_SUCCESS != ret) {
+            m_blocked = -1;
+            CALL(m_lock.release());
+            RESET();
+            return RET_ERROR;
+        }
 
         ret = CALL(m_spi.write(tx_buff, 4));
-        RET_CHECK(ret);
+        if (RET_SUCCESS != ret) {
+            m_blocked = -1;
+            CALL(m_lock.release());
+            RESET();
+            return RET_ERROR;
+        }
 
         ret = CALL(m_spi.write(buff, len));
-        RET_CHECK(ret);
+        if (RET_SUCCESS != ret) {
+            m_blocked = -1;
+            CALL(m_lock.release());
+            RESET();
+            return RET_ERROR;
+        }
 
         ret = CALL(m_cs.set(1));
+        if (RET_SUCCESS != ret) {
+            m_blocked = -1;
+            CALL(m_lock.release());
+            RESET();
+            return RET_ERROR;
+        }
+
+        BLOCK(); // TODO: Check if we finish writing before blocking
+
+        ret = CALL(m_lock.release());
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         RESET();
         return RET_SUCCESS;
