@@ -164,6 +164,18 @@ public:
     }
 
     RetType poll() override {
+        RESUME();
+
+        static uint8_t status_reg_one = 0;
+        RetType ret = CALL(readRegister(REGISTER_ONE_READ, &status_reg_one));
+
+        if (0x01 == (status_reg_one & 0x01)) {
+            WAKE(m_blocked);
+
+            m_blocked = -1;
+        }
+
+        RESET();
         return RET_SUCCESS;
     }
 
