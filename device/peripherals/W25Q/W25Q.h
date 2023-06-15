@@ -7,6 +7,8 @@
 #ifndef LAUNCH_CORE_W25Q_H
 #define LAUNCH_CORE_W25Q_H
 
+#include <string.h>
+
 #include "device/SPIDevice.h"
 #include "device/GPIODevice.h"
 #include "sched/sched.h"
@@ -17,6 +19,8 @@
 
 #define W25Q128JV_JEDEC_ID 0x00EF4018
 #define CHECK_CALL(expr) {if (RET_SUCCESS != CALL(expr)) {RESET(); return RET_ERROR;}}
+// longest command + block read size
+#define W25Q_BUF_SIZE (8 + 256)
 
 class W25Q : public BlockDevice {
 public:
@@ -111,6 +115,7 @@ public:
 			CHECK_CALL(read_status(READ_ONE, &status)); // is the chip still busy?
 
 			if (0 == (status & mask)) { // if not, unblock the blocked task
+                swprint("#GRN#Unblocking\n");
 				m_blocked = TID_UNBLOCKED;
 				WAKE(m_blocked);
 			}
@@ -130,20 +135,10 @@ public:
 	enum read_command_t {
 		READ_DATA = 0x03,
 //		FAST_READ = 0x00,
-//
-//		FAST_READ_DUAL = 0x03,
-//		FAST_READ_QUAD = 0x06,
-//
-//		FAST_READ_DUAL_IO = 0x0B,
-//		FAST_READ_QUAD_IO = 0x0E,
-//
-//		WORD_READ_QUAD_IO = 0xE7,
-//		OCTAL_WORD_READ_QUAD_IO = 0xE3,
 	};
 
 	enum program_command_t {
 		PAGE_PROGRAM = 0x02,
-//		QUAD_PAGE_PROGRAM = 0x32
 	};
 
 	enum erase_command_t {
@@ -192,6 +187,8 @@ public:
     // necessary peripherals
 	SPIDevice &m_spi;
     GPIODevice &m_cs;
+    uint8_t spi_out_buf[W25Q_BUF_SIZE];
+    uint8_t spi_in_buf[W25Q_BUF_SIZE];
 
     // device properties
     uint8_t init_erase = 0; // erase on startup
@@ -220,6 +217,7 @@ public:
     	CHECK_CALL(read_status(READ_ONE, &status));
 
     	if (status & mask) { // busy bit set, we block
+            swprint("#ORG#Blocking!\n");
     		m_blocked = sched_dispatched;
     		BLOCK();
     	}
@@ -275,7 +273,8 @@ public:
 
     	RESUME();
 
-    	CHECK_CALL(block_if_busy());
+        swprintf("#RED#MEM READ INSTRUCTION\n");
+//    	CHECK_CALL(block_if_busy());
 
     	// TODO: Add extra speed modes
 
@@ -293,7 +292,8 @@ public:
 
         RESUME();
 
-    	CHECK_CALL(block_if_busy());
+        swprintf("#RED#MEM PROGRAM INSTRUCTION\n");
+//    	CHECK_CALL(block_if_busy());
     	CHECK_CALL(write_enable_set(WRITE_ENABLE));
         CHECK_CALL(m_spi_ww(cmd_bytes, sizeof(cmd_bytes), src, len));
 
@@ -353,11 +353,15 @@ public:
 	RetType m_spi_ww(uint8_t* buf1, size_t len1, uint8_t* buf2, size_t len2) {
 		RESUME();
 //        CALL(m_lock.acquire());
-        swprintx("SPI writing 1: ", buf1, len1);
-        swprintx("SPI writing 2: ", buf2, len2);
+        if ((len1 + len2) > W25Q_BUF_SIZE) {
+            RESET();
+            return RET_ERROR;
+        }
+        memcpy(spi_out_buf, buf1, len1);
+        memcpy(spi_out_buf + len1, buf2, len2);
+        swprintx("SPI writing: ", spi_out_buf, len1 + len2);
     	CHECK_CALL(m_cs.set(CS_ACTIVE));
-    	CHECK_CALL(m_spi.write(buf1, len1));
-    	CHECK_CALL(m_spi.write(buf2, len2));
+        CHECK_CALL(m_spi.write(spi_out_buf, len1 + len2));
     	CHECK_CALL(m_cs.set(CS_INACTIVE));
 //        CALL(m_lock.release());
     	RESET();
@@ -367,18 +371,24 @@ public:
 	RetType m_spi_wr(uint8_t* buf1, size_t len1, uint8_t* buf2, size_t len2) {
 		RESUME();
 //        CALL(m_lock.acquire());
+        if ((len1 + len2) > W25Q_BUF_SIZE) {
+            RESET();
+            return RET_ERROR;
+        }
         swprintx("SPI writing: ", buf1, len1);
+        // buffer setup
+        memcpy(spi_out_buf, buf1, len1);
     	CHECK_CALL(m_cs.set(CS_ACTIVE));
-    	CHECK_CALL(m_spi.write(buf1, len1));
-        CHECK_CALL(m_spi.read(buf2, len2));
+        CHECK_CALL(m_spi.write_read(spi_out_buf, spi_in_buf, len1 + len2));
     	CHECK_CALL(m_cs.set(CS_INACTIVE));
+        memcpy(buf2, spi_in_buf + len1, len2);
 //        CALL(m_lock.release());
         swprintx("SPI read: ", buf2, len2);
     	RESET();
     	return RET_SUCCESS;
     }
 
-	// TODO: Inline this once the normal version works
+	// TODO: Inline this once the normal version works?
     void addr_to_24(uint32_t addr, uint8_t* dest) {
     	dest[0] = (uint8_t) ((addr & 0x00FF0000U) >> 16);
     	dest[1] = (uint8_t) ((addr & 0x0000FF00U) >> 8);
