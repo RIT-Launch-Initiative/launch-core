@@ -241,6 +241,7 @@ public:
         if (ret != RET_SUCCESS) goto recv_data_end;
 
         // TODO: Interrupts
+        SLEEP(timeout_time);
 
         ret = CALL(read_reg(RFM9XW_REG_IRQ_FLAGS, &irq_flags, 1));
         if (ret != RET_SUCCESS) goto recv_data_end;
