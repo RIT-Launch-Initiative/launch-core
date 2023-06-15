@@ -66,12 +66,10 @@ typedef enum {
 
 class MS5607 : public Device {
 public:
-    MS5607(I2CDevice &i2cDevice) : mI2C(&i2cDevice), Device("MS5607") {}
+    MS5607(I2CDevice &i2cDevice, const uint16_t address = 0x76) : mI2C(&i2cDevice), Device("MS5607"), mAddr({.dev_addr = static_cast<uint16_t>(address << 1), .mem_addr = 0, .mem_addr_size = 1}) {}
 
-    RetType init(uint8_t address = 0x76) {
+    RetType init() {
         RESUME();
-
-        mAddr.dev_addr = address << 1;
 
         RetType ret = CALL(reset());
         if (ret != RET_SUCCESS) {

@@ -53,15 +53,15 @@ enum LSM6DSL_I2C_ADDR {
 
 class LSM6DSL : public Device {
 public:
-    LSM6DSL(I2CDevice &i2CDevice) : Device("LSM6DSL"), mI2C(&i2CDevice), accelEnabled(false), gyroEnabled(false) {}
+    LSM6DSL(I2CDevice &i2CDevice) : Device("LSM6DSL"), mI2C(&i2CDevice), accelEnabled(false), gyroEnabled(false),
+                                    i2cAddr({
+                                        .dev_addr = LSM6DSL_I2C_ADDR_SECONDARY << 1,
+                                        .mem_addr = LSM6DSL_ACC_GYRO_WHO_AM_I_REG,
+                                        .mem_addr_size = 1
+                                    }) {}
 
-    RetType init(LSM6DSL_I2C_ADDR address = LSM6DSL_I2C_ADDR_SECONDARY) {
+    RetType init() {
         RESUME();
-        i2cAddr = {
-                .dev_addr = static_cast<uint16_t>(address << 1),
-                .mem_addr = LSM6DSL_ACC_GYRO_WHO_AM_I_REG,
-                .mem_addr_size = 1
-        };
 
         // Check Chip ID
         static uint8_t chipID;

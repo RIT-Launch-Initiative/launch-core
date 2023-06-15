@@ -13,7 +13,6 @@
 #include "lis3mdl_reg.h"
 
 
-class LIS3MDL : public Device {
 using LIS3MDL_DATA_T = struct {
     const uint16_t id;
     float x_mag;
@@ -27,14 +26,13 @@ enum LIS3MDL_I2C_ADDR {
     LIS3MDL_I2C_ADDR_SECONDARY = 0x1E,
 };
 
-class LIS3MDL {
+class LIS3MDL : public Device {
 public:
-    LIS3MDL(I2CDevice &i2cDevice) : Device("LIS3MDL"), mI2C(&i2cDevice) {}
+    LIS3MDL(I2CDevice &i2cDevice, const uint8_t address = LIS3MDL_I2C_ADDR_PRIMARY) : Device("LIS3MDL"), mI2C(&i2cDevice),
+                                                                                      i2cAddr({.dev_addr = static_cast<uint16_t>(address << 1), .mem_addr = 0x00, .mem_addr_size = 1}) {}
 
-    RetType init(uint8_t address = LIS3MDL_I2C_ADDR_PRIMARY) {
+    RetType init() {
         RESUME();
-
-        i2cAddr.dev_addr = address << 1;
 
         static uint8_t whoAmI = 0;
         RetType ret = CALL(readReg(LIS3MDL_WHO_AM_I, &whoAmI, 1, 50));

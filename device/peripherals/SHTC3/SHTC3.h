@@ -63,8 +63,8 @@ using SHTC3_CMD = enum {
  */
 class SHTC3 : public Device {
 public:
-    SHTC3(I2CDevice &i2CDevice) : Device("SHTC3"), mI2C(i2CDevice),
-                                  addr({.dev_addr = SHTC3_I2C_ADDR << 1, .mem_addr = 0, .mem_addr_size = 2}),
+    SHTC3(I2CDevice &i2CDevice, const uint8_t address = SHTC3_I2C_ADDR) : Device("SHTC3"), mI2C(i2CDevice),
+                                  addr({.dev_addr = static_cast<uint16_t>(address << 1), .mem_addr = 0, .mem_addr_size = 2}),
                                   inLowPowerMode(false) {}
 
     /**
@@ -72,7 +72,7 @@ public:
      *
      * @return RetType The scheduler status
      */
-    RetType init(uint8_t address = SHTC3_I2C_ADDR) {
+    RetType init() {
         RESUME();
 
 //        RetType ret = CALL(toggleSleep(false));

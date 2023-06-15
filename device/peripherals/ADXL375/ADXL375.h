@@ -70,12 +70,10 @@ using ADXL375_DATA_T = struct {
 
 class ADXL375 : public Device {
 public:
-    ADXL375(I2CDevice &i2c) : m_i2c(i2c), Device("ADXL375") {}
+    ADXL375(I2CDevice &i2c, uint8_t address = ADXL375_DEV_ADDR_PRIM << 1) : m_i2c(i2c), Device("ADXL375"), i2cAddr({.mem_addr = static_cast<uint16_t>(address << 1)}) {}
 
-    RetType init(uint8_t address = ADXL375_DEV_ADDR_PRIM) {
+    RetType init() {
         RESUME();
-
-        i2cAddr.dev_addr = address << 1;
 
         static uint8_t id = 0;
 
