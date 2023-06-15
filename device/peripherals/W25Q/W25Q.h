@@ -41,8 +41,8 @@ public:
         }
 
         m_dev_id = dev_id;
-        page_size = 0xFF;
-        page_count = 0xFFFF;
+        page_size = 0xFF + 1;
+        page_count = 0xFFFF + 1;
 
         if (init_erase) {
         	// TODO: Erase chip
@@ -74,6 +74,13 @@ public:
         };
 
         CHECK_CALL(mem_read(block << 8, buff, getBlockSize()));
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType clear() {
+        RESUME();
 
         RESET();
         return RET_SUCCESS;
@@ -115,9 +122,9 @@ public:
 			CHECK_CALL(read_status(READ_ONE, &status)); // is the chip still busy?
 
 			if (0 == (status & mask)) { // if not, unblock the blocked task
-                swprint("#GRN#Unblocking\n");
+                WAKE(m_blocked);
 				m_blocked = TID_UNBLOCKED;
-				WAKE(m_blocked);
+                swprint("#GRN#Unblocking!\n");
 			}
         }
     	RESET();
@@ -273,8 +280,7 @@ public:
 
     	RESUME();
 
-        swprintf("#RED#MEM READ INSTRUCTION\n");
-//    	CHECK_CALL(block_if_busy());
+    	CHECK_CALL(block_if_busy());
 
     	// TODO: Add extra speed modes
 
@@ -292,8 +298,6 @@ public:
 
         RESUME();
 
-        swprintf("#RED#MEM PROGRAM INSTRUCTION\n");
-//    	CHECK_CALL(block_if_busy());
     	CHECK_CALL(write_enable_set(WRITE_ENABLE));
         CHECK_CALL(m_spi_ww(cmd_bytes, sizeof(cmd_bytes), src, len));
 
@@ -306,6 +310,7 @@ public:
 
     	RESUME();
 
+        CHECK_CALL(block_if_busy());
         CHECK_CALL(m_spi_w(&cmd, 1))
 
     	RESET();
@@ -320,8 +325,6 @@ public:
 
     	RESUME();
 
-    	// for ERASE commands, device can't be busy and
-    	CHECK_CALL(block_if_busy());
     	CHECK_CALL(write_enable_set(WRITE_ENABLE));
 
     	if (CHIP_ERASE == cmd) {
@@ -340,50 +343,57 @@ public:
 
 	RetType m_spi_w(uint8_t* buf, size_t len) {
 		RESUME();
-//        CALL(m_lock.acquire());
-        swprintx("SPI writing: ", buf, len);
+        CALL(m_lock.acquire());
     	CHECK_CALL(m_cs.set(CS_ACTIVE));
     	CHECK_CALL(m_spi.write(buf, len));
     	CHECK_CALL(m_cs.set(CS_INACTIVE));
-//        CALL(m_lock.release());
+        CALL(m_lock.release());
     	RESET();
     	return RET_SUCCESS;
     }
 
 	RetType m_spi_ww(uint8_t* buf1, size_t len1, uint8_t* buf2, size_t len2) {
 		RESUME();
-//        CALL(m_lock.acquire());
+
         if ((len1 + len2) > W25Q_BUF_SIZE) {
             RESET();
             return RET_ERROR;
         }
+
+        CALL(m_lock.acquire());
+
         memcpy(spi_out_buf, buf1, len1);
         memcpy(spi_out_buf + len1, buf2, len2);
-        swprintx("SPI writing: ", spi_out_buf, len1 + len2);
+
     	CHECK_CALL(m_cs.set(CS_ACTIVE));
         CHECK_CALL(m_spi.write(spi_out_buf, len1 + len2));
     	CHECK_CALL(m_cs.set(CS_INACTIVE));
-//        CALL(m_lock.release());
+
+        CALL(m_lock.release());
+
     	RESET();
     	return RET_SUCCESS;
     }
 
 	RetType m_spi_wr(uint8_t* buf1, size_t len1, uint8_t* buf2, size_t len2) {
 		RESUME();
-//        CALL(m_lock.acquire());
         if ((len1 + len2) > W25Q_BUF_SIZE) {
             RESET();
             return RET_ERROR;
         }
-        swprintx("SPI writing: ", buf1, len1);
-        // buffer setup
+
+        CALL(m_lock.acquire());
+
         memcpy(spi_out_buf, buf1, len1);
+
     	CHECK_CALL(m_cs.set(CS_ACTIVE));
         CHECK_CALL(m_spi.write_read(spi_out_buf, spi_in_buf, len1 + len2));
     	CHECK_CALL(m_cs.set(CS_INACTIVE));
+
         memcpy(buf2, spi_in_buf + len1, len2);
-//        CALL(m_lock.release());
-        swprintx("SPI read: ", buf2, len2);
+
+        CALL(m_lock.release());
+
     	RESET();
     	return RET_SUCCESS;
     }
