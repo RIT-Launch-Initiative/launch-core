@@ -6,6 +6,7 @@
 
 #ifndef LAUNCH_CORE_MS5607_H
 #define LAUNCH_CORE_MS5607_H
+#define MS5607_DATA_STRUCT(variable_name) MS5607_DATA_T variable_name = {.id = 10000, .pressure = 0, .temperature = 0}
 
 #include "device/GPIODevice.h"
 #include "sched/macros/macros.h"
@@ -16,6 +17,13 @@
 
 #define CHECK_RET {if (ret != RET_SUCCESS) {RESET(); return ret;}}
 #define CONCAT(a, b) a ## b
+
+
+using MS5607_DATA_T = struct {
+    const uint16_t id;
+    float pressure;
+    float temperature;
+};
 
 typedef enum {
     FACTORY_DATA_ADDR = 0,
@@ -60,8 +68,10 @@ class MS5607 : public Device {
 public:
     MS5607(I2CDevice &i2cDevice) : mI2C(&i2cDevice), Device("MS5607") {}
 
-    RetType init() override {
+    RetType init(uint8_t address = 0x76) {
         RESUME();
+
+        mAddr.dev_addr = address << 1;
 
         RetType ret = CALL(reset());
         if (ret != RET_SUCCESS) {
@@ -139,7 +149,7 @@ public:
 private:
     I2CDevice *mI2C;
     I2CAddr_t mAddr = {
-            .dev_addr = 0x77 << 1,
+            .dev_addr = 0x76 << 1,
             .mem_addr = 0,
             .mem_addr_size = 1,
     };

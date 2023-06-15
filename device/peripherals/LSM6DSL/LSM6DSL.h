@@ -24,36 +24,41 @@
 #define LSM6DSL_WAKE_UP_THRESHOLD_MID_HIGH  0x2F
 #define LSM6DSL_WAKE_UP_THRESHOLD_HIGH      0x3F  /**< Highest value of wake up threshold */
 
+#define LSM6DSL_DATA_STRUCT(variable_name) LSM6DSL_DATA_T variable_name = {.id = 11000, .x_accel = 0, .x_gyro = 0, .y_accel = 0, .y_gyro = 0, .z_accel = 0, .z_gyro = 0}
+
 #include <stdint.h>
 #include "device/I2CDevice.h"
 #include "sched/macros/macros.h"
 #include "device/peripherals/LSM6DSL/LSM6DSL_Driver.h"
-
 
 enum LSM6DSL_Interrupt_Pin_t {
     LSM6DSL_INT1_PIN,
     LSM6DSL_INT2_PIN
 };
 
-struct LSM6DSL_EVENT_STATUS_T {
-    uint8_t FreeFallStatus: 1;
-    uint8_t WakeUpStatus: 1;
-    uint8_t D6DOrientationStatus: 1;
+using LSM6DSL_DATA_T = struct {
+    const uint16_t id;
+    int32_t x_accel;
+    int32_t x_gyro;
+    int32_t y_accel;
+    int32_t y_gyro;
+    int32_t z_accel;
+    int32_t z_gyro;
 };
 
-struct LSM6DSL_SENSOR_DATA_T {
-    float acceleration;
-    float angularVelocity;
+enum LSM6DSL_I2C_ADDR {
+    LSM6DSL_I2C_ADDR_PRIMARY = 0x6A,
+    LSM6DSL_I2C_ADDR_SECONDARY = 0x6B
 };
 
 class LSM6DSL : public Device {
 public:
     LSM6DSL(I2CDevice &i2CDevice) : Device("LSM6DSL"), mI2C(&i2CDevice), accelEnabled(false), gyroEnabled(false) {}
 
-    RetType init() override {
+    RetType init(LSM6DSL_I2C_ADDR address = LSM6DSL_I2C_ADDR_SECONDARY) {
         RESUME();
         i2cAddr = {
-                .dev_addr = 0x6A << 1,
+                .dev_addr = static_cast<uint16_t>(address << 1),
                 .mem_addr = LSM6DSL_ACC_GYRO_WHO_AM_I_REG,
                 .mem_addr_size = 1
         };

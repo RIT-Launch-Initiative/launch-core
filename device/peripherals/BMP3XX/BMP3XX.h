@@ -7,12 +7,19 @@
 
 #ifndef LAUNCH_CORE_BMP3XX_H
 #define LAUNCH_CORE_BMP3XX_H
+#define BMP3XX_DATA_STRUCT(variable_name) BMP3XX_DATA_T variable_name = {.id = 10001, .pressure = 0, .temperature = 0}
 
 #include "return.h"
 #include "sched/macros/macros.h"
 #include "device/peripherals/BMP3XX/bmp3_defs.h"
 #include "device/I2CDevice.h"
 
+
+using BMP3XX_DATA_T = struct {
+    const uint16_t id;
+    double pressure;
+    double temperature;
+};
 
 class BMP3XX : public Device {
 public:
@@ -21,13 +28,13 @@ public:
     /*************************************************************************************
      * Main Functionality
      *************************************************************************************/
-    RetType init() override {
+    RetType init(bool is388 = true) { // TODO: Not working
         RESUME();
 
         this->device.dummy_byte = 0;
 
         this->i2cAddr = {
-                .dev_addr = BMP3_ADDR_I2C_SEC << 1,
+                .dev_addr = BMP3_ADDR_I2C_PRIM << 1,
                 .mem_addr = BMP3_REG_CHIP_ID,
                 .mem_addr_size = 1,
         };
@@ -895,6 +902,7 @@ private:
         settings.odr_filter.iir_filter = BMP3_GET_BITS(regData[index], BMP3_IIR_FILTER);
     }
 };
+
 
 
 #endif //LAUNCH_CORE_BMP3XX_H

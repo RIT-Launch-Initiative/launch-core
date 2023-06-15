@@ -20,35 +20,14 @@
 #define bitSet(value, bit) ((value) |= (1UL << (bit)))
 #define bitClear(value, bit) ((value) &= ~(1UL << (bit)))
 #define bitWrite(value, bit, bitVal) (bitVal ? bitSet(value, bit) : bitClear(value, bit))
+#define TMP117_DATA_STRUCT(variable_name) TMP117_DATA_T variable_name = {.id = 16001, .temperature = 0}
 
-typedef union {
-    struct {
-        uint8_t EMPTY: 1;            // Empty bit in register
-        uint8_t TMP_SOFT_RESET: 1; // Software reset bit
-        uint8_t DR_ALERT: 1;        // ALERT pin select bit
-        uint8_t POL: 1;            // ALERT pin polarity bit
-        uint8_t T_NA: 1;            // Therm/alert mode select
-        uint8_t AVG: 2;            // Conversion averaging modes
-        uint8_t CONV: 3;            // Conversion cycle bit
-        uint8_t MOD: 2;            // Set conversion mode
-        uint8_t EEPROM_BUSY: 1;    // EEPROM busy flag
-        uint8_t DATA_READY: 1;        // Data ready flag
-        uint8_t LOW_ALERT: 1;        // Low Alert flag
-        uint8_t HIGH_ALERT: 1;        // High Alert flag
-    } CONFIGURATION_FIELDS;
-    uint16_t CONFIGURATION_COMBINED;
-} CONFIGURATION_REG;
+using TMP117_DATA_T = struct {
+    const uint16_t id;
+    float temperature;
+};
 
-// Device ID Register used for checking if the device ID is the same as declared
-typedef union {
-    struct {
-        uint16_t DID: 12; // Indicates the device ID
-        uint8_t REV: 4;   // Indicates the revision number
-    } DEVICE_ID_FIELDS;
-    uint16_t DEVICE_ID_COMBINED;
-} DEVICE_ID_REG;
-
-enum TMP117_Register {
+using TMP117_Register = enum {
     TMP117_TEMP_RESULT = 0X00,
     TMP117_CONFIGURATION = 0x01,
     TMP117_T_HIGH_LIMIT = 0X02,
@@ -84,6 +63,7 @@ public:
 
     RetType init() {
         RESUME();
+
 
         i2cAddr = {
                 .dev_addr = TMP_117_DEVICE_ADDR << 1,

@@ -44,7 +44,7 @@ public:
      * @param read_len     the number of bytes to read
      * @return if all bytes were read successfully
      */
-    virtual RetType write_read(uint8_t* write_buff, size_t write_len, uint8_t* read_buff, size_t read_len, uint32_t timeout = 0) = 0;
+    virtual RetType write_read(uint8_t* write_buff, uint8_t* read_buff, size_t len, uint32_t timeout = 0) = 0;
 };
 
 #endif

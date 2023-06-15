@@ -2,7 +2,9 @@
 #define UART_DEVICE_H
 
 #ifdef STM32F446xx
+
 #include "stm32f4xx_hal_uart.h"
+
 #elif STM32L476xx
 #include "stm32l4xx_hal_uart.h"
 #endif
@@ -25,24 +27,25 @@ public:
                                                                  m_uart(huart),
                                                                  m_lock(1),
                                                                  m_blocked(-1),
-                                                                 m_waiting(false) {};
+                                                                 m_waiting(false),
+                                                                 m_isr_flag(0) {};
 
     /// @brief initialize
     RetType init() {
         // register for tx callback
         RetType ret = HALHandlers::register_uart_tx(m_uart, this, TX_NUM);
-        if(ret != RET_SUCCESS) {
+        if (ret != RET_SUCCESS) {
             return ret;
         }
 
         // register for rx callback
         ret = HALHandlers::register_uart_rx(m_uart, this, RX_NUM);
-        if(ret != RET_SUCCESS) {
+        if (ret != RET_SUCCESS) {
             return ret;
         }
 
         // start the first read
-        if(HAL_OK != HAL_UART_Receive_IT(m_uart, &m_byte, sizeof(uint8_t))) {
+        if (HAL_OK != HAL_UART_Receive_IT(m_uart, &m_byte, sizeof(uint8_t))) {
             return RET_ERROR;
         }
 
@@ -64,7 +67,30 @@ public:
     /// @brief poll this device
     /// @return
     RetType poll() {
-        // for now does nothing
+        // disable interrupts to protect access to 'm_isr_flag'
+        __disable_irq();
+
+        if (m_isr_flag) {
+            // an interrupt occurred
+
+            // reset the flag
+            m_isr_flag = 0;
+
+            // re-enable interrupts
+            __enable_irq();
+
+            // if a task was blocked waiting for completion of this ISR, wake it up
+            if (m_blocked != -1) {
+                WAKE(m_blocked);
+
+                // set this task as woken
+                m_blocked = -1;
+            }
+        } else {
+            // re-enable interrupts immediately
+            __enable_irq();
+        }
+
         return RET_SUCCESS;
     }
 
@@ -72,12 +98,12 @@ public:
     /// @param buff     the buffer to write
     /// @param len      the size of 'buff' in bytes
     /// @return
-    RetType write(uint8_t* buff, size_t len) {
+    RetType write(uint8_t *buff, size_t len) {
         RESUME();
 
         // block waiting for the device to be free
         RetType ret = CALL(m_lock.acquire());
-        if(ret != RET_SUCCESS) {
+        if (ret != RET_SUCCESS) {
             // some error
             RESET();
             return ret;
@@ -89,7 +115,7 @@ public:
         m_blocked = sched_dispatched;
 
         // start the write
-        if(HAL_OK != HAL_UART_Transmit_IT(m_uart, const_cast<uint8_t *>(buff), len)) {
+        if (HAL_OK != HAL_UART_Transmit_IT(m_uart, const_cast<uint8_t *>(buff), len)) {
             m_blocked = -1;
             CALL(m_lock.release());
             RESET();
@@ -104,7 +130,7 @@ public:
 
         // we can unblock someone else if they were waiting
         ret = CALL(m_lock.release());
-        if(ret != RET_SUCCESS) {
+        if (ret != RET_SUCCESS) {
             m_blocked = -1;
             CALL(m_lock.release());
             // some error
@@ -121,12 +147,12 @@ public:
     /// @param buff     the buffer to read into
     /// @param len      the number of bytes to read
     /// @return
-    RetType read(uint8_t* buff, size_t len) {
+    RetType read(uint8_t *buff, size_t len) {
         RESUME();
 
         // block until the device is free to use
         RetType ret = CALL(m_lock.acquire());
-        if(ret != RET_SUCCESS) {
+        if (ret != RET_SUCCESS) {
             // some error
             RESET();
             return ret;
@@ -135,16 +161,16 @@ public:
         // wait until we have enough data
         // we keep the device blocked so no one else can read while we wait
         ret = CALL(wait(len));
-        if(ret == RET_SUCCESS) {
+        if (ret == RET_SUCCESS) {
             // read the data
-            if(len != m_buff.pop(buff, len)) {
+            if (len != m_buff.pop(buff, len)) {
                 ret = RET_ERROR;
             }
         }
 
         // we can unblock someone else if they were waiting
         ret = CALL(m_lock.release());
-        if(ret != RET_SUCCESS) {
+        if (ret != RET_SUCCESS) {
             // some error
             RESET();
             return ret;
@@ -183,7 +209,7 @@ public:
         // and when we yield back to the scheduler, our task is already recorded and
         // the callback handler will wake us (or we may already be woken by the time the function exits)
 
-        if(m_buff.size() >= len) {
+        if (m_buff.size() >= len) {
             // either case 1 or 2 occured, so we can just wake our task and be done
             sched_wake(sched_dispatched);
 
@@ -217,6 +243,7 @@ private:
     // single byte to read into
     uint8_t m_byte;
 
+    uint8_t m_isr_flag;
 
     // unique numbers for tx vs. rx callback
     static const int TX_NUM = 0;
@@ -226,11 +253,9 @@ private:
     void callback(int num) {
         if (num == TX_NUM) {
             // transmit complete
-            if (m_blocked != -1) {
-                // some task blocked on us transmitting
-                WAKE(m_blocked);
-                m_blocked = -1;
-            }
+            // all this does is set a flag
+            // the interrupt is actually "handled" in 'poll'
+            m_isr_flag = 1;
         } else {
             // we received some data into 'm_byte'
             m_buff.push(&m_byte, sizeof(uint8_t)); // don't error check
