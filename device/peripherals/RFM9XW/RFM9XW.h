@@ -26,6 +26,7 @@ static constexpr uint8_t DAC_LOW_POWER_MODE = 0x84;
 static constexpr uint8_t DAC_HIGH_POWER_MODE = 0x87;
 static constexpr uint8_t DIO_MAPPING_1_IRQ_TX_DONE = 0x40;
 static constexpr uint8_t DIO_MAPPING_1_IRQ_RX_DONE = 0x00;
+static constexpr uint32_t RX_TIMEOUT = 1000;
 
 using RFM9XW_REGISTER_T = enum {
     RFM9XW_REG_FIFO_ACCESS = 0x00,
@@ -169,6 +170,7 @@ public:
         if (ret != RET_SUCCESS) goto send_data_end;
 
         // TODO: Interrupt
+        SLEEP(timeout_time);
 
         // FIFO Write
         ret = CALL(write_reg(RFM9XW_REG_FIFO_ADDR_PTR, 0x80));
@@ -185,7 +187,8 @@ public:
         if (ret != RET_SUCCESS) goto send_data_end;
 
         // Wait
-        ret = CALL(wait_for_irq(RFM9XW_INT_DIO0, timeout_time));
+//        ret = CALL(wait_for_irq(RFM9XW_INT_DIO0, timeout_time));
+        SLEEP(timeout_time);
 
         ret = CALL(set_mode(RFM9XW_MODE_STANDBY));
         if (ret != RET_SUCCESS) goto send_data_end;
@@ -297,17 +300,41 @@ private:
 
     RetType wait_for_irq(const RFM9XW_INT_T irq, const uint32_t timeout) {
         RESUME();
+        static uint32_t timeout_time;
+        timeout_time = sched_time() + timeout * precision_tick_freq / 1000;
 
-        SLEEP(timeout * (precision_tick_freq / 1000));
+        while (irq_times[irq] == 0) {
+            if (sched_time() >= timeout_time) {
+                RESET();
+                return RET_ERROR;
+            }
 
-        if (irq_times[irq] == 0) {
-            RESET();
-            return RET_ERROR;
+            YIELD();
         }
 
         RESET();
         return RET_SUCCESS;
     }
+
+    RetType wait_for_rx_irq() {
+        RESUME();
+        static uint32_t timeout_time;
+        timeout_time = sched_time() + RX_TIMEOUT * precision_tick_freq / 1000;
+
+        while (irq_times[RFM9XW_INT_DIO0] == 0 && irq_times[RFM9XW_INT_DIO1] == 0) {
+            if (sched_time() >= timeout_time) {
+                RESET();
+                return RET_ERROR;
+            }
+
+            YIELD();
+        }
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+
 
 
     RetType read_reg(const uint8_t reg, uint8_t* buff, const size_t len) {
