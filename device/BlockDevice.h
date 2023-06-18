@@ -25,27 +25,49 @@ public:
     /// @brief constructor
     BlockDevice(const char* name) : Device(name) {};
 
-    /// @brief write to a block
-    /// @param block    the block number to write to
-    /// @param data     the data to write to the block
-    ///                 must be a buffer of at least BLOCK_SIZE bytes
-    /// @return 'true' if the entire block was written successfully
+    /**
+     * @brief Write to a block
+     * @param block     Block to write to
+     * @param data      Buffer of data, at least get_block_size()
+     * @return          RET_SUCCESS if block written
+     */
     virtual RetType write(size_t block, uint8_t* data) = 0;
 
-    /// @brief read from a block
-    /// @param block    the block number to read from
-    /// @param buff     the buffer to read into
-    ///                 must be a buffer of at least BLOCK_SIZE bytes
-    /// @return 'true' if the entire block was read successfully
+    /**
+     * @brief Read from a block
+     * @param block     Block number to read from
+     * @param buff      Buffer to read into, at least BLOCK_SIZE bytes
+     * @return          RET_SUCCESS if block read
+     */
     virtual RetType read(size_t block, uint8_t* buff) = 0;
 
-    /// @brief get the block size of the device
-    /// @return the block size of the device
-    virtual size_t getBlockSize() = 0;
+    /**
+     * @brief Lock the device, persistently preventing all write and erase instructions
+     * @return RET_SUCCESS if the device is locked
+     */
+    virtual RetType lock() = 0;
 
-    /// @brief get the number of blocks in the device
-    /// @return the number of blocks
-    virtual size_t getNumBlocks() = 0;
+    /**
+     * @brief Unlock the device, persistently allowing write and erase instructions
+     * @return RET_SUCCESS if the device is unlocked
+     */
+    virtual RetType unlock() = 0;
+
+    /**
+     * @brief Erase the entire device
+     * @return Return value of the first CALL to fail, or RET_SUCCESS
+     */
+    virtual RetType clear() = 0;
+
+    /**
+     * @return the block size in bytes
+     */
+    virtual size_t get_block_size() = 0;
+
+    /**
+     * @return number of blocks
+     */
+    virtual size_t get_num_blocks() = 0;
 };
 
 #endif
