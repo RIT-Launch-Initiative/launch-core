@@ -102,11 +102,60 @@ public:
         static uint32_t pressureVal;
         static uint32_t tempVal;
 
-        RetType ret = CALL(readDigitalVals(&pressureVal, &tempVal));
+        RetType ret = CALL(conversion(true));
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
         }
+
+        ret = CALL(startMeasAndGetVal(&pressureVal));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
+
+        ret = CALL(conversion(false));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
+
+        ret = CALL(startMeasAndGetVal(&tempVal));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
+
+
+//        ret = CALL(startMeasurement());
+//        if (ret != RET_SUCCESS) {
+//            RESET();
+//            return ret;
+//        }
+//
+//        ret = CALL(getDigitalVal(&pressureVal));
+//        if (ret != RET_SUCCESS) {
+//            RESET();
+//            return ret;
+//        }
+//
+//        ret = CALL(conversion(false));
+//        if (ret != RET_SUCCESS) {
+//            RESET();
+//            return ret;
+//        }
+//
+//        ret = CALL(startMeasurement());
+//        if (ret != RET_SUCCESS) {
+//            RESET();
+//            return ret;
+//        }
+//
+//        ret = CALL(getDigitalVal(&tempVal));
+//        if (ret != RET_SUCCESS) {
+//            RESET();
+//            return ret;
+//        }
 
         int32_t dT;
 
@@ -124,14 +173,14 @@ public:
     RetType reset() {
         RESUME();
 
-        RetType ret = CALL(mI2C->transmit(mAddr, reinterpret_cast<uint8_t *>(RESET_COMMAND), 1, 10));
+        RetType ret = CALL(mI2C->transmit(mAddr, reinterpret_cast<uint8_t *>(RESET_COMMAND), 1, 3000));
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
         }
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
 
@@ -208,7 +257,15 @@ private:
         RESUME();
 
         data[0] = PROM_READ + offset;
-        RetType ret = CALL(mI2C->transmitReceive(mAddr, data, 1, 2, 50));
+//        RetType ret = CALL(mI2C->transmitReceive(mAddr, data, 1, 2));
+
+        RetType ret = CALL(mI2C->transmit(mAddr, data, 1, 1000));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
+
+        ret = CALL(mI2C->receive(mAddr, data, 2, 1000));
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
@@ -218,19 +275,88 @@ private:
         return RET_SUCCESS;
     }
 
-    RetType conversion(bool isD1) {
+    RetType readPROM() {
         RESUME();
 
-        RetType ret = CALL(mI2C->transmit(mAddr, isD1 ? &d1Conversion : &d2Conversion, 1));
+        static uint8_t buff[8];
+        static uint8_t data[2];
+        static int i = 0;
+
+        RetType ret = CALL(reset());
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
         }
 
-        SLEEP(conversionDelay);
+        SLEEP(300);
+
+        for (; i < 8; i++) {
+            data[0] = PROM_READ + (i * 2);
+            ret = CALL(mI2C->transmitReceive(mAddr, data, 1, 2, 50));
+            if (ret != RET_SUCCESS) {
+                RESET();
+                return ret;
+            }
+
+            buff[i] = (data[0] << 8) + data[1];
+        }
+
+        i = 0;
+
+        pressureSens = (buff[0] << 8) | buff[1];
+        pressureOffset = (buff[2] << 8) | buff[3];
+        pressureSensTempCo = (buff[4] << 8) | buff[5];
+        pressureOffsetTempCo = (buff[6] << 8) | buff[7];
+
+        RESET();
+        return ret;
+    }
+
+    RetType conversion(const bool isD1) {
+        RESUME();
+
+        RetType ret = CALL(mI2C->transmit(mAddr, isD1 ? &d1Conversion : &d2Conversion, conversionDelay + 5));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         RESET();
         return RET_SUCCESS;
+    }
+
+    RetType startMeasAndGetVal(uint32_t *val) {
+        RESUME();
+
+        static uint8_t data[3];
+        data[0] = ADC_READ;
+        RetType ret = CALL(mI2C->transmitReceive(mAddr, data, 1, 3, 3000));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
+
+        *val = (data[0] << 16) | (data[1] << 8) | data[2];
+
+        RESET();
+        return ret;
+    }
+
+    RetType startMeasurement() {
+        RESUME();
+
+        RetType ret = CALL(mI2C->transmit(mAddr, reinterpret_cast<uint8_t*>(ADC_READ), 1, 4000));
+
+        RESET();
+        return ret;
+    }
+
+    RetType getDigitalVal(uint32_t *val) {
+        RESUME();
+
+        RetType ret = CALL(mI2C->receive(mAddr, reinterpret_cast<uint8_t*>(val), 3, 1000));
+        RESET();
+        return ret;
     }
 
     RetType readDigitalVals(uint32_t *pressure, uint32_t *temp) {
@@ -245,7 +371,12 @@ private:
         }
 
         data[0] = ADC_READ;
-        ret = CALL(mI2C->transmitReceive(mAddr, data, 1, 3, 50));
+        ret = CALL(mI2C->transmitReceive(mAddr, data, 1, 3, 100));
+        if (RET_SUCCESS != ret) {
+            RESET();
+            return ret;
+        }
+
         *pressure = (data[0] << 16) | (data[1] << 8) | data[2];
 
         ret = CALL(conversion(false));
@@ -336,6 +467,38 @@ private:
                 conversionDelay = 1;
                 break;
         }
+    }
+
+    RetType adcRead(uint32_t *pressure_adc, uint32_t *temperature_adc) {
+        RESUME();
+
+        static uint8_t data[3];
+
+        data[0] = ADC_READ + d1Conversion;
+        RetType ret = CALL(mI2C->transmitReceive(mAddr, data, 1, 3, 50));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
+
+        SLEEP(conversionDelay);
+
+        *pressure_adc = (data[0] << 16) | (data[1] << 8) | data[2];
+
+
+        data[0] = ADC_READ + d2Conversion;
+        ret = CALL(mI2C->transmitReceive(mAddr, data, 1, 3, 50));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
+
+        SLEEP(conversionDelay);
+
+        *temperature_adc = (data[0] << 16) | (data[1] << 8) | data[2];
+
+        RESET();
+        return ret;
     }
 
 };

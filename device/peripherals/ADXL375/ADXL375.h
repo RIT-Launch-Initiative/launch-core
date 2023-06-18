@@ -116,7 +116,6 @@ public:
             return ret;
         }
 
-
         RESET();
         return RET_SUCCESS;
     }
