@@ -79,7 +79,7 @@ public:
 
         static uint8_t id = 0;
 
-        RetType ret = CALL(m_i2c.read(i2cAddr, &id, 1, 50));
+        RetType ret = CALL(readID(&id));
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
@@ -90,11 +90,11 @@ public:
             return RET_ERROR;
         }
 
-        ret = CALL(setOperatingMode(ADXL375_SLEEP_MODE));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
+//        ret = CALL(setOperatingMode(ADXL375_SLEEP_MODE)); // TODO: Might not be able to set settings in sleep mode
+//        if (ret != RET_SUCCESS) {
+//            RESET();
+//            return ret;
+//        }
 
         ret = CALL(setDataRateAndLowPower(ADXL375_DR_100HZ, false));
         if (ret != RET_SUCCESS) {
@@ -291,6 +291,15 @@ private:
             .mem_addr = 0x00,
             .mem_addr_size = 1
     };
+
+    RetType readID(uint8_t *id) {
+        RESUME();
+
+        RetType ret = CALL(readReg(0x00, id));
+
+        RESET();
+        return ret;
+    }
 
     RetType readReg(uint8_t command, uint8_t *value, size_t len = 1) {
         RESUME();
