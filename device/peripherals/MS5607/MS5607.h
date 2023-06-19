@@ -331,13 +331,17 @@ private:
     void read16Bit(uint8_t command, uint16_t *value) {
         uint8_t data[2];
 
-        HAL_I2C_Master_Transmit(&hi2c3, mAddr.dev_addr, &command, 1, 1000);
-        HAL_I2C_Master_Receive(&hi2c3, mAddr.dev_addr, data, 2, 1000);
+//        HAL_I2C_Master_Transmit(&hi2c3, mAddr.dev_addr, &command, 1, 1000);
+//        HAL_I2C_Master_Receive(&hi2c3, mAddr.dev_addr, data, 2, 1000);
+
+        HAL_I2C_Mem_Read(&hi2c3, mAddr.dev_addr, command, 1, data, 2, 1000);
         *value = data[0] << 8 | data[1];
 
 
 //        *value = (((unsigned int) data[0] * (1 << 8)) | (unsigned int) data[1]);
     }
+
+
 
     RetType readPROM(uint8_t *data, uint8_t offset) {
         RESUME();
