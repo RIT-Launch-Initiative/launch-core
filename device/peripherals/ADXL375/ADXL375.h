@@ -84,7 +84,11 @@ public:
             RESET();
             return ret;
         }
-        if (id != 0xE5) return RET_ERROR;
+
+        if (id != 0xE5) {
+            RESET();
+            return RET_ERROR;
+        }
 
         ret = CALL(setOperatingMode(ADXL375_SLEEP_MODE));
         if (ret != RET_SUCCESS) {
@@ -163,9 +167,8 @@ public:
         RESUME();
 
         static uint8_t buff[6] = {0};
-        i2cAddr.mem_addr = xLSBDataReg;
 
-        RetType ret = CALL(m_i2c.read(i2cAddr, buff, 6));
+        RetType ret = CALL(readReg(xLSBDataReg, buff, 6));
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
@@ -181,26 +184,8 @@ public:
 
     RetType readX(int16_t *xAxis) {
         RESUME();
-        static uint8_t lsb = 0;
-        static uint8_t msb = 0;
 
-        // reading the data
-        i2cAddr.mem_addr = xLSBDataReg;
-        RetType ret = CALL(m_i2c.read(i2cAddr, &lsb, 1));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
-        i2cAddr.mem_addr = xMSBDataReg;
-        ret = CALL(m_i2c.read(i2cAddr, &msb, 1));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
-        // value is in 2's complement so have to convert it
-        *xAxis = ((msb << 8) | lsb) * -1;
+        RetType ret = CALL(readAxis(xAxis, xLSBDataReg));
 
         RESET();
         return RET_SUCCESS;
@@ -208,26 +193,8 @@ public:
 
     RetType readY(int16_t *yAxis) {
         RESUME();
-        static uint8_t lsb = 0;
-        static uint8_t msb = 0;
 
-        // reading the data
-        i2cAddr.mem_addr = yLSBDataReg;
-        RetType ret = CALL(m_i2c.read(i2cAddr, &lsb, 1));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
-        i2cAddr.mem_addr = yMSBDataReg;
-        ret = CALL(m_i2c.read(i2cAddr, &msb, 1));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
-        // value is in 2's complement so have to convert it
-        *yAxis = ((msb << 8) | lsb) * -1;
+        RetType ret = CALL(readAxis(yAxis, yLSBDataReg));
 
         RESET();
         return RET_SUCCESS;
@@ -235,36 +202,29 @@ public:
 
     RetType readZ(int16_t *zAxis) {
         RESUME();
-        static uint8_t lsb = 0;
-        static uint8_t msb = 0;
 
-        // reading the data
-        i2cAddr.mem_addr = zLSBDataReg;
-        RetType ret = CALL(m_i2c.read(i2cAddr, &lsb, 1));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
-        i2cAddr.mem_addr = zMSBDataReg;
-        ret = CALL(m_i2c.read(i2cAddr, &msb, 1));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
-        *zAxis = ((msb << 8) | lsb) * -1;
+        RetType ret = CALL(readAxis(zAxis, zLSBDataReg));
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
+    }
 
+    RetType readAxis(int16_t *axis, ADXL375_REG axisReg) {
+        RESUME();
+        static uint8_t data[2];
+
+        RetType ret = CALL(readReg(axisReg, data, 2));
+        *axis = ((data[1] << 8) | data[2]) * -1;
+
+        RESET();
+        return ret;
     }
 
     RetType wakeup() {
         RESUME();
 
         i2cAddr.mem_addr = ADXL375_POWER_CTL;
-        RetType ret = CALL(m_i2c.write(i2cAddr, reinterpret_cast<uint8_t *>(0x08), 1));
+        RetType ret = CALL(writeReg(ADXL375_POWER_CTL, reinterpret_cast<uint8_t *>(0x08)));
 
         RESET();
         return ret;
@@ -276,15 +236,16 @@ public:
         static uint8_t rate = static_cast<uint8_t>(dataRate);
         if (lowPower) rate |= 0x8;
 
-        RetType ret = CALL(m_i2c.write(i2cAddr, &rate, 1));
+        RetType ret = CALL(writeReg(ADXL375_REG_BW_RATE, &rate));
         RESET();
         return ret;
     }
 
     RetType setOperatingMode(ADXL375_OP_MODE opMode) {
         RESUME();
-        i2cAddr.mem_addr = ADXL375_POWER_CTL;
-        RetType ret = CALL(m_i2c.write(i2cAddr, reinterpret_cast<uint8_t *>(&opMode), 1));
+
+        RetType ret = CALL(writeReg(ADXL375_POWER_CTL, reinterpret_cast<uint8_t *>(&opMode)));
+
         RESET();
         return ret;
     }
@@ -299,28 +260,18 @@ public:
         static uint8_t zOffBuff[2] = {static_cast<uint8_t>(zOffset & 0xFF),
                                       static_cast<uint8_t>((zOffset >> 8) & 0xFF)};
 
-
-        i2cAddr.mem_addr = offsetXReg;
-        RetType ret = CALL(m_i2c.write(i2cAddr, xOffBuff, 2));
+        RetType ret = CALL(writeReg(offsetXReg, xOffBuff, 2));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
+        ret = CALL(writeReg(offsetYReg, yOffBuff, 2));
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
         }
 
-        i2cAddr.mem_addr = offsetYReg;
-        ret = CALL(m_i2c.write(i2cAddr, yOffBuff, 2));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
-        i2cAddr.mem_addr = offsetZReg;
-        ret = CALL(m_i2c.write(i2cAddr, zOffBuff, 2));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
+        ret = CALL(writeReg(offsetZReg, zOffBuff, 2));
 
         RESET();
         return ret;
@@ -328,8 +279,7 @@ public:
 
     RetType setRange(uint8_t range) {
         RESUME();
-        i2cAddr.mem_addr = ADXL375_REG_DATA_FORMAT;
-        RetType ret = CALL(m_i2c.write(i2cAddr, &range, 1));
+        RetType ret = CALL(writeReg(ADXL375_REG_DATA_FORMAT, &range));
         RESET();
         return ret;
     }
@@ -341,6 +291,27 @@ private:
             .mem_addr = 0x00,
             .mem_addr_size = 1
     };
+
+    RetType readReg(uint8_t command, uint8_t *value, size_t len = 1) {
+        RESUME();
+
+        i2cAddr.mem_addr = command;
+        RetType ret = CALL(m_i2c.read(i2cAddr, value, len));
+
+        RESET();
+        return ret;
+    }
+
+    RetType writeReg(uint8_t command, uint8_t *value, size_t len = 1) {
+        RESUME();
+
+        i2cAddr.mem_addr = command;
+        RetType ret = CALL(m_i2c.write(i2cAddr, value, len));
+
+        RESET();
+        return ret;
+    }
+
 };
 
 
