@@ -114,11 +114,11 @@ public:
             return ret;
         }
 
-//        ret = CALL(wakeup());
-//        if (ret != RET_SUCCESS) {
-//            RESET();
-//            return ret;
-//        }
+        ret = CALL(wakeup());
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         RESET();
         return RET_SUCCESS;
@@ -223,9 +223,9 @@ public:
     RetType wakeup() {
         RESUME();
 
-        i2cAddr.mem_addr = ADXL375_POWER_CTL;
-        RetType ret = CALL(writeReg(ADXL375_POWER_CTL, reinterpret_cast<uint8_t *>(0x08)));
-
+        static uint8_t val = 0x08;
+        RetType ret = CALL(writeReg(ADXL375_POWER_CTL, &val));
+        
         RESET();
         return ret;
     }
@@ -244,7 +244,10 @@ public:
     RetType setOperatingMode(ADXL375_OP_MODE opMode) {
         RESUME();
 
-        RetType ret = CALL(writeReg(ADXL375_POWER_CTL, reinterpret_cast<uint8_t *>(&opMode)));
+        static uint8_t operating_mode;
+        operating_mode = static_cast<uint8_t>(opMode);
+
+        RetType ret = CALL(writeReg(ADXL375_POWER_CTL, &operating_mode));
 
         RESET();
         return ret;

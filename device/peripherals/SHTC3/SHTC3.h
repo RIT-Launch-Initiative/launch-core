@@ -117,7 +117,7 @@ class SHTC3 {
         RetType ret = CALL(readCommand(NORMAL_POW_MEAS_HUM_STRETCH, buffer, 2));
         if (ret != RET_SUCCESS) {
             RESET();
-            return ret
+            return ret;
         }
 
         rawHumidity = (buffer[0] << 8) | buffer[1];
