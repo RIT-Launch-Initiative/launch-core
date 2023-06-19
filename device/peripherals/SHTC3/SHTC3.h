@@ -207,7 +207,7 @@ class SHTC3 {
         RESUME();
         addr.dev_addr = (SHTC3_I2C_ADDR << 1);
 
-        uint8_t command8[2];
+        static uint8_t command8[2];
         uint16ToUint8(command16, command8);
         RetType ret = CALL(mI2C.transmit(addr, command8, 2, 80));
         if (ret != RET_SUCCESS)
