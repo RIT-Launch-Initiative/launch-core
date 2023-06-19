@@ -74,27 +74,27 @@ class SHTC3 {
     RetType init(uint8_t address = SHTC3_I2C_ADDR) {
         RESUME();
 
-//        RetType ret = CALL(toggleSleep(false));
-//        if (ret != RET_SUCCESS) goto init_end;
+        RetType ret = CALL(toggleSleep(false));
+        if (ret != RET_SUCCESS) goto init_end;
 
-//        ret = CALL(reset());
-//        if (ret != RET_SUCCESS) goto init_end;
-//
-//        ret = CALL(getID(&this->id));
-//        if (ret != RET_SUCCESS) goto init_end;
-//
-//        if ((this->id & 0x083F) != 0x807) {
-//            ret = RET_ERROR;
-//            goto init_end;
-//        }
+        ret = CALL(reset());
+        if (ret != RET_SUCCESS) goto init_end;
 
-//        if (inLowPowerMode) {
-//            ret = CALL(writeCommand(LOW_POW_MEAS_TEMP));
-//            SLEEP(1000);
-//        } else {
-//            ret = CALL(writeCommand(NORMAL_POW_MEAS_TEMP));
-//            SLEEP(1000);
-//        }
+        ret = CALL(getID(&this->id));
+        if (ret != RET_SUCCESS) goto init_end;
+
+        if ((this->id & 0x083F) != 0x807) {
+            ret = RET_ERROR;
+            goto init_end;
+        }
+
+        if (inLowPowerMode) {
+            ret = CALL(writeCommand(LOW_POW_MEAS_TEMP));
+            SLEEP(1000);
+        } else {
+            ret = CALL(writeCommand(NORMAL_POW_MEAS_TEMP));
+            SLEEP(1000);
+        }
 
         init_end:
         RESET();
