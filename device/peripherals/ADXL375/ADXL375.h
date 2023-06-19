@@ -102,23 +102,23 @@ public:
             return ret;
         }
 
-        ret = CALL(setOperatingMode(ADXL375_MEASURING_MODE));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
         ret = CALL(setRange(0b00001011));
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
         }
 
-        ret = CALL(wakeup());
+        ret = CALL(setOperatingMode(ADXL375_MEASURING_MODE));
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
         }
+
+//        ret = CALL(wakeup());
+//        if (ret != RET_SUCCESS) {
+//            RESET();
+//            return ret;
+//        }
 
         RESET();
         return RET_SUCCESS;
