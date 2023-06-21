@@ -15,8 +15,6 @@
 #include "device/I2CDevice.h"
 #include "return.h"
 #include "sched/macros/call.h"
-#include "sched/macros/reset.h"
-#include "sched/macros/resume.h"
 
 
 /**
@@ -55,7 +53,10 @@ public:
         RESUME();
 
         RetType ret = CALL(reset());
-        if (ret != RET_SUCCESS) goto init_end;
+        if (RET_SUCCESS != ret) {
+            RESET();
+            return ret;
+        }
 
         ret = CALL(m_interrupt_pin.set(0));
 
@@ -102,13 +103,10 @@ public:
         static uint8_t byteCount[2];
 
         RetType ret = CALL(read_reg(BYTE_COUNT_HIGH, byteCount, 2));
-        if (ret != RET_SUCCESS) goto get_amt_data_end;
-
         *amt = (byteCount[0] << 8) | byteCount[1];
 
-        get_amt_data_end:
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     /**
@@ -123,6 +121,7 @@ public:
         RetType ret;
 
         addr.mem_addr = DATA_STREAM;
+
         do {
             ret = CALL(m_i2c.read(addr, buff, 1, 1500));
             if (ret == RET_SUCCESS) buff++;
@@ -144,11 +143,13 @@ public:
 
         static constexpr uint8_t posllh[] = {0xB5, 0x62, 0x01, 0x21, 0x00, 0x00, 0x22, 0x67};
         RetType ret = CALL(m_stream.write(const_cast<uint8_t *>(posllh), 8));
-        if (ret != RET_SUCCESS) goto uart_read_posllh_data_end;
+        if (RET_SUCCESS != ret) {
+            RESET();
+            return ret;
+        };
 
         ret = CALL(m_stream.read(buff, 28));
 
-        uart_read_posllh_data_end:
         RESET();
         return ret;
     }
@@ -179,12 +180,12 @@ private:
      * @param numBytes the number of bytes to read
      * @return RetType the scheduler status
      */
-    RetType read_reg(MAXM10S_REG reg, uint8_t *buff, size_t numBytes) {  /// @todo TESTME!
+    RetType read_reg(MAXM10S_REG reg, uint8_t *buff, size_t numBytes) {
         RESUME();
 
         addr.mem_addr = 0;
         RetType ret = CALL(m_i2c.transmit(addr, (uint8_t *) reg, 1, 150));
-        if (ret != RET_SUCCESS) goto read_reg_end;
+        if (RET_SUCCESS != ret) goto read_reg_end;
 
         addr.mem_addr = static_cast<uint8_t>(reg);
         ret = CALL(m_i2c.read(addr, buff, numBytes, 1500));
@@ -201,11 +202,11 @@ private:
      * @param cmdLen The length of the command
      * @return RetType the scheduler status
      */
-    RetType sendCommand(uint8_t *cmdBuff, int cmdLen) {  /// @todo TESTME!
+    RetType sendCommand(uint8_t *cmdBuff, int cmdLen) {
         RESUME();
 
         RetType ret = CALL(m_i2c.transmit(addr, cmdBuff, cmdLen, 50));
-        if (ret != RET_SUCCESS)
+        if (RET_SUCCESS != ret)
             return ret;
 
         RESET();
