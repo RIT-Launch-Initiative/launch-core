@@ -1,14 +1,10 @@
 /**
  * @file MAXM10S.h
  * @brief Platform Independent Driver for the MAX-M10S GPS module
- * @details This is the I2C Implementation.
- *          UART and PIO are also supported but are NYI.
+ * @details Supports both I2C and UART interfaces
  *
- *
- *          Im not even sure if we are going to need them but the option
- *          is there. 🤯. Also note this sensor is not writeable with
- * @author Nate Aquino
  * @author Aaron Chan
+ * @author Nate Aquino
  *
  *
  * @link https://content.u-blox.com/sites/default/files/MAX-M10S_IntegrationManual_UBX-20053088.pdf
@@ -21,17 +17,10 @@
 #include "sched/macros/call.h"
 #include "sched/macros/reset.h"
 #include "sched/macros/resume.h"
-#include "stm32f4xx_hal_i2c.h"
 
-extern I2C_HandleTypeDef hi2c1;
-
-
-/* The MAXM10S (default) I2C address (8 bits) */
-#define MAXM10S_I2C_ADDR 0x42
 
 /**
  * @brief The MAXM10S Registers
- *
  */
 typedef enum {
     /* The hight byte of the amount of data available from the sensor */
@@ -46,12 +35,16 @@ typedef enum {
  * @brief Platform Independent Driver for the MAXM10S GPS module
  */
 class MAXM10S {
+    static const uint8_t MAXM10S_I2C_ADDR = 0x42;
+
 public:
     /**
      * @brief CTOR For MAXM10S
      * @param i2c_device the I2C device to use
      */
-    MAXM10S(I2CDevice &i2c_device, StreamDevice &stream_device, GPIODevice &reset_pin, GPIODevice &interrupt_pin) : m_i2c(i2c_device), m_stream(stream_device), m_reset_pin(reset_pin), m_interrupt_pin(interrupt_pin) {};
+    MAXM10S(I2CDevice &i2c_device, StreamDevice &stream_device, GPIODevice &reset_pin, GPIODevice &interrupt_pin) :
+    m_i2c(i2c_device), m_stream(stream_device),
+    m_reset_pin(reset_pin), m_interrupt_pin(interrupt_pin) {};
 
     /**
      * @brief Initialize the MAXM10S sensor
@@ -130,10 +123,8 @@ public:
         RetType ret;
 
         addr.mem_addr = DATA_STREAM;
-        // read as much data as possible (assuming RET_ERROR means NACK?)
-        // I know for sure 0xFF is the end of the data stream
         do {
-            ret = CALL(m_i2c.read(addr, buff, 1, 1500));  // sensor timeout
+            ret = CALL(m_i2c.read(addr, buff, 1, 1500));
             if (ret == RET_SUCCESS) buff++;
         } while (ret != RET_ERROR || *(buff - 1) != 0xFF);
 
