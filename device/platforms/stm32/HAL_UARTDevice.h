@@ -11,7 +11,7 @@
 
 #include "device/StreamDevice.h"
 #include "device/platforms/stm32/HAL_Handlers.h"
-#include "sched/macros.h"
+#include "sched/macros/macros.h"
 #include "ringbuffer/RingBuffer.h"
 #include "sync/BlockingSemaphore.h"
 

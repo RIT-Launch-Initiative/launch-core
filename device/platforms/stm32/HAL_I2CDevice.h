@@ -6,7 +6,7 @@
 
 #include "device/I2CDevice.h"
 #include "device/platforms/stm32/HAL_Handlers.h"
-#include "sched/macros.h"
+#include "sched/macros/macros.h"
 #include "sync/BlockingSemaphore.h"
 
 /// @brief I2C device controller
@@ -375,8 +375,9 @@ public:
             // 'm_blocked' is only reset in poll, so if it's still the task TID
             // the interrupt never occurred before this task woke up
             if (m_blocked != -1) {
-                RESET();
-                return RET_ERROR;
+                timed_out = true;
+            } else {
+                timed_out = false;
             }
         }
 
