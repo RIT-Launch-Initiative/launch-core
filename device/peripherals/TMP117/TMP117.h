@@ -58,11 +58,12 @@ enum TMP117_HILO_ALERT_BIT {
 };
 
 
-class TMP117 {
+class TMP117 : Device {
 public:
-    TMP117(I2CDevice &i2CDevice) : mI2C(i2CDevice) {}
+    TMP117(I2CDevice &i2CDevice, const uint16_t address = TMP_117_DEVICE_ADDR, const char* name = "TMP117") : Device(name), mI2C(i2CDevice),
+                                                                                                              i2cAddr({.dev_addr = static_cast<uint16_t>(address << 1), .mem_addr = 0, .mem_addr_size = 1})  {}
 
-    RetType init() {
+    RetType init() override {
         RESUME();
 
 

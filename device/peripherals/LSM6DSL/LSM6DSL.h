@@ -51,17 +51,14 @@ enum LSM6DSL_I2C_ADDR {
     LSM6DSL_I2C_ADDR_SECONDARY = 0x6B
 };
 
-class LSM6DSL {
+class LSM6DSL : Device {
 public:
-    LSM6DSL(I2CDevice &i2CDevice) : mI2C(&i2CDevice), accelEnabled(false), gyroEnabled(false) {}
+    LSM6DSL(I2CDevice &i2CDevice, uint16_t address = LSM6DSL_I2C_ADDR_SECONDARY, const char* name = "LSM6DSL") : Device(name), mI2C(&i2CDevice), accelEnabled(false), gyroEnabled(false),
+                                                                                                                 i2cAddr({.dev_addr = static_cast<uint16_t>(address << 1), .mem_addr = 0, .mem_addr_size = 1}) {}
 
-    RetType init(LSM6DSL_I2C_ADDR address = LSM6DSL_I2C_ADDR_SECONDARY) {
+    RetType init() {
         RESUME();
-        i2cAddr = {
-                .dev_addr = static_cast<uint16_t>(address << 1),
-                .mem_addr = LSM6DSL_ACC_GYRO_WHO_AM_I_REG,
-                .mem_addr_size = 1
-        };
+        i2cAddr.mem_addr = LSM6DSL_ACC_GYRO_WHO_AM_I_REG;
 
         // Check Chip ID
         static uint8_t chipID;
@@ -854,6 +851,18 @@ public:
     }
 
     // TODO: Maybe add wakeup detection functionality
+
+    RetType poll() override {
+        return RET_SUCCESS;
+    }
+
+    RetType obtain() override {
+        return RET_SUCCESS;
+    }
+
+    RetType release() override {
+        return RET_SUCCESS;
+    }
 
 
 private:
