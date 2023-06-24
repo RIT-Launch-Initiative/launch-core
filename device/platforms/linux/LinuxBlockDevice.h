@@ -13,16 +13,17 @@
 #ifndef LINUX_BLOCK_DEVICE_H
 #define LINUX_BLOCK_DEVICE_H
 
+#include "device/BlockDevice.h"
+#include "return.h"
+#include "sched/macros.h"
+#include "queue/allocated_queue.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/mman.h>
 #include <string.h>
 #include <unistd.h>
 
-#include "device/BlockDevice.h"
-#include "return.h"
-#include "sched/macros.h"
-#include "queue/allocated_queue.h"
 
 
 class LinuxBlockDevice : public BlockDevice {
@@ -99,6 +100,7 @@ public:
     ///                 must be a buffer of at least BLOCK_SIZE bytes
     /// @return 'true' if the entire block was written successfully
     RetType write(size_t block, uint8_t* data) {
+        RetType ret;
         RESUME();
 
         if(block >= m_numBlocks) {
@@ -108,7 +110,7 @@ public:
         memcpy((uint8_t*)m_data + (block * m_blockSize), data, m_blockSize);
 
         // block after, waiting for data to be synced with disk
-        RetType ret = CALL(block_task());
+        ret = CALL(block_task());
 
         RESET();
         return ret;
@@ -120,6 +122,7 @@ public:
     ///                 must be a buffer of at least BLOCK_SIZE bytes
     /// @return 'true' if the entire block was read successfully
     RetType read(size_t block, uint8_t* buff) {
+        RetType ret;
         RESUME();
 
         if(block >= m_numBlocks) {
@@ -127,7 +130,7 @@ public:
         }
 
         // block first, waiting for any updates to the device
-        RetType ret = CALL(block_task());
+        ret = CALL(block_task());
 
         memcpy(buff, (uint8_t*)m_data + (block * m_blockSize), m_blockSize);
 
@@ -135,17 +138,31 @@ public:
         return ret;
     }
 
+    RetType clear() {
+        memset(m_data, 0, m_blockSize * m_numBlocks);
+        return RET_SUCCESS;
+    }
+
+    RetType lock() {
+        return RET_SUCCESS;
+    }
+
+    RetType unlock() {
+        return RET_SUCCESS;
+    }
+
     /// @brief get the block size of the device
     /// @return the block size of the device
-    size_t getBlockSize() {
+    size_t get_block_size() {
         return m_blockSize;
     }
 
     /// @brief get the number of blocks in the device
     /// @return the number of blocks
-    size_t getNumBlocks() {
+    size_t get_num_blocks() {
         return m_numBlocks;
     }
+
 
 private:
     /// @brief helper function which blocks the current task

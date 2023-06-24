@@ -21,6 +21,7 @@
 #define W25Q128JV_JEDEC_ID 0x00EF4018
 #define CHECK_CALL(expr) {if (RET_SUCCESS != CALL(expr)) {RESET(); return RET_ERROR;}}
 // longest command + block read size
+// 8 = (cmd:1 + dummy:4 + addr:3)
 #define W25Q_BUF_SIZE (8 + 256)
 
 class W25Q : public BlockDevice {
@@ -34,9 +35,10 @@ public:
         RESUME();
 
         CHECK_CALL(read_id(&dev_id));
+
+        swprintf("JEDEC ID: 0x%06X\n", dev_id);
         if (dev_id != W25Q128JV_JEDEC_ID) {
-            swprintf("Expected JEDEC ID: 0x%06X\n", W25Q128JV_JEDEC_ID);
-            swprintf("Incorrect JEDEC ID: 0x%06X\n", dev_id);
+            swprintf("Incorrect, JEDEC ID, expected: 0x%06X\n", W25Q128JV_JEDEC_ID);
             RESET();
             return RET_ERROR;
         }
@@ -54,7 +56,6 @@ public:
         RESUME();
 
         if (block > get_num_blocks()) {
-            RESET();
             return RET_ERROR;
         };
 
@@ -68,7 +69,6 @@ public:
         RESUME();
 
         if (block > get_num_blocks()) {
-            RESET();
             return RET_ERROR;
         };
 
@@ -86,14 +86,16 @@ public:
         RESUME();
 
         CHECK_CALL(erase(CHIP_ERASE, 0));
+/*
         CHECK_CALL(read_status(READ_ONE, &status));
 
-        if (status & mask) { // busy bit set, we block
+        if (status & mask) {
             ret = RET_SUCCESS; // it's busy and takes a while, so we are confident it's actually clearing
         } else {
-            swprint("#ORG#Chip clear not executed while busy\n");
+            swprint("#ORG#Device is not busy\n");
             ret = RET_ERROR; // it's not busy, so we probably tried to clear a locked chip
         }
+*/
 
         RESET();
         return ret;
@@ -107,9 +109,9 @@ public:
         CHECK_CALL(block_if_busy());
         CHECK_CALL(read_status(READ_THREE, &reg));
 
-        swprintf("Read S3: 0x%02X\n", reg);
+//        swprintf("Read S3: 0x%02X\n", reg);
         reg |= ((uint8_t) WPS); // Add the WPS bit
-        swprintf("Writing S3 for lock: 0x%02X\n", reg);
+//        swprintf("Writing S3 for lock: 0x%02X\n", reg);
 
         CHECK_CALL(write_status(WRITE_THREE, reg));
 
@@ -124,9 +126,9 @@ public:
         CHECK_CALL(block_if_busy());
         CHECK_CALL(read_status(READ_THREE, &reg));
 
-        swprintf("Read S3: 0x%02X\n", reg);
+//        swprintf("Read S3: 0x%02X\n", reg);
         reg &= !((uint8_t) WPS); // Remove the WPS bit
-        swprintf("Writing S3 for unlock: 0x%02X\n", reg);
+//        swprintf("Writing S3 for unlock: 0x%02X\n", reg);
 
         CHECK_CALL(write_status(WRITE_THREE, reg));
 
@@ -169,19 +171,24 @@ public:
             if (0 == (status & mask)) { // if not, unblock the blocked task
                 WAKE(m_blocked);
                 m_blocked = TID_UNBLOCKED;
-//                swprint("#GRN#Unblocking!\n");
+                swprint("#GRN#Unblocking W25Q\n");
             }
         }
         RESET();
         return RET_SUCCESS;
     }
 
-//private:
+private:
     const uint8_t DUMMY_BYTE = 0xA5;
     const tid_t TID_UNBLOCKED = -1;
 
     const uint32_t CS_ACTIVE = 0U;
     const uint32_t CS_INACTIVE = 1U;
+
+    enum reset_command_t {
+        ENABLE_RESET = 0x66,
+        CHIP_RESET = 0x99,
+    };
 
     enum lock_command_t {
         SECTOR_LOCK = 0x36,
@@ -203,6 +210,9 @@ public:
         BLOCK_64_ERASE = 0xD8,
 
         CHIP_ERASE = 0xC7, // Can also be 0x60
+    };
+
+    enum erase_ctl_t {
         SUSPEND_ERASE = 0x75,
         RESUME_ERASE = 0x7A,
     };
@@ -278,18 +288,16 @@ public:
     RetType block_if_busy() {
         uint8_t status;
         uint8_t mask = (uint8_t) S_BUSY;
-
         RESUME();
         if (TID_UNBLOCKED != m_blocked) {
             // the blocked ID has been changed from default, so someone else is using this
-            RESET();
             return RET_ERROR;
         }
 
         CHECK_CALL(read_status(READ_ONE, &status));
 
         if (status & mask) { // busy bit set, we block
-//            swprint("#ORG#Blocking!\n");
+            swprint("#ORG#Blocking W25Q\n");
             m_blocked = sched_dispatched;
             BLOCK();
         }
@@ -377,6 +385,27 @@ public:
         return RET_SUCCESS;
     }
 
+    RetType reset() {
+        uint8_t instr[] = {ENABLE_RESET, CHIP_RESET};
+        RESUME();
+        CHECK_CALL(m_spi_w(instr, 1));
+        SLEEP(1);
+        CHECK_CALL(m_spi_w(instr + 1, 1));
+        SLEEP(1);
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType erase_ctl(erase_ctl_t cmd) {
+        uint8_t cmd_b = (uint8_t) cmd;
+        RESUME();
+
+        CHECK_CALL(m_spi_w(&cmd_b, 1));
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
     RetType erase(erase_command_t cmd, uint32_t addr) {
         uint8_t cmd_bytes[4];
         cmd_bytes[0] = (uint8_t) cmd;
@@ -385,7 +414,6 @@ public:
 
         RESUME();
 
-        CHECK_CALL(write_enable_set(WRITE_ENABLE));
         if (CHIP_ERASE == cmd) {
             cmd_len = 1;
         }
@@ -396,8 +424,6 @@ public:
     }
 
 /// Common read/write patterns
-/// NOTE: They do not acquire or release the lock
-private:
     RetType m_spi_w(uint8_t* buf, size_t len) {
         RESUME();
         CALL(m_lock.acquire());
