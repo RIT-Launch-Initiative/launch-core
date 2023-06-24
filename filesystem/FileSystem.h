@@ -17,6 +17,12 @@
 
 #include "return.h"
 
+typedef enum {
+    MODE_CLOSED = 0,
+    MODE_READ = 1 << 0,
+    MODE_WRITE = 1 << 1,
+} file_mode_t;
+
 /// @brief interface for a file system
 class FileSystem {
 public:
