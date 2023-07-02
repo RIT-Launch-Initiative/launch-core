@@ -25,7 +25,7 @@ using BMP3XX_DATA_T = struct {
     double temperature;
 };
 
-class BMP3XX : Device {
+class BMP3XX : public Device {
 public:
     BMP3XX(I2CDevice &i2cDev, const uint16_t address = BMP3_ADDR_I2C_PRIM, const char *name = "BMP3XX")
             : Device(name), mI2C(&i2cDev), i2cAddr({.dev_addr = static_cast<uint16_t>(address << 1), .mem_addr = 0, .mem_addr_size = 1}) {}
@@ -326,8 +326,7 @@ public:
 private:
     bmp3_dev device = {};
     bmp3_data data = {};
-    bmp3_settings settings;
-    uint8_t chipID;
+    bmp3_settings settings{};
     I2CDevice *mI2C;
     I2CAddr_t i2cAddr;
 

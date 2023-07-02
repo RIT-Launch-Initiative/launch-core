@@ -28,7 +28,7 @@ enum LIS3MDL_I2C_ADDR {
     LIS3MDL_I2C_ADDR_SECONDARY = 0x1E,
 };
 
-class LIS3MDL : Device {
+class LIS3MDL : public Device {
 public:
     LIS3MDL(I2CDevice &i2cDevice, const uint16_t address = LIS3MDL_I2C_ADDR_PRIMARY, const char *name = "LIS3MDL") : Device(name), mI2C(&i2cDevice), i2cAddr({.dev_addr = static_cast<uint16_t>(address << 1), .mem_addr = 0, .mem_addr_size = 1}) {}
     RetType init() override {

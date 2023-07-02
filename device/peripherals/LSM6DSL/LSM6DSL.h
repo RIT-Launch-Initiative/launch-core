@@ -51,7 +51,7 @@ enum LSM6DSL_I2C_ADDR {
     LSM6DSL_I2C_ADDR_SECONDARY = 0x6B
 };
 
-class LSM6DSL : Device {
+class LSM6DSL : public Device {
 public:
     LSM6DSL(I2CDevice &i2CDevice, uint16_t address = LSM6DSL_I2C_ADDR_SECONDARY, const char* name = "LSM6DSL") : Device(name), mI2C(&i2CDevice), accelEnabled(false), gyroEnabled(false),
                                                                                                                  i2cAddr({.dev_addr = static_cast<uint16_t>(address << 1), .mem_addr = 0, .mem_addr_size = 1}) {}

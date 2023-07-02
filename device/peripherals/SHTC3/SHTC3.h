@@ -62,10 +62,10 @@ using SHTC3_CMD = enum {
  * @brief Platform Independent Driver for the SHTC3 Sensor
  *
  */
-class SHTC3 : Device {
+class SHTC3 : public Device {
 public:
     explicit SHTC3(I2CDevice &i2CDevice, uint16_t address = SHTC3_I2C_ADDR, const char *name = "SHTC3")
-            : Device(name), mI2C(i2CDevice), inLowPowerMode(false),
+            : Device(name), mI2C(&i2CDevice), inLowPowerMode(false),
               addr({.dev_addr = static_cast<uint16_t>(address << 1), .mem_addr = 0, .mem_addr_size = 2}) {}
 
     /**
@@ -211,7 +211,7 @@ public:
 
         static uint8_t command8[2];
         uint16ToUint8(command16, command8);
-        RetType ret = CALL(mI2C.transmit(addr, command8, 2, 80));
+        RetType ret = CALL(mI2C->transmit(addr, command8, 2, 80));
         if (ret != RET_SUCCESS)
             return ret;
 
@@ -231,14 +231,14 @@ public:
         RESUME();
         addr.dev_addr = (SHTC3_I2C_ADDR << 1);
 
-        RetType ret = CALL(mI2C.transmit(addr, reinterpret_cast<uint8_t *>(&command16), 2, 50));
+        RetType ret = CALL(mI2C->transmit(addr, reinterpret_cast<uint8_t *>(&command16), 2, 50));
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
         }
 
         addr.dev_addr = (SHTC3_I2C_ADDR << 1) | 0x01;
-        ret = CALL(mI2C.receive(addr, buff, numBytes, 50));
+        ret = CALL(mI2C->receive(addr, buff, numBytes, 50));
 
         RESET();
         return ret;
@@ -279,7 +279,7 @@ public:
 
 private:
     /* The I2C object */
-    I2CDevice &mI2C;
+    I2CDevice *mI2C;
     /* The I2C address of the sensor */
     I2CAddr_t addr;
     /* Is the sensor in low power mode */

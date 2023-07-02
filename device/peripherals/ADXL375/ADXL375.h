@@ -68,9 +68,9 @@ using ADXL375_DATA_T = struct {
     int16_t z_accel;
 };
 
-class ADXL375 : Device {
+class ADXL375 : public Device {
 public:
-    explicit ADXL375(I2CDevice &i2c, const uint16_t address = ADXL375_DEV_ADDR_PRIM, const char* name = "ADXl375") : Device(name), m_i2c(i2c),
+    explicit ADXL375(I2CDevice &i2c, const uint16_t address = ADXL375_DEV_ADDR_PRIM, const char* name = "ADXl375") : Device(name), m_i2c(&i2c),
                                                                                          i2cAddr({.dev_addr = static_cast<uint16_t>(address << 1), .mem_addr = 0, .mem_addr_size = 1}) {}
 
     RetType init() override {
@@ -286,7 +286,7 @@ public:
     }
 
 private:
-    I2CDevice &m_i2c;
+    I2CDevice *m_i2c;
     I2CAddr_t i2cAddr;
 
     RetType readID(uint8_t *id) {
@@ -302,7 +302,7 @@ private:
         RESUME();
 
         i2cAddr.mem_addr = command;
-        RetType ret = CALL(m_i2c.read(i2cAddr, value, len));
+        RetType ret = CALL(m_i2c->read(i2cAddr, value, len));
 
         RESET();
         return ret;
@@ -312,7 +312,7 @@ private:
         RESUME();
 
         i2cAddr.mem_addr = command;
-        RetType ret = CALL(m_i2c.write(i2cAddr, value, len));
+        RetType ret = CALL(m_i2c->write(i2cAddr, value, len));
 
         RESET();
         return ret;

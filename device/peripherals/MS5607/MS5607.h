@@ -69,7 +69,7 @@ typedef enum {
     MS5607_OSR_4096 = 4,
 } MS5607_OSR_T;
 
-class MS5607 : Device {
+class MS5607 : public Device {
 public:
     MS5607(I2CDevice &i2cDevice, const uint8_t address = 0x76, const char *name = "MS5607") : Device(name), mI2C(&i2cDevice),
                                                                                         mAddr({.dev_addr = static_cast<uint8_t>(address << 1), .mem_addr = 0, .mem_addr_size = 1}) {}
