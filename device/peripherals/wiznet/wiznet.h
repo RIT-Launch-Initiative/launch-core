@@ -69,7 +69,8 @@ public:
         ret = CALL(setSHAR(mac_addr));
         if (ret != RET_SUCCESS) goto init_end;
 
-        ret = CALL(setPHYCFGR(0b0));
+
+        ret = CALL(setPHYCFGR(0b101110000));
         if (ret != RET_SUCCESS) goto init_end;
 
         SLEEP(30);
