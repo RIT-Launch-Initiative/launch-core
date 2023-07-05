@@ -5,8 +5,8 @@
  * @author Aaron Chan
  */
 
-#ifndef RADIO_MODULE_NMEA_H
-#define RADIO_MODULE_NMEA_H
+#ifndef LAUNCH_CORE_NMEA_H
+#define LAUNCH_CORE_NMEA_H
 
 #include <cstdint>
 #include <cstdlib>
@@ -72,4 +72,4 @@ namespace nmea {
 }
 
 
-#endif //RADIO_MODULE_NMEA_H
+#endif //LAUNCH_CORE_NMEA_H
