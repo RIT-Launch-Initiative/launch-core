@@ -37,7 +37,9 @@ public:
      *
      * @return
      */
-    virtual bool *get_event_status() const;
+    bool *get_event_status() const {
+        return p_event_detected;
+    };
 
     /**
      * @brief Adds a hook to the event
@@ -50,16 +52,39 @@ public:
 
         hooks[num_hooks++] = hook;
         return true;
-    }
+    };
 
 private:
     RetType (*hooks[5])(void *args);
-
+    RetType return_values[5] = {RET_SUCCESS, RET_SUCCESS, RET_SUCCESS, RET_SUCCESS, RET_SUCCESS};
     void *hook_args[5];
+
     uint8_t num_hooks;
 
+protected:
     bool *p_event_detected;
 
+    /**
+     * @brief Calls all hooks for the event
+     *
+     * @return RET_SUCCESS if no hooks return an error
+     */
+    RetType call_hooks() {
+        RESUME();
+
+        RetType ret = RET_SUCCESS;
+
+        for (uint8_t i = 0; i < num_hooks; i++) {
+             return_values[i] = CALL(hooks[i](hook_args[i]));
+
+             if (RET_ERROR == return_values[i]) {
+                 ret = return_values[i];
+             }
+        }
+
+        RESET();
+        return ret;
+    }
 };
 
 #endif //LAUNCH_CORE_EVENT_H
