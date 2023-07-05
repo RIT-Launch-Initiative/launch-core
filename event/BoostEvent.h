@@ -17,17 +17,19 @@
 
 #include "return.h"
 #include "event/Event.h"
+#include "return.h"
+#include "sched.h"
 
 class BoostEvent : public Event {
 public:
-    const uint8_t DETECT_COUNT = 5;
+    BoostEvent(const bool *p_boost_event_detected) : Event(p_boost_event_detected) {};
 
-    BoostEvent(*p_boost_event_detected) : Event(p_boost_event_detected) {}
-
-    RetType calculate_event() override {
+    RetType calculate_event(int16_t current_accel, int16_t current_altitude) override {
         RESUME();
 
-        if (m_accel > m_avg_accel && m_altitude > m_avg_altitude) {
+        RetType ret = RET_SUCCESS;
+
+        if (current_accel > m_avg_accel && current_altitude > m_avg_altitude) {
             m_count++;
         } else {
             m_count = 0;
@@ -36,7 +38,7 @@ public:
         if (m_count >= DETECT_COUNT) {
             *p_event_detected = true;
 
-            RetType ret = CALL(call_hooks());
+            ret = CALL(call_hooks());
         }
 
         RESET();
@@ -44,13 +46,11 @@ public:
     };
 
 private:
-    int16_t m_accel;
     int16_t m_avg_accel;
 
-    int16_t m_altitude;
     int16_t m_avg_altitude;
 
-    uint16_t m_count;
+    uint8_t m_count;
 };
 
 #endif //LAUNCH_CORE_BOOSTEVENT_H

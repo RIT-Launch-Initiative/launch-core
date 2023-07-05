@@ -1,6 +1,6 @@
 /*******************************************************************************
 *
-*  Name: event_detection.h
+*  Name: Event.h
 *
 *  Purpose: Interface for defining event detection functions
 *
@@ -20,6 +20,8 @@
 class Event {
 public:
     const uint8_t NUM_HOOKS = 5;
+    const uint8_t DETECT_COUNT = 5;
+
 
     Event(const bool *p_event_detected) : p_event_detected(p_event_detected), num_hooks(0) {}
 
