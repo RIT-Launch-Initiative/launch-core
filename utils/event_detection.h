@@ -1,14 +1,4 @@
-/*******************************************************************************
-*
-*  Name: event_detection.h
-*
-*  Purpose: Tasks meant to determine flight events
-*
-*  Author: Aaron Chan
-*
-*  RIT Launch Initiative
-*
-*******************************************************************************/
+
 
 #ifndef LAUNCH_CORE_EVENT_DETECTION_H
 #define LAUNCH_CORE_EVENT_DETECTION_H
