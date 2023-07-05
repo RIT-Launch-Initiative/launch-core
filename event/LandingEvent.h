@@ -2,7 +2,7 @@
 *
 *  Name: LandingEvent.h
 *
-*  Purpose: Handle detecting landing events
+*  Purpose: Handle detecting a landing event
 *
 *  Author: Aaron Chan
 *
@@ -31,11 +31,15 @@ public:
         RetType ret = RET_SUCCESS;
         if (*p_past_event && is_accel_in_range() &&  is_altitude_in_range()) {
             m_count++;
-        }
 
-        if (m_count >= DETECT_COUNT) {
-            *p_event_detected = true;
-            ret = CALL(call_hooks());
+            m_avg_altitude = (m_avg_altitude + current_altitude) / 2;
+
+            if (m_count >= DETECT_COUNT) {
+                *p_event_detected = true;
+                ret = CALL(call_hooks());
+            }
+        } else {
+            m_count = 0;
         }
 
         RESET();
@@ -45,7 +49,7 @@ public:
 private:
     const bool *p_past_event;
     uint16_t m_avg_altitude;
-    uint8_t m_count;
+    uint8_t m_count = 0;
 
     constexpr uint8_t THREE_G_ACCEL = 9.81 * 3;
 

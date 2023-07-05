@@ -2,7 +2,7 @@
 *
 *  Name: ApogeeEvent.h
 *
-*  Purpose: Handle detecting bosot events
+*  Purpose: Handle detecting an apogee event
 *
 *  Author: Aaron Chan
 *
@@ -22,21 +22,33 @@
 
 class ApogeeEvent : public Event {
 public:
-    ApogeeEvent(const bool *p_apogee_event_detected) : Event(p_apogee_event_detected) {}
+    ApogeeEvent(const bool *p_apogee_event_detected, uint16_t initial_altitude) : Event(p_apogee_event_detected), m_highest_altitude(initial_altitude) {}
 
-    RetType calculate_event() override {
+    RetType calculate_event(uint16_t current_altitude) override {
         RESUME();
+
         RetType ret = RET_SUCCESS;
+        if (current_altitude > m_highest_altitude) {
+            m_highest_altitude = current_altitude;
+            m_count++;
+        } else if (current_altitude < m_highest_altitude) {
+            count++;
 
-
+            if (count >= DETECT_COUNT) {
+                *p_event_detected = true;
+                ret = CALL(call_hooks());
+            }
+        } else {
+            m_count = 0;
+        }
 
         RESET();
         return ret;
     };
 
 private:
-
-    uint8_t m_count;
+    uint16_t m_highest_altitude = 0;
+    uint8_t m_count = 0;
 };
 
 #endif //LAUNCH_CORE_APOGEEEVENT_H

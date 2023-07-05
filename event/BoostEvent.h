@@ -2,7 +2,7 @@
 *
 *  Name: event_detection.h
 *
-*  Purpose: Handle detecting bosot events
+*  Purpose: Handles detecting a boost event
 *
 *  Author: Aaron Chan
 *
@@ -22,23 +22,27 @@
 
 class BoostEvent : public Event {
 public:
-    BoostEvent(const bool *p_boost_event_detected) : Event(p_boost_event_detected) {};
+    BoostEvent(const bool *p_boost_event_detected, int16_t initial_accel, uint16_t initial_altitude) : Event(p_boost_event_detected),
+                                                                                                        m_avg_accel(initial_accel),
+                                                                                                        m_avg_altitude(initial_altitude) {};
 
-    RetType calculate_event(int16_t current_accel, int16_t current_altitude) override {
+    RetType calculate_event(int16_t current_accel, uint16_t current_altitude) override {
         RESUME();
 
         RetType ret = RET_SUCCESS;
 
         if (current_accel > m_avg_accel && current_altitude > m_avg_altitude) {
+            m_avg_accel = (m_avg_accel + current_accel) / 2;
+            m_avg_altitude = (m_avg_altitude + current_altitude) / 2;
             m_count++;
+
+            if (m_count >= DETECT_COUNT) {
+                *p_event_detected = true;
+
+                ret = CALL(call_hooks());
+            }
         } else {
             m_count = 0;
-        }
-
-        if (m_count >= DETECT_COUNT) {
-            *p_event_detected = true;
-
-            ret = CALL(call_hooks());
         }
 
         RESET();
