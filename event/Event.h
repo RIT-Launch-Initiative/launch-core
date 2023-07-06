@@ -48,7 +48,7 @@ public:
      * @param hook
      * @return
      */
-    constexpr bool add_hook(RetType (*hook)(void *args)) {
+    constexpr bool register_callback(RetType (*hook)(void *args)) {
         if (num_hooks >= NUM_HOOKS) return false;
 
         hooks[num_hooks++] = hook;
@@ -67,24 +67,11 @@ protected:
 
     /**
      * @brief Calls all hooks for the event
-     *
-     * @return RET_SUCCESS if no hooks return an error
      */
-    RetType call_hooks() {
-        RESUME();
-
-        RetType ret = RET_SUCCESS;
-
+    void call_hooks() {
         for (uint8_t i = 0; i < num_hooks; i++) {
-             return_values[i] = CALL(hooks[i](hook_args[i]));
-
-             if (RET_ERROR == return_values[i]) {
-                 ret = return_values[i];
-             }
+             sched_start(hooks[i], hook_args[i]);
         }
-
-        RESET();
-        return ret;
     }
 };
 

@@ -37,7 +37,7 @@ public:
 
             if (m_count >= DETECT_COUNT) {
                 *p_event_detected = true;
-                ret = CALL(call_hooks());
+                call_hooks();
             }
         } else {
             m_count = 0;
