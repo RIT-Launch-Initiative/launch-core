@@ -19,10 +19,11 @@
 #include "event/Event.h"
 #include "return.h"
 #include "sched.h"
+#include "sched/macros.h"
 
 class ApogeeEvent : public Event {
 public:
-    ApogeeEvent(const bool *p_apogee_event_detected, uint16_t const *p_current_altitude) : Event(p_apogee_event_detected), m_highest_altitude(*p_current_altitude), p_current_altitude(p_current_altitude) {}
+    ApogeeEvent(bool *const p_apogee_event_detected, uint16_t *const p_current_altitude) : Event(p_apogee_event_detected), m_highest_altitude(*p_current_altitude), p_current_altitude(p_current_altitude) {}
 
     RetType calculate_event() override {
         RESUME();
@@ -32,9 +33,9 @@ public:
             m_highest_altitude = *p_current_altitude;
             m_count++;
         } else if (*p_current_altitude < m_highest_altitude) {
-            count++;
+            m_count++;
 
-            if (count >= DETECT_COUNT) {
+            if (m_count >= DETECT_COUNT) {
                 *p_event_detected = true;
                 call_hooks();
             }

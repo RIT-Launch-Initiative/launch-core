@@ -16,14 +16,17 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "return.h"
+#include "sched/sched.h"
+
 
 class Event {
 public:
     const uint8_t NUM_HOOKS = 5;
     const uint8_t DETECT_COUNT = 5;
 
+    Event(bool* const p_event_detected) : num_callbacks(0), p_event_detected(p_event_detected) {}
 
-    Event(const bool *p_event_detected) : p_event_detected(p_event_detected), num_hooks(0) {}
+    virtual ~Event() = default;
 
     /**
      * @brief Task for calculating the event and updating the event detected flag
@@ -38,7 +41,7 @@ public:
      *
      * @return
      */
-    bool *get_event_status() const {
+    [[nodiscard]] bool const *get_event_status() const {
         return p_event_detected;
     };
 
@@ -49,28 +52,27 @@ public:
      * @return
      */
     constexpr bool register_callback(RetType (*hook)(void *args)) {
-        if (num_hooks >= NUM_HOOKS) return false;
+        if (num_callbacks >= NUM_HOOKS) return false;
 
-        hooks[num_hooks++] = hook;
+        callbacks[num_callbacks++] = hook;
         return true;
     };
 
 private:
-    RetType (*hooks[5])(void *args);
-    RetType return_values[5] = {RET_SUCCESS, RET_SUCCESS, RET_SUCCESS, RET_SUCCESS, RET_SUCCESS};
-    void *hook_args[5];
+    RetType (*callbacks[5])(void *args);
+    void *callback_args[5];
 
-    uint8_t num_hooks;
+    uint8_t num_callbacks;
 
 protected:
-    bool *p_event_detected;
+    bool *const p_event_detected;
 
     /**
      * @brief Calls all hooks for the event
      */
     void call_hooks() {
-        for (uint8_t i = 0; i < num_hooks; i++) {
-             sched_start(hooks[i], hook_args[i]);
+        for (uint8_t i = 0; i < num_callbacks; i++) {
+             sched_start(callbacks[i], callback_args[i]);
         }
     }
 };
