@@ -23,9 +23,10 @@
 
 class LandingEvent : public Event {
 public:
-    LandingEvent(const bool *p_landing_event_detected, const bool *p_past_event) : Event(p_landing_event_detected), p_past_event(p_past_event) {}
+    LandingEvent(bool const *p_landing_event_detected, bool const *p_past_event, int16_t const *p_current_accel, int16_t const *p_current_altitude) : Event(p_landing_event_detected), p_past_event(p_past_event),
+                                                                                                                                                      p_current_accel(p_current_accel), p_current_altitude(p_current_altitude) {}
 
-    RetType calculate_event(int16_t current_accel, int16_t current_altitude) override {
+    RetType calculate_event() override {
         RESUME();
 
         RetType ret = RET_SUCCESS;
@@ -47,19 +48,21 @@ public:
     };
 
 private:
-    const bool *p_past_event;
+    bool const *p_past_event;
     uint16_t m_avg_altitude;
+    uint16_t const *p_current_altitude;
+    uint16_t const *p_current_accel;
     uint8_t m_count = 0;
 
     constexpr uint8_t THREE_G_ACCEL = 9.81 * 3;
 
-    bool is_accel_in_range(int16_t current_accel) {
-        return abs(current_accel) < threshold_range;
+    bool is_accel_in_range() {
+        return *p_current_altitude < threshold_range;
     }
 
     bool is_altitude_in_range() {
         const uint8_t threshold_range = 50;
-        const uint8_t altitude_diff = abs(current_altitude - m_avg_altitude);
+        const uint8_t altitude_diff = *p_current_altitude - m_avg_altitude;
 
         return altitude_diff < threshold_range;
     }

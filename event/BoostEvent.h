@@ -22,11 +22,11 @@
 
 class BoostEvent : public Event {
 public:
-    BoostEvent(const bool *p_boost_event_detected, int16_t initial_accel, uint16_t initial_altitude) : Event(p_boost_event_detected),
-                                                                                                        m_avg_accel(initial_accel),
-                                                                                                        m_avg_altitude(initial_altitude) {};
+    BoostEvent(bool const *p_boost_event_detected, int16_t const *p_current_accel, uint16_t const *p_current_altitude) : Event(p_boost_event_detected),
+                                                                                                        m_avg_accel(*p_current_accel), m_avg_altitude(*p_current_altitude),
+                                                                                                        p_current_accel(p_current_accel), p_current_altitude(p_current_altitude) {};
 
-    RetType calculate_event(int16_t current_accel, uint16_t current_altitude) override {
+    RetType calculate_event() override {
         RESUME();
 
         RetType ret = RET_SUCCESS;
@@ -51,8 +51,10 @@ public:
 
 private:
     int16_t m_avg_accel;
+    uint16_t m_avg_altitude;
 
-    int16_t m_avg_altitude;
+    int16_t const *p_current_accel;
+    uint16_t const *p_current_altitude;
 
     uint8_t m_count;
 };

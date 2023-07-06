@@ -22,16 +22,16 @@
 
 class ApogeeEvent : public Event {
 public:
-    ApogeeEvent(const bool *p_apogee_event_detected, uint16_t initial_altitude) : Event(p_apogee_event_detected), m_highest_altitude(initial_altitude) {}
+    ApogeeEvent(const bool *p_apogee_event_detected, uint16_t const *p_current_altitude) : Event(p_apogee_event_detected), m_highest_altitude(*p_current_altitude), p_current_altitude(p_current_altitude) {}
 
-    RetType calculate_event(uint16_t current_altitude) override {
+    RetType calculate_event() override {
         RESUME();
 
         RetType ret = RET_SUCCESS;
-        if (current_altitude > m_highest_altitude) {
-            m_highest_altitude = current_altitude;
+        if (*p_current_altitude > m_highest_altitude) {
+            m_highest_altitude = *p_current_altitude;
             m_count++;
-        } else if (current_altitude < m_highest_altitude) {
+        } else if (*p_current_altitude < m_highest_altitude) {
             count++;
 
             if (count >= DETECT_COUNT) {
@@ -47,6 +47,7 @@ public:
     };
 
 private:
+    uint16_t const *p_current_altitude;
     uint16_t m_highest_altitude = 0;
     uint8_t m_count = 0;
 };

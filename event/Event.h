@@ -28,10 +28,9 @@ public:
     /**
      * @brief Task for calculating the event and updating the event detected flag
      *
-     * @param args - arguments to pass to the event detection function
      * @return
      */
-    virtual RetType calculate_event(void *args);
+    virtual RetType calculate_event() = 0;
 
     /**
      * @brief Get the pointer to the event detected flag
