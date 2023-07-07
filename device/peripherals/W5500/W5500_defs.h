@@ -49,8 +49,8 @@
 
 #define _W5500_IO_BASE_              0x00000000
 
-#define _W5500_SPI_READ_               (0x00 << 2) //< SPI interface Read operation in Control Phase
-#define _W5500_SPI_WRITE_               (0x01 << 2) //< SPI interface Write operation in Control Phase
+#define _W5500_SPI_READ_			   (0x00 << 2) //< SPI interface Read operation in Control Phase
+#define _W5500_SPI_WRITE_			   (0x01 << 2) //< SPI interface Write operation in Control Phase
 
 #define _W5500_SPI_VDM_OP_          0x00
 #define _W5500_SPI_FDM_OP_LEN1_     0x01
