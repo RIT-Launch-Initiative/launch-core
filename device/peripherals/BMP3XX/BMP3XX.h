@@ -25,25 +25,23 @@ using BMP3XX_DATA_T = struct {
     double temperature;
 };
 
-class BMP3XX {
+class BMP3XX : public Device {
 public:
-    BMP3XX(I2CDevice &i2cDev) : mI2C(&i2cDev) {}
+    BMP3XX(I2CDevice &i2cDev, const uint16_t address = BMP3_ADDR_I2C_PRIM, const char *name = "BMP3XX")
+            : Device(name), mI2C(&i2cDev), i2cAddr({.dev_addr = static_cast<uint16_t>(address << 1), .mem_addr = 0, .mem_addr_size = 1}) {}
 
     /*************************************************************************************
      * Main Functionality
      *************************************************************************************/
-    RetType init(bool is388 = true) { // TODO: Not working
+    RetType init() override {
         RESUME();
         this->device.dummy_byte = 0;
 
-        this->i2cAddr = {
-                .dev_addr = BMP3_ADDR_I2C_PRIM << 1,
-                .mem_addr = BMP3_REG_CHIP_ID,
-                .mem_addr_size = 1,
-        };
-
-        RetType ret = CALL(mI2C->read(this->i2cAddr, &this->device.chip_id, 1, 50));
-        if (this->device.chip_id != (is388 ? BMP3_CHIP_ID : BMP390_CHIP_ID)) return RET_ERROR;
+        RetType ret = CALL(checkChipID());
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         ret = CALL(softReset());
         if (ret != RET_SUCCESS) {
@@ -328,8 +326,7 @@ public:
 private:
     bmp3_dev device = {};
     bmp3_data data = {};
-    bmp3_settings settings;
-    uint8_t chipID;
+    bmp3_settings settings{};
     I2CDevice *mI2C;
     I2CAddr_t i2cAddr;
 
@@ -739,7 +736,10 @@ private:
         static uint8_t regData = 0;
 
         RetType ret = CALL(getRegister(BMP3_REG_IF_CONF, &regData, 1));
-        if (ret != RET_SUCCESS) return ret;
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         if (desiredSettings & BMP3_SEL_I2C_WDT_EN) {
             regData = BMP3_SET_BITS(regData, BMP3_I2C_WDT_EN, settings.adv_settings.i2c_wdt_en);
@@ -750,8 +750,6 @@ private:
         }
 
         ret = CALL(setRegister(BMP3_REG_IF_CONF, &regData, 1));
-        if (ret != RET_SUCCESS) return ret;
-
 
         RESET();
         return ret;
@@ -764,6 +762,20 @@ private:
         if (ret != RET_SUCCESS) return ret;
 
         *opMode = BMP3_GET_BITS(*opMode, BMP3_OP_MODE);
+
+        RESET();
+        return ret;
+    }
+
+    RetType checkChipID() {
+        RESUME();
+
+        static uint8_t chip_id = 0;
+
+        RetType ret = CALL(getRegister(BMP3_REG_CHIP_ID, &chip_id, 1));
+        if ((chip_id != BMP3_CHIP_ID) || (chip_id != BMP390_CHIP_ID)) {
+            ret = RET_ERROR;
+        }
 
         RESET();
         return ret;
@@ -892,7 +904,6 @@ private:
         settings.odr_filter.iir_filter = BMP3_GET_BITS(regData[index], BMP3_IIR_FILTER);
     }
 };
-
 
 
 #endif //LAUNCH_CORE_BMP3XX_H

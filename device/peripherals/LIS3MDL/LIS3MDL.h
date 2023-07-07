@@ -28,14 +28,11 @@ enum LIS3MDL_I2C_ADDR {
     LIS3MDL_I2C_ADDR_SECONDARY = 0x1E,
 };
 
-class LIS3MDL {
+class LIS3MDL : public Device {
 public:
-    LIS3MDL(I2CDevice &i2cDevice) : mI2C(&i2cDevice) {}
-
-    RetType init(uint8_t address = LIS3MDL_I2C_ADDR_PRIMARY) {
+    LIS3MDL(I2CDevice &i2cDevice, const uint16_t address = LIS3MDL_I2C_ADDR_PRIMARY, const char *name = "LIS3MDL") : Device(name), mI2C(&i2cDevice), i2cAddr({.dev_addr = static_cast<uint16_t>(address << 1), .mem_addr = 0, .mem_addr_size = 1}) {}
+    RetType init() override {
         RESUME();
-
-        i2cAddr.dev_addr = address << 1;
 
         static uint8_t whoAmI = 0;
         RetType ret = CALL(readReg(LIS3MDL_WHO_AM_I, &whoAmI, 1, 50));
@@ -191,27 +188,27 @@ public:
         static lis3mdl_ctrl_reg1_t ctrlReg1;
         static lis3mdl_ctrl_reg4_t ctrlReg4;
 
-        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG1, (uint8_t * ) & ctrlReg1, 1));
+        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG1, (uint8_t *) &ctrlReg1, 1));
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
         }
 
         ctrlReg1.om = val;
-        ret = CALL(readReg(LIS3MDL_CTRL_REG4, (uint8_t * ) & ctrlReg4, 1));
+        ret = CALL(readReg(LIS3MDL_CTRL_REG4, (uint8_t *) &ctrlReg4, 1));
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
         }
 
-        ret = CALL(writeReg(LIS3MDL_CTRL_REG1, (uint8_t * ) & ctrlReg1, 1));
+        ret = CALL(writeReg(LIS3MDL_CTRL_REG1, (uint8_t *) &ctrlReg1, 1));
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
         }
 
         ctrlReg4.omz = val;
-        ret = CALL(writeReg(LIS3MDL_CTRL_REG4, (uint8_t * ) & ctrlReg4, 1));
+        ret = CALL(writeReg(LIS3MDL_CTRL_REG4, (uint8_t *) &ctrlReg4, 1));
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
@@ -351,9 +348,9 @@ public:
             static lis3mdl_ctrl_reg5_t ctrlReg5;
             ret = CALL(readReg(LIS3MDL_CTRL_REG5, reinterpret_cast<uint8_t *>(&ctrlReg5), 1));
             if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
+                RESET();
+                return ret;
+            }
         }
 
         RESET();

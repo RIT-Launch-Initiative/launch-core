@@ -32,7 +32,7 @@ public:
     /// @return         a pointer to the device, or NULL on error
     Device* get(const char* name) {
         for(size_t i = 0; i < m_count; i++) {
-            if(!strcmp(name, m_names[i])) {
+            if(!strncmp(name, m_names[i], 64)) {
                 // this is our device
                 return m_devices[i];
             }
