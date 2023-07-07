@@ -93,16 +93,26 @@ public:
         if (ret != RET_SUCCESS) goto init_end;
 
 //        ret = CALL(set_socket_mode_reg(DEFAULT_SOCKET_NUM, MAC_RAW_MODE)); // TODO: Check difference
-        ret = CALL(set_socket_mode_reg(DEFAULT_SOCKET_NUM, W5500_SOCK_MACRAW));
-        if (ret != RET_SUCCESS) goto init_end;
 
-        ret = CALL(set_socket_control_reg(DEFAULT_SOCKET_NUM, OPEN_SOCKET));
-        if (ret != RET_SUCCESS) goto init_end;
 
         ret = CALL(set_socket_mode_tx_size(DEFAULT_SOCKET_NUM, 16));
         if (ret != RET_SUCCESS) goto init_end;
 
         ret = CALL(set_socket_mode_rx_size(DEFAULT_SOCKET_NUM, 16));
+        if (ret != RET_SUCCESS) goto init_end;
+
+        ret = CALL(set_socket_mode_reg(DEFAULT_SOCKET_NUM, W5500_SOCK_MACRAW));
+        if (ret != RET_SUCCESS) goto init_end;
+
+        static uint8_t sock_mode = 0;
+        ret = CALL(get_socket_mode_reg(DEFAULT_SOCKET_NUM, &sock_mode));
+        if (ret != RET_SUCCESS) goto init_end;
+        if (sock_mode != W5500_SOCK_MACRAW) {
+            ret = RET_ERROR;
+            goto init_end;
+        }
+
+        ret = CALL(set_socket_control_reg(DEFAULT_SOCKET_NUM, OPEN_SOCKET));
         if (ret != RET_SUCCESS) goto init_end;
 
         // Enable interrupts for socket 0
@@ -142,47 +152,7 @@ public:
     }
 
     RetType receive(Packet &packet, netinfo_t &info, NetworkLayer *caller) override {
-        RESUME();
-
-        static uint16_t len;
-        static uint8_t head[2];
-        static uint16_t data_len;
-
-//        uint16_t len = getSn_RX_RSR();
-
-//        if (len > 0) {
-//            data_len = 0;
-//
-//            wizchip_recv_data(head, 2);
-//            setSn_CR(Sn_CR_RECV);
-//
-//            data_len = head[0];
-//            data_len = (data_len << 8) + head[1];
-//            data_len -= 2;
-//
-//            if (data_len > packet.available()) {
-//                // Packet is bigger than buffer - drop the packet
-//                wizchip_recv_ignore(data_len);
-//                setSn_CR(Sn_CR_RECV);
-//                return 0;
-//            }
-//
-//            wizchip_recv_data(buffer, data_len);
-//            setSn_CR(Sn_CR_RECV);
-//
-//            // Had problems with W5500 MAC address filtering (the Sn_MR_MFEN option)
-//            // Do it in software instead:
-//            if ((buffer[0] & 0x01) || memcmp(&buffer[0], _mac_address, 6) == 0) {
-//                // Addressed to an Ethernet multicast address or our unicast address
-//                return data_len;
-//            } else {
-//                return 0;
-//            }
-//        }
-
-        receive_end:
-        RESET();
-        return RET_SUCCESS;
+        return RET_ERROR; // End of net stack
     }
 
     RetType transmit(Packet &packet, netinfo_t &info, NetworkLayer *caller) override {
@@ -287,27 +257,109 @@ public:
         return RET_SUCCESS;
     }
 
-//    RetType recv_data(uint8_t* buff, uint16_t len) {
-//        RESUME();
-//        static uint16_t ptr;
-//
-//        if(len == 0) goto recv_data_end;
-//
-//        RetType ret = CALL(get_socket_read_ptr_reg(DEFAULT_SOCKET_NUM, &ptr));
-//        if (ret != RET_SUCCESS) goto recv_data_end;
-//
-//        ret = CALL(read_buff(ptr, buff, len, W5500_WIZCHIP_RXBUF_BLOCK(DEFAULT_SOCKET_NUM)));
-//        if (ret != RET_SUCCESS) goto recv_data_end;
-//
-//        ptr += len;
-//
-//        setSn_RX_RD(ptr);
-//
-//
-//        recv_data_end:
-//        RESET();
-//        return ret;
-//    }
+    RetType poll_recv(NetworkLayer *upper_layer, Packet &packet) {
+        RESUME();
+
+        static uint16_t len;
+        static uint8_t head[2];
+        static uint16_t data_len;
+        static netinfo_t info;
+        info.ignore_checksums = false;
+        info.dst.udp_port = 0b1; // TODO: Everyone gets data for now!
+
+        len = 0;
+        RetType ret = CALL(get_socket_rx_rsr(DEFAULT_SOCKET_NUM, &len));
+        if (ret != RET_SUCCESS) goto receive_end;
+        if (len == 0) {
+//            ret = RET_ERROR;
+            goto receive_end;
+        }
+
+        // Reading the size of the packet first
+        ret = CALL(recv_data(DEFAULT_SOCKET_NUM, head, 2));
+        if (ret != RET_SUCCESS) goto receive_end;
+
+        ret = CALL(set_socket_control_reg(DEFAULT_SOCKET_NUM, RECV_SOCKET));
+        if (ret != RET_SUCCESS) goto receive_end;
+
+        data_len = head[0];
+        data_len = (data_len << 8) | head[1];
+        data_len -= 2;
+
+        // If there isn't enough space, ignore the packet
+        if (data_len > packet.available()) {
+            CALL(recv_ignore(DEFAULT_SOCKET_NUM, data_len));
+            CALL(set_socket_control_reg(DEFAULT_SOCKET_NUM, RECV_SOCKET));
+            ret = RET_ERROR; // Either way, its an error
+
+            goto receive_end;
+        }
+
+        // Otherwise, read the rest of the packet
+        ret = CALL(recv_data(DEFAULT_SOCKET_NUM, packet.raw(), data_len));
+        if (ret != RET_SUCCESS) goto receive_end;
+
+        ret = CALL(set_socket_control_reg(DEFAULT_SOCKET_NUM, RECV_SOCKET));
+        if (ret != RET_SUCCESS) goto receive_end;
+
+        // Let the software do the remaining magic
+        ret = CALL(upper_layer->receive(packet, info, this));
+
+        receive_end:
+        RESET();
+        return ret;
+    }
+
+    RetType recv_data(uint8_t socket_num, uint8_t* buff, uint16_t len) {
+        RESUME();
+
+        static uint16_t ptr = 0;
+        static uint32_t addr_sel = 0;
+
+        ptr = 0;
+        addr_sel = 0;
+
+        if (len == 0) {
+            RESET();
+            return RET_ERROR;
+        }
+
+        RetType ret = CALL(get_socket_register_rx_rd(socket_num, &ptr));
+        if (ret != RET_SUCCESS) goto recv_data_end;
+
+        addr_sel = ((uint32_t) ptr << 8) + (W5500_WIZCHIP_RXBUF_BLOCK(DEFAULT_SOCKET_NUM) << 3);
+        ret = CALL(read_buff(addr_sel, buff, len));
+        if (ret != RET_SUCCESS) goto recv_data_end;
+
+        ptr += len;
+        ret = CALL(set_socket_register_rx_rd(socket_num, ptr));
+        if (ret != RET_SUCCESS) goto recv_data_end;
+
+        ret = CALL(set_socket_control_reg(socket_num, RECV_SOCKET)); // TODO: Needs to be validated
+        if (ret != RET_SUCCESS) goto recv_data_end;
+
+        recv_data_end:
+        RESET();
+        return ret;
+    }
+
+    RetType recv_ignore(uint8_t socket_num, size_t len) {
+        RESUME();
+
+        static uint16_t ptr;
+
+        RetType ret = CALL(get_socket_register_rx_rd(socket_num, &ptr));
+        if (ret != RET_SUCCESS) goto recv_ignore_end;
+
+        ptr += len;
+
+        ret = CALL(set_socket_register_rx_rd(socket_num, ptr));
+        if (ret != RET_SUCCESS) goto recv_ignore_end;
+
+        recv_ignore_end:
+        RESET();
+        return ret;
+    }
 
     RetType set_socket_mode_reg(uint8_t socket_num, uint8_t mode) {
         RESUME();
@@ -1024,6 +1076,25 @@ private:
         return ret;
     }
 
+    RetType read_word(uint8_t block, uint16_t address, uint16_t *result) {
+        RESUME();
+
+        static uint16_t tmp;
+        RetType ret = CALL(read_buff(address, (uint8_t *) &tmp, 1, tmp)); // TODO: Might be incorrect
+        if (ret != RET_SUCCESS) goto read_word_end;
+
+        *result = tmp << 8;
+
+        ret = CALL(read_buff(address + 1, (uint8_t *) &tmp, 1, tmp));
+        if (ret != RET_SUCCESS) goto read_word_end;
+
+        *result += tmp;
+
+        read_word_end:
+        RESET();
+        return ret;
+    }
+
     RetType get_socket_register_tx_wr(uint8_t socket, uint16_t *val) {
         RESUME();
 
@@ -1052,7 +1123,7 @@ private:
         ret = CALL(write_reg(W5500_WIZCHIP_OFFSET_INC(W5500_Sn_TX_WR(socket), 1), static_cast<uint8_t>(val)));
 
         set_socket_reg_tx_wr_end:
-    RESET();
+        RESET();
         return ret;
     }
 
@@ -1071,7 +1142,7 @@ private:
         *val += result;
 
         get_socket_register_rx_rd_end:
-    RESET();
+        RESET();
         return ret;
     }
 
@@ -1084,7 +1155,30 @@ private:
         ret = CALL(write_reg(W5500_WIZCHIP_OFFSET_INC(W5500_Sn_RX_RD(socket), 1), static_cast<uint8_t>(val)));
 
         set_socket_reg_rx_rd_end:
-    RESET();
+        RESET();
+        return ret;
+    }
+
+    RetType get_socket_rx_rsr(uint8_t socket, uint16_t *result) {
+        RESUME();
+        static uint16_t val = 0;
+        static uint16_t val1 = 0;
+
+        val = 0;
+        val1 = 0;
+
+        RetType ret;
+        do {
+            ret = CALL(read_word(W5500_WIZCHIP_SREG_BLOCK(socket), 0x0026, &val1));
+            if (val1 != 0) {
+                ret = CALL(read_word(W5500_WIZCHIP_SREG_BLOCK(socket), 0x0026, &val));
+            }
+        } while (val != val1);
+
+        *result = val;
+
+        get_socket_rx_rsr_end:
+        RESET();
         return ret;
     }
 
@@ -1100,6 +1194,7 @@ private:
         RESET();
         return ret;
     }
+
 
     RetType reset() {
         RESUME();
