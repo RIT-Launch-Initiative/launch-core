@@ -58,11 +58,12 @@ enum TMP117_HILO_ALERT_BIT {
 };
 
 
-class TMP117 {
+class TMP117 : public Device {
 public:
-    TMP117(I2CDevice &i2CDevice) : mI2C(i2CDevice) {}
+    TMP117(I2CDevice &i2CDevice, const uint16_t address = TMP_117_DEVICE_ADDR, const char* name = "TMP117") : Device(name), mI2C(&i2CDevice),
+                                                                                                              i2cAddr({.dev_addr = static_cast<uint16_t>(address << 1), .mem_addr = 0, .mem_addr_size = 1})  {}
 
-    RetType init() {
+    RetType init() override {
         RESUME();
 
 
@@ -73,7 +74,7 @@ public:
         };
 
         static uint8_t buff;
-        RetType ret = CALL(mI2C.read(i2cAddr, &buff, 1, 50));
+        RetType ret = CALL(mI2C->read(i2cAddr, &buff, 1, 50));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
@@ -504,7 +505,7 @@ public:
 
 
 private:
-    I2CDevice &mI2C;
+    I2CDevice *mI2C;
     I2CAddr_t i2cAddr;
 
     int16_t uint8ToInt16(uint8_t *data) {
@@ -525,7 +526,7 @@ private:
         RESUME();
 
         i2cAddr.mem_addr = reg;
-        RetType ret = CALL(mI2C.read(i2cAddr, data, len));
+        RetType ret = CALL(mI2C->read(i2cAddr, data, len));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
@@ -536,7 +537,7 @@ private:
         RESUME();
 
         i2cAddr.mem_addr = reg;
-        RetType ret = CALL(mI2C.write(i2cAddr, data, len));
+        RetType ret = CALL(mI2C->write(i2cAddr, data, len));
         if (ret != RET_SUCCESS) return ret;
 
         RESET();
