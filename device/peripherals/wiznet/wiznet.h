@@ -70,7 +70,7 @@ public:
         if (ret != RET_SUCCESS) goto init_end;
 
 
-        ret = CALL(setPHYCFGR(0b101110000));
+        ret = CALL(setPHYCFGR(0b10111000));
         if (ret != RET_SUCCESS) goto init_end;
 
         SLEEP(30);
