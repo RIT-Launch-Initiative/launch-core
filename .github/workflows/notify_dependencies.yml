@@ -13,4 +13,4 @@ jobs:
           token: ${{ secrets.LAUNCH_ACCESS_TOKEN }}
           repository: ${{ matrix.repo }}
           event-type: update
-          client-payload: '{"ref": "${{ github.ref }}", "sha": "${{ github.sha }}", "module": "extern/launch-core", "branch": "master"}'
+          client-payload: '{"ref": "${{ github.ref }}", "sha": "${{ github.sha }}", "module": "extern/launch-core", "branch": "main"}'
