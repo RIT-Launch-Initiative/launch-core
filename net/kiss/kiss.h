@@ -9,7 +9,7 @@
 #define LAUNCH_CORE_KISS_H
 
 #include <stdint.h>
-#include "net/m_packet/Packet.h"
+#include "net/packet/Packet.h"
 #include "return.h"
 #include <cstdio>
 
@@ -56,11 +56,14 @@ public:
      * @return RetType - Success of operation
      */
     RetType push(uint8_t* buff, size_t len) {
+        uint8_t esc = FRAME_ESC;
         for (size_t i = 0; i < len; i++) {
             if (FRAME_END == buff[i]) {
-                if (RET_SUCCESS != m_m_packet.push<uint8_t>(FRAME_ESC)) return RET_ERROR;
+                esc = FRAME_ESC;
+                if (RET_SUCCESS != m_packet.push<uint8_t>(esc)) return RET_ERROR;
             } else if (TRANS_FRAME_END == buff[i]) {
-                if (RET_SUCCESS != m_packet.push<uint8_t>(TRANS_FRAME_ESC)) return RET_ERROR;
+                esc = TRANS_FRAME_ESC;
+                if (RET_SUCCESS != m_packet.push<uint8_t>(esc)) return RET_ERROR;
             } else if (TRANS_FRAME_ESC == buff[i] && TRANS_FRAME_ESC == buff[i - 1]) {
                 return RET_ERROR; // Protocol Violation or Aborted Transmission Signal
             }
@@ -68,9 +71,8 @@ public:
             m_packet.push(buff[i]);
         }
 
-        m_packet.push<uint8_t>(FRAME_END);
-
-        return RET_SUCCESS;
+        esc = FRAME_END;
+        return m_packet.push<uint8_t>(esc);
     }
 
     /**
