@@ -159,7 +159,7 @@ bool test_push_overflow_with_esc() {
     // -3 for the 2 bytes of overhead and 1 byte for the frame end
     uint8_t test_data[1021] = {kiss::SPECIAL_CHARS_T::FRAME_END};
     if (RET_SUCCESS == kiss_packet.push(test_data, 1021)) {
-        std::cout << "Failed test_push_overflow: Successfully pushed too big of a packet" << std::endl;
+        std::cout << "Failed test_push_overflow_with_esc: Successfully pushed too big of a packet" << std::endl;
         return false;
     }
 
