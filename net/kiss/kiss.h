@@ -15,20 +15,20 @@
 
 namespace kiss {
     typedef enum {
-        FRAME_END = 0xC0;
-        FRAME_ESC = 0xDB;
-        TRANS_FRAME_END = 0xDC;
-        TRANS_FRAME_ESC = 0xDD;
+        FRAME_END = 0xC0,
+        FRAME_ESC = 0xDB,
+        TRANS_FRAME_END = 0xDC,
+        TRANS_FRAME_ESC = 0xDD
     } special_chars_t;
 
     typedef enum {
-        TX_DELAY_CMD = 0x01;
-        PERSISTENCE_CMD = 0x02;
-        SLOT_TIME_CMD = 0x03;
-        TX_TAIL_CMD = 0x04;
-        FULL_DUPLEX_CMD = 0x05;
-        SET_HW_CMD = 0x06;
-        RETURN_CMD = 0xFF;
+        TX_DELAY_CMD = 0x01,
+        PERSISTENCE_CMD = 0x02,
+        SLOT_TIME_CMD = 0x03,
+        TX_TAIL_CMD = 0x04,
+        FULL_DUPLEX_CMD = 0x05,
+        SET_HW_CMD = 0x06,
+        RETURN_CMD = 0xFF
     } commands_t;
 
     typedef struct {
