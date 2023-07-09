@@ -191,11 +191,10 @@ int main(int argc, char** argv) {
     if (!test_push_test_packet()) return -1;
     if (!test_push_test_packet_with_esc()) return -1;
     if (!test_push_test_packet_with_both_esc()) return -1;
-//    if (!test_push_overflow()) return -1;
-//    if (!test_push_overflow_with_esc()) return -1;
+    if (!test_push_overflow()) return -1;
+    if (!test_push_overflow_with_esc()) return -1;
     if (!test_push_consecutive_trans_frame_esc()) return -1;
 
     std::cout << "All tests passed!" << std::endl;
     return 0;
-
 }

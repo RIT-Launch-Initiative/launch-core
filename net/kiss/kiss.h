@@ -40,7 +40,7 @@ namespace kiss {
     const uint8_t HEADER_SIZE = sizeof(KISS_HEADER_T);
     const size_t MIN_PACKET_SIZE = 1024;
 
-template <const size_t PACKET_SIZE = MIN_PACKET_SIZE, const size_t PACKET_HEADER_SIZE = HEADER_SIZE>
+template <const size_t PACKET_SIZE = MIN_PACKET_SIZE - HEADER_SIZE, const size_t PACKET_HEADER_SIZE = HEADER_SIZE>
 class KISSFrame {
 public:
     KISSFrame() {
@@ -73,7 +73,9 @@ public:
                 return RET_ERROR; // Protocol Violation or Aborted Transmission Signal
             }
 
-            m_packet.push((buff + i), 1);
+            if (RET_SUCCESS != m_packet.push(&buff[i], 1)) { // TODO: weird segfault. Just allocate a big enough buffer for now
+                return RET_ERROR;
+            }
         }
 
         special = FRAME_END;
@@ -114,7 +116,9 @@ private:
     Packet m_packet = alloc::Packet<PACKET_SIZE, PACKET_HEADER_SIZE>();
 
     /**
-     * Checks if last byte in m_packet is FRAME_END and erases it if it is
+     * @brief Checks if last byte in m_packet is FRAME_END and erases it if it is
+     *
+     * @return RetType - Success of operation
      */
     RetType erase_frame_end() {
         uint8_t *write_ptr = m_packet.write_ptr<uint8_t>();
