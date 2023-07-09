@@ -87,7 +87,7 @@ public:
      * @brief Sets the port index of the packet (high nibble of command byte)
      * @param port
      */
-    void set_port(uint8_t port) {
+    void set_port(const uint8_t port) {
         m_header->port_and_command |= port << 4;
     }
 
@@ -95,7 +95,7 @@ public:
      * @brief Sets the command of the packet (low nibble of command byte)
      * @param port
      */
-    void set_command(uint8_t command) {
+    void set_command(const uint8_t command) {
         m_header->port_and_command |= command;
     }
 
@@ -104,7 +104,7 @@ public:
      * @param port
      * @param command
      */
-    void set_port_and_command(uint8_t port, uint8_t command) {
+    void set_port_and_command(const uint8_t port, const uint8_t command) {
         m_header->port_and_command = port << 4 | command;
     }
 
