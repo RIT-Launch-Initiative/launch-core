@@ -34,9 +34,56 @@ bool test_no_data() {
     return true;
 }
 
+bool test_set_port() {
+
+    return true;
+}
+
+bool test_set_command() {
+
+    return true;
+}
+
+bool test_set_port_and_command() {
+
+    return true;
+}
+
+bool test_push_test_packet() {
+
+    return true;
+}
+
+bool test_push_test_packet_with_esc() {
+
+    return true;
+}
+
+bool test_push_test_packet_with_esc_and_frame_end() {
+
+    return true;
+}
+
+bool test_push_overflow() {
+
+    return true;
+}
+
+bool test_push_overflow_with_esc() {
+
+    return true;
+}
 
 int main(int argc, char** argv) {
     if (!test_no_data()) return -1;
+    if (!test_set_port()) return -1;
+    if (!test_set_command()) return -1;
+    if (!test_set_port_and_command()) return -1;
+    if (!test_push_test_packet()) return -1;
+    if (!test_push_test_packet_with_esc()) return -1;
+    if (!test_push_test_packet_with_esc_and_frame_end()) return -1;
+    if (!test_push_overflow()) return -1;
+    if (!test_push_overflow_with_esc()) return -1;
 
     std::cout << "All tests passed!" << std::endl;
     return 0;
