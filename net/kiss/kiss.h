@@ -44,6 +44,10 @@ public:
     KISS() : Packet() {
         m_header = Packet::allocate_header<kiss_header_t>();
         m_write_ptr = Packet::write_ptr<uint8_t>();
+
+        m_header->begin = FRAME_END;
+        m_header->port_and_command = 0x00;
+        *m_write_ptr = FRAME_END;
     };
 
     /**
