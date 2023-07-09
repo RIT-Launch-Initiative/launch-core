@@ -43,7 +43,7 @@ class KISS : public alloc::Packet<1024, 2>  {
 public:
     KISS() : Packet() {
         m_header = Packet::allocate_header<kiss_header_t>();
-        m_write_ptr = Packet::m_write_ptr<uint8_t>();
+        m_write_ptr = Packet::write_ptr<uint8_t>();
     };
 
     /**
@@ -53,11 +53,11 @@ public:
      * @return RetType - Success of operation
      */
     RetType push(uint8_t* buff, size_t len) override {
-        if (len > capacity) return RET_ERROR;
-        if (FRAME_END == *(m_write_ptr - 1)) m_write_ptr--;
-
         uint8_t esc_count = 0;
         uint8_t capacity = Packet::capacity();
+
+        if (len > capacity) return RET_ERROR;
+        if (FRAME_END == *(m_write_ptr - 1)) m_write_ptr--;
 
         for (size_t i = 0; i < len; i++) {
             if (FRAME_END == buff[i]) {

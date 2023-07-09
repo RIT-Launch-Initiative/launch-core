@@ -12,7 +12,7 @@ class Packet {
 public:
     /// @brief write data to the packet payload
     /// @return
-    RetType push(uint8_t* buff, size_t len) {
+    virtual RetType push(uint8_t* buff, size_t len) {
         if(len + m_wpos > m_size) {
             // no room
             return RET_ERROR;
