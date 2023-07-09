@@ -9,7 +9,7 @@
 #define LAUNCH_CORE_KISS_H
 
 #include <stdint.h>
-#include "net/packet/Packet.h"
+#include "net/m_packet/Packet.h"
 #include "return.h"
 #include <cstdio>
 
@@ -37,54 +37,44 @@ namespace kiss {
         uint8_t port_and_command;
     } KISS_HEADER_T;
 
+    const uint8_t HEADER_SIZE = sizeof(KISS_HEADER_T);
+    const size_t MIN_PACKET_SIZE = 1024;
 
-
-class KISSFrame : public Packet  {
+template <const size_t PACKET_SIZE = MIN_PACKET_SIZE, const size_t PACKET_HEADER_SIZE = HEADER_SIZE>
+class KISSFrame {
 public:
-    // At least 1024 byte long packets
-    KISSFrame() : ::Packet(m_internalBuff, 1022, 2) {
-        m_header = this->allocate_header<KISS_HEADER_T>();
-        m_write_ptr = this->write_ptr<uint8_t>();
-
+    KISSFrame() {
+        m_header = m_packet.allocate_header<KISS_HEADER_T>();
         m_header->begin = FRAME_END;
         m_header->port_and_command = 0x00;
-        *m_write_ptr = FRAME_END;
     };
 
     /**
-     * @brief Pushes data to packet and checks for special characters to escape
+     * @brief Pushes data to m_packet and checks for special characters to escape
      * @param buff - buffer to push
      * @param len - size of buffer
      * @return RetType - Success of operation
      */
-    RetType push(uint8_t* buff, size_t len) override {
-        size_t esc_count = 0;
-        size_t capacity = this->capacity() - 1; // -1 for FRAME_END
-
-        if (len > capacity) return RET_ERROR;
-        if (FRAME_END == *(m_write_ptr - 1)) m_write_ptr--;
-
+    RetType push(uint8_t* buff, size_t len) {
         for (size_t i = 0; i < len; i++) {
             if (FRAME_END == buff[i]) {
-                if (++esc_count + len > capacity) return RET_ERROR;
-                *(m_write_ptr++) = FRAME_ESC;
+                if (RET_SUCCESS != m_m_packet.push<uint8_t>(FRAME_ESC)) return RET_ERROR;
             } else if (TRANS_FRAME_END == buff[i]) {
-                if (++esc_count + len > capacity) return RET_ERROR;
-                *(m_write_ptr++) = TRANS_FRAME_ESC;
+                if (RET_SUCCESS != m_packet.push<uint8_t>(TRANS_FRAME_ESC)) return RET_ERROR;
             } else if (TRANS_FRAME_ESC == buff[i] && TRANS_FRAME_ESC == buff[i - 1]) {
                 return RET_ERROR; // Protocol Violation or Aborted Transmission Signal
             }
 
-            *(m_write_ptr++) = buff[i];
+            m_packet.push(buff[i]);
         }
 
-        *(m_write_ptr++) = FRAME_END;
+        m_packet.push<uint8_t>(FRAME_END);
 
         return RET_SUCCESS;
     }
 
     /**
-     * @brief Sets the port index of the packet (high nibble of command byte)
+     * @brief Sets the port index of the m_packet (high nibble of command byte)
      * @param port
      */
     void set_port(const uint8_t port) {
@@ -92,7 +82,7 @@ public:
     }
 
     /**
-     * @brief Sets the command of the packet (low nibble of command byte)
+     * @brief Sets the command of the m_packet (low nibble of command byte)
      * @param port
      */
     void set_command(const uint8_t command) {
@@ -100,7 +90,7 @@ public:
     }
 
     /**
-     * @brief Sets both the port and command in the command of the packet
+     * @brief Sets both the port and command in the command of the m_packet
      * @param port
      * @param command
      */
@@ -108,10 +98,13 @@ public:
         m_header->port_and_command = port << 4 | command;
     }
 
+    [[nodiscard]] uint8_t *raw() {
+        return m_packet.raw();
+    }
+
 private:
     KISS_HEADER_T* m_header;
-    uint8_t *m_write_ptr;
-    uint8_t m_internalBuff[1024];
+    Packet m_packet = alloc::Packet<PACKET_SIZE, PACKET_HEADER_SIZE>();
 };
 }
 
