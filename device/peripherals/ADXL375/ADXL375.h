@@ -1,7 +1,8 @@
 /**
  * ADXL375 Accelerometer Driver
  *
- * @author Aaron Chan and Akhil D
+ * @author Aaron Chan
+ * @author Akhil D
  */
 
 #ifndef LAUNCH_CORE_ADXL375_H
@@ -89,7 +90,7 @@ public:
         }
 
 //        ret = CALL(setOperatingMode(ADXL375_SLEEP_MODE)); // TODO: Might not be able to set settings in sleep mode
-//        if (ret != RET_SUCCESS) {
+//        if (ret != RET_SUCCESS) {and Akhil D
 //            RESET();
 //            return ret;
 //        }

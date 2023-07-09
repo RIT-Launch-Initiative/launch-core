@@ -39,10 +39,10 @@ namespace kiss {
 
 
 
-class KISS : public Packet  {
+class KISSFrame : public Packet  {
 public:
     // At least 1024 byte long packets
-    KISS() : ::Packet(m_internalBuff, 1022, 2) {
+    KISSFrame() : ::Packet(m_internalBuff, 1022, 2) {
         m_header = this->allocate_header<KISS_HEADER_T>();
         m_write_ptr = this->write_ptr<uint8_t>();
 

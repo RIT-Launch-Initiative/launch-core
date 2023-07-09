@@ -12,7 +12,7 @@
 #include "net/kiss/kiss.h"
 
 bool test_no_data() {
-    kiss::KISS kiss_packet = kiss::KISS();
+    kiss::KISSFrame kiss_packet = kiss::KISSFrame();
     uint8_t *buff = kiss_packet.raw();
 
     if (kiss::FRAME_END != buff[0]) {
@@ -34,7 +34,7 @@ bool test_no_data() {
 }
 
 bool test_set_port() {
-    kiss::KISS kiss_packet = kiss::KISS();
+    kiss::KISSFrame kiss_packet = kiss::KISSFrame();
     kiss_packet.set_port(1);
 
     if (0x10 != kiss_packet.raw()[1]) {
@@ -46,7 +46,7 @@ bool test_set_port() {
 }
 
 bool test_set_command() {
-    kiss::KISS kiss_packet = kiss::KISS();
+    kiss::KISSFrame kiss_packet = kiss::KISSFrame();
 
     kiss_packet.set_command(kiss::TX_DELAY_CMD);
     if (0x01 != kiss_packet.raw()[1]) {
@@ -58,7 +58,7 @@ bool test_set_command() {
 }
 
 bool test_set_port_and_command() {
-    kiss::KISS kiss_packet = kiss::KISS();
+    kiss::KISSFrame kiss_packet = kiss::KISSFrame();
 
     kiss_packet.set_port_and_command(1, kiss::TX_DELAY_CMD);
 
@@ -71,7 +71,7 @@ bool test_set_port_and_command() {
 }
 
 bool test_push_test_packet() {
-    kiss::KISS kiss_packet = kiss::KISS();
+    kiss::KISSFrame kiss_packet = kiss::KISSFrame();
 
     uint8_t *test_data = (uint8_t *) "Hello World";
 
@@ -99,7 +99,7 @@ bool test_push_test_packet() {
 }
 
 bool test_push_test_packet_with_esc() {
-    kiss::KISS kiss_packet = kiss::KISS();
+    kiss::KISSFrame kiss_packet = kiss::KISSFrame();
 
     uint8_t test_data[1] = {kiss::SPECIAL_CHARS_T::FRAME_END};
     uint8_t expected_data[3] = {kiss::SPECIAL_CHARS_T::FRAME_ESC, kiss::FRAME_END, kiss::FRAME_END};
@@ -120,7 +120,7 @@ bool test_push_test_packet_with_esc() {
 }
 
 bool test_push_test_packet_with_both_esc() {
-    kiss::KISS kiss_packet = kiss::KISS();
+    kiss::KISSFrame kiss_packet = kiss::KISSFrame();
 
     uint8_t test_data[2] = {kiss::SPECIAL_CHARS_T::FRAME_END, kiss::SPECIAL_CHARS_T::TRANS_FRAME_END};
     uint8_t expected_data[5] = {kiss::SPECIAL_CHARS_T::FRAME_ESC, kiss::FRAME_END, kiss::SPECIAL_CHARS_T::TRANS_FRAME_ESC, kiss::TRANS_FRAME_END, kiss::FRAME_END};
@@ -141,7 +141,7 @@ bool test_push_test_packet_with_both_esc() {
 }
 
 bool test_push_overflow() {
-    kiss::KISS kiss_packet = kiss::KISS();
+    kiss::KISSFrame kiss_packet = kiss::KISSFrame();
 
     uint8_t test_data[1024] = {0};
 
@@ -154,7 +154,7 @@ bool test_push_overflow() {
 }
 
 bool test_push_overflow_with_esc() {
-    kiss::KISS kiss_packet = kiss::KISS();
+    kiss::KISSFrame kiss_packet = kiss::KISSFrame();
 
     // -3 for the 2 bytes of overhead and 1 byte for the frame end
     uint8_t test_data[1021] = {kiss::SPECIAL_CHARS_T::FRAME_END};
@@ -167,7 +167,7 @@ bool test_push_overflow_with_esc() {
 }
 
 bool test_push_consecutive_trans_frame_esc() {
-    kiss::KISS kiss_packet = kiss::KISS();
+    kiss::KISSFrame kiss_packet = kiss::KISSFrame();
 
     uint8_t test_data[2] = {kiss::SPECIAL_CHARS_T::TRANS_FRAME_ESC, kiss::SPECIAL_CHARS_T::TRANS_FRAME_ESC};
     if (RET_SUCCESS == kiss_packet.push(test_data, 2)) {
