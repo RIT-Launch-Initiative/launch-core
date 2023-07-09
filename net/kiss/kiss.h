@@ -59,7 +59,7 @@ public:
      */
     RetType push(uint8_t* buff, size_t len) override {
         size_t esc_count = 0;
-        size_t capacity = this->capacity();
+        size_t capacity = this->capacity() - 1; // -1 for FRAME_END
 
         if (len > capacity) return RET_ERROR;
         if (FRAME_END == *(m_write_ptr - 1)) m_write_ptr--;

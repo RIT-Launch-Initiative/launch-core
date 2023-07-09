@@ -143,11 +143,37 @@ bool test_push_test_packet_with_both_esc() {
 bool test_push_overflow() {
     kiss::KISS kiss_packet = kiss::KISS();
 
+    uint8_t test_data[1024] = {0};
+
+    if (RET_SUCCESS == kiss_packet.push(test_data, 1024)) {
+        std::cout << "Failed test_push_overflow: Successfully pushed too big of a packet" << std::endl;
+        return false;
+    }
+
     return true;
 }
 
 bool test_push_overflow_with_esc() {
     kiss::KISS kiss_packet = kiss::KISS();
+
+    // -3 for the 2 bytes of overhead and 1 byte for the frame end
+    uint8_t test_data[1021] = {kiss::SPECIAL_CHARS_T::FRAME_END};
+    if (RET_SUCCESS == kiss_packet.push(test_data, 1021)) {
+        std::cout << "Failed test_push_overflow: Successfully pushed too big of a packet" << std::endl;
+        return false;
+    }
+
+    return true;
+}
+
+bool test_push_consecutive_trans_frame_esc() {
+    kiss::KISS kiss_packet = kiss::KISS();
+
+    uint8_t test_data[2] = {kiss::SPECIAL_CHARS_T::TRANS_FRAME_ESC, kiss::SPECIAL_CHARS_T::TRANS_FRAME_ESC};
+    if (RET_SUCCESS == kiss_packet.push(test_data, 2)) {
+        std::cout << "Failed test_push_consecutive_trans_frame_esc: Did not fail conseuctive TRANS_FRAME_ESC" << std::endl;
+        return false;
+    }
 
     return true;
 }
@@ -162,6 +188,7 @@ int main(int argc, char** argv) {
     if (!test_push_test_packet_with_both_esc()) return -1;
     if (!test_push_overflow()) return -1;
     if (!test_push_overflow_with_esc()) return -1;
+    if (!test_push_consecutive_trans_frame_esc()) return -1;
 
     std::cout << "All tests passed!" << std::endl;
     return 0;
