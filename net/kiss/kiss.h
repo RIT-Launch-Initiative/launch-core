@@ -68,7 +68,7 @@ public:
             if (FRAME_END == buff[i]) {
                 if (++esc_count + len > capacity) return RET_ERROR;
                 *(m_write_ptr++) = FRAME_ESC;
-            } else if (FRAME_ESC == buff[i]) {
+            } else if (TRANS_FRAME_END == buff[i]) {
                 if (++esc_count + len > capacity) return RET_ERROR;
                 *(m_write_ptr++) = TRANS_FRAME_ESC;
             } else if (TRANS_FRAME_ESC == buff[i] && TRANS_FRAME_ESC == buff[i - 1]) {

@@ -102,7 +102,7 @@ bool test_push_test_packet_with_esc() {
     kiss::KISS kiss_packet = kiss::KISS();
 
     uint8_t test_data[1] = {kiss::SPECIAL_CHARS_T::FRAME_END};
-    uint8_t expected_data[3] = {kiss::SPECIAL_CHARS_T::TRANS_FRAME_END, kiss::FRAME_END, kiss::FRAME_END};
+    uint8_t expected_data[3] = {kiss::SPECIAL_CHARS_T::FRAME_ESC, kiss::FRAME_END, kiss::FRAME_END};
     if (RET_SUCCESS != kiss_packet.push(test_data, 1)) {
         std::cout << "Failed test_push_test_packet_with_esc: Failed to push" << std::endl;
         return false;
@@ -119,8 +119,23 @@ bool test_push_test_packet_with_esc() {
     return true;
 }
 
-bool test_push_test_packet_with_esc_and_frame_end() {
+bool test_push_test_packet_with_both_esc() {
     kiss::KISS kiss_packet = kiss::KISS();
+
+    uint8_t test_data[2] = {kiss::SPECIAL_CHARS_T::FRAME_END, kiss::SPECIAL_CHARS_T::TRANS_FRAME_END};
+    uint8_t expected_data[5] = {kiss::SPECIAL_CHARS_T::FRAME_ESC, kiss::FRAME_END, kiss::SPECIAL_CHARS_T::TRANS_FRAME_ESC, kiss::TRANS_FRAME_END, kiss::FRAME_END};
+    if (RET_SUCCESS != kiss_packet.push(test_data, 2)) {
+        std::cout << "Failed test_push_test_packet_with_esc: Failed to push" << std::endl;
+        return false;
+    }
+
+    if (strncmp((char *) kiss_packet.raw() + 2, (char *) expected_data, 5) != 0) {
+        std::cout << "Failed test_push_test_packet_with_esc: Mismatched data" << std::endl;
+        std::cout << "\tExpected: " << expected_data << std::endl;
+        std::cout << "\tActual: " << (char *) kiss_packet.raw() + 2 << std::endl;
+        return false;
+    }
+
 
     return true;
 }
@@ -144,7 +159,7 @@ int main(int argc, char** argv) {
     if (!test_set_port_and_command()) return -1;
     if (!test_push_test_packet()) return -1;
     if (!test_push_test_packet_with_esc()) return -1;
-    if (!test_push_test_packet_with_esc_and_frame_end()) return -1;
+    if (!test_push_test_packet_with_both_esc()) return -1;
     if (!test_push_overflow()) return -1;
     if (!test_push_overflow_with_esc()) return -1;
 
