@@ -48,7 +48,8 @@ public:
         m_header->begin = FRAME_END;
         m_header->port_and_command = 0x00;
 
-        push(NULL, 0);
+        uint8_t end = FRAME_END;
+        m_packet.push(&end, 1);
     };
 
     /**
@@ -58,25 +59,25 @@ public:
      * @return RetType - Success of operation
      */
     RetType push(uint8_t* buff, size_t len) {
-        erase_frame_end();
+        if (RET_SUCCESS != erase_frame_end()) return RET_ERROR;
         uint8_t special = FRAME_ESC;
 
         for (size_t i = 0; i < len; i++) {
             if (FRAME_END == buff[i]) {
                 special = FRAME_ESC;
-                if (RET_SUCCESS != m_packet.push<uint8_t>(special)) return RET_ERROR;
+                if (RET_SUCCESS != m_packet.push(&special, 1)) return RET_ERROR;
             } else if (TRANS_FRAME_END == buff[i]) {
                 special = TRANS_FRAME_ESC;
-                if (RET_SUCCESS != m_packet.push<uint8_t>(special)) return RET_ERROR;
+                if (RET_SUCCESS != m_packet.push(&special, 1)) return RET_ERROR;
             } else if (TRANS_FRAME_ESC == buff[i] && TRANS_FRAME_ESC == buff[i - 1]) {
                 return RET_ERROR; // Protocol Violation or Aborted Transmission Signal
             }
 
-            m_packet.push(&buff[i], 1);
+            m_packet.push((buff + i), 1);
         }
 
         special = FRAME_END;
-        return m_packet.push<uint8_t>(special);
+        return m_packet.push(&special, 1);
     }
 
     /**
@@ -115,12 +116,14 @@ private:
     /**
      * Checks if last byte in m_packet is FRAME_END and erases it if it is
      */
-    void erase_frame_end() {
+    RetType erase_frame_end() {
         uint8_t *write_ptr = m_packet.write_ptr<uint8_t>();
 
-        if (FRAME_END == *write_ptr) {
-            m_packet.erase(1);
+        if (FRAME_END == *(write_ptr - 1)) {
+            return m_packet.erase(1);
         }
+
+        return RET_SUCCESS;
     }
 };
 }

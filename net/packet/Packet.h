@@ -113,7 +113,7 @@ public:
     /// @param len  the number of bytes to undo
     /// @return
     RetType erase(size_t len) {
-        if (m_wpos - m_headerSize < m_headerSize) {
+        if (m_wpos - len < m_headerSize) {
             return RET_ERROR;
         }
 
