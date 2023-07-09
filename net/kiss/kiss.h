@@ -20,7 +20,7 @@ namespace kiss {
         FRAME_ESC = 0xDB,
         TRANS_FRAME_END = 0xDC,
         TRANS_FRAME_ESC = 0xDD
-    } special_chars_t;
+    } SPECIAL_CHARS_T;
 
     typedef enum {
         TX_DELAY_CMD = 0x01,
@@ -30,12 +30,12 @@ namespace kiss {
         FULL_DUPLEX_CMD = 0x05,
         SET_HW_CMD = 0x06,
         RETURN_CMD = 0xFF
-    } commands_t;
+    } COMMANDS_T;
 
     typedef struct {
         uint8_t begin;
         uint8_t port_and_command;
-    } kiss_header_t;
+    } KISS_HEADER_T;
 
 
 
@@ -43,7 +43,7 @@ namespace kiss {
 class KISS : public alloc::Packet<1024, 2>  {
 public:
     KISS() {
-        m_header = this->allocate_header<kiss_header_t>();
+        m_header = this->allocate_header<KISS_HEADER_T>();
         m_write_ptr = this->write_ptr<uint8_t>();
 
         m_header->begin = FRAME_END;
@@ -67,10 +67,12 @@ public:
         for (size_t i = 0; i < len; i++) {
             if (FRAME_END == buff[i]) {
                 if (++esc_count + len > capacity) return RET_ERROR;
-                *(m_write_ptr++) = TRANS_FRAME_END;
+                *(m_write_ptr++) = FRAME_ESC;
             } else if (FRAME_ESC == buff[i]) {
                 if (++esc_count + len > capacity) return RET_ERROR;
                 *(m_write_ptr++) = TRANS_FRAME_ESC;
+            } else if (TRANS_FRAME_ESC == buff[i] && TRANS_FRAME_ESC == buff[i - 1]) {
+                return RET_ERROR; // Protocol Violation or Aborted Transmission Signal
             }
 
             *(m_write_ptr++) = buff[i];
@@ -107,7 +109,7 @@ public:
     }
 
 private:
-    kiss_header_t* m_header;
+    KISS_HEADER_T* m_header;
     uint8_t *m_write_ptr;
 };
 }

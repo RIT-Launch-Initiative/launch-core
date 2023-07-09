@@ -95,13 +95,26 @@ bool test_push_test_packet() {
         return false;
     }
 
-
-
     return true;
 }
 
 bool test_push_test_packet_with_esc() {
     kiss::KISS kiss_packet = kiss::KISS();
+
+    uint8_t test_data[1] = {kiss::SPECIAL_CHARS_T::FRAME_END};
+    uint8_t expected_data[3] = {kiss::SPECIAL_CHARS_T::TRANS_FRAME_END, kiss::FRAME_END, kiss::FRAME_END};
+    if (RET_SUCCESS != kiss_packet.push(test_data, 1)) {
+        std::cout << "Failed test_push_test_packet_with_esc: Failed to push" << std::endl;
+        return false;
+    }
+
+    if (strncmp((char *) kiss_packet.raw() + 2, (char *) expected_data, 3) != 0) {
+        std::cout << "Failed test_push_test_packet_with_esc: Mismatched data" << std::endl;
+        std::cout << "\tExpected: " << expected_data << std::endl;
+        std::cout << "\tActual: " << (char *) kiss_packet.raw() + 2 << std::endl;
+        return false;
+    }
+
 
     return true;
 }
