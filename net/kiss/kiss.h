@@ -39,10 +39,10 @@ namespace kiss {
 
 
 
-// At least 1024 byte long packets
-class KISS : public alloc::Packet<1024, 2>  {
+class KISS : public Packet  {
 public:
-    KISS() {
+    // At least 1024 byte long packets
+    KISS() : ::Packet(m_internalBuff, 1022, 2) {
         m_header = this->allocate_header<KISS_HEADER_T>();
         m_write_ptr = this->write_ptr<uint8_t>();
 
@@ -111,6 +111,7 @@ public:
 private:
     KISS_HEADER_T* m_header;
     uint8_t *m_write_ptr;
+    uint8_t m_internalBuff[1024];
 };
 }
 
