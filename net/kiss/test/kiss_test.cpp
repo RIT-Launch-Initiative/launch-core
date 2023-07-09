@@ -73,20 +73,25 @@ bool test_set_port_and_command() {
 bool test_push_test_packet() {
     kiss::KISS kiss_packet = kiss::KISS();
 
-    if (RET_SUCCESS != kiss_packet.push((uint8_t*)"Hello World", 11)) {
+    uint8_t *test_data = (uint8_t *) "Hello World";
+
+    if (RET_SUCCESS != kiss_packet.push(test_data, strnlen((char *) test_data, 11))) {
         std::cout << "Failed test_push_test_packet: Failed to push" << std::endl;
         return false;
     }
 
-    if (strncmp((char*)kiss_packet.raw() + 3, "Hello World", 11) != 0) {
+    if (strncmp((char *) kiss_packet.raw() + 2, (char *) test_data, 11) != 0) {
         std::cout << "Failed test_push_test_packet: Mismatched data" << std::endl;
-        std::cout << "\tExpected: Hello World" << std::endl;
-        std::cout << "\tActual: " << (char *) kiss_packet.raw() + 3 << std::endl;
+        std::cout << "\tExpected: " << test_data << std::endl;
+        std::cout << "\tActual: " << (char *) kiss_packet.raw() + 2 << std::endl;
         return false;
     }
 
-    if (kiss::FRAME_END != kiss_packet.raw()[14]) {
-        std::cout << "Failed test_push_test_packet: No FRAME_END at index 14" << std::endl;
+    int end_frame_idx = strnlen((char *) test_data, 11) + 2;
+    if (kiss::FRAME_END != kiss_packet.raw()[end_frame_idx]) {
+        std::cout << "Failed test_push_test_packet: No FRAME_END at last part of buffer" << std::endl;
+        std::cout << "\tExpected: " << (int) kiss::FRAME_END << std::endl;
+        std::cout << "\tActual: " << (int) kiss_packet.raw()[end_frame_idx] << std::endl;
         return false;
     }
 
