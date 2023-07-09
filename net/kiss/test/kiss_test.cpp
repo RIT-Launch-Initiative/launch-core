@@ -27,6 +27,8 @@ bool test_no_data() {
 
     if (kiss::FRAME_END != buff[2]) {
         std::cout << "Failed test_no_data: No FRAME_END at index 2" << std::endl;
+        std::cout << "\tExpected: " << kiss::FRAME_END << std::endl;
+        std::cout << "\tActual: " << (int) buff[2] << std::endl;
         return false;
     }
 

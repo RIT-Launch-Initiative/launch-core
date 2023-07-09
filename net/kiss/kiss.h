@@ -47,6 +47,8 @@ public:
         m_header = m_packet.allocate_header<KISS_HEADER_T>();
         m_header->begin = FRAME_END;
         m_header->port_and_command = 0x00;
+
+        push(NULL, 0);
     };
 
     /**
@@ -56,23 +58,25 @@ public:
      * @return RetType - Success of operation
      */
     RetType push(uint8_t* buff, size_t len) {
-        uint8_t esc = FRAME_ESC;
+        erase_frame_end();
+        uint8_t special = FRAME_ESC;
+
         for (size_t i = 0; i < len; i++) {
             if (FRAME_END == buff[i]) {
-                esc = FRAME_ESC;
-                if (RET_SUCCESS != m_packet.push<uint8_t>(esc)) return RET_ERROR;
+                special = FRAME_ESC;
+                if (RET_SUCCESS != m_packet.push<uint8_t>(special)) return RET_ERROR;
             } else if (TRANS_FRAME_END == buff[i]) {
-                esc = TRANS_FRAME_ESC;
-                if (RET_SUCCESS != m_packet.push<uint8_t>(esc)) return RET_ERROR;
+                special = TRANS_FRAME_ESC;
+                if (RET_SUCCESS != m_packet.push<uint8_t>(special)) return RET_ERROR;
             } else if (TRANS_FRAME_ESC == buff[i] && TRANS_FRAME_ESC == buff[i - 1]) {
                 return RET_ERROR; // Protocol Violation or Aborted Transmission Signal
             }
 
-            m_packet.push(buff[i]);
+            m_packet.push(&buff[i], 1);
         }
 
-        esc = FRAME_END;
-        return m_packet.push<uint8_t>(esc);
+        special = FRAME_END;
+        return m_packet.push<uint8_t>(special);
     }
 
     /**
@@ -107,6 +111,17 @@ public:
 private:
     KISS_HEADER_T* m_header;
     Packet m_packet = alloc::Packet<PACKET_SIZE, PACKET_HEADER_SIZE>();
+
+    /**
+     * Checks if last byte in m_packet is FRAME_END and erases it if it is
+     */
+    void erase_frame_end() {
+        uint8_t *write_ptr = m_packet.write_ptr<uint8_t>();
+
+        if (FRAME_END == *write_ptr) {
+            m_packet.erase(1);
+        }
+    }
 };
 }
 

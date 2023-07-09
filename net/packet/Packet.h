@@ -12,7 +12,7 @@ class Packet {
 public:
     /// @brief write data to the packet payload
     /// @return
-    virtual RetType push(uint8_t* buff, size_t len) {
+    RetType push(uint8_t* buff, size_t len) {
         if(len + m_wpos > m_size) {
             // no room
             return RET_ERROR;
@@ -105,6 +105,20 @@ public:
         }
 
         m_wpos += len;
+
+        return RET_SUCCESS;
+    }
+
+    /// @brief move write position backwards and zero out the data
+    /// @param len  the number of bytes to undo
+    /// @return
+    RetType erase(size_t len) {
+        if (m_wpos - m_headerSize < m_headerSize) {
+            return RET_ERROR;
+        }
+
+        m_wpos -= len;
+        memset(m_buff + m_wpos, 0, len);
 
         return RET_SUCCESS;
     }
