@@ -11,6 +11,7 @@
 #include <stdint.h>
 #include "net/packet/Packet.h"
 #include "return.h"
+#include <cstdio>
 
 
 namespace kiss {
@@ -41,9 +42,9 @@ namespace kiss {
 // At least 1024 byte long packets
 class KISS : public alloc::Packet<1024, 2>  {
 public:
-    KISS() : Packet() {
-        m_header = Packet::allocate_header<kiss_header_t>();
-        m_write_ptr = Packet::write_ptr<uint8_t>();
+    KISS() {
+        m_header = this->allocate_header<kiss_header_t>();
+        m_write_ptr = this->write_ptr<uint8_t>();
 
         m_header->begin = FRAME_END;
         m_header->port_and_command = 0x00;
@@ -57,8 +58,8 @@ public:
      * @return RetType - Success of operation
      */
     RetType push(uint8_t* buff, size_t len) override {
-        uint8_t esc_count = 0;
-        uint8_t capacity = Packet::capacity();
+        size_t esc_count = 0;
+        size_t capacity = this->capacity();
 
         if (len > capacity) return RET_ERROR;
         if (FRAME_END == *(m_write_ptr - 1)) m_write_ptr--;

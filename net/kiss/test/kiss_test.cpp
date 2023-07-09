@@ -73,6 +73,25 @@ bool test_set_port_and_command() {
 bool test_push_test_packet() {
     kiss::KISS kiss_packet = kiss::KISS();
 
+    if (RET_SUCCESS != kiss_packet.push((uint8_t*)"Hello World", 11)) {
+        std::cout << "Failed test_push_test_packet: Failed to push" << std::endl;
+        return false;
+    }
+
+    if (strncmp((char*)kiss_packet.raw() + 3, "Hello World", 11) != 0) {
+        std::cout << "Failed test_push_test_packet: Mismatched data" << std::endl;
+        std::cout << "\tExpected: Hello World" << std::endl;
+        std::cout << "\tActual: " << (char *) kiss_packet.raw() + 3 << std::endl;
+        return false;
+    }
+
+    if (kiss::FRAME_END != kiss_packet.raw()[14]) {
+        std::cout << "Failed test_push_test_packet: No FRAME_END at index 14" << std::endl;
+        return false;
+    }
+
+
+
     return true;
 }
 
