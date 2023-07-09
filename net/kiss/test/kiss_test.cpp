@@ -13,9 +13,8 @@
 
 bool test_no_data() {
     kiss::KISS kiss_packet = kiss::KISS();
-
-
     uint8_t *buff = kiss_packet.raw();
+
     if (kiss::FRAME_END != buff[0]) {
         std::cout << "Failed test_no_data: No FRAME_END at index 0" << std::endl;
         return false;
@@ -35,41 +34,68 @@ bool test_no_data() {
 }
 
 bool test_set_port() {
+    kiss::KISS kiss_packet = kiss::KISS();
+    kiss_packet.set_port(1);
+
+    if (0x10 != kiss_packet.raw()[1]) {
+        std::cout << "Failed test_set_port: No 0x01 at index 1" << std::endl;
+        return false;
+    }
 
     return true;
 }
 
 bool test_set_command() {
+    kiss::KISS kiss_packet = kiss::KISS();
+
+    kiss_packet.set_command(kiss::TX_DELAY_CMD);
+    if (0x01 != kiss_packet.raw()[1]) {
+        std::cout << "Failed test_set_command: No 0x01 at index 1" << std::endl;
+        return false;
+    }
 
     return true;
 }
 
 bool test_set_port_and_command() {
+    kiss::KISS kiss_packet = kiss::KISS();
+
+    kiss_packet.set_port_and_command(1, kiss::TX_DELAY_CMD);
+
+    if (0x11 != kiss_packet.raw()[1]) {
+        std::cout << "Failed test_set_port_and_command: No 0x11 at index 1" << std::endl;
+        return false;
+    }
 
     return true;
 }
 
 bool test_push_test_packet() {
+    kiss::KISS kiss_packet = kiss::KISS();
 
     return true;
 }
 
 bool test_push_test_packet_with_esc() {
+    kiss::KISS kiss_packet = kiss::KISS();
 
     return true;
 }
 
 bool test_push_test_packet_with_esc_and_frame_end() {
+    kiss::KISS kiss_packet = kiss::KISS();
 
     return true;
 }
 
 bool test_push_overflow() {
+    kiss::KISS kiss_packet = kiss::KISS();
 
     return true;
 }
 
 bool test_push_overflow_with_esc() {
+    kiss::KISS kiss_packet = kiss::KISS();
 
     return true;
 }
