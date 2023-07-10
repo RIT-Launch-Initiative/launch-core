@@ -29,11 +29,13 @@
 
 #define DEFAULT_SOCKET_NUM          0   // Hardcoded 0 since all packets will be tx/rx through sock 0
 
-class Wiznet : public NetworkLayer {
+class Wiznet : public NetworkLayer, public Device {
 public:
-    Wiznet(SPIDevice &spi, GPIODevice &cs_pin, GPIODevice &reset_pin, LED wiz_led) : m_spi(spi), m_cs(cs_pin), m_reset(reset_pin), m_led(wiz_led) {};
+    Wiznet(SPIDevice &spi, GPIODevice &cs_pin, GPIODevice &reset_pin, const char *name = "W5500") : Device(name), m_spi(&spi),
+                                                                                          m_cs(&cs_pin),
+                                                                                          m_reset(&reset_pin) {};
 
-    RetType init(uint8_t *mac_addr) {
+    RetType init() {
         RESUME();
 
         static uint8_t tmp;
@@ -55,6 +57,8 @@ public:
         //  operation mode = 111 (all capable, auto negotation)
         //  all else read only
         static const uint8_t phy_cfg = 0b11011000;
+
+        static uint8_t mac_addr[6] = {0};
 
 //        RetType ret = CALL(hw_reset()); // Should always return success
 
@@ -150,7 +154,6 @@ public:
         ret = CALL(setSn_CR(DEFAULT_SOCKET_NUM, Sn_CR_SEND));
         if (ret != RET_SUCCESS) goto transmit2_end;
 
-//        CALL(m_led.setState(LED_ON));
 
         while (true) {
             ret = CALL(getSn_IR(DEFAULT_SOCKET_NUM, &tmp));
@@ -170,7 +173,6 @@ public:
         }
 
         transmit2_end:
-//        CALL(m_led.setState(LED_OFF));
 
         RESET();
         return ret;
@@ -264,9 +266,9 @@ public:
     RetType hw_reset() {
         RESUME();
 
-        CALL(m_reset.set(0));
+        CALL(m_reset->set(0));
         SLEEP(50);
-        CALL(m_reset.set(1));
+        CALL(m_reset->set(1));
 
         RESET();
         return RET_SUCCESS;
@@ -274,10 +276,9 @@ public:
 
 private:
     // passed in SPI controller
-    SPIDevice &m_spi;
-    GPIODevice &m_cs;
-    GPIODevice &m_reset;
-    LED &m_led;
+    SPIDevice *m_spi;
+    GPIODevice *m_cs;
+    GPIODevice *m_reset;
     uint16_t sock_remaining_size[8] = {0};
     uint16_t sock_io_mode = 0;
 
@@ -363,20 +364,20 @@ private:
         RESUME();
         static uint8_t spi_data[3];
 
-        RetType ret = CALL(m_cs.set(0));
+        RetType ret = CALL(m_cs->set(0));
 
         addr_sel |= (_W5500_SPI_READ_ | _W5500_SPI_VDM_OP_);
 
         spi_data[0] = (addr_sel & 0x00FF0000) >> 16;
         spi_data[1] = (addr_sel & 0x0000FF00) >> 8;
         spi_data[2] = (addr_sel & 0x000000FF) >> 0;
-        ret = CALL(m_spi.write(spi_data, 3)); // TODO: Might be able to do this in a single call
+        ret = CALL(m_spi->write(spi_data, 3)); // TODO: Might be able to do this in a single call
         if (ret != RET_SUCCESS) goto WIZCHIP_READ_END;
 
-        ret = CALL(m_spi.read(read_byte, 1));
+        ret = CALL(m_spi->read(read_byte, 1));
 
         WIZCHIP_READ_END:
-        CALL(m_cs.set(1));
+        CALL(m_cs->set(1));
         RESET();
         return ret;
     }
@@ -385,7 +386,7 @@ private:
         RESUME();
         static uint8_t spi_data[4];
 
-        RetType ret = CALL(m_cs.set(0));
+        RetType ret = CALL(m_cs->set(0));
 
         addr_sel |= (_W5500_SPI_WRITE_ | _W5500_SPI_VDM_OP_);
 
@@ -394,9 +395,9 @@ private:
         spi_data[2] = (addr_sel & 0x000000FF) >> 0;
         spi_data[3] = wb;
 
-        ret = CALL(m_spi.write(spi_data, 4));
+        ret = CALL(m_spi->write(spi_data, 4));
 
-        CALL(m_cs.set(1));
+        CALL(m_cs->set(1));
         RESET();
         return ret;
     }
@@ -406,7 +407,7 @@ private:
 
         static uint8_t spi_data[3];
 
-        RetType ret = CALL(m_cs.set(0));
+        RetType ret = CALL(m_cs->set(0));
 
         addr_sel |= (_W5500_SPI_READ_ | _W5500_SPI_VDM_OP_);
 
@@ -414,13 +415,13 @@ private:
         spi_data[1] = (addr_sel & 0x0000FF00) >> 8;
         spi_data[2] = (addr_sel & 0x000000FF) >> 0;
 
-        ret = CALL(m_spi.write(spi_data, 3));
+        ret = CALL(m_spi->write(spi_data, 3));
         if (ret != RET_SUCCESS) goto WIZCHIP_READ_BUF_END;
 
-        ret = CALL(m_spi.read(buff, len));
+        ret = CALL(m_spi->read(buff, len));
 
         WIZCHIP_READ_BUF_END:
-        CALL(m_cs.set(1));
+        CALL(m_cs->set(1));
         RESET();
         return ret;
     }
@@ -429,7 +430,7 @@ private:
         RESUME();
         static uint8_t spi_data[3];
 
-        RetType ret = CALL(m_cs.set(0));
+        RetType ret = CALL(m_cs->set(0));
 
         addr_sel |= (_W5500_SPI_WRITE_ | _W5500_SPI_VDM_OP_);
 
@@ -437,13 +438,13 @@ private:
         spi_data[1] = (addr_sel & 0x0000FF00) >> 8;
         spi_data[2] = (addr_sel & 0x000000FF) >> 0;
 
-        ret = CALL(m_spi.write(spi_data, 3));
+        ret = CALL(m_spi->write(spi_data, 3));
         if (ret != RET_SUCCESS) goto WIZCHIP_WRITE_BUF_END;
 
-        ret = CALL(m_spi.write(buff, len));
+        ret = CALL(m_spi->write(buff, len));
 
         WIZCHIP_WRITE_BUF_END:
-        CALL(m_cs.set(1));
+        CALL(m_cs->set(1));
         RESET();
         return ret;
     }
