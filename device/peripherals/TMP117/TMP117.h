@@ -81,6 +81,16 @@ public:
         return ret;
     }
 
+    RetType getData(TMP117_DATA_T *data) {
+        RESUME();
+
+        RetType ret = CALL(readTempCelsius(&data->temperature));
+        if (ret != RET_SUCCESS) return ret;
+
+        RESET();
+        return ret;
+    }
+
 
 
     // TODO: Add parentheses to be more explicit

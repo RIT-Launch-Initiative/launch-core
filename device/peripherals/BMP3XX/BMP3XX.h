@@ -65,6 +65,14 @@ public:
         return ret;
     }
 
+    RetType getData(BMP3XX_DATA_T *data) {
+        RESUME();
+        RetType ret = CALL(getPressureAndTemp(&data->pressure, &data->temperature));
+
+        RESET();
+        return ret;
+    }
+
     RetType getPressureAndTemp(double *pressure, double *temperature) {
         RESUME();
 

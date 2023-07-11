@@ -111,7 +111,7 @@ protected:
     size_t m_count;
 
     // iterator in device list
-    size_t i;
+    size_t i{};
 };
 
 namespace alloc {
