@@ -7,15 +7,6 @@
 #ifndef LAUNCH_CORE_ADXL375_H
 #define LAUNCH_CORE_ADXL375_H
 
-#define ADXL375_DEV_ADDR_PRIM 0x3B
-#define ADXL375_DEV_ADDR_SEC 0x53
-#define ADXL375_REG_BW_RATE 0x2C
-#define ADXL375_POWER_CTL 0x2D
-#define ADXL375_REG_DATA_FORMAT 0x31
-#define ADXL375_XYZ_READ_SCALE_FACTOR 49
-#define ADXL375_MG2G_MULTIPLIER 0.049
-#define ADXL375_GRAVITY 9.80665F
-
 #define ADXL375_DATA_STRUCT(variable_name) ADXL375_DATA_T variable_name = {.id = 12000, .x_accel = 0, .y_accel = 0, .z_accel = 0}
 
 #include <stdlib.h>
@@ -74,6 +65,15 @@ public:
         uint8_t operating_mode,
         uint8_t range,
     } ADXL375_CONFIG_T;
+
+    constexpr uint8_t ADXL375_DEV_ADDR_PRIM = 0x3B;
+    constexpr uint8_t ADXL375_DEV_ADDR_SEC = 0x53;
+    constexpr uint8_t ADXL375_REG_BW_RATE = 0x2C;
+    constexpr uint8_t ADXL375_POWER_CTL = 0x2D;
+    constexpr uint8_t ADXL375_REG_DATA_FORMAT = 0x31;
+    constexpr uint8_t ADXL375_XYZ_READ_SCALE_FACTOR = 49;
+    constexpr float ADXL375_MG2G_MULTIPLIER = 0.049;
+    constexpr float ADXL375_GRAVITY = 9.80665F;
 
     explicit ADXL375(I2CDevice &i2c, const uint16_t address = ADXL375_DEV_ADDR_PRIM, const char *name = "ADXl375")
             : Device(name), m_i2c(&i2c),
@@ -134,6 +134,7 @@ public:
     RetType readXYZ(float *xAxis, float *yAxis, float *zAxis) {
         constexpr float scale = ADXL375_MG2G_MULTIPLIER * ADXL375_GRAVITY;
         constexpr float bound = 10000;
+
         RESUME();
 
         RetType ret = CALL(readReg(xLSBDataReg, m_rx_buff, 6));
@@ -147,7 +148,6 @@ public:
         *yAxis = static_cast<int16_t>((m_rx_buff[3] << 8) | m_rx_buff[2]) * scale;
         *zAxis = static_cast<int16_t>((m_rx_buff[5] << 8) | m_rx_buff[4]) * scale;
 
-        // Bounds check to make sure values are realistic
         if ((bound < abs(*xAxis)) || (bound < abs(*yAxis)) || (bound < abs(*zAxis)) ) {
             ret = RET_ERROR; 
         }
