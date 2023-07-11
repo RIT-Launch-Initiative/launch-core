@@ -69,6 +69,12 @@ public:
         float z_accel;
     } ADXL375_DATA_T;
 
+    typedef struct {
+        uint8_t data_rate,
+        uint8_t operating_mode,
+        uint8_t range,
+    } ADXL375_CONFIG_T;
+
     explicit ADXL375(I2CDevice &i2c, const uint16_t address = ADXL375_DEV_ADDR_PRIM, const char *name = "ADXl375")
             : Device(name), m_i2c(&i2c),
               i2cAddr({.dev_addr = static_cast<uint16_t>(address << 1), .mem_addr = 0, .mem_addr_size = 1}) {}
@@ -76,15 +82,10 @@ public:
     RetType init() override {
         RESUME();
 
-        RetType ret = CALL(readID(m_rx_buff));
+        RetType ret = CALL(checkID());
         if (RET_SUCCESS != ret) {
             RESET();
             return ret;
-        }
-
-        if (0xE5 != m_rx_buff[0]) {
-            RESET();
-            return RET_ERROR;
         }
 
 //        ret = CALL(setOperatingMode(ADXL375_SLEEP_MODE)); // TODO: Might not be able to set settings in sleep mode
@@ -266,15 +267,30 @@ private:
     uint8_t m_tx_buff[6];
     uint8_t m_rx_buff[6];
 
-    RetType readID(uint8_t *id) {
+    /**
+     * Reads the chip ID from the sensor
+     * @param id
+     * @return
+     */
+    RetType checkID() {
         RESUME();
 
-        RetType ret = CALL(readReg(0x00, id));
+        constexpr uint8_t chip_id = 0xE5;
+
+        RetType ret = CALL(readReg(0x00, m_rx_buff, 1));
+        if (chip_id != m_rx_buff[0]) ret = RET_ERROR;
 
         RESET();
         return ret;
     }
 
+    /**
+     * @brief Read registers from the sensor
+     * @param command - register to read from
+     * @param value - values to put data into
+     * @param len - Registers to read from
+     * @return
+     */
     RetType readReg(uint8_t command, uint8_t *value, size_t len = 1) {
         RESUME();
 
@@ -285,6 +301,13 @@ private:
         return ret;
     }
 
+    /**
+     * @brief Write values to to the sensor's registers
+     * @param command - register to write to
+     * @param value - value to write
+     * @param len - Registers to write to
+     * @return
+     */
     RetType writeReg(uint8_t command, uint8_t *value, size_t len = 1) {
         RESUME();
 
