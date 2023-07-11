@@ -26,94 +26,93 @@
 #include "return.h"
 #include "device/I2CDevice.h"
 
-
-typedef enum {
-    xLSBDataReg = 0x32,
-    xMSBDataReg = 0x33,
-    yLSBDataReg = 0x34,
-    yMSBDataReg = 0x35,
-    zLSBDataReg = 0x36,
-    zMSBDataReg = 0x37,
-
-    offsetXReg = 0x1E,
-    offsetYReg = 0x1F,
-    offsetZReg = 0x20,
-
-    deviceID = 0x00,
-} ADXL375_REG;
-
-typedef enum {
-    ADXL375_DR_3200HZ = 0x0F,
-    ADXL375_DR_1600HZ = 0x0E,
-    ADXL375_DR_800HZ = 0x0D,
-    ADXL375_DR_400HZ = 0x0C,
-    ADXL375_DR_200HZ = 0x0B,
-    ADXL375_DR_100HZ = 0x0A,
-    ADXL375_DR_50HZ = 0x09,
-    ADXL375_DR_25HZ = 0x08,
-    ADXL375_DR_12HZ5 = 0x07,
-    ADXL375_DR_6HZ25 = 0x06,
-} ADXL375_DATA_RATE;
-
-typedef enum {
-    ADXL375_MEASURING_MODE = 0x08,
-    ADXL375_SLEEP_MODE = 0x04,
-    ADXL375_AUTOSLEEP_MODE = 0x10,
-} ADXL375_OP_MODE;
-
-using ADXL375_DATA_T = struct {
-    const uint16_t id;
-    int16_t x_accel;
-    int16_t y_accel;
-    int16_t z_accel;
-};
-
 class ADXL375 : public Device {
 public:
-    explicit ADXL375(I2CDevice &i2c, const uint16_t address = ADXL375_DEV_ADDR_PRIM, const char* name = "ADXl375") : Device(name), m_i2c(&i2c),
-                                                                                         i2cAddr({.dev_addr = static_cast<uint16_t>(address << 1), .mem_addr = 0, .mem_addr_size = 1}) {}
+    typedef enum {
+        xLSBDataReg = 0x32,
+        xMSBDataReg = 0x33,
+        yLSBDataReg = 0x34,
+        yMSBDataReg = 0x35,
+        zLSBDataReg = 0x36,
+        zMSBDataReg = 0x37,
+
+        offsetXReg = 0x1E,
+        offsetYReg = 0x1F,
+        offsetZReg = 0x20,
+
+        deviceID = 0x00,
+    } ADXL375_REG;
+
+    typedef enum {
+        ADXL375_DR_3200HZ = 0x0F,
+        ADXL375_DR_1600HZ = 0x0E,
+        ADXL375_DR_800HZ = 0x0D,
+        ADXL375_DR_400HZ = 0x0C,
+        ADXL375_DR_200HZ = 0x0B,
+        ADXL375_DR_100HZ = 0x0A,
+        ADXL375_DR_50HZ = 0x09,
+        ADXL375_DR_25HZ = 0x08,
+        ADXL375_DR_12HZ5 = 0x07,
+        ADXL375_DR_6HZ25 = 0x06,
+    } ADXL375_DATA_RATE;
+
+    typedef enum {
+        ADXL375_MEASURING_MODE = 0x08,
+        ADXL375_SLEEP_MODE = 0x04,
+        ADXL375_AUTOSLEEP_MODE = 0x10,
+    } ADXL375_OP_MODE;
+
+    typedef struct {
+        const uint16_t id;
+        float x_accel;
+        float y_accel;
+        float z_accel;
+    } ADXL375_DATA_T;
+
+    explicit ADXL375(I2CDevice &i2c, const uint16_t address = ADXL375_DEV_ADDR_PRIM, const char *name = "ADXl375")
+            : Device(name), m_i2c(&i2c),
+              i2cAddr({.dev_addr = static_cast<uint16_t>(address << 1), .mem_addr = 0, .mem_addr_size = 1}) {}
 
     RetType init() override {
         RESUME();
 
-        static uint8_t id = 0;
-        RetType ret = CALL(readID(&id));
-        if (ret != RET_SUCCESS) {
+        RetType ret = CALL(readID(m_rx_buff));
+        if (RET_SUCCESS != ret) {
             RESET();
             return ret;
         }
 
-        if (id != 0xE5) {
+        if (0xE5 != m_rx_buff[0]) {
             RESET();
             return RET_ERROR;
         }
 
 //        ret = CALL(setOperatingMode(ADXL375_SLEEP_MODE)); // TODO: Might not be able to set settings in sleep mode
-//        if (ret != RET_SUCCESS) {
+//        if (RET_SUCCESS != ret) {
 //            RESET();
 //            return ret;
 //        }
 
         ret = CALL(setDataRateAndLowPower(ADXL375_DR_100HZ, false));
-        if (ret != RET_SUCCESS) {
+        if (RET_SUCCESS != ret) {
             RESET();
             return ret;
         }
 
         ret = CALL(setRange(0b00001011));
-        if (ret != RET_SUCCESS) {
+        if (RET_SUCCESS != ret) {
             RESET();
             return ret;
         }
 
         ret = CALL(setOperatingMode(ADXL375_MEASURING_MODE));
-        if (ret != RET_SUCCESS) {
+        if (RET_SUCCESS != ret) {
             RESET();
             return ret;
         }
 
         ret = CALL(wakeup());
-        if (ret != RET_SUCCESS) {
+        if (RET_SUCCESS != ret) {
             RESET();
             return ret;
         }
@@ -131,62 +130,29 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType readXYZ(int16_t *xAxis, int16_t *yAxis, int16_t *zAxis) {
+    RetType readXYZ(float *xAxis, float *yAxis, float *zAxis) {
+        constexpr float scale = ADXL375_MG2G_MULTIPLIER * ADXL375_GRAVITY;
+        constexpr float bound = 10000;
         RESUME();
 
-        RetType ret = CALL(readXYZRaw(xAxis, yAxis, zAxis));
-        if (ret != RET_SUCCESS) {
+        RetType ret = CALL(readReg(xLSBDataReg, m_rx_buff, 6));
+        if (RET_SUCCESS != ret) {
             RESET();
             return ret;
         }
 
-        *xAxis *= ADXL375_MG2G_MULTIPLIER * ADXL375_GRAVITY;
-        *yAxis *= ADXL375_MG2G_MULTIPLIER * ADXL375_GRAVITY;
-        *zAxis *= ADXL375_MG2G_MULTIPLIER * ADXL375_GRAVITY;
 
-        RESET();
-        return RET_SUCCESS;
-    }
+        *xAxis = static_cast<int16_t>((m_rx_buff[1] << 8) | m_rx_buff[0]) * scale;
+        *yAxis = static_cast<int16_t>((m_rx_buff[3] << 8) | m_rx_buff[2]) * scale;
+        *zAxis = static_cast<int16_t>((m_rx_buff[5] << 8) | m_rx_buff[4]) * scale;
 
-    RetType readXYZFloat(float *xAxis, float *yAxis, float *zAxis) {
-        RESUME();
-
-        static int16_t xRaw;
-        static int16_t yRaw;
-        static int16_t zRaw;
-
-        RetType ret = CALL(readXYZRaw(&xRaw, &yRaw, &zRaw));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
+        // Bounds check to make sure values are realistic
+        if ((bound < abs(*xAxis)) || (bound < abs(*yAxis)) || (bound < abs(*zAxis)) ) {
+            ret = RET_ERROR; 
         }
 
-        *xAxis = xRaw * ADXL375_MG2G_MULTIPLIER * ADXL375_GRAVITY;
-        *yAxis = yRaw * ADXL375_MG2G_MULTIPLIER * ADXL375_GRAVITY;
-        *zAxis = zRaw * ADXL375_MG2G_MULTIPLIER * ADXL375_GRAVITY;
-
         RESET();
-        return RET_SUCCESS;
-    }
-
-
-    RetType readXYZRaw(int16_t *xAxis, int16_t *yAxis, int16_t *zAxis) {
-        RESUME();
-
-        static uint8_t buff[6] = {0};
-
-        RetType ret = CALL(readReg(xLSBDataReg, buff, 6));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
-        *xAxis = ((buff[1] << 8) | buff[0]) * -1;
-        *yAxis = ((buff[3] << 8) | buff[2]) * -1;
-        *zAxis = ((buff[5] << 8) | buff[4]) * -1;
-
-        RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     RetType readX(int16_t *xAxis) {
@@ -232,7 +198,7 @@ public:
 
         static uint8_t val = 0x08;
         RetType ret = CALL(writeReg(ADXL375_POWER_CTL, &val));
-        
+
         RESET();
         return ret;
     }
@@ -271,12 +237,12 @@ public:
                                       static_cast<uint8_t>((zOffset >> 8) & 0xFF)};
 
         RetType ret = CALL(writeReg(offsetXReg, xOffBuff, 2));
-        if (ret != RET_SUCCESS) {
+        if (RET_SUCCESS != ret) {
             RESET();
             return ret;
         }
         ret = CALL(writeReg(offsetYReg, yOffBuff, 2));
-        if (ret != RET_SUCCESS) {
+        if (RET_SUCCESS != ret) {
             RESET();
             return ret;
         }
@@ -297,6 +263,8 @@ public:
 private:
     I2CDevice *m_i2c;
     I2CAddr_t i2cAddr;
+    uint8_t m_tx_buff[6];
+    uint8_t m_rx_buff[6];
 
     RetType readID(uint8_t *id) {
         RESUME();
