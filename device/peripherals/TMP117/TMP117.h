@@ -14,9 +14,7 @@
 #include "sched/macros/reset.h"
 #include "sched/macros/call.h"
 
-#define TMP_117_DEVICE_ADDR 0x48
-#define DEVICE_ID_VALUE 0x0117
-#define TMP117_RESOLUTION 0.0078125f
+
 #define bitRead(value, bit) (((value) >> (bit)) & 0x01)
 #define bitSet(value, bit) ((value) |= (1UL << (bit)))
 #define bitClear(value, bit) ((value) &= ~(1UL << (bit)))
@@ -60,17 +58,15 @@ public:
         TMP117_LO_BIT = 14,
     } TMP117_HILO_ALERT_BIT_T;
 
+    static const uint8_t TMP_117_DEVICE_ADDR =  0x48;
+    const uint16_t DEVICE_ID_VALUE = 0x0117;
+    const float TMP117_RESOLUTION = 0.0078125f;
+
     explicit TMP117(I2CDevice &i2CDevice, const uint16_t address = TMP_117_DEVICE_ADDR, const char *name = "TMP117") :
     Device(name), mI2C(&i2CDevice), i2cAddr({.dev_addr = static_cast<uint16_t>(address << 1), .mem_addr = 0, .mem_addr_size = 1}) {}
 
     RetType init() override {
         RESUME();
-
-        i2cAddr = {
-                .dev_addr = TMP_117_DEVICE_ADDR << 1,
-                .mem_addr = TMP117_DEVICE_ID,
-                .mem_addr_size = 1
-        };
 
         RetType ret = CALL(check_id());
 
@@ -146,7 +142,7 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType getLimit(int16_t *limit, TMP117_HILO_LIMIT hilo) {
+    RetType getLimit(int16_t *limit, TMP117_HILO_LIMIT_T hilo) {
         RESUME();
 
         static uint8_t limit8[2] = {};
@@ -159,7 +155,7 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType setLimit(float limit, TMP117_HILO_LIMIT hilo) {
+    RetType setLimit(float limit, TMP117_HILO_LIMIT_T hilo) {
         RESUME();
 
         static int16_t resolutionLimit = limit / TMP117_RESOLUTION;
@@ -220,7 +216,7 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType getAlert(bool *alertResult, TMP117_HILO_ALERT_BIT alertBit) {
+    RetType getAlert(bool *alertResult, TMP117_HILO_ALERT_BIT_T alertBit) {
         RESUME();
 
         static uint8_t configRegister8[2] = {};
@@ -291,7 +287,7 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType setContinuousConversionMode(TMP117_Mode mode) {
+    RetType setContinuousConversionMode(TMP117_MODE_T mode) {
         RESUME();
         static uint8_t mode8[2] = {};
         RetType ret = CALL(readRegister(TMP117_CONFIGURATION, mode8, 2));
@@ -325,7 +321,7 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType getConversionMode(TMP117_Mode *mode) {
+    RetType getConversionMode(TMP117_MODE_T *mode) {
         RESUME();
         static uint16_t *configRegister;
         RetType ret = getConfigRegister(configRegister);
@@ -519,8 +515,9 @@ private:
     RetType check_id() {
         RESUME();
 
+        i2cAddr.mem_addr = TMP117_DEVICE_ID;
         RetType ret = CALL(mI2C->read(i2cAddr, tx_buff, 1, 50));
-        if (RET_SUCCESS == ret && TMP117_DEVICE_ID != tx_buff[0]) {
+        if (RET_SUCCESS == ret && DEVICE_ID_VALUE != tx_buff[0]) {
             ret = RET_ERROR;
         }
 
