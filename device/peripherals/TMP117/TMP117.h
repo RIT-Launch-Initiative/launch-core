@@ -19,7 +19,7 @@
 #define bitSet(value, bit) ((value) |= (1UL << (bit)))
 #define bitClear(value, bit) ((value) &= ~(1UL << (bit)))
 #define bitWrite(value, bit, bitVal) (bitVal ? bitSet(value, bit) : bitClear(value, bit))
-#define TMP117_DATA_STRUCT(variable_name) TMP117_DATA_T variable_name = {.id = 16001, .temperature = 0}
+#define TMP117_DATA_STRUCT(variable_name) TMP117::TMP117_DATA_T variable_name = {.id = 16001, .temperature = 0}
 
 
 class TMP117 : public Device {
@@ -30,16 +30,16 @@ public:
     } TMP117_DATA_T;
 
     typedef enum {
-        TMP117_TEMP_RESULT = 0X00,
+        TMP117_TEMP_RESULT = 0x00,
         TMP117_CONFIGURATION = 0x01,
-        TMP117_T_HIGH_LIMIT = 0X02,
-        TMP117_T_LOW_LIMIT = 0X03,
-        TMP117_EEPROM_UL = 0X04,
-        TMP117_EEPROM1 = 0X05,
-        TMP117_EEPROM2 = 0X06,
-        TMP117_TEMP_OFFSET = 0X07,
-        TMP117_EEPROM3 = 0X08,
-        TMP117_DEVICE_ID = 0X0F
+        TMP117_T_HIGH_LIMIT = 0x02,
+        TMP117_T_LOW_LIMIT = 0x03,
+        TMP117_EEPROM_UL = 0x04,
+        TMP117_EEPROM1 = 0x05,
+        TMP117_EEPROM2 = 0x06,
+        TMP117_TEMP_OFFSET = 0x07,
+        TMP117_EEPROM3 = 0x08,
+        TMP117_DEVICE_ID = 0x0F
     } TMP117_REGISTER_T;
 
     typedef enum {
@@ -49,8 +49,8 @@ public:
     } TMP117_MODE_T;
 
     typedef enum {
-        TMP117_HI_REG = 0X02,
-        TMP117_LO_REG = 0X03,
+        TMP117_HI_REG = 0x02,
+        TMP117_LO_REG = 0x03,
     } TMP117_HILO_LIMIT_T;
 
     typedef enum {
@@ -58,9 +58,9 @@ public:
         TMP117_LO_BIT = 14,
     } TMP117_HILO_ALERT_BIT_T;
 
-    static const uint8_t TMP_117_DEVICE_ADDR =  0x48;
-    const uint16_t DEVICE_ID_VALUE = 0x0117;
-    const float TMP117_RESOLUTION = 0.0078125f;
+    constexpr static uint8_t TMP_117_DEVICE_ADDR =  0x48;
+    constexpr static uint16_t DEVICE_ID_VALUE = 0x0117;
+    constexpr static float TMP117_RESOLUTION = 0.0078125f;
 
     explicit TMP117(I2CDevice &i2CDevice, const uint16_t address = TMP_117_DEVICE_ADDR, const char *name = "TMP117") :
     Device(name), mI2C(&i2CDevice), i2cAddr({.dev_addr = static_cast<uint16_t>(address << 1), .mem_addr = 0, .mem_addr_size = 1}) {}
@@ -509,15 +509,15 @@ public:
 private:
     I2CDevice *mI2C;
     I2CAddr_t i2cAddr;
-    uint8_t tx_buff[2];
-    uint8_t rx_buff[2];
+    uint8_t tx_buff[2]{};
+    uint8_t rx_buff[2]{};
 
     RetType check_id() {
         RESUME();
 
         i2cAddr.mem_addr = TMP117_DEVICE_ID;
-        RetType ret = CALL(mI2C->read(i2cAddr, tx_buff, 1, 50));
-        if (RET_SUCCESS == ret && DEVICE_ID_VALUE != tx_buff[0]) {
+        RetType ret = CALL(mI2C->read(i2cAddr, rx_buff, 2, 1000));
+        if ((RET_SUCCESS == ret) && (DEVICE_ID_VALUE != static_cast<uint16_t>(rx_buff[0] << 8 | rx_buff[1]))) {
             ret = RET_ERROR;
         }
 
