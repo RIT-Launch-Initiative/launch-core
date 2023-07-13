@@ -72,8 +72,7 @@ public:
                 .mem_addr_size = 1
         };
 
-        static uint8_t buff;
-        RetType ret = CALL(mI2C->read(i2cAddr, &buff, 1, 50));
+        RetType ret = CALL(check_id());
 
         RESET();
         return ret;
@@ -514,6 +513,20 @@ public:
 private:
     I2CDevice *mI2C;
     I2CAddr_t i2cAddr;
+    uint8_t tx_buff[2];
+    uint8_t rx_buff[2];
+
+    RetType check_id() {
+        RESUME();
+
+        RetType ret = CALL(mI2C->read(i2cAddr, tx_buff, 1, 50));
+        if (RET_SUCCESS == ret && TMP117_DEVICE_ID != tx_buff[0]) {
+            ret = RET_ERROR;
+        }
+
+        RESET();
+        return ret;
+    }
 
     int16_t uint8ToInt16(uint8_t *data) {
         return (data[0] << 8) | data[1];
