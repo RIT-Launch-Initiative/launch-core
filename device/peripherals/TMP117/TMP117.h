@@ -23,49 +23,48 @@
 #define bitWrite(value, bit, bitVal) (bitVal ? bitSet(value, bit) : bitClear(value, bit))
 #define TMP117_DATA_STRUCT(variable_name) TMP117_DATA_T variable_name = {.id = 16001, .temperature = 0}
 
-using TMP117_DATA_T = struct {
-    const uint16_t id;
-    float temperature;
-};
-
-using TMP117_Register = enum {
-    TMP117_TEMP_RESULT = 0X00,
-    TMP117_CONFIGURATION = 0x01,
-    TMP117_T_HIGH_LIMIT = 0X02,
-    TMP117_T_LOW_LIMIT = 0X03,
-    TMP117_EEPROM_UL = 0X04,
-    TMP117_EEPROM1 = 0X05,
-    TMP117_EEPROM2 = 0X06,
-    TMP117_TEMP_OFFSET = 0X07,
-    TMP117_EEPROM3 = 0X08,
-    TMP117_DEVICE_ID = 0X0F
-};
-
-enum TMP117_Mode {
-    CONTINUOUS_CONVERSION = 0b00,
-    ONE_SHOT = 0b11,
-    SHUTDOWN = 0b01
-};
-
-enum TMP117_HILO_LIMIT {
-    TMP117_HI_REG = 0X02,
-    TMP117_LO_REG = 0X03,
-};
-
-enum TMP117_HILO_ALERT_BIT {
-    TMP117_HI_BIT = 15,
-    TMP117_LO_BIT = 14,
-};
-
 
 class TMP117 : public Device {
 public:
-    TMP117(I2CDevice &i2CDevice, const uint16_t address = TMP_117_DEVICE_ADDR, const char* name = "TMP117") : Device(name), mI2C(&i2CDevice),
-                                                                                                              i2cAddr({.dev_addr = static_cast<uint16_t>(address << 1), .mem_addr = 0, .mem_addr_size = 1})  {}
+    typedef struct {
+        const uint16_t id;
+        float temperature;
+    } TMP117_DATA_T;
+
+    typedef enum {
+        TMP117_TEMP_RESULT = 0X00,
+        TMP117_CONFIGURATION = 0x01,
+        TMP117_T_HIGH_LIMIT = 0X02,
+        TMP117_T_LOW_LIMIT = 0X03,
+        TMP117_EEPROM_UL = 0X04,
+        TMP117_EEPROM1 = 0X05,
+        TMP117_EEPROM2 = 0X06,
+        TMP117_TEMP_OFFSET = 0X07,
+        TMP117_EEPROM3 = 0X08,
+        TMP117_DEVICE_ID = 0X0F
+    } TMP117_REGISTER_T;
+
+    typedef enum {
+        CONTINUOUS_CONVERSION = 0b00,
+        ONE_SHOT = 0b11,
+        SHUTDOWN = 0b01
+    } TMP117_MODE_T;
+
+    typedef enum {
+        TMP117_HI_REG = 0X02,
+        TMP117_LO_REG = 0X03,
+    } TMP117_HILO_LIMIT_T;
+
+    typedef enum {
+        TMP117_HI_BIT = 15,
+        TMP117_LO_BIT = 14,
+    } TMP117_HILO_ALERT_BIT_T;
+
+    explicit TMP117(I2CDevice &i2CDevice, const uint16_t address = TMP_117_DEVICE_ADDR, const char *name = "TMP117") :
+    Device(name), mI2C(&i2CDevice), i2cAddr({.dev_addr = static_cast<uint16_t>(address << 1), .mem_addr = 0, .mem_addr_size = 1}) {}
 
     RetType init() override {
         RESUME();
-
 
         i2cAddr = {
                 .dev_addr = TMP_117_DEVICE_ADDR << 1,
@@ -75,7 +74,6 @@ public:
 
         static uint8_t buff;
         RetType ret = CALL(mI2C->read(i2cAddr, &buff, 1, 50));
-        if (ret != RET_SUCCESS) return ret;
 
         RESET();
         return ret;
@@ -90,7 +88,6 @@ public:
         RESET();
         return ret;
     }
-
 
 
     // TODO: Add parentheses to be more explicit
