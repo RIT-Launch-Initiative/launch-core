@@ -19,12 +19,12 @@
 
 typedef struct {
     const uint16_t id;
-    int32_t x_accel;
-    int32_t x_gyro;
-    int32_t y_accel;
-    int32_t y_gyro;
-    int32_t z_accel;
-    int32_t z_gyro;
+    float x_accel;
+    float x_gyro;
+    float y_accel;
+    float y_gyro;
+    float z_accel;
+    float z_gyro;
 } LSM6DSL_DATA_T;
 
 class LSM6DSL : public Device {
@@ -55,6 +55,9 @@ public:
     static constexpr uint8_t LSM6DSL_WAKE_UP_THRESHOLD_MID = 0x1F;
     static constexpr uint8_t LSM6DSL_WAKE_UP_THRESHOLD_MID_HIGH = 0x2F;
     static constexpr uint8_t LSM6DSL_WAKE_UP_THRESHOLD_HIGH = 0x3F;  /**< Highest value of wake up threshold */
+
+
+    static constexpr float GRAVITY = 9.80665f;
 
     LSM6DSL(I2CDevice &i2CDevice, uint16_t address = LSM6DSL_I2C_ADDR_SECONDARY, const char *name = "LSM6DSL") : Device(name), mI2C(&i2CDevice),
     i2cAddr({.dev_addr = static_cast<uint16_t>(address << 1), .mem_addr = 0, .mem_addr_size = 1}), accelEnabled(false), gyroEnabled(false) {}
@@ -118,70 +121,55 @@ public:
      * Acceleration Functions
      **********************************************************/
 
-    RetType getAccelAxesMS2(int32_t *accelX, int32_t *accelY, int32_t *accelZ) {
+    RetType getAccelAxesMS2(float *accelX, float *accelY, float *accelZ) {
         RESUME();
 
         RetType ret = CALL(getAccelAxes(accelX, accelY, accelZ));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
+        if (RET_SUCCESS == ret) {
+            *accelX *= GRAVITY;
+            *accelY *= GRAVITY;
+            *accelZ *= GRAVITY;
+
+            *accelX /= 1000;
+            *accelY /= 1000;
+            *accelZ /= 1000;
         }
 
-        *accelX *= 9.80665f;
-        *accelY *= 9.80665f;
-        *accelZ *= 9.80665f;
-
-        *accelX /= 1000;
-        *accelY /= 1000;
-        *accelZ /= 1000;
-
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
-    RetType getAccelAxes(int32_t *accelX, int32_t *accelY, int32_t *accelZ) {
+    RetType getAccelAxes(float *accelX, float *accelY, float *accelZ) {
         RESUME();
 
-        static int16_t rawData[3];
         static float sens = 0;
 
-        RetType ret = CALL(getAccelAxesRaw(rawData));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
+        RetType ret = CALL(getAccelAxesRaw(rx_buff));
+        ERROR_CHECK(ret);
 
         ret = CALL(getAccelSens(&sens));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
+        ERROR_CHECK(ret);
 
-        *accelX = static_cast<int32_t>(rawData[0] * sens);
-        *accelY = static_cast<int32_t>(rawData[1] * sens);
-        *accelZ = static_cast<int32_t>(rawData[2] * sens);
+        *accelX = static_cast<float>((rx_buff[0] << 8 | rx_buff[1]) * sens);
+        *accelY = static_cast<float>((rx_buff[2] << 8 | rx_buff[3]) * sens);
+        *accelZ = static_cast<float>((rx_buff[4] << 8 | rx_buff[5]) * sens);
 
         RESET();
         return RET_SUCCESS;
     }
 
-    RetType getAccelAxesRaw(int16_t *accelData) {
+    /**
+     * @brief Get raw acceleration values from sensor's regist
+     * @param accelData - Pointer to array of 6 bytes
+     * @return RetType - Scheduler status
+     */
+    RetType getAccelAxesRaw(uint8_t *accelData) {
         RESUME();
 
-        static uint8_t regValue[6] = {};
-
-        RetType ret = CALL(readReg(LSM6DSL_ACC_GYRO_OUTX_L_XL, regValue, 6));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
-        accelData[0] = static_cast<int16_t>(regValue[1] << 8) | static_cast<int16_t>(regValue[0]);
-        accelData[1] = static_cast<int16_t>(regValue[3] << 8) | static_cast<int16_t>(regValue[2]);
-        accelData[2] = static_cast<int16_t>(regValue[5] << 8) | static_cast<int16_t>(regValue[4]);
+        RetType ret = CALL(readReg(LSM6DSL_ACC_GYRO_OUTX_L_XL, accelData, 6));
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     RetType getAccelSens(float *sens) {
