@@ -13,6 +13,7 @@
 #include "sched/macros/resume.h"
 #include "sched/macros/reset.h"
 #include "sched/macros/call.h"
+#include "utils/conversion.h"
 
 
 #define bitRead(value, bit) (((value) >> (bit)) & 0x01)
@@ -58,12 +59,13 @@ public:
         TMP117_LO_BIT = 14,
     } TMP117_HILO_ALERT_BIT_T;
 
-    constexpr static uint8_t TMP_117_DEVICE_ADDR =  0x48;
+    constexpr static uint8_t TMP_117_DEVICE_ADDR = 0x48;
     constexpr static uint16_t DEVICE_ID_VALUE = 0x0117;
     constexpr static float TMP117_RESOLUTION = 0.0078125f;
 
     explicit TMP117(I2CDevice &i2CDevice, const uint16_t address = TMP_117_DEVICE_ADDR, const char *name = "TMP117") :
-    Device(name), mI2C(&i2CDevice), i2cAddr({.dev_addr = static_cast<uint16_t>(address << 1), .mem_addr = 0, .mem_addr_size = 1}) {}
+            Device(name), mI2C(&i2CDevice),
+            i2cAddr({.dev_addr = static_cast<uint16_t>(address << 1), .mem_addr = 0, .mem_addr_size = 1}) {}
 
     RetType init() override {
         RESUME();
@@ -85,17 +87,14 @@ public:
     }
 
 
-    // TODO: Add parentheses to be more explicit
     RetType readTempCelsius(float *temp) {
         RESUME();
 
-        static uint8_t data[2] = {};
-        RetType ret = CALL(readRegister(TMP117_TEMP_RESULT, data, 2));
-        if (ret != RET_SUCCESS) {
-            return ret;
+        RetType ret = CALL(readRegister(TMP117_TEMP_RESULT, rx_buff, 2));
+        if (RET_SUCCESS == ret) {
+            *temp = (static_cast<int16_t>(rx_buff[0] << 8) | rx_buff[1]) * TMP117_RESOLUTION;
         }
 
-        *temp = uint8ToInt16(data) * TMP117_RESOLUTION;
 
         RESET();
         return ret;
@@ -105,11 +104,10 @@ public:
         RESUME();
 
         RetType ret = CALL(readTempCelsius(temp));
-        if (ret != RET_SUCCESS) {
-            return ret;
+        if (RET_SUCCESS == ret) {
+            *temp = celsius_to_fahrenheit(*temp);
         }
 
-        *temp = *temp * 9.0f / 5.0f + 32.0f;
 
         RESET();
         return ret;
@@ -118,118 +116,102 @@ public:
     RetType getTempOffset(float *offset) {
         RESUME();
 
-        static uint8_t initOffset[2] = {};
-        RetType ret = CALL(readRegister(TMP117_TEMP_OFFSET, initOffset, 2));
-        if (ret != RET_SUCCESS) return ret;
-
-        int16_t initOffset16 = uint8ToInt16(initOffset);
-        *offset = static_cast<float>(initOffset16) * TMP117_RESOLUTION;
+        RetType ret = CALL(readRegister(TMP117_TEMP_OFFSET, rx_buff, 2));
+        if (RET_SUCCESS == ret) {
+            *offset = (static_cast<int16_t>(rx_buff[0] << 8) | static_cast<int16_t>(rx_buff[1])) * TMP117_RESOLUTION;
+        }
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     RetType setTempOffset(float offset) {
         RESUME();
-        int16_t resolutionOffset = offset / TMP117_RESOLUTION;
-        uint8_t offset8[2] = {static_cast<uint8_t>(resolutionOffset >> 8),
-                              static_cast<uint8_t>(resolutionOffset & 0xFF)};
 
-        RetType ret = CALL(writeRegister(TMP117_TEMP_OFFSET, offset8, 2));
-        if (ret != RET_SUCCESS) return ret;
+        int16_t resolutionOffset = offset / TMP117_RESOLUTION;
+        tx_buff[0] = static_cast<uint8_t>(resolutionOffset >> 8);
+        tx_buff[1] = static_cast<uint8_t>(resolutionOffset & 0xFF);
+
+        RetType ret = CALL(writeRegister(TMP117_TEMP_OFFSET, tx_buff, 2));
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     RetType getLimit(int16_t *limit, TMP117_HILO_LIMIT_T hilo) {
         RESUME();
 
-        static uint8_t limit8[2] = {};
-        RetType ret = CALL(readRegister(hilo, limit8, 2));
-        if (ret != RET_SUCCESS) return ret;
-
-        *limit = uint8ToInt16(limit8);
+        RetType ret = CALL(readRegister(hilo, rx_buff, 2));
+        if (RET_SUCCESS == ret) {
+            *limit = static_cast<int16_t>(rx_buff[0] << 8) | static_cast<int16_t>(rx_buff[1]);
+        }
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     RetType setLimit(float limit, TMP117_HILO_LIMIT_T hilo) {
         RESUME();
 
-        static int16_t resolutionLimit = limit / TMP117_RESOLUTION;
-        static uint8_t limit8[2] = {};
-        int16ToUint8(resolutionLimit, limit8);
+        int16_t resolutionLimit = limit / TMP117_RESOLUTION;
+        tx_buff[0] = static_cast<uint8_t>(resolutionLimit >> 8);
+        tx_buff[1] = static_cast<uint8_t>(resolutionLimit & 0xFF);
 
-        RetType ret = CALL(writeRegister(hilo, limit8, 2));
-        if (ret != RET_SUCCESS) return ret;
+        RetType ret = CALL(writeRegister(hilo, tx_buff, 2));
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     RetType isDataReady(bool *dataReady) {
         RESUME();
 
-        static uint8_t *response;
-
-        RetType ret = CALL(readRegister(TMP117_CONFIGURATION, response, 2));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
+        RetType ret = CALL(readRegister(TMP117_CONFIGURATION, rx_buff, 2));
+        if (RET_SUCCESS == ret) {
+            *dataReady = ((rx_buff[0] << 8) | rx_buff[1]) & 1 << 13;
         }
 
-        *dataReady = ((response[0] << 8) | response[1]) & 1 << 13;
-
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
-    // TODO: See if this function can be reused more without breaking
     RetType getConfigRegister(uint16_t *configRegister) {
         RESUME();
 
-        static uint8_t configRegister8[2] = {};
-        RetType ret = CALL(readRegister(TMP117_CONFIGURATION, configRegister8, 2));
-        if (ret != RET_SUCCESS) return ret;
-
-        *configRegister = uint8ToInt16(configRegister8); // TODO: Is Int16 conversion going to be ok?
+        RetType ret = CALL(readRegister(TMP117_CONFIGURATION, rx_buff, 2));
+        if (RET_SUCCESS == ret) {
+            *configRegister = (rx_buff[0] << 8) | rx_buff[1];
+        }
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     RetType getHighLowAlert(uint8_t *alert) {
         RESUME();
 
-        static uint8_t configRegister8[2] = {};
-        RetType ret = CALL(readRegister(TMP117_CONFIGURATION, configRegister8, 2));
-        if (ret != RET_SUCCESS) return ret;
-
-        uint16_t configRegister16 = uint8ToInt16(configRegister8); // TODO: Is Int16 conversion going to be ok?
-
-        bitWrite(*alert, 1, bitRead(configRegister16, 15));
-        bitWrite(*alert, 0, bitRead(configRegister16, 14));
+        RetType ret = CALL(readRegister(TMP117_CONFIGURATION, rx_buff, 2));
+        if (RET_SUCCESS == ret) {
+            *alert = (rx_buff[0] << 8) | rx_buff[1];
+            bitWrite(*alert, 1, bitRead(*alert, 15));
+            bitWrite(*alert, 0, bitRead(*alert, 14));
+        }
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     RetType getAlert(bool *alertResult, TMP117_HILO_ALERT_BIT_T alertBit) {
         RESUME();
 
-        static uint8_t configRegister8[2] = {};
-        RetType ret = CALL(readRegister(TMP117_CONFIGURATION, configRegister8, 2));
-        if (ret != RET_SUCCESS) return ret;
-
-        uint16_t configRegister16 = uint8ToInt16(configRegister8); // TODO: Is Int16 conversion going to be ok?
-        uint8_t highAlert = bitRead(configRegister16, alertBit);
-
-        *alertResult = highAlert == 1;
+        RetType ret = CALL(readRegister(TMP117_CONFIGURATION, rx_buff, 2));
+        if (RET_SUCCESS == ret) {
+            uint8_t highAlert = bitRead(((rx_buff[0] << 8) | rx_buff[1]), alertBit);
+            *alertResult = highAlert == 1;
+        }
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     RetType setAlertFunctionMode(uint8_t alertMode) {
@@ -272,76 +254,81 @@ public:
 
     RetType softReset() {
         RESUME();
-        static uint8_t reset8[2] = {};
-        RetType ret = CALL(readRegister(TMP117_CONFIGURATION, reset8, 2));
-        if (ret != RET_SUCCESS) return ret;
+        RetType ret = CALL(readRegister(TMP117_CONFIGURATION, rx_buff, 2));
+        if (RET_SUCCESS == ret) {
+            uint16_t reset16 = rx_buff[0] << 8 | rx_buff[1];
+            bitWrite(reset16, 1, 1);
 
-        static uint16_t reset16 = uint8ToInt16(reset8);
-        bitWrite(reset16, 1, 1);
-        int16ToUint8(reset16, reset8);
+            tx_buff[0] = static_cast<uint8_t>(reset16 >> 8);
+            tx_buff[1] = static_cast<uint8_t>(reset16 & 0xFF);
 
-        ret = CALL(writeRegister(TMP117_CONFIGURATION, reset8, 2));
-        if (ret != RET_SUCCESS) return ret;
+            ret = CALL(writeRegister(TMP117_CONFIGURATION, tx_buff, 2));
+        }
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     RetType setContinuousConversionMode(TMP117_MODE_T mode) {
         RESUME();
-        static uint8_t mode8[2] = {};
-        RetType ret = CALL(readRegister(TMP117_CONFIGURATION, mode8, 2));
-        if (ret != RET_SUCCESS) return ret;
 
-        uint16_t mode16 = uint8ToInt16(mode8);
+        RetType ret = CALL(readRegister(TMP117_CONFIGURATION, rx_buff, 2));
+        if (RET_SUCCESS == ret) {
 
-        switch (mode) {
-            case CONTINUOUS_CONVERSION:
-                bitClear(mode16, 10);
-                bitClear(mode16, 11);
+            uint16_t mode16 = rx_buff[0] << 8 | rx_buff[1];
+            switch (mode16) {
+                case CONTINUOUS_CONVERSION:
+                    bitClear(mode16, 10);
+                    bitClear(mode16, 11);
 
-                break;
-            case ONE_SHOT:
-                bitWrite(mode16, 10, 1);
-                bitWrite(mode16, 11, 1);
+                    break;
+                case ONE_SHOT:
+                    bitWrite(mode16, 10, 1);
+                    bitWrite(mode16, 11, 1);
 
-                break;
-            case SHUTDOWN:
-                bitClear(mode16, 11);
-                bitWrite(mode16, 10, 1);
-                break;
+                    break;
+                case SHUTDOWN:
+                    bitClear(mode16, 11);
+                    bitWrite(mode16, 10, 1);
+                    break;
+            }
+
+            tx_buff[0] = static_cast<uint8_t>(mode16 >> 8);
+            tx_buff[1] = static_cast<uint8_t>(mode16 & 0xFF);
+
+
+            ret = CALL(writeRegister(TMP117_CONFIGURATION, tx_buff, 2));
         }
 
-        int16ToUint8(mode16, mode8);
-
-        ret = CALL(writeRegister(TMP117_CONFIGURATION, mode8, 2));
-        if (ret != RET_SUCCESS) return ret;
-
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     RetType getConversionMode(TMP117_MODE_T *mode) {
         RESUME();
+
         static uint16_t *configRegister;
-        RetType ret = getConfigRegister(configRegister);
-        if (ret != RET_SUCCESS) return ret;
+        RetType ret = CALL(getConfigRegister(configRegister));
 
-        uint8_t currMode1 = bitRead(*configRegister, 11);
-        uint8_t currMode2 = bitRead(*configRegister, 10);
+        if (RET_SUCCESS == ret) {
+            uint8_t currMode1 = bitRead(*configRegister, 11);
+            uint8_t currMode2 = bitRead(*configRegister, 10);
 
-        if ((currMode1 == 0) && (currMode2 == 1)) {
-            *mode = SHUTDOWN;
-        } else if ((currMode1 == 1) && (currMode2 == 1)) {
-            *mode = ONE_SHOT;
-        } else if ((currMode1 == 1) && (currMode2 == 0)) { // Impossible
-            return RET_ERROR;
-        } else { // 0b00 or by default
-            *mode = CONTINUOUS_CONVERSION;
+            if ((currMode1 == 0) && (currMode2 == 1)) {
+                *mode = SHUTDOWN;
+            } else if ((currMode1 == 1) && (currMode2 == 1)) {
+                *mode = ONE_SHOT;
+            } else if ((currMode1 == 1) && (currMode2 == 0)) { // Impossible
+                ret = RET_ERROR;
+            } else { // 0b00 or by default
+                *mode = CONTINUOUS_CONVERSION;
+            }
+
         }
 
+
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     RetType setConversionAverageMode(uint8_t conversionMode) {
@@ -525,21 +512,7 @@ private:
         return ret;
     }
 
-    int16_t uint8ToInt16(uint8_t *data) {
-        return (data[0] << 8) | data[1];
-    }
-
-    void int16ToUint8(int16_t data16, uint8_t *data8) {
-        data8[0] = static_cast<uint8_t>(data16 >> 8);
-        data8[1] = static_cast<uint8_t>(data16 & 0xFF);
-    }
-
-    void uint16ToUint8(uint16_t data16, uint8_t *data8) {
-        data8[0] = static_cast<uint8_t>(data16 >> 8);
-        data8[1] = static_cast<uint8_t>(data16 & 0xFF);
-    }
-
-    RetType readRegister(uint8_t reg, uint8_t *data, size_t len) {
+    RetType readRegister(const uint8_t reg, uint8_t *const data, const size_t len) {
         RESUME();
 
         i2cAddr.mem_addr = reg;
@@ -550,7 +523,7 @@ private:
         return RET_SUCCESS;
     }
 
-    RetType writeRegister(uint8_t reg, uint8_t *data, size_t len) {
+    RetType writeRegister(const uint8_t reg, uint8_t *const data, const size_t len) {
         RESUME();
 
         i2cAddr.mem_addr = reg;
