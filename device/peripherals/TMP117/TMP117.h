@@ -8,20 +8,13 @@
 #define LAUNCH_CORE_TMP117_H
 
 #include <stdint.h>
-#include "return.h"
+
 #include "device/I2CDevice.h"
-#include "sched/macros/resume.h"
-#include "sched/macros/reset.h"
-#include "sched/macros/call.h"
+#include "sched/macros.h"
+#include "return.h"
 #include "utils/conversion.h"
 
-
-#define bitRead(value, bit) (((value) >> (bit)) & 0x01)
-#define bitSet(value, bit) ((value) |= (1UL << (bit)))
-#define bitClear(value, bit) ((value) &= ~(1UL << (bit)))
-#define bitWrite(value, bit, bitVal) (bitVal ? bitSet(value, bit) : bitClear(value, bit))
 #define TMP117_DATA_STRUCT(variable_name) TMP117::TMP117_DATA_T variable_name = {.id = 16001, .temperature = 0}
-
 
 class TMP117 : public Device {
 public:
@@ -76,7 +69,10 @@ public:
     RetType init() override {
         RESUME();
 
-        RetType ret = CALL(check_id());
+        RetType ret = CALL(checkID());
+        if (RET_SUCCESS == ret) {
+            ret = CALL(softReset());
+        }
 
         RESET();
         return ret;
@@ -239,8 +235,7 @@ public:
         RESUME();
         RetType ret = CALL(readRegister(TMP117_CONFIGURATION, rx_buff, 2));
         if (RET_SUCCESS == ret) {
-            uint16_t reset16 = rx_buff[0] << 8 | rx_buff[1];
-            bitWrite(reset16, 1, 1);
+            uint16_t reset16 = (rx_buff[0] << 8 | rx_buff[1]) | (0b1 << 1);
 
             tx_buff[0] = static_cast<uint8_t>(reset16 >> 8);
             tx_buff[1] = static_cast<uint8_t>(reset16 & 0xFF);
@@ -262,7 +257,7 @@ private:
      * @brief Confirms the device ID is correct
      * @return RetType - Scheduler status code
      */
-    RetType check_id() {
+    RetType checkID() {
         RESUME();
 
         i2cAddr.mem_addr = TMP117_DEVICE_ID;
