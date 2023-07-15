@@ -9,15 +9,13 @@
 #define LAUNCH_CORE_BMP3XX_H
 #define BMP3XX_DATA_STRUCT(variable_name) BMP3XX_DATA_T variable_name = {.id = 10001, .pressure = 0, .temperature = 0}
 
-#include "device/peripherals/BMP3XX/bmp3_defs.h"
-#include "return.h"
-#include "sched/macros/resume.h"
-#include "sched/macros/reset.h"
-#include "device/SPIDevice.h"
-#include "device/I2CDevice.h"
+#include <math.h>
 
-#include "sched/macros/call.h"
+#include "device/peripherals/BMP3XX/bmp3_defs.h"
+#include "device/I2CDevice.h"
+#include "return.h"
 #include "macros.h"
+
 
 #define ERROR_CHECK(ret) {RESET(); return ret;}
 
@@ -40,28 +38,15 @@ public:
         this->device.dummy_byte = 0;
 
         RetType ret = CALL(checkChipID());
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
+        ERROR_CHECK(ret);
 
         ret = CALL(softReset());
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
+        ERROR_CHECK(ret);
 
         ret = CALL(getCalibrationData());
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
+        ERROR_CHECK(ret);
 
         ret = CALL(initSettings());
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
 
         RESET();
         return ret;
@@ -82,16 +67,24 @@ public:
         static struct bmp3_uncomp_data uncompensatedData = {0};
 
         RetType ret = CALL(getRegister(BMP3_REG_DATA, regData, BMP3_LEN_P_T_DATA));
-        if (ret != RET_SUCCESS) return ret;
+        if (RET_SUCCESS == ret) {
+            parseSensorData(regData, &uncompensatedData);
+            compensateData(&uncompensatedData, &this->device.calib_data);
 
-        parseSensorData(regData, &uncompensatedData);
-        compensateData(&uncompensatedData, &this->device.calib_data);
+            *pressure = this->data.pressure;
+            *temperature = this->data.temperature;
+        }
 
-        *pressure = this->data.pressure;
-        *temperature = this->data.temperature;
+        if (BMP3_MIN_TEMP_DOUBLE > *temperature || BMP3_MAX_TEMP_DOUBLE < *temperature) {
+            ret = RET_ERROR;
+        }
+
+        if (BMP3_MIN_PRES_DOUBLE > *pressure || BMP3_MAX_PRES_DOUBLE < *pressure) {
+            ret = RET_ERROR;
+        }
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
 
@@ -113,7 +106,7 @@ public:
                 SLEEP(2000);
                 ret = CALL(getRegister(BMP3_REG_ERR, cmdErrorStatus, 1));
 
-                if (RET_SUCCESS == RET_ERROR & (*cmdErrorStatus & BMP3_REG_CMD)) {
+                if (RET_SUCCESS == ret && (*cmdErrorStatus & BMP3_REG_CMD)) {
                     ret = RET_ERROR;
                 }
             }
@@ -193,31 +186,20 @@ public:
     RetType setSensorSettings(uint32_t desiredSettings) {
         RESUME();
 
-        RetType ret;
-
         // Power Control Settings
-        if (areSettingsChanged(BMP3_POWER_CNTL, desiredSettings)) {
-            ret = CALL(setPowerControl(desiredSettings));
-            ERROR_CHECK(ret);
-        }
+        RetType ret = CALL(setPowerControl(desiredSettings));
+        ERROR_CHECK(ret);
 
         // Oversampling, ODR and Filter Settings
-        if (areSettingsChanged(BMP3_ODR_FILTER, desiredSettings)) {
-            ret = CALL(setODRFilter(desiredSettings)); // TODO: Might be causing issues
-            ERROR_CHECK(ret);
-        }
+        ret = CALL(setODRFilter(desiredSettings));
+        ERROR_CHECK(ret);
 
         // Interrupt Control Settings
-        if (areSettingsChanged(BMP3_INT_CTRL, desiredSettings)) {
-            ret = CALL(setIntCtrl(desiredSettings));
-            ERROR_CHECK(ret);
-        }
+        ret = CALL(setIntCtrl(desiredSettings));
+        ERROR_CHECK(ret);
 
         // Advanced Settings
-        if (areSettingsChanged(BMP3_ADV_SETT, desiredSettings)) {
-            ret = CALL(setAdvSettings(desiredSettings));
-            ERROR_CHECK(ret);
-        }
+        ret = CALL(setAdvSettings(desiredSettings));
 
         RESET();
         return ret;
@@ -334,7 +316,7 @@ private:
                 .press_en = BMP3_ENABLE,
                 .temp_en = BMP3_ENABLE,
                 .odr_filter = {
-                        .press_os = BMP3_OVERSAMPLING_2X,
+                        .press_os = BMP3_OVERSAMPLING_32X,
                         .temp_os = BMP3_OVERSAMPLING_2X,
                         .iir_filter = BMP3_IIR_FILTER_DISABLE,
                         .odr = BMP3_ODR_100_HZ
@@ -355,14 +337,12 @@ private:
         RetType ret = CALL(setSensorSettings(
                 BMP3_SEL_PRESS_EN | BMP3_SEL_TEMP_EN | BMP3_SEL_PRESS_OS | BMP3_SEL_TEMP_OS | BMP3_SEL_ODR |
                 BMP3_SEL_DRDY_EN));
-        if (ret != RET_SUCCESS) return ret;
+        ERROR_CHECK(ret);
 
         ret = CALL(setOperatingMode());
-        if (ret != RET_SUCCESS) return ret;
-
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     RetType getCalibrationData() {
@@ -380,7 +360,6 @@ private:
     RetType setRegister(uint8_t regAddress, uint8_t *regData, uint32_t len) {
         RESUME();
 
-
         this->i2cAddr.mem_addr = regAddress;
         RetType ret = CALL(mI2C->write(this->i2cAddr, regData, len));
 
@@ -388,6 +367,15 @@ private:
         return ret;
     }
 
+    RetType getRegister(uint8_t regAddress, uint8_t *regData, uint32_t len) {
+        RESUME();
+
+        this->i2cAddr.mem_addr = regAddress;
+        RetType ret = CALL(mI2C->read(this->i2cAddr, regData, len));
+
+        RESET();
+        return ret;
+    }
 
     RetType setRegister(uint8_t const *regAddress, const uint8_t *regData, uint32_t len) {
         RESUME();
@@ -421,20 +409,9 @@ private:
         }
     }
 
-
-    RetType getRegister(uint8_t regAddress, uint8_t *regData, uint32_t len) {
-        RESUME();
-
-        this->i2cAddr.mem_addr = regAddress;
-        RetType ret = CALL(mI2C->read(this->i2cAddr, regData, len));
-
-        RESET();
-        return ret;
-    }
-
     void parseCalibrationData(uint8_t *calibrationData) {
-        struct bmp3_reg_calib_data *reg_calib_data = &this->device.calib_data.reg_calib_data;
-        struct bmp3_quantized_calib_data *quantized_calib_data = &this->device.calib_data.quantized_calib_data;
+        struct bmp3_reg_calib_data *reg_calib_data = &calib_data.reg_calib_data;
+        struct bmp3_quantized_calib_data *quantized_calib_data = &calib_data.quantized_calib_data;
 
         double temp;
 
@@ -503,7 +480,7 @@ private:
     }
 
 
-    void compensateData(bmp3_uncomp_data *uncompData, bmp3_calib_data *calibrationData) {
+    void compensateData(bmp3_uncomp_data const *uncompData, bmp3_calib_data *calibrationData) {
         compensateTemperature(&this->data.temperature, uncompData, calibrationData);
         compensatePressure(&this->data.pressure, uncompData, calibrationData);
     }
@@ -582,7 +559,7 @@ private:
         static uint8_t regData = 0;
 
         RetType ret = CALL(getRegister(BMP3_REG_PWR_CTRL, &regData, 1));
-        if (ret != RET_SUCCESS) return ret;
+        ERROR_CHECK(ret);
 
         if (desiredSettings & BMP3_SEL_PRESS_EN) {
             regData = BMP3_SET_BITS_POS_0(regData, BMP3_PRESS_EN, this->settings.press_en);
@@ -593,7 +570,6 @@ private:
         }
 
         ret = CALL(setRegister(BMP3_REG_PWR_CTRL, &regData, 1));
-        if (ret != RET_SUCCESS) return ret;
 
         RESET();
         return ret;
@@ -607,32 +583,18 @@ private:
         static uint8_t regData[4];
 
         RetType ret = CALL(getRegister(BMP3_REG_OSR, regData, 4));
-        if (ret != RET_SUCCESS) return ret;
+        ERROR_CHECK(ret);
 
-        // OSR Data
-        if (areSettingsChanged((BMP3_SEL_PRESS_OS | BMP3_SEL_TEMP_OS), desiredSettings)) {
-            fillOSRData(desiredSettings, regAddr, regData, &len);
+        fillOSRData(desiredSettings, regAddr, regData, &len);
+
+        fillOdrData(regAddr, regData, &len);
+
+        fillFilterData(regAddr, regData, &len);
+
+        if (validateOsrOdr()) {
+            // Burst Write
+            ret = CALL(setRegister(regAddr, regData, len));
         }
-
-        // ODR Data
-        if (areSettingsChanged(BMP3_SEL_ODR, desiredSettings)) {
-            fillOdrData(regAddr, regData, &len);
-        }
-
-        // Filter Data
-        if (areSettingsChanged(BMP3_SEL_IIR_FILTER, desiredSettings)) {
-            fillFilterData(regAddr, regData, &len);
-        }
-
-        // OSR ODR Validation
-        if (settings.op_mode == BMP3_MODE_NORMAL) {
-            ret = validateOsrOdr() ? RET_SUCCESS : RET_ERROR;
-            if (ret != RET_SUCCESS) return ret;
-        }
-
-        // Burst Write
-        ret = CALL(setRegister(regAddr, regData, len));
-        if (ret != RET_SUCCESS) return ret;
 
         RESET();
         return ret;
@@ -768,21 +730,6 @@ private:
 
         RESET();
         return ret;
-    }
-
-    float pow(double base, uint8_t power) {
-        float pow_output = 1;
-
-        while (power != 0) {
-            pow_output = (float) base * pow_output;
-            power--;
-        }
-
-        return pow_output;
-    }
-
-    bool areSettingsChanged(uint32_t subSettings, uint32_t desiredSettings) {
-        return (subSettings & desiredSettings) != 0;
     }
 
     uint32_t calculatePressMeasTime() {
