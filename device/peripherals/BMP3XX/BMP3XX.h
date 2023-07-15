@@ -45,23 +45,23 @@ public:
             return ret;
         }
 
-        ret = CALL(softReset());
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
-        ret = CALL(getCalibrationData());
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
-        ret = CALL(initSettings());
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
+//        ret = CALL(softReset());
+//        if (ret != RET_SUCCESS) {
+//            RESET();
+//            return ret;
+//        }
+//
+//        ret = CALL(getCalibrationData());
+//        if (ret != RET_SUCCESS) {
+//            RESET();
+//            return ret;
+//        }
+//
+//        ret = CALL(initSettings());
+//        if (ret != RET_SUCCESS) {
+//            RESET();
+//            return ret;
+//        }
 
         RESET();
         return ret;
@@ -252,14 +252,11 @@ public:
     RetType sleep() {
         RESUME();
 
-        static uint8_t operatingMode;
-
-        RetType ret = CALL(getRegister(BMP3_REG_PWR_CTRL, &operatingMode, 1));
-        if (ret != RET_SUCCESS) return ret;
-
-        operatingMode &= ~BMP3_OP_MODE_MSK;
-
-        ret = CALL(setRegister(BMP3_REG_PWR_CTRL, &operatingMode, 1));
+        RetType ret = CALL(getRegister(BMP3_REG_PWR_CTRL, rx_buff, 1));
+        if (RET_SUCCESS == ret) {
+            tx_buff[0] = rx_buff[0] & ~BMP3_OP_MODE_MSK;
+            ret = CALL(setRegister(BMP3_REG_PWR_CTRL, tx_buff, 1));
+        }
 
         RESET();
         return ret;
@@ -267,7 +264,6 @@ public:
 
     RetType setNormalMode() {
         RESUME();
-        static uint8_t configErrorStatus;
 
         RetType ret = CALL(validateNormalModeSettings());
         ERROR_CHECK(ret);
@@ -275,10 +271,10 @@ public:
         ret = CALL(writePowerMode());
         ERROR_CHECK(ret);
 
-        ret = CALL(getRegister(BMP3_REG_ERR, &configErrorStatus, 1));
+        ret = CALL(getRegister(BMP3_REG_ERR, rx_buff, 1));
         ERROR_CHECK(ret);
 
-        if (configErrorStatus & BMP3_ERR_CMD) ret = RET_ERROR;
+        if (rx_buff[0] & BMP3_ERR_CMD) ret = RET_ERROR;
 
         RESET();
         return ret;
@@ -297,18 +293,14 @@ public:
     RetType writePowerMode() {
         RESUME();
 
-        static uint8_t tempOpMode;
-
-        RetType ret = CALL(getRegister(BMP3_REG_PWR_CTRL, &tempOpMode, 1));
-        if (ret != RET_SUCCESS) return ret;
-
-        tempOpMode = BMP3_SET_BITS(tempOpMode, BMP3_OP_MODE, settings.op_mode);
-        ret = CALL(setRegister(BMP3_REG_PWR_CTRL, &tempOpMode, 1));
-        if (ret != RET_SUCCESS) return ret;
+        RetType ret = CALL(getRegister(BMP3_REG_PWR_CTRL, rx_buff, 1));
+        if (RET_SUCCESS == ret) {
+            tx_buff[0] = BMP3_SET_BITS(rx_buff[0], BMP3_OP_MODE, BMP3_MODE_NORMAL);
+            ret = CALL(setRegister(BMP3_REG_PWR_CTRL, tx_buff, 1));
+        }
 
         RESET();
-        return RET_SUCCESS;
-
+        return ret;
     }
 
     RetType getODRFilterSettings() {
@@ -393,7 +385,6 @@ private:
         this->i2cAddr.mem_addr = regAddress;
 
         RetType ret = CALL(mI2C->write(this->i2cAddr, regData, len));
-        if (ret != RET_SUCCESS) return ret;
 
         RESET();
         return ret;
@@ -435,10 +426,9 @@ private:
 
     RetType getRegister(uint8_t regAddress, uint8_t *regData, uint32_t len) {
         RESUME();
-        this->i2cAddr.mem_addr = regAddress;
 
+        this->i2cAddr.mem_addr = regAddress;
         RetType ret = CALL(mI2C->read(this->i2cAddr, regData, len));
-        if (ret != RET_SUCCESS) return ret;
 
         RESET();
         return ret;
@@ -773,10 +763,8 @@ private:
     RetType checkChipID() {
         RESUME();
 
-        static uint8_t chip_id = 0;
-
-        RetType ret = CALL(getRegister(BMP3_REG_CHIP_ID, &chip_id, 1));
-        if ((chip_id != BMP3_CHIP_ID) || (chip_id != BMP390_CHIP_ID)) {
+        RetType ret = CALL(getRegister(BMP3_REG_CHIP_ID, rx_buff, 1));
+        if ((BMP3_CHIP_ID != rx_buff[0]) || (BMP390_CHIP_ID != rx_buff[0])) {
             ret = RET_ERROR;
         }
 
