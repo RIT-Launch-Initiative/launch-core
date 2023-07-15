@@ -282,11 +282,10 @@ public:
     RetType getODRFilterSettings() {
         RESUME();
 
-        static uint8_t regData[4];
-        RetType ret = CALL(getRegister(BMP3_REG_OSR, regData, 4));
+        RetType ret = CALL(getRegister(BMP3_REG_OSR, rx_buff, 4));
         if (ret != RET_SUCCESS) return ret;
 
-        parseODRFilterSettings(regData);
+        parseODRFilterSettings(rx_buff);
 
         RESET();
         return RET_SUCCESS;
@@ -622,8 +621,7 @@ private:
         }
 
         /* Set the ODR settings in the register variable */
-        regData[*len] =
-                BMP3_SET_BITS_POS_0(regData[1], BMP3_ODR, settings.odr_filter.odr);
+        regData[*len] =BMP3_SET_BITS_POS_0(regData[1], BMP3_ODR, settings.odr_filter.odr);
 
         /* 0x1D is the register address of output data rate register */
         addr[*len] = BMP3_REG_ODR;
@@ -644,30 +642,26 @@ private:
     RetType setIntCtrl(uint32_t desiredSettings) {
         RESUME();
 
-        static uint8_t regData;
-
-        RetType ret = CALL(getRegister(BMP3_REG_INT_CTRL, &regData, 1));
-        if (ret != RET_SUCCESS) return ret;
-
+        RetType ret = CALL(getRegister(BMP3_REG_INT_CTRL, rx_buff, 1));
+        ERROR_CHECK(ret);
 
         if (desiredSettings & BMP3_SEL_OUTPUT_MODE) {
-            regData = BMP3_SET_BITS_POS_0(regData, BMP3_INT_OUTPUT_MODE, settings.int_settings.output_mode);
+            tx_buff[0] = BMP3_SET_BITS_POS_0(rx_buff[0], BMP3_INT_OUTPUT_MODE, settings.int_settings.output_mode);
         }
 
         if (desiredSettings & BMP3_SEL_LEVEL) {
-            regData = BMP3_SET_BITS(regData, BMP3_INT_LEVEL, settings.int_settings.level);
+            tx_buff[0] = BMP3_SET_BITS(rx_buff[0], BMP3_INT_LEVEL, settings.int_settings.level);
         }
 
         if (desiredSettings & BMP3_SEL_LATCH) {
-            regData = BMP3_SET_BITS(regData, BMP3_INT_LATCH, settings.int_settings.latch);
+            tx_buff[0] = BMP3_SET_BITS(rx_buff[0], BMP3_INT_LATCH, settings.int_settings.latch);
         }
 
         if (desiredSettings & BMP3_SEL_DRDY_EN) {
-            regData = BMP3_SET_BITS(regData, BMP3_INT_DRDY_EN, settings.int_settings.drdy_en);
+            tx_buff[0] = BMP3_SET_BITS(rx_buff[0], BMP3_INT_DRDY_EN, settings.int_settings.drdy_en);
         }
 
-        ret = CALL(setRegister(BMP3_REG_INT_CTRL, &regData, 1));
-        if (ret != RET_SUCCESS) return ret;
+        ret = CALL(setRegister(BMP3_REG_INT_CTRL, tx_buff, 1));
 
         RESET();
         return ret;
@@ -678,23 +672,18 @@ private:
     RetType setAdvSettings(uint32_t desiredSettings) {
         RESUME();
 
-        static uint8_t regData = 0;
-
-        RetType ret = CALL(getRegister(BMP3_REG_IF_CONF, &regData, 1));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
+        RetType ret = CALL(getRegister(BMP3_REG_IF_CONF, rx_buff, 1));
+        ERROR_CHECK(ret);
 
         if (desiredSettings & BMP3_SEL_I2C_WDT_EN) {
-            regData = BMP3_SET_BITS(regData, BMP3_I2C_WDT_EN, settings.adv_settings.i2c_wdt_en);
+            tx_buff[0] = BMP3_SET_BITS(rx_buff[0], BMP3_I2C_WDT_EN, settings.adv_settings.i2c_wdt_en);
         }
 
         if (desiredSettings & BMP3_SEL_I2C_WDT) {
-            regData = BMP3_SET_BITS(regData, BMP3_I2C_WDT_SEL, settings.adv_settings.i2c_wdt_sel);
+            tx_buff[0] = BMP3_SET_BITS(rx_buff[0], BMP3_I2C_WDT_SEL, settings.adv_settings.i2c_wdt_sel);
         }
 
-        ret = CALL(setRegister(BMP3_REG_IF_CONF, &regData, 1));
+        ret = CALL(setRegister(BMP3_REG_IF_CONF, tx_buff, 1));
 
         RESET();
         return ret;
@@ -816,16 +805,10 @@ private:
     }
 
     void parseODRFilterSettings(const uint8_t *regData) {
-        uint8_t index = 0;
-
-        settings.odr_filter.press_os = BMP3_GET_BITS_POS_0(regData[index], BMP3_PRESS_OS);
-        settings.odr_filter.temp_os = BMP3_GET_BITS(regData[index], BMP3_TEMP_OS);
-
-        index++;
-        settings.odr_filter.odr = BMP3_GET_BITS_POS_0(regData[index], BMP3_ODR);
-
-        index = index + 2;
-        settings.odr_filter.iir_filter = BMP3_GET_BITS(regData[index], BMP3_IIR_FILTER);
+        settings.odr_filter.press_os = BMP3_GET_BITS_POS_0(regData[0], BMP3_PRESS_OS);
+        settings.odr_filter.temp_os = BMP3_GET_BITS(regData[0], BMP3_TEMP_OS);
+        settings.odr_filter.odr = BMP3_GET_BITS_POS_0(regData[1], BMP3_ODR);
+        settings.odr_filter.iir_filter = BMP3_GET_BITS(regData[3], BMP3_IIR_FILTER);
     }
 };
 
