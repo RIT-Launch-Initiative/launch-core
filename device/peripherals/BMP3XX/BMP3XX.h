@@ -35,7 +35,6 @@ public:
      *************************************************************************************/
     RetType init() override {
         RESUME();
-        this->device.dummy_byte = 0;
 
         RetType ret = CALL(checkChipID());
         ERROR_CHECK(ret);
@@ -61,27 +60,22 @@ public:
     }
 
     RetType getPressureAndTemp(double *pressure, double *temperature) {
+        struct bmp3_uncomp_data uncompensatedData = {0};
         RESUME();
 
-        static uint8_t regData[BMP3_LEN_P_T_DATA] = {0};
-        static struct bmp3_uncomp_data uncompensatedData = {0};
-
-        RetType ret = CALL(getRegister(BMP3_REG_DATA, regData, BMP3_LEN_P_T_DATA));
+        RetType ret = CALL(getRegister(BMP3_REG_DATA, rx_buff, BMP3_LEN_P_T_DATA));
         if (RET_SUCCESS == ret) {
-            parseSensorData(regData, &uncompensatedData);
-            compensateData(&uncompensatedData, &this->device.calib_data);
-
-            *pressure = this->data.pressure;
-            *temperature = this->data.temperature;
+            parseSensorData(rx_buff, &uncompensatedData);
+            compensateData(&uncompensatedData, &calib_data, temperature, pressure);
         }
 
-        if (BMP3_MIN_TEMP_DOUBLE > *temperature || BMP3_MAX_TEMP_DOUBLE < *temperature) {
-            ret = RET_ERROR;
-        }
-
-        if (BMP3_MIN_PRES_DOUBLE > *pressure || BMP3_MAX_PRES_DOUBLE < *pressure) {
-            ret = RET_ERROR;
-        }
+//        if (BMP3_MIN_TEMP_DOUBLE == *temperature || BMP3_MAX_TEMP_DOUBLE == *temperature) {
+//            ret = RET_ERROR;
+//        }
+//
+//        if (BMP3_MIN_PRES_DOUBLE == *pressure || BMP3_MAX_PRES_DOUBLE == *pressure) {
+//            ret = RET_ERROR;
+//        }
 
         RESET();
         return ret;
@@ -137,14 +131,14 @@ public:
 
         static uint8_t regData;
         RetType ret = CALL(getRegister(BMP3_REG_SENS_STATUS, &regData, 1));
-        if (ret != RET_SUCCESS) return ret;
+        ERROR_CHECK(ret);
 
         status->sensor.cmd_rdy = BMP3_GET_BITS(regData, BMP3_STATUS_CMD_RDY);
         status->sensor.drdy_press = BMP3_GET_BITS(regData, BMP3_STATUS_DRDY_PRESS);
         status->sensor.drdy_temp = BMP3_GET_BITS(regData, BMP3_STATUS_DRDY_TEMP);
 
         ret = CALL(getRegister(BMP3_REG_EVENT, &regData, 1));
-        if (ret != RET_SUCCESS) return ret;
+        ERROR_CHECK(ret);
 
         status->pwr_on_rst = regData & 0x01;
 
@@ -299,7 +293,6 @@ public:
     }
 
 private:
-    bmp3_dev device = {};
     bmp3_data data = {};
     I2CDevice *mI2C;
     I2CAddr_t i2cAddr;
@@ -480,9 +473,9 @@ private:
     }
 
 
-    void compensateData(bmp3_uncomp_data const *uncompData, bmp3_calib_data *calibrationData) {
-        compensateTemperature(&this->data.temperature, uncompData, calibrationData);
-        compensatePressure(&this->data.pressure, uncompData, calibrationData);
+    void compensateData(bmp3_uncomp_data const *uncompData, bmp3_calib_data *calibrationData, double *temp, double *pressure) {
+        compensateTemperature(temp, uncompData, calibrationData);
+        compensatePressure(pressure, uncompData, calibrationData);
     }
 
 
@@ -523,8 +516,7 @@ private:
             comp_press = BMP3_MAX_PRES_DOUBLE;
         }
 
-        (*pressure) = comp_press;
-
+        *pressure = comp_press;
     }
 
     void compensateTemperature(double *temperature, const struct bmp3_uncomp_data *uncompData,
