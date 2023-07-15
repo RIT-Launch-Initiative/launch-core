@@ -45,23 +45,23 @@ public:
             return ret;
         }
 
-//        ret = CALL(softReset());
-//        if (ret != RET_SUCCESS) {
-//            RESET();
-//            return ret;
-//        }
-//
-//        ret = CALL(getCalibrationData());
-//        if (ret != RET_SUCCESS) {
-//            RESET();
-//            return ret;
-//        }
-//
-//        ret = CALL(initSettings());
-//        if (ret != RET_SUCCESS) {
-//            RESET();
-//            return ret;
-//        }
+        ret = CALL(softReset());
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
+
+        ret = CALL(getCalibrationData());
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
+
+        ret = CALL(initSettings());
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
 
         RESET();
         return ret;
@@ -98,7 +98,7 @@ public:
     RetType softReset() {
         uint8_t *cmdReadyStatus = &rx_buff[0];
         uint8_t *cmdErrorStatus = &rx_buff[1];
-        
+
         RESUME();
 
         RetType ret = CALL(getRegister(BMP3_REG_SENS_STATUS, cmdReadyStatus, 1));
@@ -112,7 +112,7 @@ public:
             if (RET_SUCCESS == ret) {
                 SLEEP(2000);
                 ret = CALL(getRegister(BMP3_REG_ERR, cmdErrorStatus, 1));
-                
+
                 if (RET_SUCCESS == RET_ERROR & (*cmdErrorStatus & BMP3_REG_CMD)) {
                     ret = RET_ERROR;
                 }
@@ -168,7 +168,7 @@ public:
             status->intr.fifo_full = BMP3_GET_BITS(rx_buff[0], BMP3_INT_STATUS_FFULL);
             status->intr.drdy = BMP3_GET_BITS(rx_buff[0], BMP3_INT_STATUS_DRDY);
         }
-        
+
         RESET();
         return ret;
     }
@@ -182,7 +182,7 @@ public:
             status->err.cmd = BMP3_GET_BITS(rx_buff[0], BMP3_ERR_CMD);
             status->err.conf = BMP3_GET_BITS(rx_buff[0], BMP3_ERR_CONF);
         }
-        
+
         RESET();
         return ret;
     }
@@ -324,7 +324,7 @@ private:
     bmp3_settings settings{};
     bmp3_calib_data calib_data;
     uint8_t tx_buff[10];
-    uint8_t rx_buff[10];
+    uint8_t rx_buff[BMP3_LEN_CALIB_DATA];
 
     RetType initSettings() {
         RESUME();
@@ -367,12 +367,11 @@ private:
 
     RetType getCalibrationData() {
         RESUME();
-        static uint8_t calibrationData[BMP3_LEN_CALIB_DATA] = {};
 
-        RetType ret = CALL(getRegister(BMP3_REG_CALIB_DATA, calibrationData, BMP3_LEN_CALIB_DATA));
+        RetType ret = CALL(getRegister(BMP3_REG_CALIB_DATA, rx_buff, BMP3_LEN_CALIB_DATA));
         if (ret != RET_SUCCESS) return ret;
 
-        parseCalibrationData(calibrationData);
+        parseCalibrationData(rx_buff);
 
         RESET();
         return ret;
@@ -383,7 +382,6 @@ private:
 
 
         this->i2cAddr.mem_addr = regAddress;
-
         RetType ret = CALL(mI2C->write(this->i2cAddr, regData, len));
 
         RESET();
@@ -501,8 +499,7 @@ private:
         reg_calib_data->par_p11 = (int8_t) calibrationData[20];
 
         temp = 36893488147419103232.0f;
-        quantized_calib_data->par_p11 =
-                ((double) reg_calib_data->par_p11 / temp);
+        quantized_calib_data->par_p11 = ((double) reg_calib_data->par_p11 / temp);
     }
 
 
@@ -723,6 +720,7 @@ private:
     }
 
 
+
     RetType setAdvSettings(uint32_t desiredSettings) {
         RESUME();
 
@@ -752,9 +750,9 @@ private:
         RESUME();
 
         RetType ret = CALL(getRegister(BMP3_REG_PWR_CTRL, opMode, 1));
-        if (ret != RET_SUCCESS) return ret;
-
-        *opMode = BMP3_GET_BITS(*opMode, BMP3_OP_MODE);
+        if (RET_SUCCESS == ret) {
+            *opMode = BMP3_GET_BITS(*opMode, BMP3_OP_MODE);
+        }
 
         RESET();
         return ret;
@@ -764,7 +762,7 @@ private:
         RESUME();
 
         RetType ret = CALL(getRegister(BMP3_REG_CHIP_ID, rx_buff, 1));
-        if ((BMP3_CHIP_ID != rx_buff[0]) || (BMP390_CHIP_ID != rx_buff[0])) {
+        if ((rx_buff[0] != BMP3_CHIP_ID) && (rx_buff[0] != BMP390_CHIP_ID)) {
             ret = RET_ERROR;
         }
 
@@ -784,11 +782,7 @@ private:
     }
 
     bool areSettingsChanged(uint32_t subSettings, uint32_t desiredSettings) {
-        if ((subSettings & desiredSettings)) {
-            return true;
-        } else {
-            return false;
-        }
+        return (subSettings & desiredSettings) != 0;
     }
 
     uint32_t calculatePressMeasTime() {
