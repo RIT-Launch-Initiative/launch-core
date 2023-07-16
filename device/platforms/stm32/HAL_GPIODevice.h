@@ -17,7 +17,6 @@
 #include "stm32l476xx.h"
 #endif
 
-
 #include "device/GPIODevice.h"
 #include "sched/sched.h"
 
