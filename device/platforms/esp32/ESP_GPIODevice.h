@@ -10,6 +10,8 @@
 
 #include <stdint.h>
 
+#include "driver/gpio.h"
+#include "device/GPIODevice.h"
 #include "return.h"
 
 class ESP_GPIODevice : public GPIODevice {
