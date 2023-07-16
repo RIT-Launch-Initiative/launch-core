@@ -1,3 +1,10 @@
+/**
+ * ESP32 GPIO Abstraction
+ * API Reference: https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/gpio.html
+ *
+ * @author Aaron Chan
+ */
+
 #ifndef LAUNCH_CORE_ESP_GPIODEVICE_H
 #define LAUNCH_CORE_ESP_GPIODEVICE_H
 
@@ -7,9 +14,7 @@
 
 class ESP_GPIODevice : public GPIODevice {
 public:
-    ESP_GPIODevice(const char *name) : GPIODevice(name) {
-
-    }
+    ESP_GPIODevice(const char *name, gpio_num_t gpio_num) : GPIODevice(name), m_gpio_num(gpio_num) {}
 
     RetType init() override {
         return RET_SUCCESS;
@@ -43,10 +48,7 @@ public:
 
 private:
     gpio_num_t m_gpio_num;
-
-
 };
-
 
 
 #endif //LAUNCH_CORE_ESP_GPIODEVICE_H
