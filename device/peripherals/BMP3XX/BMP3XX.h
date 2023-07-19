@@ -211,26 +211,21 @@ public:
     RetType setOperatingMode() {
         RESUME();
 
-        static uint8_t lastSetMode;
-        static uint8_t currMode = this->settings.op_mode;
-
-        RetType ret = CALL(getOperatingMode(&lastSetMode));
+        RetType ret = CALL(getOperatingMode(rx_buff));
         ERROR_CHECK(ret);
 
-
-        if (lastSetMode != BMP3_MODE_SLEEP) {
+        if (BMP3_MODE_SLEEP != rx_buff[0]) {
             ret = CALL(sleep());
             ERROR_CHECK(ret);
 
             SLEEP(5000);
         }
 
-        if (currMode == BMP3_MODE_NORMAL) {
+        if (BMP3_MODE_NORMAL == this->settings.op_mode) {
             ret = CALL(setNormalMode());
-        } else if (currMode == BMP3_MODE_FORCED) {
+        } else if (BMP3_MODE_FORCED == this->settings.op_mode) {
             ret = CALL(writePowerMode());
         }
-        ERROR_CHECK(ret);
 
         RESET();
         return ret;
@@ -239,24 +234,19 @@ public:
     RetType sleep() {
         RESUME();
 
-        static uint8_t operatingMode;
-
-        RetType ret = CALL(getRegister(BMP3_REG_PWR_CTRL, &operatingMode, 1));
+        RetType ret = CALL(getRegister(BMP3_REG_PWR_CTRL, rx_buff, 1));
         ERROR_CHECK(ret);
 
-        operatingMode = operatingMode & (~(BMP3_OP_MODE_MSK));
+        tx_buff[0] = rx_buff[0] & ~BMP3_OP_MODE_MSK;
 
-        ret = CALL(setRegister(BMP3_REG_PWR_CTRL, &operatingMode, 1));
-
-        ERROR_CHECK(ret);
+        ret = CALL(setRegister(BMP3_REG_PWR_CTRL, tx_buff, 1));
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     RetType setNormalMode() {
         RESUME();
-        static uint8_t configErrorStatus;
 
         RetType ret = CALL(validateNormalModeSettings());
         ERROR_CHECK(ret);
@@ -264,15 +254,15 @@ public:
         ret = CALL(writePowerMode());
         ERROR_CHECK(ret);
 
-        ret = CALL(getRegister(BMP3_REG_ERR, &configErrorStatus, 1));
+        ret = CALL(getRegister(BMP3_REG_ERR, rx_buff, 1));
         ERROR_CHECK(ret);
 
-        if (configErrorStatus & BMP3_ERR_CMD) {
+        if (rx_buff[0] & BMP3_ERR_CMD) {
             ret = RET_ERROR;
         }
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     RetType validateNormalModeSettings() {
@@ -280,54 +270,37 @@ public:
 
         RetType ret = CALL(getODRFilterSettings());
         ERROR_CHECK(ret);
-        if (!validateOsrOdr()) return RET_ERROR;
+        if (!validateOsrOdr()) ret = RET_ERROR;
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     RetType writePowerMode() {
         RESUME();
 
-        static uint8_t tempOpMode;
-
-        RetType ret = CALL(getRegister(BMP3_REG_PWR_CTRL, &tempOpMode, 1));
+        RetType ret = CALL(getRegister(BMP3_REG_PWR_CTRL, rx_buff, 1));
         ERROR_CHECK(ret);
 
-        tempOpMode = BMP3_SET_BITS(tempOpMode, BMP3_OP_MODE, settings.op_mode);
-        ret = CALL(setRegister(BMP3_REG_PWR_CTRL, &tempOpMode, 1));
-        ERROR_CHECK(ret);
+        tx_buff[0] = BMP3_SET_BITS(rx_buff[0], BMP3_OP_MODE, settings.op_mode);
+        ret = CALL(setRegister(BMP3_REG_PWR_CTRL, tx_buff, 1));
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
 
     }
 
     RetType getODRFilterSettings() {
         RESUME();
 
-        static uint8_t regData[4];
-        RetType ret = CALL(getRegister(BMP3_REG_OSR, regData, 4));
-        ERROR_CHECK(ret);
-
-        parseODRFilterSettings(regData);
+        RetType ret = CALL(getRegister(BMP3_REG_OSR, rx_buff, 4));
+        if (RET_SUCCESS == ret) {
+            parseODRFilterSettings(rx_buff);
+        }
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
-
-    RetType poll() {
-        return RET_ERROR;
-    }
-
-    RetType obtain() {
-        return RET_ERROR;
-    }
-
-    RetType release() {
-        return RET_ERROR;
-    }
-
 
 private:
     bmp3_dev device = {};
@@ -336,7 +309,7 @@ private:
     I2CDevice *mI2C;
     I2CAddr_t i2cAddr;
     uint8_t tx_buff[10];
-    uint8_t rx_buff[10];
+    uint8_t rx_buff[BMP3_LEN_CALIB_DATA]; // BMP3_LEN_CALIB_DATA is largest size
 
     RetType checkChipID() {
         RESUME();
@@ -393,12 +366,11 @@ private:
 
     RetType getCalibrationData() {
         RESUME();
-        static uint8_t calibrationData[BMP3_LEN_CALIB_DATA] = {};
 
-        RetType ret = CALL(getRegister(BMP3_REG_CALIB_DATA, calibrationData, BMP3_LEN_CALIB_DATA));
+        RetType ret = CALL(getRegister(BMP3_REG_CALIB_DATA, rx_buff, BMP3_LEN_CALIB_DATA));
         ERROR_CHECK(ret);
 
-        parseCalibrationData(calibrationData);
+        parseCalibrationData(rx_buff);
 
         RESET();
         return ret;
@@ -610,20 +582,20 @@ private:
     RetType setPowerControl(uint32_t desiredSettings) {
         RESUME();
 
-        static uint8_t regData = 0;
 
-        RetType ret = CALL(getRegister(BMP3_REG_PWR_CTRL, &regData, 1));
+        RetType ret = CALL(getRegister(BMP3_REG_PWR_CTRL, rx_buff, 1));
         ERROR_CHECK(ret);
 
         if (desiredSettings & BMP3_SEL_PRESS_EN) {
-            regData = BMP3_SET_BITS_POS_0(regData, BMP3_PRESS_EN, this->settings.press_en);
+            rx_buff[0] = BMP3_SET_BITS_POS_0(rx_buff[0], BMP3_PRESS_EN, this->settings.press_en);
         }
 
         if (desiredSettings & BMP3_SEL_TEMP_EN) {
-            regData = BMP3_SET_BITS(regData, BMP3_TEMP_EN, this->settings.temp_en);
+            rx_buff[0] = BMP3_SET_BITS(rx_buff[0], BMP3_TEMP_EN, this->settings.temp_en);
         }
 
-        ret = CALL(setRegister(BMP3_REG_PWR_CTRL, &regData, 1));
+        tx_buff[0] = rx_buff[0];
+        ret = CALL(setRegister(BMP3_REG_PWR_CTRL, tx_buff, 1));
         ERROR_CHECK(ret);
 
         RESET();
@@ -635,24 +607,23 @@ private:
 
         static uint8_t len = 0;
         static uint8_t regAddr[3] = {0};
-        static uint8_t regData[4];
 
-        RetType ret = CALL(getRegister(BMP3_REG_OSR, regData, 4));
+        RetType ret = CALL(getRegister(BMP3_REG_OSR, rx_buff, 4));
         ERROR_CHECK(ret);
 
         // OSR Data
         if (areSettingsChanged((BMP3_SEL_PRESS_OS | BMP3_SEL_TEMP_OS), desiredSettings)) {
-            fillOSRData(desiredSettings, regAddr, regData, &len);
+            fillOSRData(desiredSettings, regAddr, rx_buff, &len);
         }
 
         // ODR Data
         if (areSettingsChanged(BMP3_SEL_ODR, desiredSettings)) {
-            fillOdrData(regAddr, regData, &len);
+            fillOdrData(regAddr, rx_buff, &len);
         }
 
         // Filter Data
         if (areSettingsChanged(BMP3_SEL_IIR_FILTER, desiredSettings)) {
-            fillFilterData(regAddr, regData, &len);
+            fillFilterData(regAddr, rx_buff, &len);
         }
 
         // OSR ODR Validation
@@ -662,7 +633,7 @@ private:
         }
 
         // Burst Write
-        ret = CALL(setRegister(regAddr, regData, len));
+        ret = CALL(setRegister(regAddr, rx_buff, len));
         ERROR_CHECK(ret);
 
         RESET();
@@ -721,30 +692,29 @@ private:
     RetType setIntCtrl(uint32_t desiredSettings) {
         RESUME();
 
-        static uint8_t regData;
 
-        RetType ret = CALL(getRegister(BMP3_REG_INT_CTRL, &regData, 1));
+        RetType ret = CALL(getRegister(BMP3_REG_INT_CTRL, rx_buff, 1));
         ERROR_CHECK(ret);
 
 
         if (desiredSettings & BMP3_SEL_OUTPUT_MODE) {
-            regData = BMP3_SET_BITS_POS_0(regData, BMP3_INT_OUTPUT_MODE, settings.int_settings.output_mode);
+            rx_buff[0] = BMP3_SET_BITS_POS_0(rx_buff[0], BMP3_INT_OUTPUT_MODE, settings.int_settings.output_mode);
         }
 
         if (desiredSettings & BMP3_SEL_LEVEL) {
-            regData = BMP3_SET_BITS(regData, BMP3_INT_LEVEL, settings.int_settings.level);
+            rx_buff[0] = BMP3_SET_BITS(rx_buff[0], BMP3_INT_LEVEL, settings.int_settings.level);
         }
 
         if (desiredSettings & BMP3_SEL_LATCH) {
-            regData = BMP3_SET_BITS(regData, BMP3_INT_LATCH, settings.int_settings.latch);
+            rx_buff[0] = BMP3_SET_BITS(rx_buff[0], BMP3_INT_LATCH, settings.int_settings.latch);
         }
 
         if (desiredSettings & BMP3_SEL_DRDY_EN) {
-            regData = BMP3_SET_BITS(regData, BMP3_INT_DRDY_EN, settings.int_settings.drdy_en);
+            rx_buff[0] = BMP3_SET_BITS(rx_buff[0], BMP3_INT_DRDY_EN, settings.int_settings.drdy_en);
         }
 
-        ret = CALL(setRegister(BMP3_REG_INT_CTRL, &regData, 1));
-        ERROR_CHECK(ret);
+        tx_buff[0] = rx_buff[0];
+        ret = CALL(setRegister(BMP3_REG_INT_CTRL, tx_buff, 1));
 
         RESET();
         return ret;
@@ -754,20 +724,18 @@ private:
     RetType setAdvSettings(uint32_t desiredSettings) {
         RESUME();
 
-        static uint8_t regData = 0;
-
-        RetType ret = CALL(getRegister(BMP3_REG_IF_CONF, &regData, 1));
+        RetType ret = CALL(getRegister(BMP3_REG_IF_CONF, rx_buff, 1));
         ERROR_CHECK(ret);
 
         if (desiredSettings & BMP3_SEL_I2C_WDT_EN) {
-            regData = BMP3_SET_BITS(regData, BMP3_I2C_WDT_EN, settings.adv_settings.i2c_wdt_en);
+            rx_buff[0] = BMP3_SET_BITS(rx_buff[0], BMP3_I2C_WDT_EN, settings.adv_settings.i2c_wdt_en);
         }
 
         if (desiredSettings & BMP3_SEL_I2C_WDT) {
-            regData = BMP3_SET_BITS(regData, BMP3_I2C_WDT_SEL, settings.adv_settings.i2c_wdt_sel);
+            rx_buff[0] = BMP3_SET_BITS(rx_buff[0], BMP3_I2C_WDT_SEL, settings.adv_settings.i2c_wdt_sel);
         }
 
-        ret = CALL(setRegister(BMP3_REG_IF_CONF, &regData, 1));
+        ret = CALL(setRegister(BMP3_REG_IF_CONF, rx_buff, 1));
         ERROR_CHECK(ret);
 
 
