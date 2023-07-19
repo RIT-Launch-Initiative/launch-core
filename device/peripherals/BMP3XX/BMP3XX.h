@@ -23,8 +23,8 @@
 
 using BMP3XX_DATA_T = struct {
     const uint16_t id;
-    double pressure;
-    double temperature;
+    double pressure; // hPa
+    double temperature; // C
 };
 
 class BMP3XX : public Device {
@@ -72,15 +72,14 @@ public:
 
         struct bmp3_uncomp_data uncompensatedData = {0};
         parseSensorData(mBuff, &uncompensatedData);
-        compensateData(&uncompensatedData, &this->device.calib_data);
-
-        *pressure = this->data.pressure;
-        *temperature = this->data.temperature;
-
-        // TODO: Bounds check
+        ret = compensateData(&uncompensatedData, &this->device.calib_data); // Bounds checked here
+        if (RET_SUCCESS == ret) {
+             *pressure = this->data.pressure;
+            *temperature = this->data.temperature;
+        }
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
 
@@ -356,11 +355,10 @@ private:
         ERROR_CHECK(ret);
 
         ret = CALL(setOperatingMode());
-        ERROR_CHECK(ret);
 
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     RetType getCalibrationData() {
@@ -505,14 +503,24 @@ private:
     }
 
 
-    void compensateData(bmp3_uncomp_data *uncompData, bmp3_calib_data *calibrationData) {
-        compensateTemperature(&this->data.temperature, uncompData, calibrationData);
-        compensatePressure(&this->data.pressure, uncompData, calibrationData);
+    RetType compensateData(bmp3_uncomp_data *uncompData, bmp3_calib_data *calibrationData) {
+        RetType tempRet = compensateTemperature(&this->data.temperature, uncompData, calibrationData);
+        RetType pressureRet = compensatePressure(&this->data.pressure, uncompData, calibrationData);
+
+        RetType ret;
+        if (RET_SUCCESS != ret || RET_SUCCESS != pressureRet) {
+            ret = RET_ERROR;
+        } else {
+            ret = RET_SUCCESS;
+        }
+
+        return ret;
     }
 
 
-    void compensatePressure(double *pressure, const struct bmp3_uncomp_data *uncompData,
+    RetType compensatePressure(double *pressure, const struct bmp3_uncomp_data *uncompData,
                             const struct bmp3_calib_data *calibrationData) {
+        RetType ret;
         const struct bmp3_quantized_calib_data *quantizedCalibData = &calibrationData->quantized_calib_data;
 
         double comp_press;
@@ -542,17 +550,19 @@ private:
 
         if (comp_press < BMP3_MIN_PRES_DOUBLE) {
             comp_press = BMP3_MIN_PRES_DOUBLE;
+            ret = RET_ERROR;
         }
 
         if (comp_press > BMP3_MAX_PRES_DOUBLE) {
             comp_press = BMP3_MAX_PRES_DOUBLE;
+            ret = RET_ERROR;
         }
 
         (*pressure) = comp_press;
-
+        return ret;
     }
 
-    void compensateTemperature(double *temperature, const struct bmp3_uncomp_data *uncompData,
+    RetType compensateTemperature(double *temperature, const struct bmp3_uncomp_data *uncompData,
                                struct bmp3_calib_data *calibData) {
         int64_t uncompTemp = uncompData->temperature;
         double tempData1;
@@ -567,15 +577,19 @@ private:
                 tempData2 + (tempData1 * tempData1) * calibData->quantized_calib_data.par_t3;
 
         /* Returns compensated temperature */
+        RetType ret;
         if (calibData->quantized_calib_data.t_lin < BMP3_MIN_TEMP_DOUBLE) {
             calibData->quantized_calib_data.t_lin = BMP3_MIN_TEMP_DOUBLE;
+            ret = RET_ERROR;
         }
 
         if (calibData->quantized_calib_data.t_lin > BMP3_MAX_TEMP_DOUBLE) {
             calibData->quantized_calib_data.t_lin = BMP3_MAX_TEMP_DOUBLE;
+            ret = RET_ERROR;
         }
 
         (*temperature) = calibData->quantized_calib_data.t_lin;
+        return RET_ERROR;
     }
 
     RetType setPowerControl(uint32_t desiredSettings) {
