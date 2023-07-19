@@ -1,7 +1,6 @@
 /**
- * Facade for the BMP3 API that utilizes the scheduler
+ * Platform Independent BMP388/BMP390 Driver
  *
- * TODO: Update remaining functions. Mostly initialization and sensor readings implemented only for now
  * @author Aaron Chan
  */
 
@@ -10,13 +9,12 @@
 #define BMP3XX_DATA_STRUCT(variable_name) BMP3XX_DATA_T variable_name = {.id = 10001, .pressure = 0, .temperature = 0}
 
 #include <math.h>
+#include <string.h>
 
 #include "device/peripherals/BMP3XX/bmp3_defs.h"
 #include "device/I2CDevice.h"
 #include "return.h"
 #include "macros.h"
-#include <memory>
-#include <cstring>
 
 
 #define ERROR_CHECK(ret) {RESET(); return ret;}
@@ -36,15 +34,6 @@ public:
     /*************************************************************************************
      * Main Functionality
      *************************************************************************************/
-    RetType getData(BMP3XX_DATA_T *data) {
-        RESUME();
-        RetType ret = CALL(getPressureAndTemp(&data->pressure, &data->temperature));
-
-        RESET();
-        return ret;
-    }
-
-
     RetType init() override {
         RESUME();
 
@@ -64,6 +53,25 @@ public:
         return ret;
     }
 
+    /**
+     * @brief Wrapper for filling in BMP3XX_DATA_T struct
+     * @param data - Pointer to BMP3XX_DATA_T struct
+     * @return Scheduler Status
+     */
+    RetType getData(BMP3XX_DATA_T *data) {
+        RESUME();
+        RetType ret = CALL(getPressureAndTemp(&data->pressure, &data->temperature));
+
+        RESET();
+        return ret;
+    }
+
+    /**
+     * @brief Retrieves sensor data
+     * @param pressure - Pointer to pressure variable
+     * @param temperature - Pointer to temperature variable
+     * @return Scheduler Status
+     */
     RetType getPressureAndTemp(double *pressure, double *temperature) {
         RESUME();
 
@@ -74,7 +82,7 @@ public:
         parseSensorData(mBuff, &uncompensatedData);
         ret = compensateData(&uncompensatedData, &this->device.calib_data); // Bounds checked here
         if (RET_SUCCESS == ret) {
-             *pressure = this->data.pressure;
+            *pressure = this->data.pressure;
             *temperature = this->data.temperature;
         }
 
@@ -83,28 +91,11 @@ public:
     }
 
 
-    RetType softReset() {
-        RESUME();
-
-        RetType ret = CALL(getRegister(BMP3_REG_SENS_STATUS, mBuff, 1));
-        ERROR_CHECK(ret);
-
-        if ((mBuff[0] & BMP3_CMD_RDY)) {
-            mBuff[0] = BMP3_SOFT_RESET;
-            ret = CALL(setRegister(BMP3_REG_CMD, mBuff, 1));
-            ERROR_CHECK(ret);
-
-            SLEEP(2000);
-            ret = CALL(getRegister(BMP3_REG_ERR, mBuff, 1));
-            ERROR_CHECK(ret);
-
-            if (mBuff[0] & BMP3_REG_CMD) ret = RET_ERROR;
-        }
-
-        RESET();
-        return ret;
-    }
-
+    /**
+     * Get the current status of the device
+     * @param status - Pointer to status struct
+     * @return Scheduler Status
+     */
     RetType getStatus(struct bmp3_status *status) {
         RESUME();
 
@@ -121,6 +112,11 @@ public:
         return ret;
     }
 
+    /**
+     * @brief Get the status of the sensor specifically
+     * @param status - Pointer to status struct
+     * @return Scheduler Status
+     */
     RetType getSensorStatus(struct bmp3_status *status) {
         RESUME();
 
@@ -140,6 +136,11 @@ public:
         return ret;
     }
 
+    /**
+     * @brief Get the interrupt status of the device
+     * @param status - Pointer to status struct
+     * @return Scheduler Status
+     */
     RetType getIntStatus(struct bmp3_status *status) {
         RESUME();
 
@@ -157,6 +158,11 @@ public:
         return ret;
     }
 
+    /**
+     * Get the error status of the device
+     * @param status - Pointer to status struct
+     * @return Scheduler status
+     */
     RetType getErrStatus(struct bmp3_status *status) {
         RESUME();
 
@@ -174,6 +180,12 @@ public:
     /*************************************************************************************
      * Settings
      *************************************************************************************/
+
+    /**
+     * @brief Configure the sensor settings
+     * @param desiredSettings - Desired settings to be configured
+     * @return Scheduler Status
+     */
     RetType setSensorSettings(uint32_t desiredSettings) {
         RESUME();
 
@@ -207,6 +219,10 @@ public:
         return ret;
     }
 
+    /**
+     * @brief Set mode of operation for the sensor
+     * @return Scheduler Status
+     */
     RetType setOperatingMode() {
         RESUME();
 
@@ -230,6 +246,10 @@ public:
         return ret;
     }
 
+    /**
+     * @brief Put the device to sleep mode
+     * @return Scheduler Status
+     */
     RetType sleep() {
         RESUME();
 
@@ -244,6 +264,10 @@ public:
         return ret;
     }
 
+    /**
+     * @brief Put the device into its normal operating mode
+     * @return Scheduler status
+     */
     RetType setNormalMode() {
         RESUME();
 
@@ -256,14 +280,16 @@ public:
         ret = CALL(getRegister(BMP3_REG_ERR, mBuff, 1));
         ERROR_CHECK(ret);
 
-        if (mBuff[0] & BMP3_ERR_CMD) {
-            ret = RET_ERROR;
-        }
+        if (mBuff[0] & BMP3_ERR_CMD) ret = RET_ERROR;
 
         RESET();
         return ret;
     }
 
+    /**
+     * @brief Validate the settings of the device in normal mode
+     * @return Scheduler status
+     */
     RetType validateNormalModeSettings() {
         RESUME();
 
@@ -275,6 +301,10 @@ public:
         return ret;
     }
 
+    /**
+     * @brief Set the power mode of the device
+     * @return Scheduler status
+     */
     RetType writePowerMode() {
         RESUME();
 
@@ -289,6 +319,10 @@ public:
 
     }
 
+    /**
+     * @brief Retrieve the data rate filter settings
+     * @return Scheduler status
+     */
     RetType getODRFilterSettings() {
         RESUME();
 
@@ -309,6 +343,10 @@ private:
     I2CAddr_t i2cAddr;
     uint8_t mBuff[BMP3_LEN_CALIB_DATA]; // BMP3_LEN_CALIB_DATA is largest size
 
+    /**
+     * @brief Check if the chip ID is correct for the BMP388/BMP390
+     * @return Scheduler status
+     */
     RetType checkChipID() {
         RESUME();
 
@@ -323,6 +361,10 @@ private:
     }
 
 
+    /**
+     * Initialize the initial settings for the device for basic operation
+     * @return Scheduler Status
+     */
     RetType initSettings() {
         RESUME();
 
@@ -361,6 +403,36 @@ private:
         return ret;
     }
 
+    /**
+     * @brief Soft reset the BMP sensor
+     * @return
+     */
+    RetType softReset() {
+        RESUME();
+
+        RetType ret = CALL(getRegister(BMP3_REG_SENS_STATUS, mBuff, 1));
+        ERROR_CHECK(ret);
+
+        if ((mBuff[0] & BMP3_CMD_RDY)) {
+            mBuff[0] = BMP3_SOFT_RESET;
+            ret = CALL(setRegister(BMP3_REG_CMD, mBuff, 1));
+            ERROR_CHECK(ret);
+
+            SLEEP(2000);
+            ret = CALL(getRegister(BMP3_REG_ERR, mBuff, 1));
+            ERROR_CHECK(ret);
+
+            if (mBuff[0] & BMP3_REG_CMD) ret = RET_ERROR;
+        }
+
+        RESET();
+        return ret;
+    }
+
+    /**
+     * @brief Get the calibration values for sensor data
+     * @return Scheduler status
+     */
     RetType getCalibrationData() {
         RESUME();
 
@@ -373,6 +445,13 @@ private:
         return ret;
     }
 
+    /**
+     * Set a single register in the device
+     * @param regAddress - Address of the register to set
+     * @param regData - Data to write to the register
+     * @param len - Length of the data to write
+     * @return
+     */
     RetType setRegister(uint8_t regAddress, uint8_t *regData, uint32_t len) {
         RESUME();
 
@@ -387,6 +466,13 @@ private:
     }
 
 
+    /**
+     * @brief Set multiple registers in the device
+     * @param regAddress - Address of the first register to set
+     * @param regData - Data to write to the registers
+     * @param len - Length of the data to write
+     * @return scheduler status
+     */
     RetType setRegister(uint8_t const *regAddress, const uint8_t *regData, uint32_t len) {
         RESUME();
 
@@ -410,6 +496,13 @@ private:
         return ret;
     }
 
+    /**
+     * @brief Helper function to interleave the register addresses and data
+     * @param regAddr - Array of register addresses
+     * @param buff - Buffer to write interleaved data to
+     * @param regData - Array of data to interleave
+     * @param len - Length of the data to interleave
+     */
     void interleaveRegAddr(const uint8_t *regAddr, uint8_t *buff, const uint8_t *regData, uint32_t len) {
         uint32_t index;
 
@@ -419,7 +512,13 @@ private:
         }
     }
 
-
+    /**
+     * @brief Get data from register(s) from the device
+     * @param regAddress - Address of the first register to get
+     * @param regData - Buffer to store the data from the registers
+     * @param len - Length of the data to get
+     * @return Scheduler status
+     */
     RetType getRegister(uint8_t regAddress, uint8_t *regData, uint32_t len) {
         RESUME();
         this->i2cAddr.mem_addr = regAddress;
@@ -431,6 +530,10 @@ private:
         return ret;
     }
 
+    /**
+     * @brief Parses the calibration data from the device's registers
+     * @param calibrationData - Buffer containing the calibration data
+     */
     void parseCalibrationData(uint8_t *calibrationData) {
         struct bmp3_reg_calib_data *reg_calib_data = &this->device.calib_data.reg_calib_data;
         struct bmp3_quantized_calib_data *quantized_calib_data = &this->device.calib_data.quantized_calib_data;
@@ -503,6 +606,12 @@ private:
     }
 
 
+    /**
+     * @brief Compensates the raw pressure data and returns the compensated pressure data
+     * @param uncompData - Contains the uncompensated pressure data
+     * @param calibrationData - Pointer to the calibration data structure
+     * @return Data received is good or not
+     */
     RetType compensateData(bmp3_uncomp_data *uncompData, bmp3_calib_data *calibrationData) {
         RetType tempRet = compensateTemperature(&this->data.temperature, uncompData, calibrationData);
         RetType pressureRet = compensatePressure(&this->data.pressure, uncompData, calibrationData);
@@ -518,9 +627,16 @@ private:
     }
 
 
+    /**
+     * Compensates pressure data based on calibration data
+     * @param pressure - Pointer to the variable which stores the pressure data
+     * @param uncompData - Contains the uncompensated pressure data
+     * @param calibrationData - Pointer to the calibration data structure
+     * @return Data received is good or not
+     */
     RetType compensatePressure(double *pressure, const struct bmp3_uncomp_data *uncompData,
-                            const struct bmp3_calib_data *calibrationData) {
-        RetType ret;
+                               const struct bmp3_calib_data *calibrationData) {
+        RetType ret = RET_SUCCESS;
         const struct bmp3_quantized_calib_data *quantizedCalibData = &calibrationData->quantized_calib_data;
 
         double comp_press;
@@ -562,8 +678,15 @@ private:
         return ret;
     }
 
+    /**
+     * Compensates temperature data based on calibration data
+     * @param temperature - Pointer to the variable which stores the temperature data
+     * @param uncompData - Contains the uncompensated temperature data
+     * @param calibrationData - Pointer to the calibration data structure
+     * @return Data received is good or not
+     */
     RetType compensateTemperature(double *temperature, const struct bmp3_uncomp_data *uncompData,
-                               struct bmp3_calib_data *calibData) {
+                                  struct bmp3_calib_data *calibData) {
         int64_t uncompTemp = uncompData->temperature;
         double tempData1;
         double tempData2;
@@ -592,6 +715,11 @@ private:
         return RET_ERROR;
     }
 
+    /**
+     * Toggles pressure and temperature measurement
+     * @param desiredSettings - Variable used to select the settings which are to be set in the sensor
+     * @return Scheduler status
+     */
     RetType setPowerControl(uint32_t desiredSettings) {
         RESUME();
 
@@ -614,6 +742,11 @@ private:
         return ret;
     }
 
+    /**
+     * Sets the over sampling, odr and filter settings in the sensor
+     * @param desiredSettings - Variable used to select the settings which are to be set in the sensor
+     * @return Scheduler status
+     */
     RetType setODRFilter(uint32_t desiredSettings) {
         RESUME();
 
@@ -652,6 +785,13 @@ private:
         return ret;
     }
 
+    /**
+     * Fills buffer with over sampling register data
+     * @param desiredSettings - Variable used to select the settings which are to be set in the sensor
+     * @param addr -
+     * @param regData -
+     * @param len
+     */
     void fillOSRData(uint32_t desiredSettings, uint8_t *addr, uint8_t *regData, uint8_t *len) {
         if (desiredSettings & (BMP3_SEL_PRESS_OS | BMP3_SEL_TEMP_OS)) {
             /* Pressure over sampling settings check */
@@ -675,6 +815,12 @@ private:
         }
     }
 
+    /**
+     * Fills buffer with output data rate register data
+     * @param addr
+     * @param regData
+     * @param len
+     */
     void fillOdrData(uint8_t *addr, uint8_t *regData, uint8_t *len) {
         /* Limit the ODR to 0.001525879 Hz*/
         if (settings.odr_filter.odr > BMP3_ODR_0_001_HZ) {
@@ -691,6 +837,12 @@ private:
     }
 
 
+    /**
+     * Fills buffer with filter data
+     * @param addr
+     * @param regData
+     * @param len
+     */
     void fillFilterData(uint8_t *addr, uint8_t *regData, uint8_t *len) {
 
         /* Set the iir settings in the register variable */
@@ -701,6 +853,11 @@ private:
         (*len)++;
     }
 
+    /**
+     * Sets the interrupt control settings of the device
+     * @param desiredSettings - Variable used to select the settings which are to be set in the sensor
+     * @return Scheduler status
+     */
     RetType setIntCtrl(uint32_t desiredSettings) {
         RESUME();
 
@@ -731,7 +888,11 @@ private:
         return ret;
     }
 
-
+    /**
+     * Sets advanced settings such as i2c watchdog timeout enable and i2c watchdog timeout select
+     * @param desiredSettings - Variable used to select the settings which are to be set in the sensor
+     * @return Scheduler status
+     */
     RetType setAdvSettings(uint32_t desiredSettings) {
         RESUME();
 
@@ -754,6 +915,11 @@ private:
         return ret;
     }
 
+    /**
+     * Get the current power mode of the sensor
+     * @param opMode - Variable used to store the power mode
+     * @return Scheduler status
+     */
     RetType getOperatingMode(uint8_t *opMode) {
         RESUME();
 
@@ -777,6 +943,12 @@ private:
         return pow_output;
     }
 
+    /**
+     * Check if settings are changed
+     * @param subSettings - Old settings
+     * @param desiredSettings - New settings
+     * @return Whether settings were changed
+     */
     bool areSettingsChanged(uint32_t subSettings, uint32_t desiredSettings) {
         if ((subSettings & desiredSettings)) {
             return true;
@@ -785,6 +957,10 @@ private:
         }
     }
 
+    /**
+     * Calculate the pressure measurement duration
+     * @return
+     */
     uint32_t calculatePressMeasTime() {
 #ifdef BMP3_FLOAT_COMPENSATION
         double base = 2.0;
@@ -797,6 +973,10 @@ private:
         return static_cast<uint32_t>(BMP3_SETTLE_TIME_PRESS + partialOut * BMP3_ADC_CONV_TIME);
     }
 
+    /**
+     * Calculate the temperature measurement duration
+     * @return
+     */
     uint32_t calculateTempMeasTime() {
 #ifdef BMP3_FLOAT_COMPENSATION
         double base = 2.0;
@@ -835,6 +1015,11 @@ private:
         return measT < odr[settings.odr_filter.odr];
     }
 
+    /**
+     * Parses raw sensor data
+     * @param reg_data
+     * @param uncomp_data
+     */
     void parseSensorData(const uint8_t *reg_data, struct bmp3_uncomp_data *uncomp_data) {
         uint32_t data_xlsb;
         uint32_t data_lsb;
@@ -851,6 +1036,10 @@ private:
         uncomp_data->temperature = data_msb | data_lsb | data_xlsb;
     }
 
+    /**
+     * Parse settings data
+     * @param reg_data
+     */
     void parseSettings(const uint8_t *reg_data) {
         parseIntCtrlSettings(&reg_data[0]);
         parseAdvancedSettings(&reg_data[1]);
@@ -858,6 +1047,10 @@ private:
         parseODRFilterSettings(&reg_data[3]);
     }
 
+    /**
+     * Parse interrupt control settings
+     * @param reg_data
+     */
     void parseIntCtrlSettings(const uint8_t *reg_data) {
         settings.int_settings.output_mode = BMP3_GET_BITS_POS_0(*reg_data, BMP3_INT_OUTPUT_MODE);
         settings.int_settings.level = BMP3_GET_BITS(*reg_data, BMP3_INT_LEVEL);
@@ -865,17 +1058,29 @@ private:
         settings.int_settings.drdy_en = BMP3_GET_BITS(*reg_data, BMP3_INT_DRDY_EN);
     }
 
+    /**
+     * Parse advanced settings
+     * @param reg_data
+     */
     void parseAdvancedSettings(const uint8_t *reg_data) {
         settings.adv_settings.i2c_wdt_en = BMP3_GET_BITS(*reg_data, BMP3_I2C_WDT_EN);
         settings.adv_settings.i2c_wdt_sel = BMP3_GET_BITS(*reg_data, BMP3_I2C_WDT_SEL);
     }
 
+    /**
+     * Parse power control settings
+     * @param reg_data
+     */
     void parsePowerCtrlSettings(const uint8_t *reg_data) {
         settings.op_mode = BMP3_GET_BITS(*reg_data, BMP3_OP_MODE);
         settings.press_en = BMP3_GET_BITS_POS_0(*reg_data, BMP3_PRESS_EN);
         settings.temp_en = BMP3_GET_BITS(*reg_data, BMP3_TEMP_EN);
     }
 
+    /**
+     * Parse ODR and filter settings
+     * @param reg_data
+     */
     void parseODRFilterSettings(const uint8_t *regData) {
         uint8_t index = 0;
 
