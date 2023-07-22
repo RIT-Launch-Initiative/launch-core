@@ -1,5 +1,5 @@
 /**
- * LIS3MDL sensor driver integrated with launch-core scheduler
+ * LIS3MDL Platform Independent Driver
  *
  * @author Aaron Chan
  */
@@ -8,11 +8,9 @@
 #define LAUNCH_CORE_LIS3MDL_H
 #define LIS3MDL_DATA_STRUCT(variable_name) LIS3MDL_DATA_T variable_name = {.id = 15000, .x_mag = 0, .y_mag = 0, .z_mag = 0, .temperature = 0}
 
-#include "device/I2CDevice.h"
-#include "sched/macros/resume.h"
-#include "sched/macros/reset.h"
 #include "lis3mdl_reg.h"
-#include "sched/macros/call.h"
+#include "device/I2CDevice.h"
+#include "sched/macros.h"
 
 
 using LIS3MDL_DATA_T = struct {
