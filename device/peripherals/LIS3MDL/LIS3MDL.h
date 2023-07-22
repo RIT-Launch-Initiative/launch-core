@@ -213,15 +213,17 @@ public:
      * @param val Modify the value of the FS field in the CTRL_REG2 register
      * @return
      */
-    RetType setFullScale(lis3mdl_fs_t val) {
+    RetType setFullScale(uint8_t val) {
         RESUME();
 
         static lis3mdl_ctrl_reg2_t ctrlReg2;
 
         RetType ret = CALL(readReg(LIS3MDL_CTRL_REG2, reinterpret_cast<uint8_t *>(&ctrlReg2), 1));
         ERROR_CHECK(ret);
+        if (LIS3MDL_4_GAUSS == val || LIS3MDL_8_GAUSS == val || LIS3MDL_12_GAUSS == val || LIS3MDL_16_GAUSS == val) {
+            ctrlReg2.fs = val;
+        }
 
-        ctrlReg2.fs = val;
         ret = CALL(writeReg(LIS3MDL_CTRL_REG2, reinterpret_cast<uint8_t *>(&ctrlReg2), 1));
 
         RESET();
@@ -306,7 +308,7 @@ public:
      * @param val
      * @return
      */
-    RetType reset(uint8_t val) {
+    RetType reset() {
         RESUME();
         static lis3mdl_ctrl_reg2_t ctrlReg2;
 
@@ -316,7 +318,7 @@ public:
         return ret;
     }
 
-    RetType reboot(uint8_t val) {
+    RetType reboot() {
         RESUME();
         static lis3mdl_ctrl_reg2_t ctrlReg2;
 
@@ -389,21 +391,26 @@ public:
     RetType enableInterrupt(uint8_t val) {
         RESUME();
 
-        RetType ret = CALL(writeReg(LIS3MDL_INT_CFG, &val, 1));
+        RetType ret = RET_ERROR;
+        if (LIS3MDL_ACTIVE_HIGH == val || LIS3MDL_ACTIVE_LOW == val) {
+            ret = CALL(writeReg(LIS3MDL_INT_CFG, &val, 1));
+        }
 
         RESET();
         return ret;
     }
 
-    RetType setInterruptNotifications(lis3mdl_lir_t *val) {
+    RetType setInterruptNotifications(uint8_t val) {
         RESUME();
 
-        RetType ret = CALL(writeReg(LIS3MDL_INT_SRC, reinterpret_cast<uint8_t *>(val), 1));
+        RetType ret = RET_ERROR;
+        if (LIS3MDL_INT_LATCHED == val || LIS3MDL_INT_PULSED == val) {
+            ret = CALL(writeReg(LIS3MDL_INT_SRC, &val, 1));
+        }
 
         RESET();
         return ret;
     }
-
 
     /**
      * Set the polarity of the INT pin
@@ -411,10 +418,10 @@ public:
      * @param val 1 = active high   0 = active low
      * @return
      */
-    RetType setInterruptPolarity(lis3mdl_iea_t val) {
+    RetType setInterruptPolarity(uint8_t val) {
         RESUME();
 
-        RetType ret = CALL(writeReg(LIS3MDL_INT_CFG, reinterpret_cast<uint8_t *>(&val), 1));
+        RetType ret = CALL(writeReg(LIS3MDL_INT_CFG, &val, 1));
 
         RESET();
         return ret;
