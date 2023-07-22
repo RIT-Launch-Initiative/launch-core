@@ -52,6 +52,15 @@ public:
         return RET_SUCCESS;
     }
 
+    RetType getData(LIS3MDL_DATA_T *data) {
+        RESUME();
+
+        RetType ret = CALL(pullSensorData(&data->x_mag, &data->y_mag, &data->z_mag, &data->temperature));
+
+        RESET();
+        return ret;
+    }
+
     /**
      * Gets the calculated sensor data
      *

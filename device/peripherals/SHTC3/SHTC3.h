@@ -103,6 +103,15 @@ public:
         return RET_SUCCESS;
     }
 
+    RetType getData(SHTC3_DATA_T *data) {
+        RESUME();
+
+        RetType ret = CALL(getHumidityAndTemp(&data->temperature, &data->humidity));
+
+        RESET();
+        return ret;
+    }
+
     /**
      * @brief Get the Humidity And Temp from the sensor
      *

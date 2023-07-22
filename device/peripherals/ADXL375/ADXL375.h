@@ -123,6 +123,15 @@ public:
         return RET_SUCCESS;
     }
 
+    RetType getData(ADXL375_DATA_T *data) {
+        RESUME();
+
+        RetType ret = CALL(readXYZ(&data->x_accel, &data->y_accel, &data->z_accel));
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
     RetType readXYZ(int16_t *xAxis, int16_t *yAxis, int16_t *zAxis) {
         RESUME();
 

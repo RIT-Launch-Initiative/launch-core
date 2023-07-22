@@ -100,6 +100,16 @@ public:
         return 153.84615 * (pow(pressure / 1013.25f, 0.1903f) - 1) * (temp + 273.15);
     }
 
+    RetType getData(MS5607_DATA_T *data) {
+        RESUME();
+
+        RetType ret = CALL(getPressureTemp(&data->pressure, &data->temperature));
+
+        RESET();
+
+        return ret;
+    }
+
     RetType getPressureTemp(float *pressure, float *temp) {
         RESUME();
 

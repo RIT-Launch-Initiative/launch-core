@@ -129,6 +129,21 @@ public:
         return RET_SUCCESS;
     }
 
+    RetType getData(LSM6DSL_DATA_T *data) {
+        RESUME();
+
+        RetType ret = CALL(getAccelAxesMS2(&data->x_accel, &data->y_accel, &data->z_accel));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
+
+        ret = CALL(getGyroAxes(&data->x_gyro, &data->y_gyro, &data->z_gyro));
+
+        RESET();
+        return ret;
+    }
+
     /**********************************************************
      * Acceleration Functions
      **********************************************************/
