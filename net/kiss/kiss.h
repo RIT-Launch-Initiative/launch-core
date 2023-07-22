@@ -11,7 +11,6 @@
 #include <stdint.h>
 #include "net/packet/Packet.h"
 #include "return.h"
-#include <cstdio>
 
 
 namespace kiss {
@@ -40,16 +39,16 @@ namespace kiss {
     const uint8_t HEADER_SIZE = sizeof(KISS_HEADER_T);
     const size_t MIN_PACKET_SIZE = 1024;
 
-template <const size_t PACKET_SIZE = MIN_PACKET_SIZE - HEADER_SIZE, const size_t PACKET_HEADER_SIZE = HEADER_SIZE>
-class KISSFrame {
+template <const size_t PACKET_SIZE = MIN_PACKET_SIZE - HEADER_SIZE>
+class KISSFrame : public ::Packet {
 public:
-    KISSFrame() {
-        m_header = m_packet.allocate_header<KISS_HEADER_T>();
+    KISSFrame() : ::Packet(m_internal_buff, PACKET_SIZE, HEADER_SIZE) {
+        m_header = allocate_header<KISS_HEADER_T>();
         m_header->begin = FRAME_END;
         m_header->port_and_command = 0x00;
 
         uint8_t end = FRAME_END;
-        m_packet.push(&end, 1);
+        push(&end, 1);
     };
 
     /**
@@ -58,28 +57,30 @@ public:
      * @param len - size of buffer
      * @return RetType - Success of operation
      */
-    RetType push(uint8_t* buff, size_t len) {
+    RetType push_data(uint8_t* buff, size_t len) {
         if (RET_SUCCESS != erase_frame_end()) return RET_ERROR;
+        if (len > capacity()) return RET_ERROR;
         uint8_t special = FRAME_ESC;
 
         for (size_t i = 0; i < len; i++) {
             if (FRAME_END == buff[i]) {
                 special = FRAME_ESC;
-                if (RET_SUCCESS != m_packet.push(&special, 1)) return RET_ERROR;
+                if (RET_SUCCESS != push(&special, 1)) return RET_ERROR;
             } else if (TRANS_FRAME_END == buff[i]) {
                 special = TRANS_FRAME_ESC;
-                if (RET_SUCCESS != m_packet.push(&special, 1)) return RET_ERROR;
+                if (RET_SUCCESS != push(&special, 1)) return RET_ERROR;
             } else if (TRANS_FRAME_ESC == buff[i] && TRANS_FRAME_ESC == buff[i - 1]) {
                 return RET_ERROR; // Protocol Violation or Aborted Transmission Signal
             }
 
-            if (RET_SUCCESS != m_packet.push(&buff[i], 1)) { // TODO: weird segfault. Just allocate a big enough buffer for now
+            if (RET_SUCCESS != push(&buff[i], 1)) { // TODO: weird segfault. Just allocate a big enough buffer for now
                 return RET_ERROR;
             }
         }
 
         special = FRAME_END;
-        return m_packet.push(&special, 1);
+
+        return push(&special, 1);
     }
 
     /**
@@ -107,13 +108,9 @@ public:
         m_header->port_and_command = port << 4 | command;
     }
 
-    [[nodiscard]] uint8_t *raw() {
-        return m_packet.raw();
-    }
-
 private:
     KISS_HEADER_T* m_header;
-    Packet m_packet = alloc::Packet<PACKET_SIZE, PACKET_HEADER_SIZE>();
+    uint8_t m_internal_buff[PACKET_SIZE];
 
     /**
      * @brief Checks if last byte in m_packet is FRAME_END and erases it if it is
@@ -121,10 +118,9 @@ private:
      * @return RetType - Success of operation
      */
     RetType erase_frame_end() {
-        uint8_t *write_ptr = m_packet.write_ptr<uint8_t>();
 
-        if (FRAME_END == *(write_ptr - 1)) {
-            return m_packet.erase(1);
+        if (FRAME_END == *(write_ptr<uint8_t>() - 1)) {
+            return erase(1);
         }
 
         return RET_SUCCESS;
