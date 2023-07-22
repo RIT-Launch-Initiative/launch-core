@@ -30,17 +30,21 @@ enum LIS3MDL_I2C_ADDR {
 
 class LIS3MDL : public Device {
 public:
-    LIS3MDL(I2CDevice &i2cDevice, const uint16_t address = LIS3MDL_I2C_ADDR_PRIMARY, const char *name = "LIS3MDL") : Device(name), mI2C(&i2cDevice), i2cAddr({.dev_addr = static_cast<uint16_t>(address << 1), .mem_addr = 0, .mem_addr_size = 1}) {}
+    LIS3MDL(I2CDevice &i2cDevice, const uint16_t address = LIS3MDL_I2C_ADDR_PRIMARY, const char *name = "LIS3MDL")
+            : Device(name), mI2C(&i2cDevice),
+              i2cAddr({.dev_addr = static_cast<uint16_t>(address << 1), .mem_addr = 0, .mem_addr_size = 1}) {}
+
     RetType init() override {
         RESUME();
 
         static uint8_t whoAmI = 0;
         RetType ret = CALL(readReg(LIS3MDL_WHO_AM_I, &whoAmI, 1, 50));
         if (LIS3MDL_ID != whoAmI) ret = RET_ERROR;
-        ERROR_CHECK(ret);
 
-        ret = CALL(initSettings());
-        
+        if (RET_SUCCESS == ret) {
+            ret = CALL(initSettings());
+        }
+
         RESET();
         return ret;
     }
@@ -70,14 +74,14 @@ public:
         static int16_t rawTemp;
 
         RetType ret = CALL(getRawMagnetic(rawMagneticData));
-        ERROR_CHECK(ret);
+        if (RET_SUCCESS == ret) {
+            *magX = fs16ToGauss(rawMagneticData[0]);
+            *magY = fs16ToGauss(rawMagneticData[1]);
+            *magZ = fs16ToGauss(rawMagneticData[2]);
 
-        *magX = fs16ToGauss(rawMagneticData[0]);
-        *magY = fs16ToGauss(rawMagneticData[1]);
-        *magZ = fs16ToGauss(rawMagneticData[2]);
-
-        ret = CALL(getRawTemp(&rawTemp));
-        *temp = lsbToCelsius(rawTemp);
+            ret = CALL(getRawTemp(&rawTemp));
+            *temp = lsbToCelsius(rawTemp);
+        }
 
         RESET();
         return ret;
@@ -88,16 +92,14 @@ public:
 
         static uint8_t buff[6];
         RetType ret = CALL(readReg(LIS3MDL_OUT_X_L, buff, 6));
-        ERROR_CHECK(ret);
-
-        // TODO: Below calculations cause a hardfault
-        val[0] = (int16_t) buff[1];
-        val[0] = (val[0] * 256) + (int16_t) buff[0];
-        val[1] = (int16_t) buff[3];
-        val[1] = (val[1] * 256) + (int16_t) buff[2];
-        val[2] = (int16_t) buff[5];
-        val[2] = (val[2] * 256) + (int16_t) buff[4];
-
+        if (RET_SUCCESS != ret) {
+            val[0] = (int16_t) buff[1];
+            val[0] = (val[0] * 256) + (int16_t) buff[0];
+            val[1] = (int16_t) buff[3];
+            val[1] = (val[1] * 256) + (int16_t) buff[2];
+            val[2] = (int16_t) buff[5];
+            val[2] = (val[2] * 256) + (int16_t) buff[4];
+        }
         RESET();
         return RET_SUCCESS;
     }
@@ -107,13 +109,14 @@ public:
 
         static uint8_t data[2];
         RetType ret = CALL(readReg(LIS3MDL_TEMP_OUT_L, (uint8_t *) data, 2));
-        ERROR_CHECK(ret);
+        if (RET_SUCCESS == ret) {
+            *val = (int16_t) data[1];
+            *val = (*val * 256) + (int16_t) data[0];
+        }
 
-        *val = (int16_t) data[1];
-        *val = (*val * 256) + (int16_t) data[0];
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     RetType readReg(uint8_t reg, uint8_t *data, uint16_t len, uint32_t timeout = 0) {
@@ -169,18 +172,18 @@ public:
         static lis3mdl_ctrl_reg1_t ctrlReg1;
         static lis3mdl_ctrl_reg4_t ctrlReg4;
 
-        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG1, (uint8_t *) &ctrlReg1, 1));
+        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG1, (uint8_t * ) & ctrlReg1, 1));
         ERROR_CHECK(ret);
 
         ctrlReg1.om = val;
-        ret = CALL(readReg(LIS3MDL_CTRL_REG4, (uint8_t *) &ctrlReg4, 1));
+        ret = CALL(readReg(LIS3MDL_CTRL_REG4, (uint8_t * ) & ctrlReg4, 1));
         ERROR_CHECK(ret);
 
-        ret = CALL(writeReg(LIS3MDL_CTRL_REG1, (uint8_t *) &ctrlReg1, 1));
+        ret = CALL(writeReg(LIS3MDL_CTRL_REG1, (uint8_t * ) & ctrlReg1, 1));
         ERROR_CHECK(ret);
 
         ctrlReg4.omz = val;
-        ret = CALL(writeReg(LIS3MDL_CTRL_REG4, (uint8_t *) &ctrlReg4, 1));
+        ret = CALL(writeReg(LIS3MDL_CTRL_REG4, (uint8_t * ) & ctrlReg4, 1));
 
         RESET();
         return ret;
@@ -431,11 +434,7 @@ public:
 
 private:
     I2CDevice *mI2C;
-    I2CAddr_t i2cAddr = {
-            .dev_addr = 0x1C << 1,
-            .mem_addr = 0x00,
-            .mem_addr_size = sizeof(uint8_t),
-    };
+    I2CAddr_t i2cAddr;
 
     RetType initSettings() {
         RESUME();
