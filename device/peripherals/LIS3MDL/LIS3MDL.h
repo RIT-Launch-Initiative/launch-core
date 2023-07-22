@@ -35,9 +35,8 @@ public:
     RetType init() override {
         RESUME();
 
-        static uint8_t whoAmI = 0;
-        RetType ret = CALL(readReg(LIS3MDL_WHO_AM_I, &whoAmI, 1, 50));
-        if (LIS3MDL_ID != whoAmI) ret = RET_ERROR;
+        RetType ret = CALL(readReg(LIS3MDL_WHO_AM_I, m_buff, 1, 50));
+        if (LIS3MDL_ID != m_buff[0]) ret = RET_ERROR;
 
         if (RET_SUCCESS == ret) {
             ret = CALL(initSettings());
@@ -68,49 +67,35 @@ public:
     RetType pullSensorData(float *magX, float *magY, float *magZ, float *temp) {
         RESUME();
 
-        static int16_t rawMagneticData[3];
-        static int16_t rawTemp;
-
-        RetType ret = CALL(getRawMagnetic(rawMagneticData));
+        RetType ret = CALL(getRawMagnetic(m_buff));
         if (RET_SUCCESS == ret) {
-            *magX = fs16ToGauss(rawMagneticData[0]);
-            *magY = fs16ToGauss(rawMagneticData[1]);
-            *magZ = fs16ToGauss(rawMagneticData[2]);
+            *magX = fs16ToGauss((m_buff[1] << 8) | (int16_t) m_buff[0]);
+            *magY = fs16ToGauss(m_buff[3] << 8) | (int16_t) m_buff[2]);
+            *magZ = fs16ToGauss((m_buff[5] << 8) | (int16_t) m_buff[4]);
+        }
 
-            ret = CALL(getRawTemp(&rawTemp));
-            *temp = lsbToCelsius(rawTemp);
+        ret = CALL(getRawTemp(m_buff));
+        if (RET_SUCCESS == ret) {
+            *temp = lsbToCelsius((m_buff[1] << 8) + (int16_t) m_buff[0]);
         }
 
         RESET();
         return ret;
     }
 
-    RetType getRawMagnetic(int16_t *val) {
+    RetType getRawMagnetic(uint8_t *val) {
         RESUME();
 
-        static uint8_t buff[6];
-        RetType ret = CALL(readReg(LIS3MDL_OUT_X_L, buff, 6));
-        if (RET_SUCCESS != ret) {
-            val[0] = (int16_t) buff[1];
-            val[0] = (val[0] * 256) + (int16_t) buff[0];
-            val[1] = (int16_t) buff[3];
-            val[1] = (val[1] * 256) + (int16_t) buff[2];
-            val[2] = (int16_t) buff[5];
-            val[2] = (val[2] * 256) + (int16_t) buff[4];
-        }
+        RetType ret = CALL(readReg(LIS3MDL_OUT_X_L, m_buff, 6));
+
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
-    RetType getRawTemp(int16_t *val) {
+    RetType getRawTemp(uint8_t *val) {
         RESUME();
 
-        static uint8_t data[2];
-        RetType ret = CALL(readReg(LIS3MDL_TEMP_OUT_L, (uint8_t *) data, 2));
-        if (RET_SUCCESS == ret) {
-            *val = (int16_t) data[1];
-            *val = (*val * 256) + (int16_t) data[0];
-        }
+        RetType ret = CALL(readReg(LIS3MDL_TEMP_OUT_L, m_buff, 2));
 
 
         RESET();
@@ -137,27 +122,6 @@ public:
         RESET();
         return ret;
     };
-
-
-    float fs4ToGauss(int16_t lsb) {
-        return lsb / 6842.0f;
-    }
-
-    float fs8ToGauss(int16_t lsb) {
-        return lsb / 3421.0f;
-    }
-
-    float fs12ToGauss(int16_t lsb) {
-        return lsb / 2281.0f;
-    }
-
-    float fs16ToGauss(int16_t lsb) {
-        return lsb / 1711.0f;
-    }
-
-    float lsbToCelsius(int16_t lsb) {
-        return (lsb / 8.0f) + 25.0f;
-    }
 
     /**
      * Sets the output data rate
@@ -195,13 +159,14 @@ public:
     RetType setTempMeas(uint8_t val) {
         RESUME();
 
-        static lis3mdl_ctrl_reg1_t ctrlReg1;
 
-        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG1, reinterpret_cast<uint8_t *>(&ctrlReg1), 1));
+        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG1, m_buff, 1));
         ERROR_CHECK(ret);
 
+        lis3mdl_ctrl_reg1_t ctrlReg1 = reinterpret_cast<lis3mdl_ctrl_reg1_t>(m_buff);
         ctrlReg1.temp_en = val;
-        ret = CALL(writeReg(LIS3MDL_CTRL_REG1, reinterpret_cast<uint8_t *>(&ctrlReg1), 1));
+        m_buff = reinterpret_cast<uint8_t *>(&ctrlReg1);
+        ret = CALL(writeReg(LIS3MDL_CTRL_REG1, m_buff, 1));
 
         RESET();
         return ret;
@@ -440,6 +405,8 @@ public:
 private:
     I2CDevice *mI2C;
     I2CAddr_t i2cAddr;
+    uint8_t m_buff[10];
+    int16_t m_buff16[5];
 
     RetType initSettings() {
         RESUME();
@@ -468,6 +435,26 @@ private:
 
         RESET();
         return ret;
+    }
+
+    float fs4ToGauss(int16_t lsb) {
+        return lsb / 6842.0f;
+    }
+
+    float fs8ToGauss(int16_t lsb) {
+        return lsb / 3421.0f;
+    }
+
+    float fs12ToGauss(int16_t lsb) {
+        return lsb / 2281.0f;
+    }
+
+    float fs16ToGauss(int16_t lsb) {
+        return lsb / 1711.0f;
+    }
+
+    float lsbToCelsius(int16_t lsb) {
+        return (lsb / 8.0f) + 25.0f;
     }
 
 
