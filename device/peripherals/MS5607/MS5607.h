@@ -90,10 +90,6 @@ public:
         return ret;
     }
 
-    float getAltitude(float pressure, float temp) {
-        return 153.84615 * (pow(pressure / 1013.25f, 0.1903f) - 1) * (temp + 273.15);
-    }
-
     RetType getData(MS5607_DATA_T *data) {
         RESUME();
 
@@ -110,17 +106,12 @@ public:
         static uint32_t pressureVal;
         static uint32_t tempVal;
 
-        RetType ret = CALL(conversion(true));
+        RetType ret = CALL(readDigitalPressure(&pressureVal));
         ERROR_CHECK(ret);
 
-        ret = CALL(startMeasAndGetVal(&pressureVal));
+        ret = CALL(readDigitalTemperature(&tempVal));
         ERROR_CHECK(ret);
 
-        ret = CALL(conversion(false));
-        ERROR_CHECK(ret);
-
-        ret = CALL(startMeasAndGetVal(&tempVal));
-        ERROR_CHECK(ret);
 
         int32_t dT;
 
@@ -135,13 +126,39 @@ public:
         return RET_SUCCESS;
     }
 
+    RetType readDigitalPressure(uint32_t *digitalPressure) {
+        RESUME();
+
+        RetType ret = CALL(conversion(true));
+        if (RET_SUCCESS == ret) {
+            ret = CALL(readADC(digitalPressure));
+        }
+
+        RESET();
+        return ret;
+    }
+
+
+
+    RetType readDigitalTemperature(uint32_t *digitalTemperature) {
+        RESUME();
+
+        RetType ret = CALL(conversion(false));
+        if (RET_SUCCESS == ret) {
+            ret = CALL(readADC(digitalTemperature));
+        }
+
+        RESET();
+        return ret;
+    }
+
+
+
     RetType reset() {
         RESUME();
 
-        static uint8_t rst_cmd = RESET_COMMAND;
-
-        RetType ret = CALL(mI2C->transmit(mAddr, &rst_cmd, 1, 3000));
-        ERROR_CHECK(ret);
+        m_buff[0] = RESET_COMMAND;
+        RetType ret = CALL(mI2C->transmit(mAddr, m_buff, 1, 3000));
 
         RESET();
         return ret;
@@ -219,71 +236,22 @@ private:
     RetType conversion(const bool isD1) {
         RESUME();
 
-        RetType ret = CALL(mI2C->transmit(mAddr, isD1 ? &d1Conversion : &d2Conversion, conversionDelay + 5));
+        RetType ret = CALL(writeReg(isD1 ? d1Conversion : d2Conversion, nullptr, 0, conversionDelay));
 
         RESET();
         return ret;
     }
 
-    RetType startMeasAndGetVal(uint32_t *val) {
+    RetType readADC(uint32_t *adcValue) {
         RESUME();
 
-        static uint8_t data[3];
-        data[0] = ADC_READ;
-        RetType ret = CALL(mI2C->transmitReceive(mAddr, data, 1, 3, 3000));
-
-        if (RET_SUCCESS == ret) {
-            *val = (data[0] << 16) | (data[1] << 8) | data[2];
-        }
+        RetType ret = CALL(readReg(ADC_READ, m_buff, 3, 300));
+        *adcValue = (m_buff[0] << 16) | (m_buff[1] << 8) | m_buff[2];
 
         RESET();
         return ret;
     }
 
-    RetType startMeasurement() {
-        RESUME();
-
-        RetType ret = CALL(writeReg(ADC_READ, nullptr, 0, 3000));
-
-        RESET();
-        return ret;
-    }
-
-    RetType getDigitalVal(uint32_t *val) {
-        RESUME();
-
-        RetType ret = CALL(mI2C->receive(mAddr, reinterpret_cast<uint8_t *>(val), 3, 1000));
-
-        RESET();
-        return ret;
-    }
-
-    RetType readDigitalVals(uint32_t *pressure, uint32_t *temp) {
-        RESUME();
-
-        static uint8_t data[3];
-
-        RetType ret = CALL(conversion(true));
-        ERROR_CHECK(ret);
-        data[0] = ADC_READ;
-        ret = CALL(mI2C->transmitReceive(mAddr, data, 1, 3, 100));
-        if (RET_SUCCESS == ret) {
-            *pressure = (data[0] << 16) | (data[1] << 8) | data[2];
-        }
-
-        ret = CALL(conversion(false));
-        ERROR_CHECK(ret);
-
-        data[0] = ADC_READ;
-        ret = CALL(mI2C->transmitReceive(mAddr, data, 1, 3, 50));
-        if (RET_SUCCESS == ret) {
-            *temp = (data[0] << 16) | (data[1] << 8) | data[2];
-        }
-
-
-        RESET();
-        return RET_SUCCESS;
-    }
 
     int32_t calculateTemp(uint32_t digitalTemp, int32_t *tempDiff) const {
         // dT = D2 - TREF = D2 - C5 * 2^8
@@ -356,31 +324,6 @@ private:
                 break;
         }
     }
-
-    RetType adcRead(uint32_t *pressure_adc, uint32_t *temperature_adc) {
-        RESUME();
-
-        static uint8_t data[3];
-
-        data[0] = ADC_READ + d1Conversion;
-        RetType ret = CALL(mI2C->transmitReceive(mAddr, data, 1, 3, 50));
-        ERROR_CHECK(ret);
-        SLEEP(conversionDelay);
-
-        *pressure_adc = (data[0] << 16) | (data[1] << 8) | data[2];
-
-
-        data[0] = ADC_READ + d2Conversion;
-        ret = CALL(mI2C->transmitReceive(mAddr, data, 1, 3, 50));
-        ERROR_CHECK(ret);
-        SLEEP(conversionDelay);
-
-        *temperature_adc = (data[0] << 16) | (data[1] << 8) | data[2];
-
-        RESET();
-        return ret;
-    }
-
 };
 
 #endif //LAUNCH_CORE_MS5607_H
