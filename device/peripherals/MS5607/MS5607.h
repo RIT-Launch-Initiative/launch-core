@@ -67,12 +67,6 @@ public:
         MS5607_OSR_4096 = 4,
     } MS5607_OSR_T;
 
-    typedef struct {
-        const uint16_t id;
-        float pressure;
-        float temperature;
-    } MS5607_DATA_T;
-
     static constexpr uint8_t MS5607_PRIMARY_ADDRESS = 0x76;
     static constexpr uint8_t MS5607_SECONDARY_ADDRESS = 0x77;
 
@@ -83,18 +77,12 @@ public:
         RESUME();
 
         RetType ret = CALL(reset());
-        if (RET_SUCCESS != ret) {
-            RESET();
-            return ret;
-        }
+        ERROR_CHECK(ret);
 
         SLEEP(280); // 2.8ms delay for register reload
 
         ret = CALL(readCalibration());
-        if (RET_SUCCESS != ret) {
-            RESET();
-            return ret;
-        }
+        ERROR_CHECK(ret);
 
         setConv(MS5607_OSR_256);
 
@@ -113,7 +101,7 @@ public:
 
         RESET();
 
-        return ret;
+        return RET_SUCCESS;
     }
 
     RetType getPressureTemp(float *pressure, float *temp) {
@@ -123,28 +111,16 @@ public:
         static uint32_t tempVal;
 
         RetType ret = CALL(conversion(true));
-        if (RET_SUCCESS != ret) {
-            RESET();
-            return ret;
-        }
+        ERROR_CHECK(ret);
 
         ret = CALL(startMeasAndGetVal(&pressureVal));
-        if (RET_SUCCESS != ret) {
-            RESET();
-            return ret;
-        }
+        ERROR_CHECK(ret);
 
         ret = CALL(conversion(false));
-        if (RET_SUCCESS != ret) {
-            RESET();
-            return ret;
-        }
+        ERROR_CHECK(ret);
 
         ret = CALL(startMeasAndGetVal(&tempVal));
-        if (RET_SUCCESS != ret) {
-            RESET();
-            return ret;
-        }
+        ERROR_CHECK(ret);
 
         int32_t dT;
 
@@ -165,10 +141,7 @@ public:
         static uint8_t rst_cmd = RESET_COMMAND;
 
         RetType ret = CALL(mI2C->transmit(mAddr, &rst_cmd, 1, 3000));
-        if (RET_SUCCESS != ret) {
-            RESET();
-            return ret;
-        }
+        ERROR_CHECK(ret);
 
         RESET();
         return ret;
@@ -181,8 +154,8 @@ private:
 
     uint8_t m_buff[10] = {0};
 
-    uint8_t d1Conversion = 0x40;
-    uint8_t d2Conversion = 0x50;
+    uint8_t d1Conversion = CONVERT_D1_256;
+    uint8_t d2Conversion = CONVERT_D2_256;
     uint16_t conversionDelay = 0;
 
     uint16_t pressureSens = 0;
@@ -192,23 +165,21 @@ private:
     uint16_t tempRef = 0;
     uint16_t tempSens = 0;
 
-    uint16_t coefficients[6] = {0};
-
-    RetType readReg(uint8_t command, uint8_t *buff, size_t len = 1) {
+    RetType readReg(uint8_t command, uint8_t *buff, size_t len = 1, uint32_t timeout = 0) {
         RESUME();
 
         mAddr.mem_addr = command;
-        RetType ret = CALL(mI2C->read(mAddr, buff, len));
+        RetType ret = CALL(mI2C->read(mAddr, buff, len, timeout));
 
         RESET();
         return ret;
     }
 
-    RetType writeReg(uint8_t command, uint8_t *buff, size_t len = 1) {
+    RetType writeReg(uint8_t command, uint8_t *buff, size_t len = 1, uint32_t timeout = 0) {
         RESUME();
 
         mAddr.mem_addr = command;
-        RetType ret = CALL(mI2C->write(mAddr, buff, len));
+        RetType ret = CALL(mI2C->write(mAddr, buff, len, timeout));
 
         RESET();
         return ret;
@@ -216,141 +187,30 @@ private:
 
     RetType readCalibration() {
         RESUME();
+        
+        RetType ret = CALL(readReg(COEFFICIENT_ONE_ADDR, m_buff, 2, 300));
+        if (RET_SUCCESS == ret) pressureSens = (m_buff[0] << 8) | m_buff[1];
+        else ERROR_CHECK(RET_ERROR);
 
+        ret = CALL(readReg(COEFFICIENT_TWO_ADDR, m_buff, 2, 300));
+        if (RET_SUCCESS == ret) pressureOffset = (m_buff[0] << 8) | m_buff[1];
+        else ERROR_CHECK(RET_ERROR);
 
-//        static uint8_t buff[2];
-//        buff[0] = PROM_READ + COEFFICIENT_ONE_ADDR;
-//        RetType ret = CALL(mI2C->transmitReceive(mAddr, buff, 1, 2, 1000));
-//        pressureSens = buff[0] << 8 | buff[1];
-//
-//        buff[0] = PROM_READ + COEFFICIENT_TWO_ADDR;
-//        ret = CALL(mI2C->transmitReceive(mAddr, buff, 1, 2, 1000));
-//        pressureOffset = buff[0] << 8 | buff[1];
-//
-//        buff[0] = PROM_READ + COEFFICIENT_THREE_ADDR;
-//        ret = CALL(mI2C->transmitReceive(mAddr, buff, 1, 2, 1000));
-//        pressureSensTempCo = buff[0] << 8 | buff[1];
-//
-//        buff[0] = PROM_READ + COEFFICIENT_FOUR_ADDR;
-//        ret = CALL(mI2C->transmitReceive(mAddr, buff, 1, 2, 1000));
-//        pressureOffsetTempCo = buff[0] << 8 | buff[1];
-//
-//        buff[0] = PROM_READ + COEFFICIENT_FIVE_ADDR;
-//        ret = CALL(mI2C->transmitReceive(mAddr, buff, 1, 2, 1000));
-//        tempRef = buff[0] << 8 | buff[1];
-//
-//        buff[0] = PROM_READ + COEFFICIENT_SIX_ADDR;
-//        ret = CALL(mI2C->transmitReceive(mAddr, buff, 1, 2, 1000));
-//        tempSens = buff[0] << 8 | buff[1];
+        ret = CALL(readReg(COEFFICIENT_THREE_ADDR, m_buff, 2, 300));
+        if (RET_SUCCESS == ret) pressureSensTempCo = (m_buff[0] << 8) | m_buff[1];
+        else ERROR_CHECK(RET_ERROR);
 
-//        static uint8_t buff[16];
-//        buff[0] = PROM_READ;
-//        coefficients[0] = PROM_READ + 2;
-//        RetType ret = CALL(mI2C->transmitReceive(mAddr, buff, 1, 16, 1000));
-//        if (RET_SUCCESS != ret) {
-//            RESET();
-//            return ret;
-//        }
-//
-//        pressureSens = buff[2] << 8 | buff[3];
-//        pressureOffset = buff[4] << 8 | buff[5];
-//        pressureSensTempCo = buff[6] << 8 | buff[7];
-//        pressureOffsetTempCo = buff[8] << 8 | buff[9];
-//        tempRef = buff[10] << 8 | buff[11];
-//        tempSens = buff[12] << 8 | buff[13];
-//
-//        pressureSens = coefficients[1];
-//        pressureOffset = coefficients[2];
-//        pressureSensTempCo = coefficients[3];
-//        pressureOffsetTempCo = coefficients[4];
-//        tempRef = coefficients[5];
-//        tempSens = coefficients[6];
+        ret = CALL(readReg(COEFFICIENT_FOUR_ADDR, m_buff, 2, 300));
+        if (RET_SUCCESS == ret) pressureOffsetTempCo = (m_buff[0] << 8) | m_buff[1];
+        else ERROR_CHECK(RET_ERROR);
 
-//        static uint8_t data[2];
-//        RetType ret = CALL(readPROM(data, COEFFICIENT_ONE_ADDR));
-//        if (ret != RET_SUCCESS) {
-//            RESET();
-//            return ret;
-//        }
-//        pressureSens = (data[0] << 8) | data[1];
-//
-//        ret = CALL(readPROM(data, COEFFICIENT_TWO_ADDR));
-//        if (ret != RET_SUCCESS) {
-//            RESET();
-//            return ret;
-//        }
-//        pressureOffset = (data[0] << 8) | data[1];
-//
-//        ret = CALL(readPROM(data, COEFFICIENT_THREE_ADDR));
-//        if (ret != RET_SUCCESS) {
-//            RESET();
-//            return ret;
-//        }
-//        pressureSensTempCo = (data[0] << 8) | data[1];
-//
-//        ret = CALL(readPROM(data, COEFFICIENT_FOUR_ADDR));
-//        if (ret != RET_SUCCESS) {
-//            RESET();
-//            return ret;
-//        }
-//        pressureOffsetTempCo = (data[0] << 8) | data[1];
-//
-//        ret = CALL(readPROM(data, COEFFICIENT_FIVE_ADDR));
-//        if (ret != RET_SUCCESS) {
-//            RESET();
-//            return ret;
-//        }
-//        tempRef = (data[0] << 8) | data[1];
-//
-//        ret = CALL(readPROM(data, COEFFICIENT_SIX_ADDR));
-//        if (ret != RET_SUCCESS) {
-//            RESET();
-//            return ret;
-//        }
-//        tempSens = (data[0] << 8) | data[1];
+        ret = CALL(readReg(COEFFICIENT_FIVE_ADDR, m_buff, 2, 300));
+        if (RET_SUCCESS == ret) tempRef = (m_buff[0] << 8) | m_buff[1];
+        else ERROR_CHECK(RET_ERROR);
 
-        RESET();
-        return RET_SUCCESS;
-    }
-
-    RetType readPROM(uint8_t *data, uint8_t offset) {
-        RESUME();
-
-        data[0] = PROM_READ + offset;
-        RetType ret = CALL(mI2C->transmitReceive(mAddr, data, 1, 2, 300));
-
-        RESET();
-        return ret;
-    }
-
-    RetType readPROM() {
-        RESUME();
-
-        static uint8_t buff[8];
-        static uint8_t data[2];
-        static int i = 0;
-
-        RetType ret = CALL(reset());
-        ERROR_CHECK(ret);
-        SLEEP(300);
-
-        for (; i < 8; i++) {
-            data[0] = PROM_READ + (i * 2);
-            ret = CALL(mI2C->transmitReceive(mAddr, data, 1, 2, 50));
-            if (ret != RET_SUCCESS) {
-                RESET();
-                return ret;
-            }
-
-            buff[i] = (data[0] << 8) + data[1];
-        }
-
-        i = 0;
-
-        pressureSens = (buff[0] << 8) | buff[1];
-        pressureOffset = (buff[2] << 8) | buff[3];
-        pressureSensTempCo = (buff[4] << 8) | buff[5];
-        pressureOffsetTempCo = (buff[6] << 8) | buff[7];
+        ret = CALL(readReg(COEFFICIENT_SIX_ADDR, m_buff, 2, 300));
+        if (RET_SUCCESS == ret) tempSens = (m_buff[0] << 8) | m_buff[1];
+        else ERROR_CHECK(RET_ERROR);
 
         RESET();
         return ret;
@@ -383,7 +243,7 @@ private:
     RetType startMeasurement() {
         RESUME();
 
-        RetType ret = CALL(mI2C->transmit(mAddr, reinterpret_cast<uint8_t *>(ADC_READ), 1, 4000));
+        RetType ret = CALL(writeReg(ADC_READ, nullptr, 0, 3000));
 
         RESET();
         return ret;
