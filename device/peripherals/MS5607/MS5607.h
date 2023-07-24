@@ -15,11 +15,6 @@
 #include "device/I2CDevice.h"
 #include <cmath>
 
-#include "stm32f4xx_hal_i2c.h"
-
-extern I2C_HandleTypeDef hi2c3;
-extern int swprintf(const char* fmt, ...);
-
 #define CHECK_RET {if (ret != RET_SUCCESS) {RESET(); return ret;}}
 #define CONCAT(a, b) a ## b
 
@@ -78,26 +73,14 @@ public:
         RESUME();
 
         RetType ret = CALL(reset());
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
+        ERROR_CHECK(ret);
         SLEEP(5000); // 2.8ms delay for register reload
         ret = CALL(readCalibration());
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
+        ERROR_CHECK(ret);
         setConv(MS5607_OSR_256);
 
         RESET();
         return ret;
-    }
-
-    float getAltitude(float pressure, float temp) {
-        return 153.84615 * (pow(pressure / 1013.25f, 0.1903f) - 1) * (temp + 273.15);
     }
 
     RetType getData(MS5607_DATA_T *data) {
@@ -106,7 +89,6 @@ public:
         RetType ret = CALL(getPressureTemp(&data->pressure, &data->temperature));
 
         RESET();
-
         return ret;
     }
 
@@ -117,29 +99,16 @@ public:
         static uint32_t tempVal;
 
         RetType ret = CALL(conversion(true));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
+        ERROR_CHECK(ret);
+        
         ret = CALL(startMeasAndGetVal(&pressureVal));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
+        ERROR_CHECK(ret);
 
         ret = CALL(conversion(false));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
+        ERROR_CHECK(ret);
 
         ret = CALL(startMeasAndGetVal(&tempVal));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
+        ERROR_CHECK(ret);
 
 //        ret = CALL(startMeasurement());
 //        if (ret != RET_SUCCESS) {
@@ -190,11 +159,7 @@ public:
         static uint8_t rst_cmd = RESET_COMMAND;
 
         RetType ret = CALL(mI2C->transmit(mAddr, &rst_cmd, 1, 3000));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
+        ERROR_CHECK(ret);
         RESET();
         return ret;
     }
@@ -223,23 +188,6 @@ private:
 
     RetType readCalibration() {
         RESUME();
-
-        read16Bit(COEFFICIENT_ONE_ADDR, &pressureSens);
-        read16Bit(COEFFICIENT_TWO_ADDR, &pressureOffset);
-        read16Bit(COEFFICIENT_THREE_ADDR, &pressureSensTempCo);
-        read16Bit(COEFFICIENT_FOUR_ADDR, &pressureOffsetTempCo);
-        read16Bit(COEFFICIENT_FIVE_ADDR, &tempRef);
-        read16Bit(COEFFICIENT_SIX_ADDR, &tempSens);
-
-        swprintf("pressureSens: %d\n", pressureSens);
-        swprintf("pressureOffset: %d\n", pressureOffset);
-        swprintf("pressureSensTempCo: %d\n", pressureSensTempCo);
-        swprintf("pressureOffsetTempCo: %d\n", pressureOffsetTempCo);
-        swprintf("tempRef: %d\n", tempRef);
-        swprintf("tempSens: %d\n", tempSens);
-
-
-
 
 
 //        static uint8_t buff[2];
@@ -337,21 +285,6 @@ private:
         return RET_SUCCESS;
     }
 
-    void read16Bit(uint8_t command, uint16_t *value) {
-        uint8_t data[2];
-
-//        HAL_I2C_Master_Transmit(&hi2c3, mAddr.dev_addr, &command, 1, 1000);
-//        HAL_I2C_Master_Receive(&hi2c3, mAddr.dev_addr, data, 2, 1000);
-
-        HAL_I2C_Mem_Read(&hi2c3, mAddr.dev_addr, command, 1, data, 2, 1000);
-        *value = data[0] << 8 | data[1];
-
-
-//        *value = (((unsigned int) data[0] * (1 << 8)) | (unsigned int) data[1]);
-    }
-
-
-
     RetType readPROM(uint8_t *data, uint8_t offset) {
         RESUME();
 
@@ -382,11 +315,7 @@ private:
         static int i = 0;
 
         RetType ret = CALL(reset());
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
+        ERROR_CHECK(ret);
         SLEEP(300);
 
         for (; i < 8; i++) {
@@ -415,13 +344,9 @@ private:
         RESUME();
 
         RetType ret = CALL(mI2C->transmit(mAddr, isD1 ? &d1Conversion : &d2Conversion, conversionDelay + 5));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     RetType startMeasAndGetVal(uint32_t *val) {
@@ -430,11 +355,7 @@ private:
         static uint8_t data[3];
         data[0] = ADC_READ;
         RetType ret = CALL(mI2C->transmitReceive(mAddr, data, 1, 3, 3000));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
+        ERROR_CHECK(ret);
         *val = (data[0] << 16) | (data[1] << 8) | data[2];
 
         RESET();
@@ -464,11 +385,7 @@ private:
         static uint8_t data[3];
 
         RetType ret = CALL(conversion(true));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
+        ERROR_CHECK(ret);
         data[0] = ADC_READ;
         ret = CALL(mI2C->transmitReceive(mAddr, data, 1, 3, 100));
         if (RET_SUCCESS != ret) {
@@ -479,18 +396,10 @@ private:
         *pressure = (data[0] << 16) | (data[1] << 8) | data[2];
 
         ret = CALL(conversion(false));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
+        ERROR_CHECK(ret);
         data[0] = ADC_READ;
         ret = CALL(mI2C->transmitReceive(mAddr, data, 1, 3, 50));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-        *temp = (data[0] << 16) | (data[1] << 8) | data[2];
+        ERROR_CHECK(ret);        *temp = (data[0] << 16) | (data[1] << 8) | data[2];
 
         RESET();
         return RET_SUCCESS;
@@ -575,11 +484,7 @@ private:
 
         data[0] = ADC_READ + d1Conversion;
         RetType ret = CALL(mI2C->transmitReceive(mAddr, data, 1, 3, 50));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
+        ERROR_CHECK(ret);
         SLEEP(conversionDelay);
 
         *pressure_adc = (data[0] << 16) | (data[1] << 8) | data[2];
@@ -587,11 +492,7 @@ private:
 
         data[0] = ADC_READ + d2Conversion;
         ret = CALL(mI2C->transmitReceive(mAddr, data, 1, 3, 50));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
+        ERROR_CHECK(ret);
         SLEEP(conversionDelay);
 
         *temperature_adc = (data[0] << 16) | (data[1] << 8) | data[2];
