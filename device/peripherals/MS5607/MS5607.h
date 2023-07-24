@@ -25,49 +25,53 @@ using MS5607_DATA_T = struct {
     float temperature;
 };
 
-typedef enum {
-    FACTORY_DATA_ADDR = 0xA0,
-    COEFFICIENT_ONE_ADDR = 0xA2,
-    COEFFICIENT_TWO_ADDR = 0xA4,
-    COEFFICIENT_THREE_ADDR = 0xA6,
-    COEFFICIENT_FOUR_ADDR = 0xA8,
-    COEFFICIENT_FIVE_ADDR = 0xAA,
-    COEFFICIENT_SIX_ADDR = 0xAC,
-    SERIAL_CRC_ADDR = 0xAE,
-} PROM_ADDR_T;
-
-
-enum COMMAND_T {
-    RESET_COMMAND = 0x1E,
-
-    CONVERT_D1_256 = 0x40,
-    CONVERT_D1_512 = 0x42,
-    CONVERT_D1_1024 = 0x44,
-    CONVERT_D1_2048 = 0x46,
-    CONVERT_D1_4096 = 0x48,
-
-    CONVERT_D2_256 = 0x50,
-    CONVERT_D2_512 = 0x52,
-    CONVERT_D2_1024 = 0x54,
-    CONVERT_D2_2048 = 0x56,
-    CONVERT_D2_4096 = 0x58,
-
-    ADC_READ = 0x00,
-    PROM_READ = 0xA0,
-};
-
-typedef enum {
-    MS5607_OSR_256 = 0,
-    MS5607_OSR_512 = 1,
-    MS5607_OSR_1024 = 2,
-    MS5607_OSR_2048 = 3,
-    MS5607_OSR_4096 = 4,
-} MS5607_OSR_T;
 
 class MS5607 : public Device {
 public:
-    MS5607(I2CDevice &i2cDevice, const uint8_t address = 0x76, const char *name = "MS5607") : Device(name), mI2C(&i2cDevice),
-                                                                                        mAddr({.dev_addr = static_cast<uint8_t>(address << 1), .mem_addr = 0, .mem_addr_size = 1}) {}
+    typedef enum {
+        FACTORY_DATA_ADDR = 0xA0,
+        COEFFICIENT_ONE_ADDR = 0xA2,
+        COEFFICIENT_TWO_ADDR = 0xA4,
+        COEFFICIENT_THREE_ADDR = 0xA6,
+        COEFFICIENT_FOUR_ADDR = 0xA8,
+        COEFFICIENT_FIVE_ADDR = 0xAA,
+        COEFFICIENT_SIX_ADDR = 0xAC,
+        SERIAL_CRC_ADDR = 0xAE,
+    } PROM_ADDR_T;
+
+
+    enum COMMAND_T {
+        RESET_COMMAND = 0x1E,
+
+        CONVERT_D1_256 = 0x40,
+        CONVERT_D1_512 = 0x42,
+        CONVERT_D1_1024 = 0x44,
+        CONVERT_D1_2048 = 0x46,
+        CONVERT_D1_4096 = 0x48,
+
+        CONVERT_D2_256 = 0x50,
+        CONVERT_D2_512 = 0x52,
+        CONVERT_D2_1024 = 0x54,
+        CONVERT_D2_2048 = 0x56,
+        CONVERT_D2_4096 = 0x58,
+
+        ADC_READ = 0x00,
+        PROM_READ = 0xA0,
+    };
+
+    typedef enum {
+        MS5607_OSR_256 = 0,
+        MS5607_OSR_512 = 1,
+        MS5607_OSR_1024 = 2,
+        MS5607_OSR_2048 = 3,
+        MS5607_OSR_4096 = 4,
+    } MS5607_OSR_T;
+
+    MS5607(I2CDevice &i2cDevice, const uint8_t address = 0x76, const char *name = "MS5607") : Device(name),
+                                                                                              mI2C(&i2cDevice),
+                                                                                              mAddr({.dev_addr = static_cast<uint8_t>(
+                                                                                                      address
+                                                                                                              << 1), .mem_addr = 0, .mem_addr_size = 1}) {}
 
     RetType init() override {
         RESUME();
@@ -100,15 +104,15 @@ public:
 
         RetType ret = CALL(conversion(true));
         ERROR_CHECK(ret);
-        
-        ret = CALL(startMeasAndGetVal(&pressureVal));
-        ERROR_CHECK(ret);
 
-        ret = CALL(conversion(false));
-        ERROR_CHECK(ret);
-
-        ret = CALL(startMeasAndGetVal(&tempVal));
-        ERROR_CHECK(ret);
+//        ret = CALL(startMeasAndGetVal(&pressureVal));
+//        ERROR_CHECK(ret);
+//
+//        ret = CALL(conversion(false));
+//        ERROR_CHECK(ret);
+//
+//        ret = CALL(startMeasAndGetVal(&tempVal));
+//        ERROR_CHECK(ret);
 
 //        ret = CALL(startMeasurement());
 //        if (ret != RET_SUCCESS) {
@@ -291,18 +295,6 @@ private:
         data[0] = PROM_READ + offset;
         RetType ret = CALL(mI2C->transmitReceive(mAddr, data, 1, 2, 300));
 
-//        RetType ret = CALL(mI2C->transmit(mAddr, data, 1, 1000));
-//        if (ret != RET_SUCCESS) {
-//            RESET();
-//            return ret;
-//        }
-//
-//        ret = CALL(mI2C->receive(mAddr, data, 2, 1000));
-//        if (ret != RET_SUCCESS) {
-//            RESET();
-//            return ret;
-//        }
-
         RESET();
         return ret;
     }
@@ -355,8 +347,10 @@ private:
         static uint8_t data[3];
         data[0] = ADC_READ;
         RetType ret = CALL(mI2C->transmitReceive(mAddr, data, 1, 3, 3000));
-        ERROR_CHECK(ret);
-        *val = (data[0] << 16) | (data[1] << 8) | data[2];
+
+        if (RET_SUCCESS == ret) {
+            *val = (data[0] << 16) | (data[1] << 8) | data[2];
+        }
 
         RESET();
         return ret;
@@ -375,6 +369,7 @@ private:
         RESUME();
 
         RetType ret = CALL(mI2C->receive(mAddr, reinterpret_cast<uint8_t *>(val), 3, 1000));
+
         RESET();
         return ret;
     }
@@ -388,18 +383,19 @@ private:
         ERROR_CHECK(ret);
         data[0] = ADC_READ;
         ret = CALL(mI2C->transmitReceive(mAddr, data, 1, 3, 100));
-        if (RET_SUCCESS != ret) {
-            RESET();
-            return ret;
+        if (RET_SUCCESS == ret) {
+            *pressure = (data[0] << 16) | (data[1] << 8) | data[2];
         }
-
-        *pressure = (data[0] << 16) | (data[1] << 8) | data[2];
 
         ret = CALL(conversion(false));
         ERROR_CHECK(ret);
+
         data[0] = ADC_READ;
         ret = CALL(mI2C->transmitReceive(mAddr, data, 1, 3, 50));
-        ERROR_CHECK(ret);        *temp = (data[0] << 16) | (data[1] << 8) | data[2];
+        if (RET_SUCCESS == ret) {
+            *temp = (data[0] << 16) | (data[1] << 8) | data[2];
+        }
+
 
         RESET();
         return RET_SUCCESS;
