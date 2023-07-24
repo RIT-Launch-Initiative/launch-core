@@ -21,8 +21,8 @@
 
 using MS5607_DATA_T = struct {
     const uint16_t id;
-    float pressure;
-    float temperature;
+    int32_t pressure;
+    int32_t temperature;
 };
 
 
@@ -82,9 +82,9 @@ public:
         SLEEP(280); // 2.8ms delay for register reload
 
         ret = CALL(readCalibration());
-        ERROR_CHECK(ret);
-
-        setConv(MS5607_OSR_256);
+        if (RET_SUCCESS == ret) {
+            setConv(MS5607_OSR_256);
+        }
 
         RESET();
         return ret;
@@ -96,11 +96,10 @@ public:
         RetType ret = CALL(getPressureTemp(&data->pressure, &data->temperature));
 
         RESET();
-
-        return RET_SUCCESS;
+        return ret;
     }
 
-    RetType getPressureTemp(float *pressure, float *temp) {
+    RetType getPressureTemp(int32_t *pressure, int32_t *temp) {
         RESUME();
 
         static uint32_t pressureVal;
@@ -112,15 +111,13 @@ public:
         ret = CALL(readDigitalTemperature(&tempVal));
         ERROR_CHECK(ret);
 
-
         int32_t dT;
-
         int32_t calcTemp = calculateTemp(tempVal, &dT);
         int32_t calcPressure = calculateTempCompPressure(pressureVal, dT);
         calcTempCompensation(&calcTemp, &calcPressure);
 
-        *pressure = calcPressure / 100.0f;
-        *temp = calcTemp / 100.0f;
+        *pressure = calcPressure / 100;
+        *temp = calcTemp / 100;
 
         RESET();
         return RET_SUCCESS;
@@ -246,7 +243,9 @@ private:
         RESUME();
 
         RetType ret = CALL(readReg(ADC_READ, m_buff, 3, 300));
-        *adcValue = (m_buff[0] << 16) | (m_buff[1] << 8) | m_buff[2];
+        if (RET_SUCCESS == ret) {
+            *adcValue = (m_buff[0] << 16) | (m_buff[1] << 8) | m_buff[2];
+        }
 
         RESET();
         return ret;
