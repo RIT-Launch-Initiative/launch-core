@@ -171,11 +171,9 @@ public:
 
 private:
     I2CDevice *mI2C;
-    I2CAddr_t mAddr = {
-            .dev_addr = 0x76 << 1,
-            .mem_addr = 0,
-            .mem_addr_size = 1,
-    };
+    I2CAddr_t mAddr;
+
+    uint8_t m_buff[10] = {0};
 
     uint8_t d1Conversion = 0x40;
     uint8_t d2Conversion = 0x50;
@@ -189,6 +187,26 @@ private:
     uint16_t tempSens = 0;
 
     uint16_t coefficients[6] = {0};
+
+    RetType readReg(uint8_t command, uint8_t *buff, size_t len = 1) {
+        RESUME();
+
+        mAddr.mem_addr = command;
+        RetType ret = CALL(mI2C->read(mAddr, buff, len));
+
+        RESET();
+        return ret;
+    }
+
+    RetType writeReg(uint8_t command, uint8_t *buff, size_t len = 1) {
+        RESUME();
+
+        mAddr.mem_addr = command;
+        RetType ret = CALL(mI2C->write(mAddr, buff, len));
+
+        RESET();
+        return ret;
+    }
 
     RetType readCalibration() {
         RESUME();
