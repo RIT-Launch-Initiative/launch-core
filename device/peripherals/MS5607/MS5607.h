@@ -67,24 +67,43 @@ public:
         MS5607_OSR_4096 = 4,
     } MS5607_OSR_T;
 
-    MS5607(I2CDevice &i2cDevice, const uint8_t address = 0x76, const char *name = "MS5607") : Device(name),
-                                                                                              mI2C(&i2cDevice),
-                                                                                              mAddr({.dev_addr = static_cast<uint8_t>(
-                                                                                                      address
-                                                                                                              << 1), .mem_addr = 0, .mem_addr_size = 1}) {}
+    typedef struct {
+        const uint16_t id;
+        float pressure;
+        float temperature;
+    } MS5607_DATA_T;
+
+    static constexpr uint8_t MS5607_PRIMARY_ADDRESS = 0x76;
+    static constexpr uint8_t MS5607_SECONDARY_ADDRESS = 0x77;
+
+    MS5607(I2CDevice &i2cDevice, const uint8_t address = MS5607_PRIMARY_ADDRESS, const char *name = "MS5607") : Device(name),
+    mI2C(&i2cDevice), mAddr({.dev_addr = static_cast<uint8_t>(address << 1), .mem_addr = 0, .mem_addr_size = 1}) {}
 
     RetType init() override {
         RESUME();
 
         RetType ret = CALL(reset());
-        ERROR_CHECK(ret);
-        SLEEP(5000); // 2.8ms delay for register reload
+        if (RET_SUCCESS != ret) {
+            RESET();
+            return ret;
+        }
+
+        SLEEP(280); // 2.8ms delay for register reload
+
         ret = CALL(readCalibration());
-        ERROR_CHECK(ret);
+        if (RET_SUCCESS != ret) {
+            RESET();
+            return ret;
+        }
+
         setConv(MS5607_OSR_256);
 
         RESET();
         return ret;
+    }
+
+    float getAltitude(float pressure, float temp) {
+        return 153.84615 * (pow(pressure / 1013.25f, 0.1903f) - 1) * (temp + 273.15);
     }
 
     RetType getData(MS5607_DATA_T *data) {
@@ -93,6 +112,7 @@ public:
         RetType ret = CALL(getPressureTemp(&data->pressure, &data->temperature));
 
         RESET();
+
         return ret;
     }
 
@@ -103,46 +123,28 @@ public:
         static uint32_t tempVal;
 
         RetType ret = CALL(conversion(true));
-        ERROR_CHECK(ret);
+        if (RET_SUCCESS != ret) {
+            RESET();
+            return ret;
+        }
 
-//        ret = CALL(startMeasAndGetVal(&pressureVal));
-//        ERROR_CHECK(ret);
-//
-//        ret = CALL(conversion(false));
-//        ERROR_CHECK(ret);
-//
-//        ret = CALL(startMeasAndGetVal(&tempVal));
-//        ERROR_CHECK(ret);
+        ret = CALL(startMeasAndGetVal(&pressureVal));
+        if (RET_SUCCESS != ret) {
+            RESET();
+            return ret;
+        }
 
-//        ret = CALL(startMeasurement());
-//        if (ret != RET_SUCCESS) {
-//            RESET();
-//            return ret;
-//        }
-//
-//        ret = CALL(getDigitalVal(&pressureVal));
-//        if (ret != RET_SUCCESS) {
-//            RESET();
-//            return ret;
-//        }
-//
-//        ret = CALL(conversion(false));
-//        if (ret != RET_SUCCESS) {
-//            RESET();
-//            return ret;
-//        }
-//
-//        ret = CALL(startMeasurement());
-//        if (ret != RET_SUCCESS) {
-//            RESET();
-//            return ret;
-//        }
-//
-//        ret = CALL(getDigitalVal(&tempVal));
-//        if (ret != RET_SUCCESS) {
-//            RESET();
-//            return ret;
-//        }
+        ret = CALL(conversion(false));
+        if (RET_SUCCESS != ret) {
+            RESET();
+            return ret;
+        }
+
+        ret = CALL(startMeasAndGetVal(&tempVal));
+        if (RET_SUCCESS != ret) {
+            RESET();
+            return ret;
+        }
 
         int32_t dT;
 
@@ -163,7 +165,11 @@ public:
         static uint8_t rst_cmd = RESET_COMMAND;
 
         RetType ret = CALL(mI2C->transmit(mAddr, &rst_cmd, 1, 3000));
-        ERROR_CHECK(ret);
+        if (RET_SUCCESS != ret) {
+            RESET();
+            return ret;
+        }
+
         RESET();
         return ret;
     }
