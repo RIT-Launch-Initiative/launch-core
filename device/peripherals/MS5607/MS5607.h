@@ -61,10 +61,10 @@ public:
 
     typedef enum {
         MS5607_OSR_256 = 0,
-        MS5607_OSR_512 = 1,
-        MS5607_OSR_1024 = 2,
-        MS5607_OSR_2048 = 3,
-        MS5607_OSR_4096 = 4,
+        MS5607_OSR_512,
+        MS5607_OSR_1024,
+        MS5607_OSR_2048,
+        MS5607_OSR_4096,
     } MS5607_OSR_T;
 
     static constexpr uint8_t MS5607_PRIMARY_ADDRESS = 0x76;
@@ -83,7 +83,7 @@ public:
 
         ret = CALL(readCalibration());
         if (RET_SUCCESS == ret) {
-            setConv(MS5607_OSR_256);
+            setConv(MS5607_OSR_4096);
         }
 
         RESET();
@@ -233,10 +233,17 @@ private:
     RetType conversion(const bool isD1) {
         RESUME();
 
-        RetType ret = CALL(writeReg(isD1 ? d1Conversion : d2Conversion, nullptr, 0, conversionDelay));
+        if (isD1) {
+            m_buff[0] = d1Conversion;
+        } else {
+            m_buff[0] = d2Conversion;
+        }
+
+        RetType ret = CALL(mI2C->transmit(mAddr, m_buff, 1, 10));
+        SLEEP(conversionDelay);
 
         RESET();
-        return ret;
+        return RET_SUCCESS;
     }
 
     RetType readADC(uint32_t *adcValue) {
