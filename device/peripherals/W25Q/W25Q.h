@@ -22,28 +22,28 @@
 #define CHECK_CALL(expr) {if (RET_SUCCESS != CALL(expr)) {RESET(); return RET_ERROR;}}
 // longest command + block read size
 // 8 = (cmd:1 + dummy:4 + addr:3)
-#define W25Q_BUF_SIZE (8 + 256)
+#define W25Q_MAX_CMD_SIZE 8 // maximum length of a command
+#define W25Q_MAX_DATA_SIZE 256 // the largest quantity of data we could want
+#define W25Q_BUF_SIZE W25Q_MAX_CMD_SIZE + W25Q_MAX_DATA_SIZE
 
 class W25Q : public BlockDevice {
 public:
 
     W25Q(const char* name, SPIDevice &spi, GPIODevice &cs) :
-            BlockDevice(name), m_spi(spi), m_cs(cs),  m_lock(1) {}
+            BlockDevice(name), m_spi(spi), m_cs(cs), m_inner_lock(1), m_outer_lock(1) {}
 
     RetType init() {
-        uint32_t dev_id;
         RESUME();
 
-        CHECK_CALL(read_id(&dev_id));
+        CHECK_CALL(read_id(&m_dev_id));
 
-        swprintf("JEDEC ID: 0x%06X\n", dev_id);
-        if (dev_id != W25Q128JV_JEDEC_ID) {
+        swprintf("JEDEC ID: 0x%06X\n", m_dev_id);
+        if (m_dev_id != W25Q128JV_JEDEC_ID) {
             swprintf("Incorrect, JEDEC ID, expected: 0x%06X\n", W25Q128JV_JEDEC_ID);
             RESET();
             return RET_ERROR;
         }
 
-        m_dev_id = dev_id;
         page_size = 0xFF + 1;
         page_count = 0xFFFF + 1;
 
@@ -126,9 +126,7 @@ public:
         CHECK_CALL(block_if_busy());
         CHECK_CALL(read_status(READ_THREE, &reg));
 
-//        swprintf("Read S3: 0x%02X\n", reg);
         reg &= !((uint8_t) WPS); // Remove the WPS bit
-//        swprintf("Writing S3 for unlock: 0x%02X\n", reg);
 
         CHECK_CALL(write_status(WRITE_THREE, reg));
 
@@ -144,19 +142,16 @@ public:
         return page_count;
     }
 
-    // TODO: If the reentrant statement is the only one, I don't think it needs a CALL, but I could be wrong
-
-    /// @brief Not implemented
     RetType obtain() override {
-        return RET_SUCCESS;
+        return m_outer_lock.acquire();
     }
 
-    /// @brief Not implemented
     RetType release() override {
-        return RET_SUCCESS;
+        return m_outer_lock.release();
     }
 
-    /* @brief Reads "busy" register, unblocks task when device is not busy
+    /**
+     * @brief Reads "busy" register, unblocks task when device is not busy
      * @return Always succeeds
      */
     RetType poll() override {
@@ -179,6 +174,7 @@ public:
     }
 
 private:
+    /// COMMANDS
     const uint8_t DUMMY_BYTE = 0xA5;
     const tid_t TID_UNBLOCKED = -1;
 
@@ -263,16 +259,6 @@ private:
 //        R = 1 << 1, // Reserved
 //        R = 1 << 0, // Reserved
     };
-
-    // device could be busy doing a write op, need to have a block/unblock mechanism
-    tid_t m_blocked = TID_UNBLOCKED; // the task blocked on this device
-    BlockingSemaphore m_lock;
-
-    // peripherals
-    SPIDevice &m_spi;
-    GPIODevice &m_cs;
-    uint8_t m_write_buf[W25Q_BUF_SIZE];
-    uint8_t m_read_buf[W25Q_BUF_SIZE];
 
     // device properties
     uint32_t m_dev_id = 0;
@@ -407,12 +393,12 @@ private:
     }
 
     RetType erase(erase_command_t cmd, uint32_t addr) {
-        uint8_t cmd_bytes[4];
+        RESUME();
+
+        static uint8_t cmd_bytes[4];
         cmd_bytes[0] = (uint8_t) cmd;
         addr_to_24(addr, cmd_bytes + 1);
-        size_t cmd_len = sizeof(cmd_bytes);
-
-        RESUME();
+        static size_t cmd_len = sizeof(cmd_bytes);
 
         if (CHIP_ERASE == cmd) {
             cmd_len = 1;
@@ -423,67 +409,124 @@ private:
         return RET_SUCCESS;
     }
 
-/// Common read/write patterns
-    RetType m_spi_w(uint8_t* buf, size_t len) {
+    /* NOTE ON WHY WE NEED THESE FUNCTIONS
+     * Transactions with the W25Q consist of a command, then additional clock pulses for a response. From what I can
+     * tell, if we use separate m_spi.write/read calls, there is unacceptable delay between the command and the response
+     * pulses, so the device does nothing. HAL only allows us to simultaneously read/write using TransmitReceive, which
+     * uses one length for both buffers - they have to be equal length.
+     *
+     * There are two ways to solve this: the current way is that we call TransmitReceive with two buffers, each as large
+     * as the total size of the largest transaction we use, and the vast majority of the Transmit buffer is wasted space,
+     * only there so that TransmitReceive has something to address for the read bytes.
+     *
+     * TODO: Test and clarify whether this is what we we will use
+     * The other potential way is to use one buffer of that size and give TransmitReceive (buff, buff) for an N-byte
+     * command. This gives it enough addressable memory to send the additional pulses and read the response, but once
+     * the Transmit part reaches the bytes the Receive part read in N bytes earlier, the controller will begin
+     * transmitting again, and we need to make sure this does not cause additional behavior.
+     */
+
+    /*
+     * Common read/write patterns
+     * These take care of locking the device during the transaction, lowering/raising CS, and the TransmitReceive
+     * workaround for write-then-read
+     */
+
+    /**
+     * @brief Write to the chip
+     * @param buf buffer to write
+     * @param len # of bytes to write
+     * @return RET_ERROR or RET_SUCCESS
+     */
+    RetType m_spi_w(uint8_t *buf, size_t len) {
         RESUME();
-        CALL(m_lock.acquire());
+        CALL(m_inner_lock.acquire());
 
         CHECK_CALL(m_cs.set(CS_ACTIVE));
         CHECK_CALL(m_spi.write(buf, len));
         CHECK_CALL(m_cs.set(CS_INACTIVE));
 
-        CALL(m_lock.release());
+        CALL(m_inner_lock.release());
         RESET();
         return RET_SUCCESS;
     }
 
-    RetType m_spi_ww(uint8_t* buf1, size_t len1, uint8_t* buf2, size_t len2) {
+    /**
+     * @brief Write two buffers to the chip in one transaction
+     * @param buf1 first buffer
+     * @param len1 length of first buffer
+     * @param buf2 second buffer
+     * @param len2 length of second buffer
+     * @return RET_ERROR or RET_SUCCESS
+     */
+    RetType m_spi_ww(uint8_t *buf1, size_t len1, uint8_t *buf2, size_t len2) {
         RESUME();
-        CALL(m_lock.acquire());
-
         if ((len1 + len2) > W25Q_BUF_SIZE) {
-            RESET();
             return RET_ERROR;
         }
 
-        memcpy(m_write_buf, buf1, len1);
-        memcpy(m_write_buf + len1, buf2, len2);
+        CALL(m_inner_lock.acquire());
+
+        memcpy(m_spi_buf, buf1, len1);
+        memcpy(m_spi_buf + len1, buf2, len2);
 
         CHECK_CALL(m_cs.set(CS_ACTIVE));
-        CHECK_CALL(m_spi.write(m_write_buf, len1 + len2));
+        CHECK_CALL(m_spi.write(m_spi_buf, len1 + len2));
         CHECK_CALL(m_cs.set(CS_INACTIVE));
 
-        CALL(m_lock.release());
+        CALL(m_inner_lock.release());
         RESET();
         return RET_SUCCESS;
     }
 
-    RetType m_spi_wr(uint8_t* buf1, size_t len1, uint8_t* buf2, size_t len2) {
+    /**
+     * @brief Write a buffer then read to another in one transaction
+     * @param write_buf buffer to write
+     * @param write_len bytes to write
+     * @param read_buf buffer to read
+     * @param read_len bytes to read
+     * @return
+     */
+    RetType m_spi_wr(uint8_t* write_buf, size_t write_len, uint8_t* read_buf, size_t read_len) {
         RESUME();
-        CALL(m_lock.acquire());
-        if ((len1 + len2) > W25Q_BUF_SIZE) {
-            RESET();
+        if ((write_len + read_len) > W25Q_BUF_SIZE) {
             return RET_ERROR;
         }
 
-        memcpy(m_write_buf, buf1, len1);
+        CALL(m_inner_lock.acquire());
+
+        memcpy(m_spi_buf, write_buf, write_len); // put the command in the transaction buffer
 
         CHECK_CALL(m_cs.set(CS_ACTIVE));
-        CHECK_CALL(m_spi.write_read(m_write_buf, m_read_buf, len1 + len2));
+        CHECK_CALL(m_spi.write_read(m_spi_buf, m_spi_buf, write_len + read_len));
         CHECK_CALL(m_cs.set(CS_INACTIVE));
 
-        memcpy(buf2, m_read_buf + len1, len2);
+        memcpy(read_buf, m_spi_buf + write_len, read_len); // put the response where the caller wants it
 
-        CALL(m_lock.release());
+        CALL(m_inner_lock.release());
         RESET();
         return RET_SUCCESS;
     }
 
-    void addr_to_24(uint32_t addr, uint8_t* dest) {
+    /// Put less significant three bytes of addr into dest
+    static void addr_to_24(uint32_t addr, uint8_t* dest) {
         dest[0] = (uint8_t) ((addr & 0x00FF0000U) >> 16);
         dest[1] = (uint8_t) ((addr & 0x0000FF00U) >> 8);
         dest[2] = (uint8_t) (addr & 0x000000FFU);
     }
+
+    /// INFRASTRUCTURE
+    // used with poll() to make sure something trying to write waits until BUSY is unset
+    tid_t m_blocked = TID_UNBLOCKED;
+    // make sure SPI transactions don't get interrupted
+    BlockingSemaphore m_inner_lock;
+    // make sure blocks of transactions don't get interrupted
+    // technically, the user should be forced to obtain() and release() but this is easier for some things
+    BlockingSemaphore m_outer_lock;
+    // Peripherals
+    SPIDevice &m_spi;
+    GPIODevice &m_cs;
+    uint8_t m_spi_buf[W25Q_BUF_SIZE];
 };
 
 #undef CHECK_CALL
