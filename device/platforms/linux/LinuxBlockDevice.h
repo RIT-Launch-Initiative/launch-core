@@ -31,8 +31,8 @@ public:
     /// @brief constructor
     LinuxBlockDevice(const char* file, size_t block_size, size_t num_blocks) :
                                                     m_file(file),
-                                                    m_blockSize(block_size),
-                                                    m_numBlocks(num_blocks),
+                                                    m_block_size(block_size),
+                                                    m_num_blocks(num_blocks),
                                                     m_data(NULL),
                                                     BlockDevice("Linux Block Device") {};
 
@@ -45,12 +45,12 @@ public:
         }
 
         // make it the right size
-        if(0 != ftruncate(fileno(f), m_blockSize * m_numBlocks)) {
+        if(0 != ftruncate(fileno(f), m_block_size * m_num_blocks)) {
             return RET_ERROR;
         }
 
         // mmap it to an address
-        m_data = mmap(NULL, m_blockSize * m_numBlocks, PROT_READ | PROT_WRITE,
+        m_data = mmap(NULL, m_block_size * m_num_blocks, PROT_READ | PROT_WRITE,
                       MAP_SHARED, fileno(f), 0);
 
         if(m_data == (void*) -1) {
@@ -77,7 +77,7 @@ public:
     /// @brief poll the device
     RetType poll() {
         // sync our mapped pages with disk
-        if(0 != msync(m_data, m_blockSize * m_numBlocks, MS_SYNC | MS_INVALIDATE)) {
+        if(0 != msync(m_data, m_block_size * m_num_blocks, MS_SYNC | MS_INVALIDATE)) {
             return RET_ERROR;
         }
 
@@ -103,11 +103,15 @@ public:
         RetType ret;
         RESUME();
 
-        if(block >= m_numBlocks) {
+        if (true == am_locked) {
             return RET_ERROR;
         }
 
-        memcpy((uint8_t*)m_data + (block * m_blockSize), data, m_blockSize);
+        if(block >= m_num_blocks) {
+            return RET_ERROR;
+        }
+
+        memcpy((uint8_t*)m_data + (block * m_block_size), data, m_block_size);
 
         // block after, waiting for data to be synced with disk
         ret = CALL(block_task());
@@ -125,42 +129,44 @@ public:
         RetType ret;
         RESUME();
 
-        if(block >= m_numBlocks) {
+        if(block >= m_num_blocks) {
             return RET_ERROR;
         }
 
         // block first, waiting for any updates to the device
         ret = CALL(block_task());
 
-        memcpy(buff, (uint8_t*)m_data + (block * m_blockSize), m_blockSize);
+        memcpy(buff, (uint8_t*)m_data + (block * m_block_size), m_block_size);
 
         RESET();
         return ret;
     }
 
     RetType clear() {
-        memset(m_data, 0, m_blockSize * m_numBlocks);
+        memset(m_data, 0, m_block_size * m_num_blocks);
         return RET_SUCCESS;
     }
 
     RetType lock() {
+        am_locked = true;
         return RET_SUCCESS;
     }
 
     RetType unlock() {
+        am_locked = false;
         return RET_SUCCESS;
     }
 
     /// @brief get the block size of the device
     /// @return the block size of the device
     size_t get_block_size() {
-        return m_blockSize;
+        return m_block_size;
     }
 
     /// @brief get the number of blocks in the device
     /// @return the number of blocks
     size_t get_num_blocks() {
-        return m_numBlocks;
+        return m_num_blocks;
     }
 
 
@@ -180,11 +186,14 @@ private:
     }
 
     const char* m_file;
-    size_t m_blockSize;
-    size_t m_numBlocks;
+    size_t m_block_size;
+    size_t m_num_blocks;
 
     // memory mapped file
     void* m_data;
+
+    // prevent writes if true
+    bool am_locked = false;
 
     // queues TID of blocked tasks
     alloc::Queue<tid_t, MAX_NUM_TASKS> m_queue;
