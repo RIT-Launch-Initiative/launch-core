@@ -8,12 +8,11 @@
 #define LAUNCH_CORE_MS5607_H
 #define MS5607_DATA_STRUCT(variable_name) MS5607_DATA_T variable_name = {.id = 10000, .pressure = 0, .temperature = 0}
 
-#include "device/GPIODevice.h"
 #include "sched/macros.h"
-#include "return.h"
-#include "device/SPIDevice.h"
+#include "device/GPIODevice.h"
 #include "device/I2CDevice.h"
-#include <cmath>
+#include "return.h"
+
 
 using MS5607_DATA_T = struct {
     const uint16_t id;
