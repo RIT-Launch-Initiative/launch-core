@@ -9,9 +9,10 @@
 #define SHTC3_DATA_STRUCT(variable_name) SHTC3_DATA_T variable_name = {.id = 16000, .temperature = 0, .humidity = 0}
 
 #include "device/I2CDevice.h"
-#include "sched/macros/macros.h"
 #include "return.h"
-
+#include "sched/macros/call.h"
+#include "sched/macros/reset.h"
+#include "sched/macros/resume.h"
 
 /* The SHTC3 I2C address (8 bits) */
 #define SHTC3_I2C_ADDR 0x70
@@ -63,9 +64,9 @@ using SHTC3_CMD = enum {
  */
 class SHTC3 : public Device {
 public:
-    SHTC3(I2CDevice &i2CDevice, const uint8_t address = SHTC3_I2C_ADDR) : Device("SHTC3"), mI2C(i2CDevice),
-                                  addr({.dev_addr = static_cast<uint16_t>(address << 1), .mem_addr = 0, .mem_addr_size = 2}),
-                                  inLowPowerMode(false) {}
+    explicit SHTC3(I2CDevice &i2CDevice, uint16_t address = SHTC3_I2C_ADDR, const char *name = "SHTC3")
+            : Device(name), mI2C(&i2CDevice), inLowPowerMode(false),
+              addr({.dev_addr = static_cast<uint16_t>(address << 1), .mem_addr = 0, .mem_addr_size = 2}) {}
 
     /**
      * @brief Initialize the sensor
@@ -75,31 +76,40 @@ public:
     RetType init() {
         RESUME();
 
-//        RetType ret = CALL(toggleSleep(false));
-//        if (ret != RET_SUCCESS) goto init_end;
+        RetType ret = CALL(toggleSleep(false));
+        if (ret != RET_SUCCESS) goto init_end;
 
-//        ret = CALL(reset());
-//        if (ret != RET_SUCCESS) goto init_end;
-//
-//        ret = CALL(getID(&this->id));
-//        if (ret != RET_SUCCESS) goto init_end;
-//
-//        if ((this->id & 0x083F) != 0x807) {
-//            ret = RET_ERROR;
-//            goto init_end;
-//        }
+        ret = CALL(reset());
+        if (ret != RET_SUCCESS) goto init_end;
 
-//        if (inLowPowerMode) {
-//            ret = CALL(writeCommand(LOW_POW_MEAS_TEMP));
-//            SLEEP(1000);
-//        } else {
-//            ret = CALL(writeCommand(NORMAL_POW_MEAS_TEMP));
-//            SLEEP(1000);
-//        }
+        ret = CALL(getID(&this->id));
+        if (ret != RET_SUCCESS) goto init_end;
+
+        if ((this->id & 0x083F) != 0x807) {
+            ret = RET_ERROR;
+            goto init_end;
+        }
+
+        if (inLowPowerMode) {
+            ret = CALL(writeCommand(LOW_POW_MEAS_TEMP));
+            SLEEP(1000);
+        } else {
+            ret = CALL(writeCommand(NORMAL_POW_MEAS_TEMP));
+            SLEEP(1000);
+        }
 
         init_end:
         RESET();
         return RET_SUCCESS;
+    }
+
+    RetType getData(SHTC3_DATA_T *data) {
+        RESUME();
+
+        RetType ret = CALL(getHumidityAndTemp(&data->temperature, &data->humidity));
+
+        RESET();
+        return ret;
     }
 
     /**
@@ -125,7 +135,7 @@ public:
         *humidity = calcHumidity(rawHumidity);
 
         ret = CALL(readCommand(NORMAL_POW_MEAS_TEMP_STRETCH, buffer, 2));
-        if (ret != RET_SUCCESS){
+        if (ret != RET_SUCCESS) {
             RESET();
             return ret;
         }
@@ -208,9 +218,9 @@ public:
         RESUME();
         addr.dev_addr = (SHTC3_I2C_ADDR << 1);
 
-        uint8_t command8[2];
+        static uint8_t command8[2];
         uint16ToUint8(command16, command8);
-        RetType ret = CALL(mI2C.transmit(addr, command8, 2, 80));
+        RetType ret = CALL(mI2C->transmit(addr, command8, 2, 80));
         if (ret != RET_SUCCESS)
             return ret;
 
@@ -230,14 +240,14 @@ public:
         RESUME();
         addr.dev_addr = (SHTC3_I2C_ADDR << 1);
 
-        RetType ret = CALL(mI2C.transmit(addr, reinterpret_cast<uint8_t*>(&command16), 2, 50));
+        RetType ret = CALL(mI2C->transmit(addr, reinterpret_cast<uint8_t *>(&command16), 2, 50));
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
         }
 
         addr.dev_addr = (SHTC3_I2C_ADDR << 1) | 0x01;
-        ret = CALL(mI2C.receive(addr, buff, numBytes, 50));
+        ret = CALL(mI2C->receive(addr, buff, numBytes, 50));
 
         RESET();
         return ret;
@@ -264,27 +274,27 @@ public:
     //        this->inLowPowerMode = lowPowerMode;
     //    }
 
+    RetType poll() override {
+        return RET_SUCCESS;
+    }
+
     RetType obtain() override {
-        return RET_ERROR;
+        return RET_SUCCESS;
     }
 
     RetType release() override {
-        return RET_ERROR;
-    }
-
-    RetType poll() override {
-        return RET_ERROR;
+        return RET_SUCCESS;
     }
 
 private:
     /* The I2C object */
-    I2CDevice &mI2C;
+    I2CDevice *mI2C;
     /* The I2C address of the sensor */
     I2CAddr_t addr;
     /* Is the sensor in low power mode */
     bool inLowPowerMode;
     /* The ID of the sensor */
-    uint16_t id;
+    uint16_t id{};
 
     /**
      * @brief Perform a 16 bit to 8 bit conversion

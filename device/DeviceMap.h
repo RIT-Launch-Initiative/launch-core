@@ -32,7 +32,7 @@ public:
     /// @return         a pointer to the device, or NULL on error
     Device* get(const char* name) {
         for(size_t i = 0; i < m_count; i++) {
-            if(!strcmp(name, m_names[i])) {
+            if(!strncmp(name, m_names[i], 64)) {
                 // this is our device
                 return m_devices[i];
             }
@@ -83,7 +83,7 @@ protected:
     /// @param name     the name of the device
     /// @param dev      the device to add
     /// @return
-    RetType add(const char* name, Device* dev) {
+    constexpr RetType add(const char* name, Device* dev) {
         if(m_count >= m_size) {
             return RET_ERROR;
         }
@@ -111,7 +111,7 @@ protected:
     size_t m_count;
 
     // iterator in device list
-    size_t i;
+    size_t i{};
 };
 
 namespace alloc {

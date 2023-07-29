@@ -8,9 +8,9 @@
 #define LAUNCH_CORE_LIS3MDL_H
 #define LIS3MDL_DATA_STRUCT(variable_name) LIS3MDL_DATA_T variable_name = {.id = 15000, .x_mag = 0, .y_mag = 0, .z_mag = 0, .temperature = 0}
 
-#include "sched/macros/macros.h"
 #include "device/I2CDevice.h"
 #include "lis3mdl_reg.h"
+#include "sched/macros/macros.h"
 
 
 using LIS3MDL_DATA_T = struct {
@@ -28,10 +28,8 @@ enum LIS3MDL_I2C_ADDR {
 
 class LIS3MDL : public Device {
 public:
-    LIS3MDL(I2CDevice &i2cDevice, const uint8_t address = LIS3MDL_I2C_ADDR_PRIMARY) : Device("LIS3MDL"), mI2C(&i2cDevice),
-                                                                                      i2cAddr({.dev_addr = static_cast<uint16_t>(address << 1), .mem_addr = 0x00, .mem_addr_size = 1}) {}
-
-    RetType init() {
+    LIS3MDL(I2CDevice &i2cDevice, const uint16_t address = LIS3MDL_I2C_ADDR_PRIMARY, const char *name = "LIS3MDL") : Device(name), mI2C(&i2cDevice), i2cAddr({.dev_addr = static_cast<uint16_t>(address << 1), .mem_addr = 0, .mem_addr_size = 1}) {}
+    RetType init() override {
         RESUME();
 
         static uint8_t whoAmI = 0;
@@ -50,6 +48,15 @@ public:
 
         RESET();
         return RET_SUCCESS;
+    }
+
+    RetType getData(LIS3MDL_DATA_T *data) {
+        RESUME();
+
+        RetType ret = CALL(pullSensorData(&data->x_mag, &data->y_mag, &data->z_mag, &data->temperature));
+
+        RESET();
+        return ret;
     }
 
     /**
@@ -188,27 +195,27 @@ public:
         static lis3mdl_ctrl_reg1_t ctrlReg1;
         static lis3mdl_ctrl_reg4_t ctrlReg4;
 
-        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG1, (uint8_t * ) & ctrlReg1, 1));
+        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG1, (uint8_t *) &ctrlReg1, 1));
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
         }
 
         ctrlReg1.om = val;
-        ret = CALL(readReg(LIS3MDL_CTRL_REG4, (uint8_t * ) & ctrlReg4, 1));
+        ret = CALL(readReg(LIS3MDL_CTRL_REG4, (uint8_t *) &ctrlReg4, 1));
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
         }
 
-        ret = CALL(writeReg(LIS3MDL_CTRL_REG1, (uint8_t * ) & ctrlReg1, 1));
+        ret = CALL(writeReg(LIS3MDL_CTRL_REG1, (uint8_t *) &ctrlReg1, 1));
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
         }
 
         ctrlReg4.omz = val;
-        ret = CALL(writeReg(LIS3MDL_CTRL_REG4, (uint8_t * ) & ctrlReg4, 1));
+        ret = CALL(writeReg(LIS3MDL_CTRL_REG4, (uint8_t *) &ctrlReg4, 1));
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
@@ -348,9 +355,9 @@ public:
             static lis3mdl_ctrl_reg5_t ctrlReg5;
             ret = CALL(readReg(LIS3MDL_CTRL_REG5, reinterpret_cast<uint8_t *>(&ctrlReg5), 1));
             if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
+                RESET();
+                return ret;
+            }
         }
 
         RESET();
@@ -521,18 +528,6 @@ public:
         }
 
         RESET();
-        return RET_SUCCESS;
-    }
-
-    RetType obtain() override {
-        return RET_SUCCESS;
-    }
-
-    RetType release() override {
-        return RET_SUCCESS;
-    }
-
-    RetType poll() override {
         return RET_SUCCESS;
     }
 

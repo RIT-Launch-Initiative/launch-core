@@ -1,5 +1,4 @@
 build/
-CMakeLists.txt
 .idea/
 .vscode/
 *.o

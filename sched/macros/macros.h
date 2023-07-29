@@ -12,9 +12,6 @@
 #ifndef SCHED_MACROS_H
 #define SCHED_MACROS_H
 
-// NOTE: sched/macros/jump_table.cpp must be compiled to use macros!
-
-
 // ** macros for use in scheduler tasks ** //
 
 // RESUME()

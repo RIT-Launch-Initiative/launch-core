@@ -1,14 +1,10 @@
 /**
  * @file MAXM10S.h
  * @brief Platform Independent Driver for the MAX-M10S GPS module
- * @details This is the I2C Implementation.
- *          UART and PIO are also supported but are NYI.
+ * @details Supports both I2C and UART interfaces
  *
- *
- *          Im not even sure if we are going to need them but the option
- *          is there. 🤯. Also note this sensor is not writeable with
- * @author Nate Aquino
  * @author Aaron Chan
+ * @author Nate Aquino
  *
  *
  * @link https://content.u-blox.com/sites/default/files/MAX-M10S_IntegrationManual_UBX-20053088.pdf
@@ -19,19 +15,10 @@
 #include "device/I2CDevice.h"
 #include "return.h"
 #include "sched/macros/call.h"
-#include "sched/macros/reset.h"
-#include "sched/macros/resume.h"
-#include "stm32f4xx_hal_i2c.h"
 
-extern I2C_HandleTypeDef hi2c1;
-
-
-/* The MAXM10S (default) I2C address (8 bits) */
-#define MAXM10S_I2C_ADDR 0x42
 
 /**
  * @brief The MAXM10S Registers
- *
  */
 typedef enum {
     /* The hight byte of the amount of data available from the sensor */
@@ -46,12 +33,16 @@ typedef enum {
  * @brief Platform Independent Driver for the MAXM10S GPS module
  */
 class MAXM10S {
+    static const uint8_t MAXM10S_I2C_ADDR = 0x42;
+
 public:
     /**
      * @brief CTOR For MAXM10S
      * @param i2c_device the I2C device to use
      */
-    MAXM10S(I2CDevice &i2c_device, StreamDevice &stream_device, GPIODevice &reset_pin, GPIODevice &interrupt_pin) : m_i2c(i2c_device), m_stream(stream_device), m_reset_pin(reset_pin), m_interrupt_pin(interrupt_pin) {};
+    MAXM10S(I2CDevice &i2c_device, StreamDevice &stream_device, GPIODevice &reset_pin, GPIODevice &interrupt_pin) :
+    m_i2c(i2c_device), m_stream(stream_device),
+    m_reset_pin(reset_pin), m_interrupt_pin(interrupt_pin) {};
 
     /**
      * @brief Initialize the MAXM10S sensor
@@ -62,7 +53,10 @@ public:
         RESUME();
 
         RetType ret = CALL(reset());
-        if (ret != RET_SUCCESS) goto init_end;
+        if (RET_SUCCESS != ret) {
+            RESET();
+            return ret;
+        }
 
         ret = CALL(m_interrupt_pin.set(0));
 
@@ -109,13 +103,10 @@ public:
         static uint8_t byteCount[2];
 
         RetType ret = CALL(read_reg(BYTE_COUNT_HIGH, byteCount, 2));
-        if (ret != RET_SUCCESS) goto get_amt_data_end;
-
         *amt = (byteCount[0] << 8) | byteCount[1];
 
-        get_amt_data_end:
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     /**
@@ -130,10 +121,9 @@ public:
         RetType ret;
 
         addr.mem_addr = DATA_STREAM;
-        // read as much data as possible (assuming RET_ERROR means NACK?)
-        // I know for sure 0xFF is the end of the data stream
+
         do {
-            ret = CALL(m_i2c.read(addr, buff, 1, 1500));  // sensor timeout
+            ret = CALL(m_i2c.read(addr, buff, 1, 1500));
             if (ret == RET_SUCCESS) buff++;
         } while (ret != RET_ERROR || *(buff - 1) != 0xFF);
 
@@ -153,11 +143,13 @@ public:
 
         static constexpr uint8_t posllh[] = {0xB5, 0x62, 0x01, 0x21, 0x00, 0x00, 0x22, 0x67};
         RetType ret = CALL(m_stream.write(const_cast<uint8_t *>(posllh), 8));
-        if (ret != RET_SUCCESS) goto uart_read_posllh_data_end;
+        if (RET_SUCCESS != ret) {
+            RESET();
+            return ret;
+        };
 
         ret = CALL(m_stream.read(buff, 28));
 
-        uart_read_posllh_data_end:
         RESET();
         return ret;
     }
@@ -188,12 +180,12 @@ private:
      * @param numBytes the number of bytes to read
      * @return RetType the scheduler status
      */
-    RetType read_reg(MAXM10S_REG reg, uint8_t *buff, size_t numBytes) {  /// @todo TESTME!
+    RetType read_reg(MAXM10S_REG reg, uint8_t *buff, size_t numBytes) {
         RESUME();
 
         addr.mem_addr = 0;
         RetType ret = CALL(m_i2c.transmit(addr, (uint8_t *) reg, 1, 150));
-        if (ret != RET_SUCCESS) goto read_reg_end;
+        if (RET_SUCCESS != ret) goto read_reg_end;
 
         addr.mem_addr = static_cast<uint8_t>(reg);
         ret = CALL(m_i2c.read(addr, buff, numBytes, 1500));
@@ -210,11 +202,11 @@ private:
      * @param cmdLen The length of the command
      * @return RetType the scheduler status
      */
-    RetType sendCommand(uint8_t *cmdBuff, int cmdLen) {  /// @todo TESTME!
+    RetType sendCommand(uint8_t *cmdBuff, int cmdLen) {
         RESUME();
 
         RetType ret = CALL(m_i2c.transmit(addr, cmdBuff, cmdLen, 50));
-        if (ret != RET_SUCCESS)
+        if (RET_SUCCESS != ret)
             return ret;
 
         RESET();
