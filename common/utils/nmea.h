@@ -11,10 +11,11 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstdio>
+#include "common/MeasurementTypes.h"
 
 
 namespace nmea {
-    int parse_gga(const char *sentence, GGA_DATA_T *dest, size_t n) {
+    int parse_gga(const char *sentence, GPSData *dest, size_t n) {
         // check for terminator
         int i;
         for (i = 0; i < n; i++) {
