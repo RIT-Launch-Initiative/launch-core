@@ -99,7 +99,7 @@ public:
         return ret;
     }
 
-    RetType getPressureTemp(int32_t *pressure, int32_t *temp) {
+        RetType getPressureTemp(int32_t *pressure, int32_t *temp) {
         RESUME();
 
         static uint32_t pressureVal;
@@ -111,13 +111,9 @@ public:
         ret = CALL(readDigitalTemperature(&tempVal));
         ERROR_CHECK(ret);
 
-        int32_t dT;
-        int32_t calcTemp = calculateTemp(tempVal, &dT);
-        int32_t calcPressure = calculateTempCompPressure(pressureVal, dT);
-        calcTempCompensation(&calcTemp, &calcPressure);
-
-        *pressure = calcPressure / 100;
-        *temp = calcTemp / 100;
+        MS5607_DATA_T calculatedData = pressureTempCalculation(pressureVal, tempVal);
+        *pressure = calculatedData.pressure;
+        *temp = calculatedData.temperature;
 
         RESET();
         return RET_SUCCESS;
@@ -201,7 +197,7 @@ private:
 
     RetType readCalibration() {
         RESUME();
-        
+
         RetType ret = CALL(readReg(COEFFICIENT_ONE_ADDR, m_buff, 2, 300));
         if (RET_SUCCESS == ret) pressureSens = (m_buff[0] << 8) | m_buff[1];
         else ERROR_CHECK(RET_ERROR);
@@ -259,41 +255,27 @@ private:
     }
 
 
-    int32_t calculateTemp(uint32_t digitalTemp, int32_t *tempDiff) const {
-        // dT = D2 - TREF = D2 - C5 * 2^8
-        *tempDiff = digitalTemp - (tempRef * 256);
-        // TEMP = 20°C + dT * TEMPSENS =2000 + dT * C6 / 2^23
-        return 2000 + *tempDiff * tempSens / 8388608;
-    }
+    MS5607_DATA_T pressureTempCalculation(uint32_t D1, uint32_t D2) {
+        // Calibration Data
+        uint16_t C1 = pressureSens;
+        uint16_t C2 = pressureOffset;
+        uint16_t C3 = pressureSensTempCo;
+        uint16_t C4 = pressureOffsetTempCo;
+        uint16_t C5 = tempRef;
+        uint16_t C6 = tempSens;
 
-    int32_t calculateTempCompPressure(uint32_t digitalPressure, int32_t tempDiff) const {
-        // OFF = OFFT1 + TCO *dT = C2 *217 + (C4 * dT) / 2^6
-        int32_t off = pressureOffset * 131072 + (pressureOffsetTempCo * tempDiff) / 64;
-        // SENS = SENST1 + TCS * dT= C1 * 2^16 + (C3 * dT) / 2^7
-        int32_t sens = pressureSens * 65536 + (pressureSensTempCo * tempDiff) / 128;
-        // P = D1 * SENS - OFF = (D1 * SENS / 2^21 - OFF) / 2^15
-        return ((digitalPressure * sens / 2097152) - off) / 32768;
-    }
+        // Data already read
 
-    void calcTempCompensation(int32_t *temperature, int32_t *tempOffset) {
-        double T2 = 0;
-        double OFF2 = 0;
-        double SENS2 = 0;
+        // Calculate Temperature
+        int32_t dT = static_cast<int32_t>(D2) - (C5 << 8);
+        int32_t TEMP = 2000 + dT * C6 / (1 << 23);
 
-        if (*temperature < 20) {
-            T2 = pow(*tempOffset, 2) / pow(2, 31);
-            OFF2 = 61 * pow(*temperature - 2000, 2) / pow(2, 4);
-            SENS2 = 2 * pow(*temperature - 2000, 2);
+        // Calculate Pressure
+        int64_t OFF = C2 * (1 << 17) + (C4 * dT) / (1 << 6);
+        int64_t SENS = C1 * (1 << 16) + (C3 * dT) / (1 << 7);
+        int32_t P = (static_cast<int32_t>(D1) * SENS / (1 << 21) - OFF) / (1 << 15);
 
-            if (*temperature < -15) {
-                OFF2 += 15 * pow(*temperature + 1500, 2);
-                SENS2 += 8 * pow(*temperature + 1500, 2);
-            }
-        }
-
-        *temperature -= T2;
-        *tempOffset -= OFF2;
-        *tempOffset -= SENS2;
+        return {.id = 0, .pressure = P, .temperature = TEMP};
     }
 
     void setConv(MS5607_OSR_T osr) {
