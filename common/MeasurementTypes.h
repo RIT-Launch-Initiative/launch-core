@@ -12,33 +12,33 @@
 typedef struct {
     const uint16_t id; // Unique ID for the sensor
     uint32_t time; // Time of the measurement (unit/format user defined)
-} MEASUREMENT_INFO_T;
+} MeasurementInfo;
 
 typedef struct {
-    MEASUREMENT_INFO_T info;
+    MeasurementInfo info;
     int32_t x_accel;
     int32_t y_accel;
     int32_t z_accel;
-} ACCEL_DATA_T;
+} AccelerometerData;
 
 typedef struct {
-    MEASUREMENT_INFO_T info;
+    MeasurementInfo info;
     int16_t temperature;
     int32_t pressure;
     int32_t altitude;
-} ALTIMETER_DATA_T;
+} AltimeterData;
 
 typedef struct {
-    MEASUREMENT_INFO_T info;
+    MeasurementInfo info;
     int16_t temperature;
     int16_t humidity;
-} AMBIENT_DATA_T;
+} AmbientData;
 
 typedef struct {
-    MEASUREMENT_INFO_T info;
+    MeasurementInfo info;
     int16_t temperature;
     int32_t pressure;
-} BAROMETER_DATA_T;
+} BarometerData;
 
 typedef struct {
     float time; // seconds since midnight
@@ -47,21 +47,21 @@ typedef struct {
     float alt; // meters ASL
     int quality; // fix indicator
     int num_sats; // number of satellites used
-} GGA_DATA_T;
+} GPSData;
 
 typedef struct {
-    MEASUREMENT_INFO_T info;
+    MeasurementInfo info;
     int32_t x_gyro;
     int32_t y_gyro;
     int32_t z_gyro;
-} GYRO_DATA_T;
+} GyroscopeData;
 
 typedef struct {
-    MEASUREMENT_INFO_T info;
+    MeasurementInfo info;
     int32_t x_mag;
     int32_t y_mag;
     int32_t z_mag;
-} MAG_DATA_T;
+} MagnetometerData;
 
 
 

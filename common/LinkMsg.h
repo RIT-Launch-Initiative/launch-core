@@ -1,5 +1,5 @@
 /**
- * Wrapper for constructing payloads between flight computers and ground equipment
+ * Wrapper for constructing payloads between flight computers and ground receivers
  *
  * @author Aaron Chan
  */
