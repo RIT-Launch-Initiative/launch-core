@@ -95,7 +95,7 @@ extern tid_t sched_dispatched;
 inline void dispatch() {
     task_t* task = sched_select();
 
-    if(NULL != dispatch) {
+    if(NULL != task) {
         sched_dispatched = task->tid;
         sched_jump[sched_dispatched].index = 0;
 
