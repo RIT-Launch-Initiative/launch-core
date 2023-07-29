@@ -15,10 +15,6 @@
 #include "device/I2CDevice.h"
 #include <cmath>
 
-#define CHECK_RET {if (ret != RET_SUCCESS) {RESET(); return ret;}}
-#define CONCAT(a, b) a ## b
-
-
 using MS5607_DATA_T = struct {
     const uint16_t id;
     int32_t pressure;
@@ -102,14 +98,14 @@ public:
         RetType getPressureTemp(int32_t *pressure, int32_t *temp) {
         RESUME();
 
-        static uint32_t pressureVal;
-        static uint32_t tempVal;
-
-        RetType ret = CALL(readDigitalPressure(&pressureVal));
+        RetType ret = CALL(readDigitalPressure(reinterpret_cast<uint32_t *>(&m_buff[0])));
         ERROR_CHECK(ret);
 
-        ret = CALL(readDigitalTemperature(&tempVal));
+        ret = CALL(readDigitalTemperature(reinterpret_cast<uint32_t *>(&m_buff[3])));
         ERROR_CHECK(ret);
+
+        uint32_t pressureVal = (m_buff[0] << 16) | (m_buff[1] << 8) | m_buff[2];
+        uint32_t tempVal = (m_buff[3] << 16) | (m_buff[4] << 8) | m_buff[5];
 
         MS5607_DATA_T calculatedData = pressureTempCalculation(pressureVal, tempVal);
         *pressure = calculatedData.pressure;
@@ -131,8 +127,6 @@ public:
         return ret;
     }
 
-
-
     RetType readDigitalTemperature(uint32_t *digitalTemperature) {
         RESUME();
 
@@ -145,8 +139,6 @@ public:
         return ret;
     }
 
-
-
     RetType reset() {
         RESUME();
 
@@ -157,12 +149,11 @@ public:
         return ret;
     }
 
-
 private:
     I2CDevice *mI2C;
     I2CAddr_t mAddr;
 
-    uint8_t m_buff[10] = {0};
+    uint8_t m_buff[6] = {0};
 
     uint8_t d1Conversion = CONVERT_D1_256;
     uint8_t d2Conversion = CONVERT_D2_256;
@@ -239,7 +230,7 @@ private:
         SLEEP(conversionDelay);
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     RetType readADC(uint32_t *adcValue) {
@@ -253,7 +244,6 @@ private:
         RESET();
         return ret;
     }
-
 
     MS5607_DATA_T pressureTempCalculation(uint32_t D1, uint32_t D2) {
         // Calibration Data
@@ -280,11 +270,6 @@ private:
 
     void setConv(MS5607_OSR_T osr) {
         switch (osr) {
-            case MS5607_OSR_256:
-                d1Conversion = CONVERT_D1_256;
-                d2Conversion = CONVERT_D2_256;
-                conversionDelay = 1;
-                break;
             case MS5607_OSR_512:
                 d1Conversion = CONVERT_D1_512;
                 d2Conversion = CONVERT_D2_512;
@@ -305,6 +290,7 @@ private:
                 d2Conversion = CONVERT_D2_4096;
                 conversionDelay = 10;
                 break;
+            case MS5607_OSR_256:
             default:
                 d1Conversion = CONVERT_D1_256;
                 d2Conversion = CONVERT_D2_256;
