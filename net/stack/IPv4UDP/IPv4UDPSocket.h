@@ -26,7 +26,7 @@
 #include "queue/allocated_queue.h"
 #include "net/packet/Packet.h"
 #include "pool/pool.h"
-#include "sched/macros/macros.h"
+#include "sched/macros.h"
 
 // TODO add subscribing to multicast address somehow
 //      maybe just bind to multicast address (or 0.0.0.0)

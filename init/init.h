@@ -16,9 +16,6 @@
 #include "sched/macros.h"
 #include "device/DeviceMap.h"
 #include "device/Device.h"
-#include "stm32f4xx_hal_uart.h"
-
-extern UART_HandleTypeDef huart2;
 
 /// @brief helper function to poll a device, essentially just calls the 'poll'
 ///        function of 'dev'

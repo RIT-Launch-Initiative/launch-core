@@ -42,7 +42,7 @@
 #include "device/StreamDevice.h"
 #include "net/slip/slip.h"
 #include "net/packet/Packet.h"
-#include "sched/macros/macros.h"
+#include "sched/macros.h"
 
 
 class SLIPRingDevice : public NetworkLayer, public Device {
