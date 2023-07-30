@@ -13,7 +13,7 @@
 
 #include <stdlib.h>
 
-#include "sched/macros/macros.h"
+#include "sched/macros.h"
 #include "device/DeviceMap.h"
 #include "device/Device.h"
 #include "stm32f4xx_hal_uart.h"
