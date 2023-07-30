@@ -15,6 +15,6 @@
 #include <stdint.h>
 #include "sched/sched.h"
 
-static const size_t MAX_NUM_TASKS = 64;
+static constexpr size_t MAX_NUM_TASKS = 64;
 
 #endif

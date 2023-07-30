@@ -5,6 +5,7 @@
 *  Purpose: Contains preprocessor macros for using the scheduler.
 *
 *  Author: Will Merges
+*  Author: Aaron Chan
 *
 *  RIT Launch Initiative
 *
@@ -71,7 +72,7 @@ static const size_t MAX_CALL_DEPTH = 64;
 /// @brief a jump table for a task
 typedef struct {
     // the address of labels to jump to
-    void* jumps[MAX_CALL_DEPTH];
+    void *jumps[MAX_CALL_DEPTH];
 
     // the current size of the table
     size_t size;
@@ -93,13 +94,13 @@ extern tid_t sched_dispatched;
 ///
 /// NOTE:  any task that returns RET_ERROR will be killed.
 inline void dispatch() {
-    task_t* task = sched_select();
+    task_t *task = sched_select();
 
-    if(NULL != task) {
+    if (nullptr != task) {
         sched_dispatched = task->tid;
         sched_jump[sched_dispatched].index = 0;
 
-        if(RET_ERROR == task->func(task->arg)) {
+        if (RET_ERROR == task->func(task->arg)) {
             sched_kill(sched_dispatched);
         }
     }

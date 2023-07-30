@@ -5,6 +5,7 @@
 *  Purpose: Contains preprocessor macros for using the scheduler.
 *
 *  Author: Will Merges
+*  Author: Aaron Chan
 *
 *  RIT Launch Initiative
 *
