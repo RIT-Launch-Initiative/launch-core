@@ -10,7 +10,7 @@
 
 #include "device/I2CDevice.h"
 #include "lis3mdl_reg.h"
-#include "sched/macros/macros.h"
+#include "sched/macros.h"
 
 
 using LIS3MDL_DATA_T = struct {
