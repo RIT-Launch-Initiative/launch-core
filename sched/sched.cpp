@@ -19,8 +19,6 @@ static task_t tasks[MAX_NUM_TASKS];
 // ready queue
 static alloc::Queue<task_t *, MAX_NUM_TASKS> ready_q{};
 
-static int num_tasks = 0;
-
 // sorting function for the sleep queue
 // sorts task_t's
 // sort by nearest wakeup time first
@@ -82,7 +80,6 @@ tid_t sched_start(task_func_t func, void *arg) {
             //       this is valid because the queue is the same size as the
             //       number of tasks allocated.
             tasks[i].ready_loc = ready_q.push(&(tasks[i]));
-            num_tasks++;
 
             return i;
         }
@@ -147,10 +144,6 @@ task_t *sched_select() {
 /// @brief kill a task, removing it from the scheduler
 /// @param tid  the tid of the task to kill
 void sched_kill(tid_t tid) {
-    if (tid <= 0 || tid >= num_tasks) {
-        return;
-    }
-
     task_t *task = &(tasks[tid]);
 
     // if the task is sleeping, take it off the sleep queue
@@ -165,16 +158,11 @@ void sched_kill(tid_t tid) {
     }
 
     task->state = STATE_UNALLOCATED;
-    num_tasks--;
 }
 
 /// @brief sleep a task
 /// @param
 void sched_sleep(tid_t tid, uint32_t time) {
-    if (tid <= 0 || tid >= num_tasks) {
-        return;
-    }
-
     task_t *task = &(tasks[tid]);
 
     // if the task is already sleeping, take it off the sleep queue
@@ -200,10 +188,6 @@ void sched_sleep(tid_t tid, uint32_t time) {
 
 /// @brief wake up a task
 void sched_wake(tid_t tid) {
-    if (tid <= 0 || tid >= num_tasks) {
-        return;
-    }
-
     task_t *task = &(tasks[tid]);
 
     if (STATE_BLOCKED != task->state && STATE_SLEEPING != task->state) {
@@ -231,10 +215,6 @@ void sched_wake(tid_t tid) {
 /// @brief block a task
 ///        task will not be dispatched until 'sched_wake' is called
 void sched_block(tid_t tid) {
-    if (tid <= 0 || tid >= num_tasks) {
-        return;
-    }
-
     task_t *task = &(tasks[tid]);
 
     // remove this task from any queues it's on

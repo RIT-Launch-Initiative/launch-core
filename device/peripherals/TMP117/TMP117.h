@@ -282,9 +282,10 @@ private:
 
         i2cAddr.mem_addr = reg;
         RetType ret = CALL(mI2C->read(i2cAddr, data, len));
+        if (ret != RET_SUCCESS) return ret;
 
         RESET();
-        return ret;
+        return RET_SUCCESS;
     }
 
     /**
@@ -299,9 +300,10 @@ private:
 
         i2cAddr.mem_addr = reg;
         RetType ret = CALL(mI2C->write(i2cAddr, data, len));
+        if (ret != RET_SUCCESS) return ret;
 
         RESET();
-        return ret;
+        return RET_SUCCESS;
     }
 };
 
