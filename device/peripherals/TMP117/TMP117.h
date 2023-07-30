@@ -71,7 +71,7 @@ public:
 
         RetType ret = CALL(checkID());
         if (RET_SUCCESS == ret) {
-//            ret = CALL(softReset());
+            ret = CALL(softReset());
         }
 
         RESET();
@@ -240,7 +240,7 @@ public:
             tx_buff[0] = static_cast<uint8_t>(reset16 >> 8);
             tx_buff[1] = static_cast<uint8_t>(reset16 & 0xFF);
 
-//            ret = CALL(writeRegister(TMP117_CONFIGURATION, tx_buff, 2));
+            ret = CALL(writeRegister(TMP117_CONFIGURATION, tx_buff, 2));
         }
 
         RESET();
