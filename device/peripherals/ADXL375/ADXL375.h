@@ -7,7 +7,7 @@
 #ifndef LAUNCH_CORE_ADXL375_H
 #define LAUNCH_CORE_ADXL375_H
 
-#define ADXL375_DATA_STRUCT(variable_name) ADXL375_DATA_T variable_name = {.id = 12000, .x_accel = 0, .y_accel = 0, .z_accel = 0}
+#define ADXL375_DATA_STRUCT(variable_name) ADXL375::ADXL375_DATA_T variable_name = {.id = 12000, .x_accel = 0, .y_accel = 0, .z_accel = 0}
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -61,19 +61,19 @@ public:
     } ADXL375_DATA_T;
 
     typedef struct {
-        uint8_t data_rate,
-        uint8_t operating_mode,
-        uint8_t range,
+        uint8_t data_rate;
+        uint8_t operating_mode;
+        uint8_t range;
     } ADXL375_CONFIG_T;
 
-    constexpr uint8_t ADXL375_DEV_ADDR_PRIM = 0x3B;
-    constexpr uint8_t ADXL375_DEV_ADDR_SEC = 0x53;
-    constexpr uint8_t ADXL375_REG_BW_RATE = 0x2C;
-    constexpr uint8_t ADXL375_POWER_CTL = 0x2D;
-    constexpr uint8_t ADXL375_REG_DATA_FORMAT = 0x31;
-    constexpr uint8_t ADXL375_XYZ_READ_SCALE_FACTOR = 49;
-    constexpr float ADXL375_MG2G_MULTIPLIER = 0.049;
-    constexpr float ADXL375_GRAVITY = 9.80665F;
+    static constexpr uint8_t ADXL375_DEV_ADDR_PRIM = 0x3B;
+    static constexpr uint8_t ADXL375_DEV_ADDR_SEC = 0x53;
+    static constexpr uint8_t ADXL375_REG_BW_RATE = 0x2C;
+    static constexpr uint8_t ADXL375_POWER_CTL = 0x2D;
+    static constexpr uint8_t ADXL375_REG_DATA_FORMAT = 0x31;
+    static constexpr uint8_t ADXL375_XYZ_READ_SCALE_FACTOR = 49;
+    static constexpr float ADXL375_MG2G_MULTIPLIER = 0.049;
+    static constexpr float ADXL375_GRAVITY = 9.80665F;
 
     explicit ADXL375(I2CDevice &i2c, const uint16_t address = ADXL375_DEV_ADDR_PRIM, const char *name = "ADXl375")
             : Device(name), m_i2c(&i2c),
@@ -87,12 +87,6 @@ public:
             RESET();
             return ret;
         }
-
-//        ret = CALL(setOperatingMode(ADXL375_SLEEP_MODE)); // TODO: Might not be able to set settings in sleep mode
-//        if (RET_SUCCESS != ret) {
-//            RESET();
-//            return ret;
-//        }
 
         ret = CALL(setDataRateAndLowPower(ADXL375_DR_100HZ, false));
         if (RET_SUCCESS != ret) {
@@ -137,16 +131,16 @@ public:
 
         RESUME();
 
-        RetType ret = CALL(readReg(xLSBDataReg, m_rx_buff, 6));
+        RetType ret = CALL(readReg(xLSBDataReg, m_buff, 6));
         if (RET_SUCCESS != ret) {
             RESET();
             return ret;
         }
 
 
-        *xAxis = static_cast<int16_t>((m_rx_buff[1] << 8) | m_rx_buff[0]) * scale;
-        *yAxis = static_cast<int16_t>((m_rx_buff[3] << 8) | m_rx_buff[2]) * scale;
-        *zAxis = static_cast<int16_t>((m_rx_buff[5] << 8) | m_rx_buff[4]) * scale;
+        *xAxis = static_cast<int16_t>((m_buff[1] << 8) | m_buff[0]) * scale;
+        *yAxis = static_cast<int16_t>((m_buff[3] << 8) | m_buff[2]) * scale;
+        *zAxis = static_cast<int16_t>((m_buff[5] << 8) | m_buff[4]) * scale;
 
         if ((bound < abs(*xAxis)) || (bound < abs(*yAxis)) || (bound < abs(*zAxis)) ) {
             ret = RET_ERROR; 
@@ -162,7 +156,7 @@ public:
         RetType ret = CALL(readAxis(xAxis, xLSBDataReg));
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     RetType readY(int16_t *yAxis) {
@@ -171,7 +165,7 @@ public:
         RetType ret = CALL(readAxis(yAxis, yLSBDataReg));
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     RetType readZ(int16_t *zAxis) {
@@ -208,10 +202,12 @@ public:
         RESUME();
         i2cAddr.mem_addr = ADXL375_REG_BW_RATE;
         static uint8_t rate = static_cast<uint8_t>(dataRate);
+
         if (lowPower) rate |= 0x8;
 
         RetType ret = CALL(writeReg(ADXL375_REG_BW_RATE, &rate));
         RESET();
+
         return ret;
     }
 
@@ -264,8 +260,7 @@ public:
 private:
     I2CDevice *m_i2c;
     I2CAddr_t i2cAddr;
-    uint8_t m_tx_buff[6];
-    uint8_t m_rx_buff[6];
+    uint8_t m_buff[6];
 
     /**
      * Reads the chip ID from the sensor
@@ -277,8 +272,8 @@ private:
 
         constexpr uint8_t chip_id = 0xE5;
 
-        RetType ret = CALL(readReg(0x00, m_rx_buff, 1));
-        if (chip_id != m_rx_buff[0]) ret = RET_ERROR;
+        RetType ret = CALL(readReg(0x00, m_buff, 1));
+        if (chip_id != m_buff[0]) ret = RET_ERROR;
 
         RESET();
         return ret;
