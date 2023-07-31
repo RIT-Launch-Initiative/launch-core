@@ -37,9 +37,61 @@ namespace tftp {
 
 class TFTP : public NetworkLayer {
 public:
+    TFTP(NetworkLayer &layer) : NetworkLayer(), m_lowerLayer(&layer) {}
 
+    RetType sendFile(Packet packet, netinfo_t &info, const TFTP_MODE_T mode,
+                     const uint8_t *filename, const size_t filenameLen,
+                     uint8_t *data, size_t *len) {
+        RESUME();
 
-    TFTP(NetworkLayer &layer) : NetworkLayer(), m_m_lowerLayer(&layer) {}
+        if (lock) {
+            RESET();
+            return RET_ERROR;
+        }
+
+        setOpcode(WRITE_REQUEST_OP);
+        setFilename(filename, filenameLen);
+        setMode(mode);
+
+        lock = true;
+
+        packet.clear();
+
+        while (0 != *len) {
+            if (512 > *len) {
+                packet.push(data, *len);
+            } else {
+                packet.push(data, 512);
+                *len -= 512;
+            }
+
+            RetType ret = CALL(m_lowerLayer->transmit(packet, info, this));
+            if (ret != RET_SUCCESS) {
+                RESET();
+                return ret;
+            }
+
+            ret = CALL(m_lowerLayer->transmit2(packet, info, this));
+            if (ret != RET_SUCCESS) {
+                RESET();
+                return ret;
+            }
+
+            m_retransmitPacket = packet;
+
+            packet.clear();
+
+            ret = CALL(m_lowerLayer->receive(packet, info, this));
+            if (ret != RET_SUCCESS || ACK_OP != packet.read_ptr<TFTP_HEADER_T>()->opcode) {
+                RESET();
+                return ret;
+            }
+        }
+
+        lock = false;
+        RESET();
+        return RET_SUCCESS;
+    }
 
     RetType receive(Packet &packet, netinfo_t &info, NetworkLayer *caller) override {
         return RET_ERROR;
@@ -105,7 +157,7 @@ public:
         this->m_currentOpcode = opcode;
     }
 
-    void setFilename(const char* filename, size_t len) {
+    void setFilename(const uint8_t* filename, size_t len) {
         memcpy(m_currentFilename, filename, len);
 
         if (0 != *(m_currentFilename + len) && len + 1 < 256) {
@@ -137,7 +189,8 @@ public:
     }
     
 private:
-    const NetworkLayer *m_lowerLayer;
+    NetworkLayer *m_lowerLayer;
+    Packet m_retransmitPacket = alloc::Packet<0, 0>();
     
     TFTP_OPCODE_T m_currentOpcode = READ_REQUEST_OP;
     
