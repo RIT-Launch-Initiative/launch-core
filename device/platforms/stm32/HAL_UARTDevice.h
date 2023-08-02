@@ -2,9 +2,7 @@
 #define UART_DEVICE_H
 
 #ifdef STM32F446xx
-
 #include "stm32f4xx_hal_uart.h"
-
 #elif STM32L476xx
 #include "stm32l4xx_hal_uart.h"
 #endif

@@ -18,12 +18,12 @@
 ///       it can be used to implement other semaphores such as a
 ///       "BlockingSemaphore" that uses scheduler blocking
 
-/// NOTE: spin locks should be held for as short as possible due to
+/// NOTE: spin locks should be held for as short as possible
 class Semaphore {
 public:
     /// @brief constructor
     /// @param val  initial value
-    Semaphore(int val) : m_val(val) {};
+    Semaphore(unsigned int val) : m_val(val) {};
 
     /// @brief increment the semaphore, releasing a resource
     /// @return
@@ -52,7 +52,7 @@ public:
     }
 
 private:
-    int m_val;
+    volatile unsigned int m_val;
 };
 
 #endif

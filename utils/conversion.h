@@ -6,6 +6,10 @@
 #ifndef LAUNCH_CORE_CONVERSION_H
 #define LAUNCH_CORE_CONVERSION_H
 
+#define celsius_to_fahrenheit(x) (x * 1.8) + 32
+#define fahrenheit_to_celsius(x) (x - 32) / 1.8
+
+
 #define uint16_to_uint8(x, buff) \
     *(buff) = (x >> 8) & 0xFF;   \
     *(buff + 1) = x & 0xFF;
