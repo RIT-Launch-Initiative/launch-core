@@ -1,11 +1,12 @@
 /**
- * Implementation of driver for the MS5607 Altimeter
+ * MS5607 Platform Independent Driver
  *
  * @author Aaron Chan
  */
 
 #ifndef LAUNCH_CORE_MS5607_H
 #define LAUNCH_CORE_MS5607_H
+
 #define MS5607_DATA_STRUCT(variable_name) MS5607_DATA_T variable_name = {.id = 10000, .pressure = 0, .temperature = 0}
 
 #include "sched/macros.h"
@@ -74,7 +75,6 @@ public:
         RetType ret = CALL(reset());
         ERROR_CHECK(ret);
 
-        SLEEP(280); // 2.8ms delay for register reload
 
         ret = CALL(readCalibration());
         if (RET_SUCCESS == ret) {
@@ -85,16 +85,27 @@ public:
         return ret;
     }
 
+    /**
+     * Grabs pressure and temperature data from altimeer
+     * @param data[out] - Struct containing data
+     * @return Scheduler Status
+     */
     RetType getData(MS5607_DATA_T *data) {
         RESUME();
 
-        RetType ret = CALL(getPressureTemp(&data->pressure, &data->temperature));
+        RetType ret = CALL(getData(&data->pressure, &data->temperature));
 
         RESET();
         return ret;
     }
 
-        RetType getPressureTemp(int32_t *pressure, int32_t *temp) {
+    /**
+     * Get the pressure and temperature data
+     * @param pressure[out] - Pointer to pressure
+     * @param temp[out] - Pointer to temperature
+     * @return
+     */
+    RetType getData(int32_t *pressure, int32_t *temp) {
         RESUME();
 
         RetType ret = CALL(readDigitalPressure(reinterpret_cast<uint32_t *>(&m_buff[0])));
@@ -114,6 +125,11 @@ public:
         return RET_SUCCESS;
     }
 
+    /**
+     * Read the digital pressure from the sensor
+     * @param digitalPressure[out] - Pointer to digital pressure value
+     * @return Scheduler status
+     */
     RetType readDigitalPressure(uint32_t *digitalPressure) {
         RESUME();
 
@@ -126,6 +142,11 @@ public:
         return ret;
     }
 
+    /**
+     * Read the digital temperature from the sensor
+     * @param digitalPressure[out] - Pointer to digital temperature value
+     * @return Scheduler status
+     */
     RetType readDigitalTemperature(uint32_t *digitalTemperature) {
         RESUME();
 
@@ -138,11 +159,17 @@ public:
         return ret;
     }
 
+    /**
+     * Reset the sensor
+     * @return Scheduler status
+     */
     RetType reset() {
         RESUME();
 
         m_buff[0] = RESET_COMMAND;
         RetType ret = CALL(mI2C->transmit(mAddr, m_buff, 1, 3000));
+
+        SLEEP(280); // 2.8ms delay for register reload
 
         RESET();
         return ret;
@@ -165,6 +192,14 @@ private:
     uint16_t tempRef = 0;
     uint16_t tempSens = 0;
 
+    /**
+     * Read the register(s) of the sensor
+     * @param command[in] - I2C Command/Address
+     * @param buff[out] - Buffer to read data into
+     * @param len[in] - Bytes to read
+     * @param timeout[in] - Time to read before error
+     * @return Scheduler Status
+     */
     RetType readReg(uint8_t command, uint8_t *buff, size_t len = 1, uint32_t timeout = 0) {
         RESUME();
 
@@ -175,6 +210,14 @@ private:
         return ret;
     }
 
+    /**
+     * Write to the register(s) of the sensor
+     * @param command[in] - I2C Command/Address
+     * @param buff[out] - Buffer to write data from
+     * @param len[in] - Bytes to write
+     * @param timeout[in] - Time to write before error
+     * @return Scheduler Status
+     */
     RetType writeReg(uint8_t command, uint8_t *buff, size_t len = 1, uint32_t timeout = 0) {
         RESUME();
 
@@ -185,6 +228,10 @@ private:
         return ret;
     }
 
+    /**
+     * Read factory calibration values for calculating the actual sensor values
+     * @return
+     */
     RetType readCalibration() {
         RESUME();
 
@@ -216,6 +263,11 @@ private:
         return ret;
     }
 
+    /**
+     * Command the sensor to start a conversion
+     * @param isD1[in] Whether is D1(Humidity) or D2(Temperature)
+     * @return Scheduler Status
+     */
     RetType conversion(const bool isD1) {
         RESUME();
 
@@ -232,6 +284,11 @@ private:
         return ret;
     }
 
+    /**
+     * Read the ADC value for temperature/pressure
+     * @param adcValue[out] - Pointer to the ADC value
+     * @return Scheduler Status
+     */
     RetType readADC(uint32_t *adcValue) {
         RESUME();
 
@@ -244,6 +301,13 @@ private:
         return ret;
     }
 
+    /**
+     * Calculate the pressure and temperature based on ADC and calibrationv alues
+     *
+     * @param D1[in] - Pressure data
+     * @param D2[in] - Temperature data
+     * @return Struct of MS5607 data
+     */
     MS5607_DATA_T pressureTempCalculation(uint32_t D1, uint32_t D2) {
         // Calibration Data
         uint16_t C1 = pressureSens;
@@ -267,6 +331,10 @@ private:
         return {.id = 0, .pressure = P, .temperature = TEMP};
     }
 
+    /**
+     * Set the conversion delays based on data rate
+     * @param osr - Data rate value
+     */
     void setConv(MS5607_OSR_T osr) {
         switch (osr) {
             case MS5607_OSR_512:
