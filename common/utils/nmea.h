@@ -16,35 +16,33 @@
 
 namespace nmea {
 
-//bool parse_gga(const char *const sentence, size_t len, GPSData *data) {
-//
-//}
-//
-//bool parse_gga(const char *const sentence, GPSData *data) {
-//    char *null_term = strchr(sentence, '\0');
-//    if (nullptr == null_term) {
-//        return false;
-//    }
-//
-//    return parse_gga(sentence, null_term - sentence, data);
-//}
+bool parse_gga(const char *const sentence, size_t len, GPSData *data) {
+    strtok(const_cast<char*>(sentence), ",");
 
+    // TODO: Determine standard after my flight lol
+    data->time = atol(sentence + 1);
+    data->alt = atol(sentence + 2);
+    data->latitude = atol(sentence + 3);
+    data->longitude = atol(sentence + 4);
+    data->num_sats = atol(sentence + 5);
+    data->quality = atol(sentence + 6);
 
+    return true;
+}
 
-
-int parse_gga(const char *sentence, GPSData *dest, size_t n) {
-    // check for terminator
-    int i;
-    for (i = 0; i < n; i++) {
-        if (sentence[i] == '\0') {
-            break;
-        }
+bool parse_gga(const char *const sentence, GPSData *data) {
+    char *null_term = strchr(sentence, '\0');
+    if (nullptr == null_term) {
+        return false;
     }
 
-    if (i == n) { // no terminator found before n
-        return -1;
-    }
+    return parse_gga(sentence, null_term - sentence, data);
+}
 
+
+
+
+int parse_gga2(const char *sentence, GPSData *dest) {
     // everything after this is tested
     // initalizing buffers
     char north;

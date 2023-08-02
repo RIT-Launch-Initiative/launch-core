@@ -20,32 +20,32 @@ void print_gga(GPSData data) {
 
 }
 
-void test_gga_parse() {
+void test_gga_parse(GPSData *data) {
     const char* test = "$GPGGA,172814.0,3723.46587704,N,12202.26957864,W,2,6,1.2,18.893,M,-25.669,M,2.0 0031*4F";
-    GPSData data;
-    int ret = nmea::parse_gga(test, &data, 100);
+    int ret = nmea::parse_gga(test, data, 100);
 
-    print_gga(data);
 }
 
-void test_blank_gga_parse() {
+void test_blank_gga_parse(GPSData *data) {
     const char* test = "$GNGGA,,,,,,0,00,99.99,,,,,,*56";
-    GPSData data;
-    int ret = nmea::parse_gga(test, &data, 100);
 
-    print_gga(data);
+    int ret = nmea::parse_gga(test, data, 100);
 }
 
 int main() {
-    clock_t begin = clock();
-    test_gga_parse();
-    clock_t end = clock();
+    GPSData full_data;
 
+    clock_t begin = clock();
+    test_gga_parse(&full_data);
+    clock_t end = clock();
+    print_gga(full_data);
     printf("Spent %lu ticks parsing a full packet\n", (end - begin));
 
+    GPSData blank_data;
     begin = clock();
-    test_blank_gga_parse();
+    test_blank_gga_parse(&blank_data);
     end = clock();
+    print_gga(blank_data);
     printf("Spent %lu ticks parsing a blank packet\n", (end - begin));
     return 0;
 }
