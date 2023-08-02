@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <assert.h>
 
-void print_gga(nmea::GGA_DATA_T data) {
+void print_gga(GPSData data) {
     printf("time: %f\n", data.time);
     printf("lat: %f\n", data.latitude);
     printf("lon: %f\n", data.longitude);
@@ -21,7 +21,7 @@ void print_gga(nmea::GGA_DATA_T data) {
 
 void test_gga_parse() {
     const char* test = "$GPGGA,172814.0,3723.46587704,N,12202.26957864,W,2,6,1.2,18.893,M,-25.669,M,2.0 0031*4F";
-    nmea::GGA_DATA_T data;
+    GPSData data;
     int ret = nmea::parse_gga(test, &data, 100);
 
     print_gga(data);
@@ -29,7 +29,7 @@ void test_gga_parse() {
 
 void test_blank_gga_parse() {
     const char* test = "$GNGGA,,,,,,0,00,99.99,,,,,,*56";
-    nmea::GGA_DATA_T data;
+    GPSData data;
     int ret = nmea::parse_gga(test, &data, 100);
 
     print_gga(data);
