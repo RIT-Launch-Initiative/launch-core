@@ -12,10 +12,10 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+#include "device/I2CDevice.h"
 #include "utils/conversion.h"
 #include "sched/macros.h"
 #include "return.h"
-#include "device/I2CDevice.h"
 
 class ADXL375 : public Device {
 public:
@@ -83,34 +83,18 @@ public:
         RESUME();
 
         RetType ret = CALL(checkID());
-        if (RET_SUCCESS != ret) {
-            RESET();
-            return ret;
-        }
+        ERROR_CHECK(ret);
 
         ret = CALL(setDataRateAndLowPower(ADXL375_DR_100HZ, false));
-        if (RET_SUCCESS != ret) {
-            RESET();
-            return ret;
-        }
+        ERROR_CHECK(ret);
 
         ret = CALL(setRange(0b00001011));
-        if (RET_SUCCESS != ret) {
-            RESET();
-            return ret;
-        }
+        ERROR_CHECK(ret);
 
         ret = CALL(setOperatingMode(ADXL375_MEASURING_MODE));
-        if (RET_SUCCESS != ret) {
-            RESET();
-            return ret;
-        }
+        ERROR_CHECK(ret);
 
         ret = CALL(wakeup());
-        if (RET_SUCCESS != ret) {
-            RESET();
-            return ret;
-        }
 
         RESET();
         return RET_SUCCESS;
@@ -132,11 +116,7 @@ public:
         RESUME();
 
         RetType ret = CALL(readReg(xLSBDataReg, m_buff, 6));
-        if (RET_SUCCESS != ret) {
-            RESET();
-            return ret;
-        }
-
+        ERROR_CHECK(ret);
 
         *xAxis = static_cast<int16_t>((m_buff[1] << 8) | m_buff[0]) * scale;
         *yAxis = static_cast<int16_t>((m_buff[3] << 8) | m_buff[2]) * scale;
