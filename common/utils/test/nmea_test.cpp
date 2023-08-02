@@ -4,6 +4,7 @@
 
 // TODO: Write real tests
 
+#include <time.h>
 #include "common/utils/nmea.h"
 #include <stdio.h>
 #include <assert.h>
@@ -36,8 +37,15 @@ void test_blank_gga_parse() {
 }
 
 int main() {
+    clock_t begin = clock();
     test_gga_parse();
-    test_blank_gga_parse();
+    clock_t end = clock();
 
+    printf("Spent %lu ticks parsing a full packet\n", (end - begin));
+
+    begin = clock();
+    test_blank_gga_parse();
+    end = clock();
+    printf("Spent %lu ticks parsing a blank packet\n", (end - begin));
     return 0;
 }

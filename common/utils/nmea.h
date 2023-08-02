@@ -12,9 +12,26 @@
 #include <cstdlib>
 #include <cstdio>
 #include "common/MeasurementTypes.h"
-
+#include <string.h>
 
 namespace nmea {
+
+//bool parse_gga(const char *const sentence, size_t len, GPSData *data) {
+//
+//}
+//
+//bool parse_gga(const char *const sentence, GPSData *data) {
+//    char *null_term = strchr(sentence, '\0');
+//    if (nullptr == null_term) {
+//        return false;
+//    }
+//
+//    return parse_gga(sentence, null_term - sentence, data);
+//}
+
+
+
+
 int parse_gga(const char *sentence, GPSData *dest, size_t n) {
     // check for terminator
     int i;
