@@ -20,11 +20,11 @@
 typedef struct {
     const uint16_t id;
     float x_accel;
-    float x_gyro;
+    int32_t x_gyro;
     float y_accel;
-    float y_gyro;
+    int32_t y_gyro;
     float z_accel;
-    float z_gyro;
+    int32_t z_gyro;
 } LSM6DSL_DATA_T;
 
 class LSM6DSL : public Device {
@@ -56,15 +56,14 @@ public:
     static constexpr uint8_t LSM6DSL_WAKE_UP_THRESHOLD_MID_HIGH = 0x2F;
     static constexpr uint8_t LSM6DSL_WAKE_UP_THRESHOLD_HIGH = 0x3F;  /**< Highest value of wake up threshold */
 
-
     static constexpr float GRAVITY = 9.80665f;
 
-    LSM6DSL(I2CDevice &i2CDevice, uint16_t address = LSM6DSL_I2C_ADDR_SECONDARY, const char *name = "LSM6DSL") : Device(name), mI2C(&i2CDevice),
-    i2cAddr({.dev_addr = static_cast<uint16_t>(address << 1), .mem_addr = 0, .mem_addr_size = 1}), accelEnabled(false), gyroEnabled(false) {}
+    LSM6DSL(I2CDevice &i2CDevice, uint16_t address = LSM6DSL_I2C_ADDR_SECONDARY, const char *name = "LSM6DSL") : Device(name), m_i2c(&i2CDevice),
+    m_i2cAddr({.dev_addr = static_cast<uint16_t>(address << 1), .mem_addr = 0, .mem_addr_size = 1}) {}
 
     RetType init() {
         RESUME();
-        i2cAddr.mem_addr = LSM6DSL_ACC_GYRO_WHO_AM_I_REG;
+        m_i2cAddr.mem_addr = LSM6DSL_ACC_GYRO_WHO_AM_I_REG;
 
         RetType ret = CALL(checkChipID());
         ERROR_CHECK(ret);
@@ -90,20 +89,16 @@ public:
         ERROR_CHECK(ret);
 
         // Full Scale
-        ret = CALL(setAccelFullScale(2.0f));
+        ret = CALL(setAccelFullScale(LSM6DSL_ACC_GYRO_FS_XL_2g));
         ERROR_CHECK(ret);
 
         ret = CALL(setGyroFullScale(2000.0f));
         ERROR_CHECK(ret);
 
-        accelLastODR = 104.0f;
-        accelEnabled = true;
-        gyroLastODR = 104.0f;
-        gyroEnabled = true;
-
         RESET();
         return RET_SUCCESS;
     }
+
 
     RetType getData(LSM6DSL_DATA_T *data) {
         RESUME();
@@ -144,15 +139,15 @@ public:
 
         static float sens = 0;
 
-        RetType ret = CALL(getAccelAxesRaw(rx_buff));
+        RetType ret = CALL(getAccelAxesRaw(m_buff));
         ERROR_CHECK(ret);
 
         ret = CALL(getAccelSens(&sens));
         ERROR_CHECK(ret);
 
-        *accelX = static_cast<float>((rx_buff[0] << 8 | rx_buff[1]) * sens);
-        *accelY = static_cast<float>((rx_buff[2] << 8 | rx_buff[3]) * sens);
-        *accelZ = static_cast<float>((rx_buff[4] << 8 | rx_buff[5]) * sens);
+        *accelX = static_cast<float>((m_buff[0] << 8 | m_buff[1]) * sens);
+        *accelY = static_cast<float>((m_buff[2] << 8 | m_buff[3]) * sens);
+        *accelZ = static_cast<float>((m_buff[4] << 8 | m_buff[5]) * sens);
 
         RESET();
         return RET_SUCCESS;
@@ -207,76 +202,24 @@ public:
     }
 
 
-    RetType setAccelFullScale(float fullScale) {
+    RetType setAccelFullScale(LSM6DSL_ACC_GYRO_FS_XL_t fullScale) {
         RESUME();
 
-        static LSM6DSL_ACC_GYRO_FS_XL_t newFs;
-        newFs = (fullScale <= 2.0f) ? LSM6DSL_ACC_GYRO_FS_XL_2g : (fullScale <= 4.0f)
-                                                                  ? LSM6DSL_ACC_GYRO_FS_XL_4g : (fullScale <= 8.0f)
-                                                                                                ? LSM6DSL_ACC_GYRO_FS_XL_8g
-                                                                                                : LSM6DSL_ACC_GYRO_FS_XL_16g;
-
-        RetType ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL1_XL, newFs, 1, LSM6DSL_ACC_GYRO_FS_XL_MASK));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
+        m_buff[0] = fullScale;
+        RetType ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL1_XL, m_buff[0], 1, LSM6DSL_ACC_GYRO_FS_XL_MASK));
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
-    RetType setAccelODR(float odr) {
+    RetType setAccelODR(LSM6DSL_ACC_GYRO_ODR_XL_t odr) {
         RESUME();
 
-        if (accelEnabled) {
-            static LSM6DSL_ACC_GYRO_ODR_XL_t newODR;
-            newODR = (odr <= 13.0f) ? LSM6DSL_ACC_GYRO_ODR_XL_13Hz
-                                    : (odr <= 26.0f) ? LSM6DSL_ACC_GYRO_ODR_XL_26Hz
-                                                     : (odr <= 52.0f) ? LSM6DSL_ACC_GYRO_ODR_XL_52Hz
-                                                                      : (odr <= 104.0f) ? LSM6DSL_ACC_GYRO_ODR_XL_104Hz
-                                                                                        : (odr <= 208.0f)
-                                                                                          ? LSM6DSL_ACC_GYRO_ODR_XL_208Hz
-                                                                                          : (odr <= 416.0f)
-                                                                                            ? LSM6DSL_ACC_GYRO_ODR_XL_416Hz
-                                                                                            : (odr <= 833.0f)
-                                                                                              ? LSM6DSL_ACC_GYRO_ODR_XL_833Hz
-                                                                                              : (odr <= 1660.0f)
-                                                                                                ? LSM6DSL_ACC_GYRO_ODR_XL_1660Hz
-                                                                                                : (odr <= 3330.0f)
-                                                                                                  ? LSM6DSL_ACC_GYRO_ODR_XL_3330Hz
-                                                                                                  : LSM6DSL_ACC_GYRO_ODR_XL_6660Hz;
-
-            RetType ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL1_XL, newODR, 1, LSM6DSL_ACC_GYRO_ODR_XL_MASK));
-            if (ret != RET_SUCCESS) {
-                RESET();
-                return ret;
-            }
-
-        } else {
-            accelLastODR = (odr <= 13.0f) ? 13.0f
-                                          : (odr <= 26.0f) ? 26.0f
-                                                           : (odr <= 52.0f) ? 52.0f
-                                                                            : (odr <= 104.0f) ? 104.0f
-                                                                                              : (odr <= 208.0f) ? 208.0f
-                                                                                                                : (odr <=
-                                                                                                                   416.0f)
-                                                                                                                  ? 416.0f
-                                                                                                                  : (odr <=
-                                                                                                                     833.0f)
-                                                                                                                    ? 833.0f
-                                                                                                                    : (odr <=
-                                                                                                                       1660.0f)
-                                                                                                                      ? 1660.0f
-                                                                                                                      : (odr <=
-                                                                                                                         3330.0f)
-                                                                                                                        ? 3330.0f
-                                                                                                                        : 6660.0f;
-
-        }
-
+        m_buff[0] = odr;
+        RetType ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL1_XL, m_buff[0], 1, LSM6DSL_ACC_GYRO_ODR_XL_MASK));
+        
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     /**********************************************************
@@ -289,16 +232,10 @@ public:
         static float sens = 0;
 
         RetType ret = CALL(getGyroAxesRaw(rawData));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
+        ERROR_CHECK(ret);
 
         ret = CALL(getGyroSens(&sens));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
+        ERROR_CHECK(ret);
 
         *gyroX = static_cast<int32_t>(rawData[0] * sens);
         *gyroY = static_cast<int32_t>(rawData[1] * sens);
@@ -325,7 +262,7 @@ public:
         RESET();
         return RET_SUCCESS;
     }
-
+    
     RetType getGyroSens(float *sens) {
         RESUME();
 
@@ -406,57 +343,14 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType setGyroODR(float odr) {
+    RetType setGyroODR(LSM6DSL_ACC_GYRO_ODR_G_t odr) {
         RESUME();
-        if (gyroEnabled) {
-            LSM6DSL_ACC_GYRO_ODR_G_t newODR = (odr <= 13.0f) ? LSM6DSL_ACC_GYRO_ODR_G_13Hz
-                                                             : (odr <= 26.0f) ? LSM6DSL_ACC_GYRO_ODR_G_26Hz
-                                                                              : (odr <= 52.0f)
-                                                                                ? LSM6DSL_ACC_GYRO_ODR_G_52Hz
-                                                                                : (odr <= 104.0f)
-                                                                                  ? LSM6DSL_ACC_GYRO_ODR_G_104Hz
-                                                                                  : (odr <= 208.0f)
-                                                                                    ? LSM6DSL_ACC_GYRO_ODR_G_208Hz
-                                                                                    : (odr <= 416.0f)
-                                                                                      ? LSM6DSL_ACC_GYRO_ODR_G_416Hz
-                                                                                      : (odr <= 833.0f)
-                                                                                        ? LSM6DSL_ACC_GYRO_ODR_G_833Hz
-                                                                                        : (odr <= 1660.0f)
-                                                                                          ? LSM6DSL_ACC_GYRO_ODR_G_1660Hz
-                                                                                          : (odr <= 3330.0f)
-                                                                                            ? LSM6DSL_ACC_GYRO_ODR_G_3330Hz
-                                                                                            : LSM6DSL_ACC_GYRO_ODR_G_6660Hz;
-
-            RetType ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL2_G, newODR, 1, LSM6DSL_ACC_GYRO_ODR_G_MASK));
-            if (ret != RET_SUCCESS) {
-                RESET();
-                return ret;
-            }
-
-        } else {
-            gyroLastODR = (odr <= 13.0f) ? 13.0f
-                                         : (odr <= 26.0f) ? 26.0f
-                                                          : (odr <= 52.0f) ? 52.0f
-                                                                           : (odr <= 104.0f) ? 104.0f
-                                                                                             : (odr <= 208.0f) ? 208.0f
-                                                                                                               : (odr <=
-                                                                                                                  416.0f)
-                                                                                                                 ? 416.0f
-                                                                                                                 : (odr <=
-                                                                                                                    833.0f)
-                                                                                                                   ? 833.0f
-                                                                                                                   : (odr <=
-                                                                                                                      1660.0)
-                                                                                                                     ? 1660.0f
-                                                                                                                     : (odr <=
-                                                                                                                        3330.0)
-                                                                                                                       ? 3330.0f
-                                                                                                                       : 6660.0f;
-
-        }
+        
+        m_buff[0] = odr;
+        RetType ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL2_G, m_buff[0], 1, LSM6DSL_ACC_GYRO_ODR_G_MASK));
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     /********************************************************************
@@ -466,7 +360,7 @@ public:
     RetType enableFreeFallDetection(LSM6DSL_Interrupt_Pin_t interruptPin) {
         RESUME();
 
-        RetType ret = CALL(setAccelODR(416.0f));
+        RetType ret = CALL(setAccelODR(LSM6DSL_ACC_GYRO_ODR_XL_416Hz));
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
@@ -652,14 +546,13 @@ public:
         RESUME();
 
         // Output Data Rate
-        RetType ret = CALL(setGyroODR(26.0f));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
+        RetType ret = CALL(setGyroODR(LSM6DSL_ACC_GYRO_ODR_G_26Hz));
+        ERROR_CHECK(ret);
 
         // Full Scale Selection
         ret = CALL(setGyroFullScale(2.0f));
+        ERROR_CHECK(ret);
+
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
@@ -753,13 +646,13 @@ public:
         RESUME();
 
         // Output Data Rate selection
-        RetType ret = CALL(setAccelODR(416.0f));
+        RetType ret = CALL(setAccelODR(LSM6DSL_ACC_GYRO_ODR_XL_416Hz));
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
         }
 
-        ret = CALL(setAccelFullScale(2.0f));
+        ret = CALL(setAccelFullScale(LSM6DSL_ACC_GYRO_FS_XL_2g));
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
@@ -863,20 +756,16 @@ public:
 
 
 private:
-    I2CDevice *mI2C;
-    I2CAddr_t i2cAddr;
-    float accelLastODR;
-    float gyroLastODR;
-    bool accelEnabled;
-    bool gyroEnabled;
-    uint8_t tx_buff[10];
-    uint8_t rx_buff[10];
+    I2CDevice *m_i2c;
+    I2CAddr_t m_i2cAddr;
+    uint8_t m_buff[10];
+    uint8_t m_buffSecondary[5];
 
     RetType checkChipID() {
         RESUME();
 
-        RetType ret = CALL(readReg(LSM6DSL_ACC_GYRO_WHO_AM_I_REG, tx_buff, 1, LSM6DSL_ACC_GYRO_WHO_AM_I_BIT_MASK, 50));
-        if (RET_SUCCESS == ret && LSM6DSL_ACC_GYRO_WHO_AM_I != tx_buff[0]) ret = RET_ERROR;
+        RetType ret = CALL(readReg(LSM6DSL_ACC_GYRO_WHO_AM_I_REG, m_buff, 1, LSM6DSL_ACC_GYRO_WHO_AM_I_BIT_MASK, 50));
+        if (RET_SUCCESS == ret && LSM6DSL_ACC_GYRO_WHO_AM_I != m_buff[0]) ret = RET_ERROR;
 
         RESET();
         return ret;
@@ -886,54 +775,38 @@ private:
     RetType readReg(uint8_t reg, uint8_t *buff, size_t len) {
         RESUME();
 
-        i2cAddr.mem_addr = reg;
-
-        RetType ret = CALL(mI2C->read(i2cAddr, buff, len));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
+        m_i2cAddr.mem_addr = reg;
+        RetType ret = CALL(m_i2c->read(m_i2cAddr, buff, len));
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     RetType readReg(uint8_t reg, uint8_t *buff, size_t len, uint8_t mask, uint32_t timeout = 0) {
         RESUME();
 
-        i2cAddr.mem_addr = reg;
-
-        RetType ret = CALL(mI2C->read(i2cAddr, buff, len, timeout));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
+        m_i2cAddr.mem_addr = reg;
+        RetType ret = CALL(m_i2c->read(m_i2cAddr, buff, len, timeout));
         *buff &= mask;
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     RetType writeReg(uint8_t reg, uint8_t newVal, size_t len, uint8_t mask) {
         RESUME();
 
-        static uint8_t value;
-        i2cAddr.mem_addr = reg;
+        m_i2cAddr.mem_addr = reg;
+        RetType ret = CALL(m_i2c->read(m_i2cAddr, m_buff, len));
+        if (RET_SUCCESS == ret) {
+            m_buff[0] &= ~mask;
+            m_buff[0] |= newVal;
 
-        RetType ret = CALL(mI2C->read(i2cAddr, &value, len));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
+            ret = CALL(m_i2c->write(m_i2cAddr, m_buff, len));
         }
 
-        value &= ~mask;
-        value |= newVal;
-
-        ret = CALL(mI2C->write(i2cAddr, &value, len));
-
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 };
 
