@@ -420,8 +420,6 @@ public:
         ret = CALL(setGyroFullScale(LSM6DSL_ACC_GYRO_FS_G_125dps));
         ERROR_CHECK(ret);
 
-        ERROR_CHECK(ret);
-
         // Enable Embedded Functionalities
         ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL10_C, LSM6DSL_ACC_GYRO_FUNC_EN_ENABLED, 1,
                             LSM6DSL_ACC_GYRO_FUNC_EN_MASK));
