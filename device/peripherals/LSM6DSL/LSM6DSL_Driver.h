@@ -2485,9 +2485,6 @@ typedef enum {
 } LSM6DSL_ACC_GYRO_INT1_TILT_t;
 
 #define  	LSM6DSL_ACC_GYRO_INT1_TILT_MASK  	0x02
-mems_status_t  LSM6DSL_ACC_GYRO_W_TiltEvOnInt1(void *handle, LSM6DSL_ACC_GYRO_INT1_TILT_t newValue);
-mems_status_t LSM6DSL_ACC_GYRO_R_TiltEvOnInt1(void *handle, LSM6DSL_ACC_GYRO_INT1_TILT_t *value);
-
 /*******************************************************************************
 * Register      : MD1_CFG
 * Address       : 0X5E
@@ -2500,9 +2497,6 @@ typedef enum {
 } LSM6DSL_ACC_GYRO_INT1_6D_t;
 
 #define  	LSM6DSL_ACC_GYRO_INT1_6D_MASK  	0x04
-mems_status_t  LSM6DSL_ACC_GYRO_W_6DEvOnInt1(void *handle, LSM6DSL_ACC_GYRO_INT1_6D_t newValue);
-mems_status_t LSM6DSL_ACC_GYRO_R_6DEvOnInt1(void *handle, LSM6DSL_ACC_GYRO_INT1_6D_t *value);
-
 /*******************************************************************************
 * Register      : MD1_CFG
 * Address       : 0X5E
@@ -2515,9 +2509,6 @@ typedef enum {
 } LSM6DSL_ACC_GYRO_INT1_TAP_t;
 
 #define  	LSM6DSL_ACC_GYRO_INT1_TAP_MASK  	0x08
-mems_status_t  LSM6DSL_ACC_GYRO_W_TapEvOnInt1(void *handle, LSM6DSL_ACC_GYRO_INT1_TAP_t newValue);
-mems_status_t LSM6DSL_ACC_GYRO_R_TapEvOnInt1(void *handle, LSM6DSL_ACC_GYRO_INT1_TAP_t *value);
-
 /*******************************************************************************
 * Register      : MD1_CFG
 * Address       : 0X5E
@@ -2530,9 +2521,6 @@ typedef enum {
 } LSM6DSL_ACC_GYRO_INT1_FF_t;
 
 #define  	LSM6DSL_ACC_GYRO_INT1_FF_MASK  	0x10
-mems_status_t  LSM6DSL_ACC_GYRO_W_FFEvOnInt1(void *handle, LSM6DSL_ACC_GYRO_INT1_FF_t newValue);
-mems_status_t LSM6DSL_ACC_GYRO_R_FFEvOnInt1(void *handle, LSM6DSL_ACC_GYRO_INT1_FF_t *value);
-
 /*******************************************************************************
 * Register      : MD1_CFG
 * Address       : 0X5E
@@ -2545,9 +2533,6 @@ typedef enum {
 } LSM6DSL_ACC_GYRO_INT1_WU_t;
 
 #define  	LSM6DSL_ACC_GYRO_INT1_WU_MASK  	0x20
-mems_status_t  LSM6DSL_ACC_GYRO_W_WUEvOnInt1(void *handle, LSM6DSL_ACC_GYRO_INT1_WU_t newValue);
-mems_status_t LSM6DSL_ACC_GYRO_R_WUEvOnInt1(void *handle, LSM6DSL_ACC_GYRO_INT1_WU_t *value);
-
 /*******************************************************************************
 * Register      : MD1_CFG
 * Address       : 0X5E
@@ -2560,9 +2545,6 @@ typedef enum {
 } LSM6DSL_ACC_GYRO_INT1_SINGLE_TAP_t;
 
 #define  	LSM6DSL_ACC_GYRO_INT1_SINGLE_TAP_MASK  	0x40
-mems_status_t  LSM6DSL_ACC_GYRO_W_SingleTapOnInt1(void *handle, LSM6DSL_ACC_GYRO_INT1_SINGLE_TAP_t newValue);
-mems_status_t LSM6DSL_ACC_GYRO_R_SingleTapOnInt1(void *handle, LSM6DSL_ACC_GYRO_INT1_SINGLE_TAP_t *value);
-
 /*******************************************************************************
 * Register      : MD1_CFG
 * Address       : 0X5E
@@ -2575,9 +2557,6 @@ typedef enum {
 } LSM6DSL_ACC_GYRO_INT1_SLEEP_t;
 
 #define  	LSM6DSL_ACC_GYRO_INT1_SLEEP_MASK  	0x80
-mems_status_t  LSM6DSL_ACC_GYRO_W_SleepEvOnInt1(void *handle, LSM6DSL_ACC_GYRO_INT1_SLEEP_t newValue);
-mems_status_t LSM6DSL_ACC_GYRO_R_SleepEvOnInt1(void *handle, LSM6DSL_ACC_GYRO_INT1_SLEEP_t *value);
-
 /*******************************************************************************
 * Register      : MD2_CFG
 * Address       : 0X5F
@@ -2590,9 +2569,6 @@ typedef enum {
 } LSM6DSL_ACC_GYRO_INT2_IRON_t;
 
 #define  	LSM6DSL_ACC_GYRO_INT2_IRON_MASK  	0x01
-mems_status_t  LSM6DSL_ACC_GYRO_W_MagCorrection_Int2(void *handle, LSM6DSL_ACC_GYRO_INT2_IRON_t newValue);
-mems_status_t LSM6DSL_ACC_GYRO_R_MagCorrection_Int2(void *handle, LSM6DSL_ACC_GYRO_INT2_IRON_t *value);
-
 /*******************************************************************************
 * Register      : MD2_CFG
 * Address       : 0X5F
@@ -2620,9 +2596,6 @@ typedef enum {
 } LSM6DSL_ACC_GYRO_INT2_6D_t;
 
 #define  	LSM6DSL_ACC_GYRO_INT2_6D_MASK  	0x04
-mems_status_t  LSM6DSL_ACC_GYRO_W_6DEvOnInt2(void *handle, LSM6DSL_ACC_GYRO_INT2_6D_t newValue);
-mems_status_t LSM6DSL_ACC_GYRO_R_6DEvOnInt2(void *handle, LSM6DSL_ACC_GYRO_INT2_6D_t *value);
-
 /*******************************************************************************
 * Register      : MD2_CFG
 * Address       : 0X5F
@@ -2635,8 +2608,6 @@ typedef enum {
 } LSM6DSL_ACC_GYRO_INT2_TAP_t;
 
 #define  	LSM6DSL_ACC_GYRO_INT2_TAP_MASK  	0x08
-mems_status_t  LSM6DSL_ACC_GYRO_W_TapEvOnInt2(void *handle, LSM6DSL_ACC_GYRO_INT2_TAP_t newValue);
-mems_status_t LSM6DSL_ACC_GYRO_R_TapEvOnInt2(void *handle, LSM6DSL_ACC_GYRO_INT2_TAP_t *value);
 
 /*******************************************************************************
 * Register      : MD2_CFG
@@ -2650,9 +2621,6 @@ typedef enum {
 } LSM6DSL_ACC_GYRO_INT2_FF_t;
 
 #define  	LSM6DSL_ACC_GYRO_INT2_FF_MASK  	0x10
-mems_status_t  LSM6DSL_ACC_GYRO_W_FFEvOnInt2(void *handle, LSM6DSL_ACC_GYRO_INT2_FF_t newValue);
-mems_status_t LSM6DSL_ACC_GYRO_R_FFEvOnInt2(void *handle, LSM6DSL_ACC_GYRO_INT2_FF_t *value);
-
 /*******************************************************************************
 * Register      : MD2_CFG
 * Address       : 0X5F
@@ -2695,56 +2663,6 @@ typedef enum {
 } LSM6DSL_ACC_GYRO_INT2_SLEEP_t;
 
 #define  	LSM6DSL_ACC_GYRO_INT2_SLEEP_MASK  	0x80
-mems_status_t  LSM6DSL_ACC_GYRO_W_SleepEvOnInt2(void *handle, LSM6DSL_ACC_GYRO_INT2_SLEEP_t newValue);
-mems_status_t LSM6DSL_ACC_GYRO_R_SleepEvOnInt2(void *handle, LSM6DSL_ACC_GYRO_INT2_SLEEP_t *value);
-
-/*******************************************************************************
-* Register      : <REGISTER_L> - <REGISTER_H>
-* Output Type   : GetAccData
-* Permission    : RO
-*******************************************************************************/
-mems_status_t LSM6DSL_ACC_GYRO_GetRawAccData(void *handle, u8_t *buff);
-mems_status_t LSM6DSL_ACC_Get_Acceleration(void *handle, int *buff, u8_t from_fifo);
-
-/*******************************************************************************
-* Register      : <REGISTER_L> - <REGISTER_H>
-* Output Type   : GetFIFOData
-* Permission    : RO
-*******************************************************************************/
-mems_status_t LSM6DSL_ACC_GYRO_Get_GetFIFOData(void *handle, u8_t *buff);
-/*******************************************************************************
-* Register      : <REGISTER_L> - <REGISTER_H>
-* Output Type   : GetTimestamp
-* Permission    : RO
-*******************************************************************************/
-mems_status_t LSM6DSL_ACC_GYRO_Get_GetTimestamp(void *handle, u8_t *buff);
-/*******************************************************************************
-* Register      : <REGISTER_L> - <REGISTER_H>
-* Output Type   : GetStepCounter
-* Permission    : RO
-*******************************************************************************/
-mems_status_t LSM6DSL_ACC_GYRO_Get_GetStepCounter(void *handle, u8_t *buff);
-
-/*******************************************************************************
-* Register      : <REGISTER_L> - <REGISTER_H>
-* Output Type   : Pedometer Threshold
-* Permission    : RO
-*******************************************************************************/
-mems_status_t  LSM6DSL_ACC_GYRO_W_PedoThreshold(void *handle, u8_t newValue);
-
-/************** Use Sensor Hub  *******************/
-
-/* program to .... */
-mems_status_t LSM6DSL_ACC_GYRO_SH0_Program(void *handle, u8_t SlvAddr, u8_t Reg, u8_t len);
-
-/* Program the six Soft Iron Matrix coefficients. */
-mems_status_t LSM6DSL_ACC_GYRO_SH_init_SI_Matrix(void *handle, u8_t *SI_matrix);
-
-/* Read a remote device through I2C Sensor Hub Slave 0 */
-mems_status_t LSM6DSL_ACC_GYRO_SH0_ReadMem(void *handle, u8_t SlvAddr, u8_t Reg, u8_t *Bufp, u8_t len, u8_t stop);
-
-/* Write a remote device through I2C Sensor Hub Slave 0 */
-mems_status_t LSM6DSL_ACC_GYRO_SH0_WriteByte(void *handle, u8_t SlvAddr, u8_t Reg, u8_t Bufp);
 
 #ifdef __cplusplus
 }

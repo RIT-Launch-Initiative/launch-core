@@ -61,7 +61,7 @@ public:
     LSM6DSL(I2CDevice &i2CDevice, uint16_t address = LSM6DSL_I2C_ADDR_SECONDARY, const char *name = "LSM6DSL") : Device(name), m_i2c(&i2CDevice),
     m_i2cAddr({.dev_addr = static_cast<uint16_t>(address << 1), .mem_addr = 0, .mem_addr_size = 1}) {}
 
-    RetType init() {
+    RetType init() override {
         RESUME();
         m_i2cAddr.mem_addr = LSM6DSL_ACC_GYRO_WHO_AM_I_REG;
 
@@ -164,9 +164,7 @@ public:
     RetType getAccelSens(uint8_t *sens) {
         RESUME();
 
-        static LSM6DSL_ACC_GYRO_FS_XL_t fullScale;
-
-        RetType ret = CALL(readReg(LSM6DSL_ACC_GYRO_CTRL1_XL, reinterpret_cast<uint8_t *>(&fullScale), 1,
+        RetType ret = CALL(readReg(LSM6DSL_ACC_GYRO_CTRL1_XL, sens, 1,
                                    LSM6DSL_ACC_GYRO_FS_XL_MASK));
 
         RESET();
@@ -454,11 +452,11 @@ public:
                 break;
 
             default:
-                return RET_ERROR;
+                ret = RET_ERROR;
         }
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     RetType disableTiltDetection() {
