@@ -93,10 +93,9 @@ public:
         ERROR_CHECK(ret);
 
         ret = CALL(setGyroFullScale(2000.0f));
-        ERROR_CHECK(ret);
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
 
@@ -121,13 +120,9 @@ public:
 
         RetType ret = CALL(getAccelAxes(accelX, accelY, accelZ));
         if (RET_SUCCESS == ret) {
-            *accelX *= GRAVITY;
-            *accelY *= GRAVITY;
-            *accelZ *= GRAVITY;
-
-            *accelX /= 1000;
-            *accelY /= 1000;
-            *accelZ /= 1000;
+            *accelX = (*accelX * GRAVITY) / 1000;
+            *accelY = (*accelY * GRAVITY) / 1000;
+            *accelZ = (*accelZ * GRAVITY) / 1000;
         }
 
         RESET();
@@ -137,68 +132,45 @@ public:
     RetType getAccelAxes(int32_t *accelX, int32_t *accelY, int32_t *accelZ) {
         RESUME();
 
-        static float sens = 0;
-
         RetType ret = CALL(getAccelAxesRaw(m_buff));
         ERROR_CHECK(ret);
 
-        ret = CALL(getAccelSens(&sens));
-        ERROR_CHECK(ret);
+        ret = CALL(getAccelSens(&m_buff[6]));
+        if (ret == RET_SUCCESS) {
+            float sens = determineAccelSens(m_buff[6]);
 
-        *accelX = static_cast<int32_t>((m_buff[0] << 8 | m_buff[1]) * sens);
-        *accelY = static_cast<int32_t>((m_buff[2] << 8 | m_buff[3]) * sens);
-        *accelZ = static_cast<int32_t>((m_buff[4] << 8 | m_buff[5]) * sens);
+            int16_t rawX = static_cast<int16_t>(m_buff[1] << 8) | static_cast<int16_t>(m_buff[0]);
+            int16_t rawY = static_cast<int16_t>(m_buff[3] << 8) | static_cast<int16_t>(m_buff[2]);
+            int16_t rawZ = static_cast<int16_t>(m_buff[5] << 8) | static_cast<int16_t>(m_buff[4]);
 
-        RESET();
-        return RET_SUCCESS;
-    }
-
-    /**
-     * @brief Get raw acceleration values from sensor's regist
-     * @param accelData - Pointer to array of 6 bytes
-     * @return RetType - Scheduler status
-     */
-    RetType getAccelAxesRaw(uint8_t *accelData) {
-        RESUME();
-
-        RetType ret = CALL(readReg(LSM6DSL_ACC_GYRO_OUTX_L_XL, accelData, 6));
+            *accelX = static_cast<int32_t>(rawX * sens);
+            *accelY = static_cast<int32_t>(rawY * sens);
+            *accelZ = static_cast<int32_t>(rawZ * sens);
+        }
 
         RESET();
         return ret;
     }
 
-    RetType getAccelSens(float *sens) {
+    RetType getAccelAxesRaw(uint8_t *buff) {
+        RESUME();
+
+        RetType ret = CALL(readReg(LSM6DSL_ACC_GYRO_OUTX_L_XL, buff, 6));
+
+        RESET();
+        return ret;
+    }
+
+    RetType getAccelSens(uint8_t *sens) {
         RESUME();
 
         static LSM6DSL_ACC_GYRO_FS_XL_t fullScale;
 
         RetType ret = CALL(readReg(LSM6DSL_ACC_GYRO_CTRL1_XL, reinterpret_cast<uint8_t *>(&fullScale), 1,
                                    LSM6DSL_ACC_GYRO_FS_XL_MASK));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
-        switch (fullScale) {
-            case LSM6DSL_ACC_GYRO_FS_XL_2g:
-                *sens = static_cast<float>(LSM6DSL_ACC_SENSITIVITY_FOR_FS_2G);
-                break;
-            case LSM6DSL_ACC_GYRO_FS_XL_4g:
-                *sens = static_cast<float>(LSM6DSL_ACC_SENSITIVITY_FOR_FS_4G);
-                break;
-            case LSM6DSL_ACC_GYRO_FS_XL_8g:
-                *sens = static_cast<float>(LSM6DSL_ACC_SENSITIVITY_FOR_FS_8G);
-                break;
-            case LSM6DSL_ACC_GYRO_FS_XL_16g:
-                *sens = static_cast<float>(LSM6DSL_ACC_SENSITIVITY_FOR_FS_16G);
-                break;
-            default:
-                *sens = -1.0f;
-                return RET_ERROR;
-        }
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
 
@@ -807,6 +779,21 @@ private:
 
         RESET();
         return ret;
+    }
+
+    float determineAccelSens(uint8_t fullScaleValue) {
+        switch (fullScaleValue) {
+            case LSM6DSL_ACC_GYRO_FS_XL_2g:
+                return LSM6DSL_ACC_SENSITIVITY_FOR_FS_2G;
+            case LSM6DSL_ACC_GYRO_FS_XL_4g:
+                return LSM6DSL_ACC_SENSITIVITY_FOR_FS_4G;
+            case LSM6DSL_ACC_GYRO_FS_XL_8g:
+                return LSM6DSL_ACC_SENSITIVITY_FOR_FS_8G;
+            case LSM6DSL_ACC_GYRO_FS_XL_16g:
+                return LSM6DSL_ACC_SENSITIVITY_FOR_FS_16G;
+            default:
+                return LSM6DSL_ACC_SENSITIVITY_FOR_FS_2G;
+        }
     }
 };
 
