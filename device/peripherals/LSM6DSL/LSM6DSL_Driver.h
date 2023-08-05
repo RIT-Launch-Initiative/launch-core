@@ -343,6 +343,7 @@ mems_status_t LSM6DSL_ACC_GYRO_translate_ODR_XL(LSM6DSL_ACC_GYRO_ODR_XL_t value,
 * Permission    : RW
 *******************************************************************************/
 typedef enum {
+    LSM6DSL_ACC_GYRO_FS_G_125dps 		 =0xFF,
     LSM6DSL_ACC_GYRO_FS_G_245dps 		 =0x00,
     LSM6DSL_ACC_GYRO_FS_G_500dps 		 =0x04,
     LSM6DSL_ACC_GYRO_FS_G_1000dps 		 =0x08,

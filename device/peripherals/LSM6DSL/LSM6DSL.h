@@ -92,7 +92,7 @@ public:
         ret = CALL(setAccelFullScale(LSM6DSL_ACC_GYRO_FS_XL_2g));
         ERROR_CHECK(ret);
 
-        ret = CALL(setGyroFullScale(2000.0f));
+        ret = CALL(setGyroFullScale(LSM6DSL_ACC_GYRO_FS_G_125dps));
 
         RESET();
         return ret;
@@ -244,27 +244,17 @@ public:
         return ret;
     }
 
-    RetType setGyroFullScale(float fullScale) {
+    RetType setGyroFullScale(LSM6DSL_ACC_GYRO_FS_G_t fullScale) {
         RESUME();
 
-        static LSM6DSL_ACC_GYRO_FS_G_t newFs;
-
         RetType ret;
-
-        if (fullScale <= 125.0f) {
-            ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL2_G, LSM6DSL_ACC_GYRO_FS_125_ENABLED, 1,
-                                        LSM6DSL_ACC_GYRO_FS_125_MASK));
+        if (LSM6DSL_ACC_GYRO_FS_G_125dps == fullScale) {
+            ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL2_G, LSM6DSL_ACC_GYRO_FS_125_ENABLED, 1, LSM6DSL_ACC_GYRO_FS_125_MASK));
         } else {
-            newFs = (fullScale <= 245.0f) ? LSM6DSL_ACC_GYRO_FS_G_245dps
-                                          : (fullScale <= 500.0f) ? LSM6DSL_ACC_GYRO_FS_G_500dps
-                                                                  : (fullScale <= 1000.0f)
-                                                                    ? LSM6DSL_ACC_GYRO_FS_G_1000dps
-                                                                    : LSM6DSL_ACC_GYRO_FS_G_2000dps;
-            ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL2_G, LSM6DSL_ACC_GYRO_FS_125_DISABLED, 1,
-                                        LSM6DSL_ACC_GYRO_FS_125_MASK));
+            ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL2_G, LSM6DSL_ACC_GYRO_FS_125_DISABLED, 1, LSM6DSL_ACC_GYRO_FS_125_MASK));
 
             if (RET_SUCCESS == ret) {
-                ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL2_G, newFs, 1, LSM6DSL_ACC_GYRO_FS_G_MASK));
+                ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL2_G, fullScale, 1, LSM6DSL_ACC_GYRO_FS_G_MASK));
             }
         }
 
@@ -429,7 +419,7 @@ public:
         ERROR_CHECK(ret);
 
         // Full Scale Selection
-        ret = CALL(setGyroFullScale(2.0f));
+        ret = CALL(setGyroFullScale(LSM6DSL_ACC_GYRO_FS_G_125dps));
         ERROR_CHECK(ret);
 
         ERROR_CHECK(ret);
