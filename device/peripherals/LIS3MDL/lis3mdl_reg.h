@@ -100,28 +100,6 @@ typedef struct {
 #define PROPERTY_DISABLE                (0U)
 #define PROPERTY_ENABLE                 (1U)
 
-/** @addtogroup  Interfaces_Functions
-  * @brief       This section provide a set of functions used to read and
-  *              write a generic register of the device.
-  *              MANDATORY: return 0 -> no Error.
-  * @{
-  *
-  */
-
-typedef int32_t (*stmdev_write_ptr)(void *, uint8_t, const uint8_t *, uint16_t);
-typedef int32_t (*stmdev_read_ptr)(void *, uint8_t, uint8_t *, uint16_t);
-typedef void (*stmdev_mdelay_ptr)(uint32_t millisec);
-
-typedef struct {
-    /** Component mandatory fields **/
-    stmdev_write_ptr write_reg;
-    stmdev_read_ptr read_reg;
-    /** Component optional fields **/
-    stmdev_mdelay_ptr mdelay;
-    /** Customizable optional pointer **/
-    void *handle;
-} stmdev_ctx_t;
-
 /**
   * @}
   *
@@ -155,27 +133,10 @@ typedef struct {
 
 #endif /* MEMS_UCF_SHARED_TYPES */
 
-/**
-  * @}
-  *
-  */
 
-/** @defgroup LIS3MDL_Infos
-  * @{
-  *
-  */
-
-/** I2C Device Address 8 bit format  if SA0=0 -> 0x39 if SA0=1 -> 0x3D **/
-#define LIS3MDL_I2C_ADD_L   0x39U
-#define LIS3MDL_I2C_ADD_H   0x3DU
 
 /** Device Identification (Who am I) **/
 #define LIS3MDL_ID          0x3DU
-
-/**
-  * @}
-  *
-  */
 
 #define LIS3MDL_WHO_AM_I       0x0FU
 #define LIS3MDL_CTRL_REG1      0x20U
@@ -358,38 +319,6 @@ typedef union {
     uint8_t byte;
 } lis3mdl_reg_t;
 
-/**
-  * @}
-  *
-  */
-
-#ifndef __weak
-#define __weak __attribute__((weak))
-#endif /* __weak */
-
-/*
- * These are the basic platform dependent I/O routines to read
- * and write device registers connected on a standard bus.
- * The driver keeps offering a default implementation based on function
- * pointers to read/write routines for backward compatibility.
- * The __weak directive allows the final application to overwrite
- * them with a custom implementation.
- */
-
-int32_t lis3mdl_read_reg(stmdev_ctx_t *ctx, uint8_t reg,
-                         uint8_t *data,
-                         uint16_t len);
-int32_t lis3mdl_write_reg(stmdev_ctx_t *ctx, uint8_t reg,
-                          uint8_t *data,
-                          uint16_t len);
-
-float_t lis3mdl_from_fs4_to_gauss(int16_t lsb);
-float_t lis3mdl_from_fs8_to_gauss(int16_t lsb);
-float_t lis3mdl_from_fs12_to_gauss(int16_t lsb);
-float_t lis3mdl_from_fs16_to_gauss(int16_t lsb);
-
-float_t lis3mdl_from_lsb_to_celsius(int16_t lsb);
-
 typedef enum {
     LIS3MDL_LP_Hz625 = 0x00,
     LIS3MDL_LP_1kHz = 0x01,
@@ -430,11 +359,6 @@ typedef enum {
     LIS3MDL_UHP_80Hz = 0x3E,
 
 } lis3mdl_om_t;
-int32_t lis3mdl_data_rate_set(stmdev_ctx_t *ctx, lis3mdl_om_t val);
-int32_t lis3mdl_data_rate_get(stmdev_ctx_t *ctx, lis3mdl_om_t *val);
-
-int32_t lis3mdl_temperature_meas_set(stmdev_ctx_t *ctx, uint8_t val);
-int32_t lis3mdl_temperature_meas_get(stmdev_ctx_t *ctx, uint8_t *val);
 
 typedef enum {
     LIS3MDL_4_GAUSS = 0,
@@ -442,124 +366,32 @@ typedef enum {
     LIS3MDL_12_GAUSS = 2,
     LIS3MDL_16_GAUSS = 3,
 } lis3mdl_fs_t;
-int32_t lis3mdl_full_scale_set(stmdev_ctx_t *ctx, lis3mdl_fs_t val);
-int32_t lis3mdl_full_scale_get(stmdev_ctx_t *ctx, lis3mdl_fs_t *val);
 
 typedef enum {
     LIS3MDL_CONTINUOUS_MODE = 0,
     LIS3MDL_SINGLE_TRIGGER = 1,
     LIS3MDL_POWER_DOWN = 2,
 } lis3mdl_md_t;
-int32_t lis3mdl_operating_mode_set(stmdev_ctx_t *ctx,
-                                   lis3mdl_md_t val);
-int32_t lis3mdl_operating_mode_get(stmdev_ctx_t *ctx,
-                                   lis3mdl_md_t *val);
-
-int32_t lis3mdl_fast_low_power_set(stmdev_ctx_t *ctx, uint8_t val);
-int32_t lis3mdl_fast_low_power_get(stmdev_ctx_t *ctx, uint8_t *val);
-
-int32_t lis3mdl_block_data_update_set(stmdev_ctx_t *ctx, uint8_t val);
-int32_t lis3mdl_block_data_update_get(stmdev_ctx_t *ctx,
-                                      uint8_t *val);
-
-int32_t lis3mdl_high_part_cycle_set(stmdev_ctx_t *ctx, uint8_t val);
-int32_t lis3mdl_high_part_cycle_get(stmdev_ctx_t *ctx, uint8_t *val);
-
-int32_t lis3mdl_mag_data_ready_get(stmdev_ctx_t *ctx, uint8_t *val);
-
-int32_t lis3mdl_mag_data_ovr_get(stmdev_ctx_t *ctx, uint8_t *val);
-
-int32_t lis3mdl_magnetic_raw_get(stmdev_ctx_t *ctx, int16_t *val);
-
-int32_t lis3mdl_temperature_raw_get(stmdev_ctx_t *ctx, int16_t *val);
-
-int32_t lis3mdl_device_id_get(stmdev_ctx_t *ctx, uint8_t *buff);
-
-int32_t lis3mdl_self_test_set(stmdev_ctx_t *ctx, uint8_t val);
-int32_t lis3mdl_self_test_get(stmdev_ctx_t *ctx, uint8_t *val);
-
-int32_t lis3mdl_reset_set(stmdev_ctx_t *ctx, uint8_t val);
-int32_t lis3mdl_reset_get(stmdev_ctx_t *ctx, uint8_t *val);
-
-int32_t lis3mdl_boot_set(stmdev_ctx_t *ctx, uint8_t val);
-int32_t lis3mdl_boot_get(stmdev_ctx_t *ctx, uint8_t *val);
 
 typedef enum {
     LIS3MDL_LSB_AT_LOW_ADD = 0,
     LIS3MDL_MSB_AT_LOW_ADD = 1,
 } lis3mdl_ble_t;
-int32_t lis3mdl_data_format_set(stmdev_ctx_t *ctx, lis3mdl_ble_t val);
-int32_t lis3mdl_data_format_get(stmdev_ctx_t *ctx,
-                                lis3mdl_ble_t *val);
-
-int32_t lis3mdl_status_get(stmdev_ctx_t *ctx,
-                           lis3mdl_status_reg_t *val);
-
-int32_t lis3mdl_int_config_set(stmdev_ctx_t *ctx,
-                               lis3mdl_int_cfg_t *val); // This might be an error they made?
-int32_t lis3mdl_int_config_get(stmdev_ctx_t *ctx,
-                               lis3mdl_int_cfg_t *val);
-
-int32_t lis3mdl_int_generation_set(stmdev_ctx_t *ctx, uint8_t val);
-int32_t lis3mdl_int_generation_get(stmdev_ctx_t *ctx, uint8_t *val);
 
 typedef enum {
     LIS3MDL_INT_PULSED = 0,
     LIS3MDL_INT_LATCHED = 1,
 } lis3mdl_lir_t;
-int32_t lis3mdl_int_notification_mode_set(stmdev_ctx_t *ctx,
-                                          lis3mdl_lir_t val);
-int32_t lis3mdl_int_notification_mode_get(stmdev_ctx_t *ctx,
-                                          lis3mdl_lir_t *val);
 
 typedef enum {
     LIS3MDL_ACTIVE_HIGH = 0,
     LIS3MDL_ACTIVE_LOW = 1,
 } lis3mdl_iea_t;
-int32_t lis3mdl_int_polarity_set(stmdev_ctx_t *ctx,
-                                 lis3mdl_iea_t val);
-int32_t lis3mdl_int_polarity_get(stmdev_ctx_t *ctx,
-                                 lis3mdl_iea_t *val);
-
-int32_t lis3mdl_int_on_z_ax_set(stmdev_ctx_t *ctx, uint8_t val);
-int32_t lis3mdl_int_on_z_ax_get(stmdev_ctx_t *ctx, uint8_t *val);
-
-int32_t lis3mdl_int_on_y_ax_set(stmdev_ctx_t *ctx, uint8_t val);
-int32_t lis3mdl_int_on_y_ax_get(stmdev_ctx_t *ctx, uint8_t *val);
-
-int32_t lis3mdl_int_on_x_ax_set(stmdev_ctx_t *ctx, uint8_t val);
-int32_t lis3mdl_int_on_x_ax_get(stmdev_ctx_t *ctx, uint8_t *val);
-
-int32_t lis3mdl_int_source_get(stmdev_ctx_t *ctx,
-                               lis3mdl_int_src_t *val);
-
-int32_t lis3mdl_interrupt_event_flag_get(stmdev_ctx_t *ctx,
-                                         uint8_t *val);
-
-int32_t lis3mdl_int_mag_over_range_flag_get(stmdev_ctx_t *ctx,
-                                            uint8_t *val);
-
-int32_t lis3mdl_int_neg_z_flag_get(stmdev_ctx_t *ctx, uint8_t *val);
-
-int32_t lis3mdl_int_neg_y_flag_get(stmdev_ctx_t *ctx, uint8_t *val);
-
-int32_t lis3mdl_int_neg_x_flag_get(stmdev_ctx_t *ctx, uint8_t *val);
-
-int32_t lis3mdl_int_pos_z_flag_get(stmdev_ctx_t *ctx, uint8_t *val);
-
-int32_t lis3mdl_int_pos_y_flag_get(stmdev_ctx_t *ctx, uint8_t *val);
-
-int32_t lis3mdl_int_pos_x_flag_get(stmdev_ctx_t *ctx, uint8_t *val);
-
-int32_t lis3mdl_int_threshold_set(stmdev_ctx_t *ctx, uint16_t val);
-int32_t lis3mdl_int_threshold_get(stmdev_ctx_t *ctx, uint16_t *val);
 
 typedef enum {
     LIS3MDL_SPI_4_WIRE = 0,
     LIS3MDL_SPI_3_WIRE = 1,
 } lis3mdl_sim_t;
-int32_t lis3mdl_spi_mode_set(stmdev_ctx_t *ctx, lis3mdl_sim_t val);
-int32_t lis3mdl_spi_mode_get(stmdev_ctx_t *ctx, lis3mdl_sim_t *val);
 
 /**
   *@}
