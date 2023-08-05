@@ -97,7 +97,7 @@ public:
         ret = CALL(wakeup());
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     /**
@@ -111,7 +111,7 @@ public:
         RetType ret = CALL(readXYZ(&data->x_accel, &data->y_accel, &data->z_accel));
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     /**
