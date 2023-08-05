@@ -1,5 +1,5 @@
-#ifndef SENSOR_MODULE_SWDEBUG_H
-#define SENSOR_MODULE_SWDEBUG_H
+#ifndef SWDEBUG_H
+#define SWDEBUG_H
 
 #include <stdio.h>
 #include <string.h>
@@ -55,4 +55,4 @@ void swprintx(const char* leader, const uint8_t* bytes, size_t len) {
     swprint("\n");
 #endif
 }
-#endif //SENSOR_MODULE_SWDEBUG_H
+#endif //SWDEBUG_H

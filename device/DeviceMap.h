@@ -6,6 +6,7 @@
 *           a specific hardware platform.
 *
 *  Author: Will Merges
+ *         Aaron Chan
 *
 *  RIT Launch Initiative
 *
@@ -16,9 +17,15 @@
 #include <stdlib.h>
 #include <string.h>
 
+
 #ifdef DEBUG
+#ifdef STM32F446xx
+#include "device/platforms/stm32/swdebug.h"
+#else
 #include <stdio.h>
-#endif
+#endif // STM32F446xx
+#endif // DEBUG
+
 
 #include "return.h"
 #include "device/Device.h"
@@ -56,9 +63,22 @@ public:
         return m_devices[i++];
     }
 
-    #ifdef DEBUG\
+
+    #ifdef SWDEBUG_H
+    void print() const {
+        swprintf("%s\r\n", m_name);
+        swprintf("------------------------------------------------\r\n");
+        for(size_t j = 0; j < m_count; j++) {
+            m_devices[j]->print();
+        }
+        swprintf("------------------------------------------------\r\n");
+    }
+
+    #else
+    #ifdef DEBUG
+
     /// @brief use 'printf' to output a textual representation of the device map
-    void print() {
+    void print() const {
         printf("%s\r\n", m_name);
         printf("------------------------------------------------\r\n");
         for(size_t i = 0; i < m_count; i++) {
@@ -66,7 +86,8 @@ public:
         }
         printf("------------------------------------------------\r\n");
     }
-    #endif
+    #endif // DEBUG
+    #endif // SWDEBUG_H
 
 protected:
     /// @brief protected constructor
@@ -94,7 +115,7 @@ protected:
 
         return RET_SUCCESS;
     }
-protected:
+
     // name of the device map
     const char* m_name;
 
