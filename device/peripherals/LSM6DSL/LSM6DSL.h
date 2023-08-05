@@ -19,11 +19,11 @@
 
 typedef struct {
     const uint16_t id;
-    float x_accel;
+    int32_t x_accel;
     int32_t x_gyro;
-    float y_accel;
+    int32_t y_accel;
     int32_t y_gyro;
-    float z_accel;
+    int32_t z_accel;
     int32_t z_gyro;
 } LSM6DSL_DATA_T;
 
@@ -116,7 +116,7 @@ public:
      * Acceleration Functions
      **********************************************************/
 
-    RetType getAccelAxesMS2(float *accelX, float *accelY, float *accelZ) {
+    RetType getAccelAxesMS2(int32_t *accelX, int32_t *accelY, int32_t *accelZ) {
         RESUME();
 
         RetType ret = CALL(getAccelAxes(accelX, accelY, accelZ));
@@ -134,7 +134,7 @@ public:
         return ret;
     }
 
-    RetType getAccelAxes(float *accelX, float *accelY, float *accelZ) {
+    RetType getAccelAxes(int32_t *accelX, int32_t *accelY, int32_t *accelZ) {
         RESUME();
 
         static float sens = 0;
@@ -145,9 +145,9 @@ public:
         ret = CALL(getAccelSens(&sens));
         ERROR_CHECK(ret);
 
-        *accelX = static_cast<float>((m_buff[0] << 8 | m_buff[1]) * sens);
-        *accelY = static_cast<float>((m_buff[2] << 8 | m_buff[3]) * sens);
-        *accelZ = static_cast<float>((m_buff[4] << 8 | m_buff[5]) * sens);
+        *accelX = static_cast<int32_t>((m_buff[0] << 8 | m_buff[1]) * sens);
+        *accelY = static_cast<int32_t>((m_buff[2] << 8 | m_buff[3]) * sens);
+        *accelZ = static_cast<int32_t>((m_buff[4] << 8 | m_buff[5]) * sens);
 
         RESET();
         return RET_SUCCESS;
@@ -217,7 +217,7 @@ public:
 
         m_buff[0] = odr;
         RetType ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL1_XL, m_buff[0], 1, LSM6DSL_ACC_GYRO_ODR_XL_MASK));
-        
+
         RESET();
         return ret;
     }
@@ -262,7 +262,7 @@ public:
         RESET();
         return RET_SUCCESS;
     }
-    
+
     RetType getGyroSens(float *sens) {
         RESUME();
 
@@ -345,7 +345,7 @@ public:
 
     RetType setGyroODR(LSM6DSL_ACC_GYRO_ODR_G_t odr) {
         RESUME();
-        
+
         m_buff[0] = odr;
         RetType ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL2_G, m_buff[0], 1, LSM6DSL_ACC_GYRO_ODR_G_MASK));
 
