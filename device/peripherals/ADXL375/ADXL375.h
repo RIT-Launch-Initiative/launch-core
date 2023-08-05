@@ -4,8 +4,8 @@
  * @author Aaron Chan
  */
 
-#ifndef LAUNCH_CORE_ADXL375_H
-#define LAUNCH_CORE_ADXL375_H
+#ifndef ADXL375_H
+#define ADXL375_H
 
 #define ADXL375_DATA_STRUCT(variable_name) ADXL375::ADXL375_DATA_T variable_name = {.id = 12000, .x_accel = 0, .y_accel = 0, .z_accel = 0}
 
@@ -345,4 +345,4 @@ private:
 };
 
 
-#endif //LAUNCH_CORE_ADXL375_H
+#endif //ADXL375_H
