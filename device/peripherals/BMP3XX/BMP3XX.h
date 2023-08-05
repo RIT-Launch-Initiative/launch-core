@@ -17,8 +17,6 @@
 #include "macros.h"
 
 
-#define ERROR_CHECK(ret) {RESET(); return ret;}
-
 using BMP3XX_DATA_T = struct {
     const uint16_t id;
     double pressure; // hPa

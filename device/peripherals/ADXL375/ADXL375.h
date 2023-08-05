@@ -55,9 +55,9 @@ public:
 
     typedef struct {
         const uint16_t id;
-        float x_accel;
-        float y_accel;
-        float z_accel;
+        int16_t x_accel;
+        int16_t y_accel;
+        int16_t z_accel;
     } ADXL375_DATA_T;
 
     typedef struct {
@@ -100,6 +100,11 @@ public:
         return RET_SUCCESS;
     }
 
+    /**
+     * @brief Get data and put it into struct
+     * @param data - Struct for accelerometer data
+     * @return Scheduler status
+     */
     RetType getData(ADXL375_DATA_T *data) {
         RESUME();
 
@@ -109,9 +114,16 @@ public:
         return RET_SUCCESS;
     }
 
-    RetType readXYZ(float *xAxis, float *yAxis, float *zAxis) {
+    /**
+     * @brief Read data into pointers to acceleration data
+     * @param xAxis - Pointer to X Axis data
+     * @param yAxis - Pointer to Y Axis data
+     * @param zAxis - Pointer to Z Axis data
+     * @return Scheduler Status
+     */
+    RetType readXYZ(int16_t *xAxis, int16_t *yAxis, int16_t *zAxis) {
         constexpr float scale = ADXL375_MG2G_MULTIPLIER * ADXL375_GRAVITY;
-        constexpr float bound = 10000;
+        constexpr float bound = 500; // Good chance we're not going past Mach 1.5
 
         RESUME();
 
@@ -123,13 +135,18 @@ public:
         *zAxis = static_cast<int16_t>((m_buff[5] << 8) | m_buff[4]) * scale;
 
         if ((bound < abs(*xAxis)) || (bound < abs(*yAxis)) || (bound < abs(*zAxis)) ) {
-            ret = RET_ERROR; 
+            ret = RET_ERROR;
         }
 
         RESET();
         return ret;
     }
 
+    /**
+     * Read X Axis data only
+     * @param xAxis - Pointer to X Axis data
+     * @return Scheduler Status
+     */
     RetType readX(int16_t *xAxis) {
         RESUME();
 
@@ -139,6 +156,11 @@ public:
         return ret;
     }
 
+    /**
+     * Read Y Axis data only
+     * @param yAxis - Pointer to Y Axis data
+     * @return Scheduler Status
+     */
     RetType readY(int16_t *yAxis) {
         RESUME();
 
@@ -148,6 +170,11 @@ public:
         return ret;
     }
 
+    /**
+     * Read Z Axis data only
+     * @param zAxis - Pointer to Z Axis data
+     * @return Scheduler Status
+     */
     RetType readZ(int16_t *zAxis) {
         RESUME();
 
@@ -157,16 +184,26 @@ public:
         return ret;
     }
 
+    /**
+     * Read data of an axis given a register
+     * @param axis - Pointer to axis data
+     * @param axisReg - Register to read from
+     * @return Scheduler Status
+     */
     RetType readAxis(int16_t *axis, ADXL375_REG axisReg) {
         RESUME();
 
         RetType ret = CALL(readReg(axisReg, m_buff, 2));
-        *axis = ((m_buff[0] << 8) | m_buff[1]) * -1;
+        *axis = ((m_buff[1] << 8) | m_buff[0]) * -1;
 
         RESET();
         return ret;
     }
 
+    /**
+     * @brief - Put the sensor out of sleep
+     * @return Scheduler Status
+     */
     RetType wakeup() {
         RESUME();
 
@@ -177,6 +214,12 @@ public:
         return ret;
     }
 
+    /**
+     * @brief Set the data rate and power mode
+     * @param dataRate - Data rate to be set
+     * @param lowPower - Whether device should be in low power or not
+     * @return Scheduler Status
+     */
     RetType setDataRateAndLowPower(ADXL375_DATA_RATE dataRate, bool lowPower) {
         RESUME();
 
@@ -189,6 +232,11 @@ public:
         return ret;
     }
 
+    /**
+     * @brief Set the operating mode
+     * @param opMode - Operating mode (Measuring, Sleep, Autosleep)
+     * @return Scheduler Status
+     */
     RetType setOperatingMode(ADXL375_OP_MODE opMode) {
         RESUME();
 
@@ -199,6 +247,13 @@ public:
         return ret;
     }
 
+    /**
+     * Set the offset for the sensor to be used in manual calibration
+     * @param xOffset - Offset value for the X Axis
+     * @param yOffset - Offset value for the Y Axis
+     * @param zOffset - Offset value for the Z Axis
+     * @return Scheduler Status
+     */
     RetType setOffset(int16_t xOffset, int16_t yOffset, int16_t zOffset) {
         RESUME();
 
@@ -213,27 +268,17 @@ public:
         m_buff[4] = static_cast<uint8_t>(zOffset & 0xFF);
         m_buff[5] = static_cast<uint8_t>((zOffset >> 8) & 0xFF);
 
-        i2cAddr.mem_addr_size = 2; // TODO: Figure out if we can just make this one call and address sizing
-        RetType ret = CALL(writeReg(offsetXReg, m_buff, 2));
-        i2cAddr.mem_addr_size = 1;
-
-//        RetType ret = CALL(writeReg(offsetXReg, xOffBuff, 2));
-//        if (RET_SUCCESS != ret) {
-//            RESET();
-//            return ret;
-//        }
-//        ret = CALL(writeReg(offsetYReg, yOffBuff, 2));
-//        if (RET_SUCCESS != ret) {
-//            RESET();
-//            return ret;
-//        }
-//
-//        ret = CALL(writeReg(offsetZReg, zOffBuff, 2));
+        RetType ret = CALL(writeReg(offsetXReg, m_buff, 6));
 
         RESET();
         return ret;
     }
 
+    /**
+     * Set the device range for self test mode
+     * @param range - Range to use
+     * @return Scheduler Status
+     */
     RetType setRange(uint8_t range) {
         RESUME();
         RetType ret = CALL(writeReg(ADXL375_REG_DATA_FORMAT, &range));
