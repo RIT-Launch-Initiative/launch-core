@@ -75,7 +75,6 @@ public:
         RetType ret = CALL(reset());
         ERROR_CHECK(ret);
 
-
         ret = CALL(readCalibration());
         if (RET_SUCCESS == ret) {
             setConv(MS5607_OSR_4096);
@@ -230,7 +229,7 @@ private:
 
     /**
      * Read factory calibration values for calculating the actual sensor values
-     * @return
+     * @return Scheduler Status
      */
     RetType readCalibration() {
         RESUME();
