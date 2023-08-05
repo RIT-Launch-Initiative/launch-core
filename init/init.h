@@ -59,6 +59,7 @@ typedef struct {
 ///         - loops forever
 ///
 /// @param init_args      the init arguments, an init_arg_t* cast to void*
+
 RetType init(void *init_args) {
     RESUME();
 
