@@ -93,4 +93,23 @@ public:
             RESET();
             return ret;
         }
+
+	m_blocked = sched_dispatched;
+
+	Wire.begin();
+	Wire.beginTransmission(addr.dev_addr); // Write to a device number, doubt this will work, seems to want an integer in documentation
+	Wire.write(&buff);	// Inherently blocking? Should wait until the buffer gets written and then continue
+	Wire.endTransmission;
+
+	ret = CALL(m_lock.release());
+	if (ret != RET_SUCCESS) {
+	    RESET();
+	    return ret;
+	}
+
+	RESET();
+	return RET_SUCCESS;
+
     }
+
+	
