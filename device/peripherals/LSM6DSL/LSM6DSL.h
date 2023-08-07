@@ -69,23 +69,22 @@ public:
         ERROR_CHECK(ret);
 
         // Enable reg addr automatically incremented during multi byte access with serial intf
-        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL3_C, LSM6DSL_ACC_GYRO_IF_INC_ENABLED, 1, LSM6DSL_ACC_GYRO_IF_INC_MASK));
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL3_C, LSM6DSL_ACC_GYRO_IF_INC_ENABLED, LSM6DSL_ACC_GYRO_IF_INC_MASK));
         ERROR_CHECK(ret);
 
         // Enable BDU
-        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL3_C, LSM6DSL_ACC_GYRO_BDU_BLOCK_UPDATE, 1, LSM6DSL_ACC_GYRO_BDU_MASK));
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL3_C, LSM6DSL_ACC_GYRO_BDU_BLOCK_UPDATE, LSM6DSL_ACC_GYRO_BDU_MASK));
         ERROR_CHECK(ret);
 
         // FIFO Mode Select
-        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_FIFO_CTRL5, LSM6DSL_ACC_GYRO_FIFO_MODE_BYPASS, 1,
-                            LSM6DSL_ACC_GYRO_FIFO_MODE_MASK));
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_FIFO_CTRL5, LSM6DSL_ACC_GYRO_FIFO_MODE_BYPASS, LSM6DSL_ACC_GYRO_FIFO_MODE_MASK));
         ERROR_CHECK(ret);
 
         // ODR Selection
-        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL2_G, LSM6DSL_ACC_GYRO_ODR_G_104Hz, 1, LSM6DSL_ACC_GYRO_ODR_G_MASK));
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL2_G, LSM6DSL_ACC_GYRO_ODR_G_104Hz, LSM6DSL_ACC_GYRO_ODR_G_MASK));
         ERROR_CHECK(ret);
 
-        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL1_XL, LSM6DSL_ACC_GYRO_ODR_XL_104Hz, 1, LSM6DSL_ACC_GYRO_ODR_XL_MASK));
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL1_XL, LSM6DSL_ACC_GYRO_ODR_XL_104Hz, LSM6DSL_ACC_GYRO_ODR_XL_MASK));
         ERROR_CHECK(ret);
 
         // Full Scale
@@ -99,10 +98,15 @@ public:
     }
 
 
+    /**
+     * Get LSM6DSL Data
+     * @param data - Pointer to Struct to LSM6DSL Data
+     * @return Scheduler Status
+     */
     RetType getData(LSM6DSL_DATA_T *data) {
         RESUME();
 
-        RetType ret = CALL(getAccelAxesMS2(&data->x_accel, &data->y_accel, &data->z_accel));
+        RetType ret = CALL(getAccelAxes(&data->x_accel, &data->y_accel, &data->z_accel));
         if (RET_SUCCESS == ret) {
             ret = CALL(getGyroAxes(&data->x_gyro, &data->y_gyro, &data->z_gyro));
         }
@@ -115,20 +119,13 @@ public:
      * Acceleration Functions
      **********************************************************/
 
-    RetType getAccelAxesMS2(int32_t *accelX, int32_t *accelY, int32_t *accelZ) {
-        RESUME();
-
-        RetType ret = CALL(getAccelAxes(accelX, accelY, accelZ));
-        if (RET_SUCCESS == ret) {
-            *accelX = (*accelX * GRAVITY) / 1000;
-            *accelY = (*accelY * GRAVITY) / 1000;
-            *accelZ = (*accelZ * GRAVITY) / 1000;
-        }
-
-        RESET();
-        return ret;
-    }
-
+    /**
+     * Get acceleration data in m/s^2
+     * @param accelX - Pointer to X Acceleration data
+     * @param accelY - Pointer to X Acceleration data
+     * @param accelZ - Pointer to X Acceleration data
+     * @return Scheduler Status
+     */
     RetType getAccelAxes(int32_t *accelX, int32_t *accelY, int32_t *accelZ) {
         RESUME();
 
@@ -146,12 +143,21 @@ public:
             *accelX = static_cast<int32_t>(rawX * sens);
             *accelY = static_cast<int32_t>(rawY * sens);
             *accelZ = static_cast<int32_t>(rawZ * sens);
+
+            *accelX = (*accelX * GRAVITY) / 1000;
+            *accelY = (*accelY * GRAVITY) / 1000;
+            *accelZ = (*accelZ * GRAVITY) / 1000;
         }
 
         RESET();
         return ret;
     }
 
+    /**
+     * Get the raw acceleration data
+     * @param buff - Pointer to buffer that can store at least 6 byts
+     * @return Scheduler Status
+     */
     RetType getAccelAxesRaw(uint8_t *buff) {
         RESUME();
 
@@ -161,32 +167,46 @@ public:
         return ret;
     }
 
+    /**
+     * Get the acceleration sensitivity
+     * @param sens - Pointer to acceleration sensitivity
+     * @return Scheduler Status
+     */
     RetType getAccelSens(uint8_t *sens) {
         RESUME();
 
-        RetType ret = CALL(readReg(LSM6DSL_ACC_GYRO_CTRL1_XL, sens, 1,
-                                   LSM6DSL_ACC_GYRO_FS_XL_MASK));
+        RetType ret = CALL(readReg(LSM6DSL_ACC_GYRO_CTRL1_XL, sens, LSM6DSL_ACC_GYRO_FS_XL_MASK));
 
         RESET();
         return ret;
     }
 
 
+    /**
+     * Set the full scale acceleration range value
+     * @param fullScale - Full Scale value to set
+     * @return Scheduler Status
+     */
     RetType setAccelFullScale(LSM6DSL_ACC_GYRO_FS_XL_t fullScale) {
         RESUME();
 
         m_buff[0] = fullScale;
-        RetType ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL1_XL, m_buff[0], 1, LSM6DSL_ACC_GYRO_FS_XL_MASK));
+        RetType ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL1_XL, m_buff[0], LSM6DSL_ACC_GYRO_FS_XL_MASK));
 
         RESET();
         return ret;
     }
 
+    /**
+     * Set the output data rate for acceleration
+     * @param odr - Output Data Rate value to set
+     * @return Scheduler Status
+     */
     RetType setAccelODR(LSM6DSL_ACC_GYRO_ODR_XL_t odr) {
         RESUME();
 
         m_buff[0] = odr;
-        RetType ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL1_XL, m_buff[0], 1, LSM6DSL_ACC_GYRO_ODR_XL_MASK));
+        RetType ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL1_XL, m_buff[0], LSM6DSL_ACC_GYRO_ODR_XL_MASK));
 
         RESET();
         return ret;
@@ -195,6 +215,14 @@ public:
     /**********************************************************
      * Gyroscope Functions
      **********************************************************/
+
+    /**
+     * Get gyroscope data in degrees per second
+     * @param accelX - Pointer to X Gyroscope data
+     * @param accelY - Pointer to Y Gyroscope data
+     * @param accelZ - Pointer to Z Gyroscope data
+     * @return Scheduler Status
+     */
     RetType getGyroAxes(int32_t *gyroX, int32_t *gyroY, int32_t *gyroZ) {
         RESUME();
 
@@ -218,6 +246,11 @@ public:
         return ret;
     }
 
+    /**
+     * Get the raw gyroscope data
+     * @param buff - Pointer to buffer that can store at least 6 bytes
+     * @return Scheduler Status
+     */
     RetType getGyroAxesRaw(uint8_t *buff) {
         RESUME();
 
@@ -227,6 +260,11 @@ public:
         return ret;
     }
 
+    /**
+     * Get gyroscope sensitivity
+     * @param sens - Pointer to sensitivity value
+     * @return Scheduler Status
+     */
     RetType getGyroSens(uint8_t *sens) {
         RESUME();
 
@@ -242,17 +280,22 @@ public:
         return ret;
     }
 
+    /**
+     * Set the gyroscope sensitivity
+     * @param sens - Pointer to gyroscope sensitivity
+     * @return Scheduler Status
+     */
     RetType setGyroFullScale(LSM6DSL_ACC_GYRO_FS_G_t fullScale) {
         RESUME();
 
         RetType ret;
         if (LSM6DSL_ACC_GYRO_FS_G_125dps == fullScale) {
-            ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL2_G, LSM6DSL_ACC_GYRO_FS_125_ENABLED, 1, LSM6DSL_ACC_GYRO_FS_125_MASK));
+            ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL2_G, LSM6DSL_ACC_GYRO_FS_125_ENABLED, LSM6DSL_ACC_GYRO_FS_125_MASK));
         } else {
-            ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL2_G, LSM6DSL_ACC_GYRO_FS_125_DISABLED, 1, LSM6DSL_ACC_GYRO_FS_125_MASK));
+            ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL2_G, LSM6DSL_ACC_GYRO_FS_125_DISABLED, LSM6DSL_ACC_GYRO_FS_125_MASK));
 
             if (RET_SUCCESS == ret) {
-                ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL2_G, fullScale, 1, LSM6DSL_ACC_GYRO_FS_G_MASK));
+                ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL2_G, fullScale, LSM6DSL_ACC_GYRO_FS_G_MASK));
             }
         }
 
@@ -260,11 +303,16 @@ public:
         return ret;
     }
 
+    /**
+     * Set the gyroscope output data rate
+     * @param sens - Output data rate to set
+     * @return Scheduler Status
+     */
     RetType setGyroODR(LSM6DSL_ACC_GYRO_ODR_G_t odr) {
         RESUME();
 
         m_buff[0] = odr;
-        RetType ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL2_G, m_buff[0], 1, LSM6DSL_ACC_GYRO_ODR_G_MASK));
+        RetType ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL2_G, m_buff[0], LSM6DSL_ACC_GYRO_ODR_G_MASK));
 
         RESET();
         return ret;
@@ -274,6 +322,11 @@ public:
      * Free Fall Settings
      ********************************************************************/
 
+    /**
+     * Enable sending an interrupt when free fall is detected
+     * @param interruptPin - Pin to send the interrupt to
+     * @return Scheduler Status
+     */
     RetType enableFreeFallDetection(LSM6DSL_Interrupt_Pin_t interruptPin) {
         RESUME();
 
@@ -281,7 +334,7 @@ public:
         ERROR_CHECK(ret);
 
         // Full Scale Select
-        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL1_XL, LSM6DSL_ACC_GYRO_FS_XL_2g, 1, LSM6DSL_ACC_GYRO_FS_XL_MASK));
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL1_XL, LSM6DSL_ACC_GYRO_FS_XL_2g, LSM6DSL_ACC_GYRO_FS_XL_MASK));
         ERROR_CHECK(ret);
 
         // FF Duration
@@ -290,63 +343,60 @@ public:
         lowVal = lowVal << LSM6DSL_ACC_GYRO_FF_FREE_FALL_DUR_POSITION;
         lowVal &= LSM6DSL_ACC_GYRO_FF_FREE_FALL_DUR_MASK;
 
-        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_FREE_FALL, lowVal, 1, LSM6DSL_ACC_GYRO_FF_FREE_FALL_DUR_MASK));
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_FREE_FALL, lowVal, LSM6DSL_ACC_GYRO_FF_FREE_FALL_DUR_MASK));
         ERROR_CHECK(ret);
 
         uint8_t highVal = (duration >> 5) & 0x1;
         highVal = highVal << LSM6DSL_ACC_GYRO_FF_WAKE_UP_DUR_POSITION;
         highVal &= LSM6DSL_ACC_GYRO_FF_WAKE_UP_DUR_MASK;
 
-        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_WAKE_UP_DUR, highVal, 1, LSM6DSL_ACC_GYRO_FS_XL_MASK));
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_WAKE_UP_DUR, highVal, LSM6DSL_ACC_GYRO_FS_XL_MASK));
         ERROR_CHECK(ret);
 
         // Wake Duration
         duration = 0x00 << LSM6DSL_ACC_GYRO_WAKE_DUR_POSITION;
         duration &= LSM6DSL_ACC_GYRO_WAKE_DUR_MASK;
 
-        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_WAKE_UP_DUR, duration, 1, LSM6DSL_ACC_GYRO_WAKE_DUR_MASK));
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_WAKE_UP_DUR, duration, LSM6DSL_ACC_GYRO_WAKE_DUR_MASK));
         ERROR_CHECK(ret);
 
         // Timer HR
-        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_WAKE_UP_DUR, LSM6DSL_ACC_GYRO_TIMER_HR_6_4ms, 1,
-                            LSM6DSL_ACC_GYRO_TIMER_HR_MASK));
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_WAKE_UP_DUR, LSM6DSL_ACC_GYRO_TIMER_HR_6_4ms, LSM6DSL_ACC_GYRO_TIMER_HR_MASK));
         ERROR_CHECK(ret);
 
         // Sleep Duration
         duration = 0x00 << LSM6DSL_ACC_GYRO_SLEEP_DUR_POSITION;
         duration &= LSM6DSL_ACC_GYRO_SLEEP_DUR_MASK;
 
-        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_WAKE_UP_DUR, duration, 1, LSM6DSL_ACC_GYRO_SLEEP_DUR_MASK));
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_WAKE_UP_DUR, duration, LSM6DSL_ACC_GYRO_SLEEP_DUR_MASK));
         ERROR_CHECK(ret);
 
         // Free Fall THS
-        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL1_XL, LSM6DSL_ACC_GYRO_FF_THS_312mg, 1, LSM6DSL_ACC_GYRO_FF_THS_MASK));
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL1_XL, LSM6DSL_ACC_GYRO_FF_THS_312mg, LSM6DSL_ACC_GYRO_FF_THS_MASK));
         ERROR_CHECK(ret);
 
         // Enable Interrupts
-        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_TAP_CFG1, LSM6DSL_ACC_GYRO_BASIC_INT_ENABLED, 1,
-                            LSM6DSL_ACC_GYRO_INT_EN_MASK));
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_TAP_CFG1, LSM6DSL_ACC_GYRO_BASIC_INT_ENABLED, LSM6DSL_ACC_GYRO_INT_EN_MASK));
         ERROR_CHECK(ret);
 
         /* Enable free fall event on either INT1 or INT2 pin */
         switch (interruptPin) {
             case LSM6DSL_INT1_PIN:
-                ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD1_CFG, LSM6DSL_ACC_GYRO_INT1_FF_ENABLED, 1,
-                                    LSM6DSL_ACC_GYRO_INT1_FF_MASK));
+                ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD1_CFG, LSM6DSL_ACC_GYRO_INT1_FF_ENABLED, LSM6DSL_ACC_GYRO_INT1_FF_MASK));
                 if (ret != RET_SUCCESS) {
                     RESET();
                     return ret;
                 }
 
             case LSM6DSL_INT2_PIN:
-                ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD2_CFG, LSM6DSL_ACC_GYRO_INT1_FF_ENABLED, 1,
-                                    LSM6DSL_ACC_GYRO_INT2_FF_MASK));
+                ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD2_CFG, LSM6DSL_ACC_GYRO_INT1_FF_ENABLED, LSM6DSL_ACC_GYRO_INT2_FF_MASK));
                 if (ret != RET_SUCCESS) {
                     RESET();
                     return ret;
                 }
 
             default:
+                RESET();
                 return RET_ERROR;
         }
 
@@ -354,21 +404,23 @@ public:
         return RET_SUCCESS;
     }
 
+    /**
+    * Disable sending an interrupt when free fall is detected
+    * @param interruptPin - Pin to disable sending the interrupt to
+    * @return Scheduler Status
+    */
     RetType disableFreeFallDetection() {
         RESUME();
 
         // Disable FF events on pins
-        RetType ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD1_CFG, LSM6DSL_ACC_GYRO_INT1_FF_DISABLED, 1,
-                                    LSM6DSL_ACC_GYRO_INT1_FF_MASK));
+        RetType ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD1_CFG, LSM6DSL_ACC_GYRO_INT1_FF_DISABLED, LSM6DSL_ACC_GYRO_INT1_FF_MASK));
         ERROR_CHECK(ret);
 
-        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD2_CFG, LSM6DSL_ACC_GYRO_INT1_FF_DISABLED, 1,
-                            LSM6DSL_ACC_GYRO_INT2_FF_MASK));
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD2_CFG, LSM6DSL_ACC_GYRO_INT1_FF_DISABLED, LSM6DSL_ACC_GYRO_INT2_FF_MASK));
         ERROR_CHECK(ret);
 
         // Disable Interrupts
-        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_TAP_CFG1, LSM6DSL_ACC_GYRO_BASIC_INT_DISABLED, 1,
-                            LSM6DSL_ACC_GYRO_INT_EN_MASK));
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_TAP_CFG1, LSM6DSL_ACC_GYRO_BASIC_INT_DISABLED, LSM6DSL_ACC_GYRO_INT_EN_MASK));
         ERROR_CHECK(ret);
 
         // Set Free Fall Duration
@@ -378,27 +430,32 @@ public:
         lowVal = lowVal << LSM6DSL_ACC_GYRO_FF_FREE_FALL_DUR_POSITION;
         lowVal &= LSM6DSL_ACC_GYRO_FF_FREE_FALL_DUR_MASK;
 
-        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_FREE_FALL, lowVal, 1, LSM6DSL_ACC_GYRO_FF_FREE_FALL_DUR_MASK));
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_FREE_FALL, lowVal, LSM6DSL_ACC_GYRO_FF_FREE_FALL_DUR_MASK));
         ERROR_CHECK(ret);
 
         uint8_t highVal = (duration >> 5) & 0x1;
         highVal = highVal << LSM6DSL_ACC_GYRO_FF_WAKE_UP_DUR_POSITION;
         highVal &= LSM6DSL_ACC_GYRO_FF_WAKE_UP_DUR_MASK;
 
-        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_WAKE_UP_DUR, highVal, 1, LSM6DSL_ACC_GYRO_FS_XL_MASK));
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_WAKE_UP_DUR, highVal, LSM6DSL_ACC_GYRO_FS_XL_MASK));
         ERROR_CHECK(ret);
 
         // Set Free Fall THS Setting
-        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL1_XL, LSM6DSL_ACC_GYRO_FF_THS_156mg, 1, LSM6DSL_ACC_GYRO_FF_THS_MASK));
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL1_XL, LSM6DSL_ACC_GYRO_FF_THS_156mg, LSM6DSL_ACC_GYRO_FF_THS_MASK));
 
         RESET();
         return ret;
     }
 
+    /**
+     * Set the threshold for freefall interrupts
+     * @param threshold - Threshold value to set
+     * @return Scheduler Status
+     */
     RetType setFreeFallThreshold(uint8_t threshold) {
         RESUME();
 
-        RetType ret = CALL(writeReg(LSM6DSL_ACC_GYRO_FREE_FALL, threshold, 1, LSM6DSL_ACC_GYRO_FF_THS_MASK));
+        RetType ret = CALL(writeReg(LSM6DSL_ACC_GYRO_FREE_FALL, threshold, LSM6DSL_ACC_GYRO_FF_THS_MASK));
 
         RESET();
         return ret;
@@ -408,7 +465,11 @@ public:
      * Tilt Detection Settings
      ********************************************************************/
 
-
+    /**
+    * Enable sending an interrupt when tilt is detected
+    * @param interruptPin - Pin to send the interrupt to
+    * @return Scheduler Status
+    */
     RetType enableTiltDetection(LSM6DSL_Interrupt_Pin_t interruptPin) {
         RESUME();
 
@@ -421,19 +482,17 @@ public:
         ERROR_CHECK(ret);
 
         // Enable Embedded Functionalities
-        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL10_C, LSM6DSL_ACC_GYRO_FUNC_EN_ENABLED, 1,
-                            LSM6DSL_ACC_GYRO_FUNC_EN_MASK));
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL10_C, LSM6DSL_ACC_GYRO_FUNC_EN_ENABLED, LSM6DSL_ACC_GYRO_FUNC_EN_MASK));
         ERROR_CHECK(ret);
 
         // Enable Tilt Calculation
-        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL10_C, LSM6DSL_ACC_GYRO_TILT_ENABLED, 1, LSM6DSL_ACC_GYRO_TILT_MASK));
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL10_C, LSM6DSL_ACC_GYRO_TILT_ENABLED, LSM6DSL_ACC_GYRO_TILT_MASK));
         ERROR_CHECK(ret);
 
         // Enable Tilt Detection
         switch (interruptPin) {
             case LSM6DSL_INT1_PIN:
-                ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD1_CFG, LSM6DSL_ACC_GYRO_INT1_TILT_ENABLED, 1,
-                                    LSM6DSL_ACC_GYRO_INT1_TILT_MASK));
+                ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD1_CFG, LSM6DSL_ACC_GYRO_INT1_TILT_ENABLED, LSM6DSL_ACC_GYRO_INT1_TILT_MASK));
                 if (ret != RET_SUCCESS) {
                     RESET();
                     return ret;
@@ -441,8 +500,7 @@ public:
                 break;
 
             case LSM6DSL_INT2_PIN:
-                ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD2_CFG, LSM6DSL_ACC_GYRO_INT2_TILT_ENABLED, 1,
-                                    LSM6DSL_ACC_GYRO_INT2_TILT_MASK));
+                ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD2_CFG, LSM6DSL_ACC_GYRO_INT2_TILT_ENABLED, LSM6DSL_ACC_GYRO_INT2_TILT_MASK));
                 if (ret != RET_SUCCESS) {
                     RESET();
                     return ret;
@@ -457,25 +515,27 @@ public:
         return ret;
     }
 
+    /**
+    * Disable sending an interrupt when tilt is detected
+    * @param interruptPin - Pin to disable sending the interrupt to
+    * @return Scheduler Status
+    */
     RetType disableTiltDetection() {
         RESUME();
 
         // Disable Tilt Events
-        RetType ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD1_CFG, LSM6DSL_ACC_GYRO_INT1_TILT_DISABLED, 1,
-                                    LSM6DSL_ACC_GYRO_INT1_TILT_MASK));
+        RetType ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD1_CFG, LSM6DSL_ACC_GYRO_INT1_TILT_DISABLED, LSM6DSL_ACC_GYRO_INT1_TILT_MASK));
         ERROR_CHECK(ret);
 
-        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD2_CFG, LSM6DSL_ACC_GYRO_INT2_TILT_DISABLED, 1,
-                            LSM6DSL_ACC_GYRO_INT2_TILT_MASK));
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD2_CFG, LSM6DSL_ACC_GYRO_INT2_TILT_DISABLED, LSM6DSL_ACC_GYRO_INT2_TILT_MASK));
         ERROR_CHECK(ret);
 
         // Disable Tilt Calculations
-        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL10_C, LSM6DSL_ACC_GYRO_TILT_DISABLED, 1, LSM6DSL_ACC_GYRO_TILT_MASK));
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL10_C, LSM6DSL_ACC_GYRO_TILT_DISABLED, LSM6DSL_ACC_GYRO_TILT_MASK));
         ERROR_CHECK(ret);
 
         // Disable Embedded Functionalities
-        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL10_C, LSM6DSL_ACC_GYRO_FUNC_EN_DISABLED, 1,
-                            LSM6DSL_ACC_GYRO_FUNC_EN_MASK));
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_CTRL10_C, LSM6DSL_ACC_GYRO_FUNC_EN_DISABLED, LSM6DSL_ACC_GYRO_FUNC_EN_MASK));
 
         RESET();
         return ret;
@@ -485,6 +545,11 @@ public:
      * Six Degree Orientation Settings
      ********************************************************************/
 
+    /**
+    * Enable sending an interrupt when 6DoF is detected
+    * @param interruptPin - Pin to send the interrupt to
+    * @return Scheduler Status
+    */
     RetType enable6DOrientation(LSM6DSL_Interrupt_Pin_t interruptPin) {
         RESUME();
 
@@ -496,20 +561,17 @@ public:
         ERROR_CHECK(ret);
 
         // Set 6D Threshold
-        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_TAP_THS_6D, LSM6DSL_ACC_GYRO_SIXD_THS_60_degree, 1,
-                            LSM6DSL_ACC_GYRO_SIXD_THS_MASK));
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_TAP_THS_6D, LSM6DSL_ACC_GYRO_SIXD_THS_60_degree, LSM6DSL_ACC_GYRO_SIXD_THS_MASK));
         ERROR_CHECK(ret);
 
         /* Enable basic Interrupts */
-        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_TAP_CFG1, LSM6DSL_ACC_GYRO_BASIC_INT_ENABLED, 1,
-                            LSM6DSL_ACC_GYRO_INT_EN_MASK));
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_TAP_CFG1, LSM6DSL_ACC_GYRO_BASIC_INT_ENABLED, LSM6DSL_ACC_GYRO_INT_EN_MASK));
         ERROR_CHECK(ret);
 
         // Enable 6D orientation on either INT1 or INT2 pin
         switch (interruptPin) {
             case LSM6DSL_INT1_PIN:
-                ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD1_CFG, LSM6DSL_ACC_GYRO_INT1_6D_ENABLED, 1,
-                                    LSM6DSL_ACC_GYRO_INT1_6D_MASK));
+                ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD1_CFG, LSM6DSL_ACC_GYRO_INT1_6D_ENABLED, LSM6DSL_ACC_GYRO_INT1_6D_MASK));
                 if (ret != RET_SUCCESS) {
                     RESET();
                     return ret;
@@ -517,8 +579,7 @@ public:
 
                 break;
             case LSM6DSL_INT2_PIN:
-                ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD2_CFG, LSM6DSL_ACC_GYRO_INT2_6D_ENABLED, 1,
-                                    LSM6DSL_ACC_GYRO_INT2_6D_MASK));
+                ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD2_CFG, LSM6DSL_ACC_GYRO_INT2_6D_ENABLED, LSM6DSL_ACC_GYRO_INT2_6D_MASK));
                 if (ret != RET_SUCCESS) {
                     RESET();
                     return ret;
@@ -526,6 +587,7 @@ public:
 
                 break;
             default:
+                RESET();
                 return RET_ERROR;
         }
 
@@ -533,32 +595,31 @@ public:
         return RET_SUCCESS;
     }
 
+    /**
+    * Disable sending an interrupt when 6DoF is detected
+    * @param interruptPin - Pin to disable sending the interrupt to
+    * @return Scheduler Status
+    */
     RetType disableSixDoF() {
         RESUME();
 
         // Disable 6D Interrupts
-        RetType ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD1_CFG, LSM6DSL_ACC_GYRO_INT1_6D_DISABLED, 1,
-                                    LSM6DSL_ACC_GYRO_INT1_6D_MASK));
+        RetType ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD1_CFG, LSM6DSL_ACC_GYRO_INT1_6D_DISABLED, LSM6DSL_ACC_GYRO_INT1_6D_MASK));
         ERROR_CHECK(ret);
 
-        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD2_CFG, LSM6DSL_ACC_GYRO_INT2_6D_DISABLED, 1,
-                            LSM6DSL_ACC_GYRO_INT2_6D_MASK));
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_MD2_CFG, LSM6DSL_ACC_GYRO_INT2_6D_DISABLED, LSM6DSL_ACC_GYRO_INT2_6D_MASK));
         ERROR_CHECK(ret);
 
         // Disable Basic Interrupts
-        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_TAP_CFG1, LSM6DSL_ACC_GYRO_BASIC_INT_DISABLED, 1,
-                            LSM6DSL_ACC_GYRO_INT_EN_MASK));
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_TAP_CFG1, LSM6DSL_ACC_GYRO_BASIC_INT_DISABLED, LSM6DSL_ACC_GYRO_INT_EN_MASK));
         ERROR_CHECK(ret);
 
         /* Reset 6D threshold. */
-        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_TAP_THS_6D, LSM6DSL_ACC_GYRO_SIXD_THS_80_degree, 1,
-                            LSM6DSL_ACC_GYRO_SIXD_THS_MASK));
-        ERROR_CHECK(ret);
+        ret = CALL(writeReg(LSM6DSL_ACC_GYRO_TAP_THS_6D, LSM6DSL_ACC_GYRO_SIXD_THS_80_degree, LSM6DSL_ACC_GYRO_SIXD_THS_MASK));
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
-
 
     RetType poll() override {
         return RET_SUCCESS;
@@ -577,6 +638,10 @@ private:
     I2CAddr_t m_i2cAddr;
     uint8_t m_buff[10];
 
+    /**
+     * Check the chip ID to ensure valid communication
+     * @return Result of chip ID check
+     */
     RetType checkChipID() {
         RESUME();
 
@@ -587,7 +652,13 @@ private:
         return ret;
     }
 
-
+    /**
+     * Helper for reading register(s)
+     * @param reg - Register to start reading from
+     * @param buff - Buffer for register values
+     * @param len - Bytes to read into the buffer
+     * @return Scheduler Status
+     */
     RetType readReg(uint8_t reg, uint8_t *buff, size_t len) {
         RESUME();
 
@@ -598,6 +669,15 @@ private:
         return ret;
     }
 
+    /**
+     * Helper for reading register(s) with masking
+     * @param reg - Register to start reading from
+     * @param buff - Buffer for register values
+     * @param len - Bytes to read into the buffer
+     * @param mask - Bit Mask
+     * @param timeout - Time that transaction needs to finish before
+     * @return Scheduler Status
+     */
     RetType readReg(uint8_t reg, uint8_t *buff, size_t len, uint8_t mask, uint32_t timeout = 0) {
         RESUME();
 
@@ -609,22 +689,34 @@ private:
         return ret;
     }
 
-    RetType writeReg(uint8_t reg, uint8_t newVal, size_t len, uint8_t mask) {
+    /**
+     * Write to a register
+     * @param reg - Register value
+     * @param val - Value to write
+     * @param mask - Bit Mask
+     * @return Scheduler Status
+     */
+    RetType writeReg(uint8_t reg, uint8_t val, uint8_t mask) {
         RESUME();
 
         m_i2cAddr.mem_addr = reg;
-        RetType ret = CALL(m_i2c->read(m_i2cAddr, m_buff, len));
+        RetType ret = CALL(m_i2c->read(m_i2cAddr, m_buff, 1));
         if (RET_SUCCESS == ret) {
             m_buff[0] &= ~mask;
-            m_buff[0] |= newVal;
+            m_buff[0] |= val;
 
-            ret = CALL(m_i2c->write(m_i2cAddr, m_buff, len));
+            ret = CALL(m_i2c->write(m_i2cAddr, m_buff, 1));
         }
 
         RESET();
         return ret;
     }
 
+    /**
+     * Determine accelerometer sensitivity value based on full scale
+     * @param fullScaleValue - Current full scale value
+     * @return Accelerometer Sensitivity
+     */
     float determineAccelSens(uint8_t fullScaleValue) {
         switch (fullScaleValue) {
             case LSM6DSL_ACC_GYRO_FS_XL_2g:
@@ -640,6 +732,11 @@ private:
         }
     }
 
+    /**
+     * Determine gyroscope sensitivity value based on full scale
+     * @param fullScaleValue - Current full scale value
+     * @return Gyroscope Sensitivity
+     */
     float determineGyroSens(uint8_t fullScaleValue) {
         switch (fullScaleValue) {
             case LSM6DSL_ACC_GYRO_FS_G_245dps:
