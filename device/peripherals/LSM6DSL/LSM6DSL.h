@@ -100,42 +100,54 @@ public:
 
 
     /**
-     * Get LSM6DSL Data
+     * Get all sensor data
      * @param data - Pointer to Struct to LSM6DSL Data
      * @return Scheduler Status
      */
     RetType getData(LSM6DSL_DATA_T *data) {
         RESUME();
-//        RetType ret = CALL(getData(&data->x_accel, &data->y_accel, &data->z_accel, &data->x_gyro, &data->y_gyro, &data->z_gyro));
+        RetType ret = CALL(getData(&data->x_accel, &data->y_accel, &data->z_accel, &data->x_gyro, &data->y_gyro, &data->z_gyro));
 
-        RetType ret = CALL(getAccelAxes(&data->x_accel, &data->y_accel, &data->z_accel));
-        if (RET_SUCCESS == ret) {
-            ret = CALL(getGyroAxes(&data->x_gyro, &data->y_gyro, &data->z_gyro));
-        }
+
 
         RESET();
         return ret;
     }
 
+    /**
+     * Retrieve all data at once and calculate the results
+     * @param accelX - pointer to X accel data
+     * @param accelY - pointer to Y accel data
+     * @param accelZ - pointer to Z accel data
+     * @param gyroX - pointer to X gyro data
+     * @param gyroY - pointer to Y gyro data
+     * @param gyroZ - pointer to Z gyro data
+     * @return Scheduler Status
+     */
     RetType getData(int32_t *accelX, int32_t *accelY, int32_t *accelZ, int32_t *gyroX, int32_t *gyroY, int32_t *gyroZ) {
         RESUME();
 
         RetType ret = CALL(getAxesRaw(m_buff));
         ERROR_CHECK(ret);
 
-        ret = CALL(calculateAccelAxes(&m_buff[0], accelX, accelY, accelZ));
+        ret = CALL(calculateGyroAxes(&m_buff[0], gyroX, gyroY, gyroZ));
         ERROR_CHECK(ret);
 
-        ret = CALL(calculateGyroAxes(&m_buff[6], gyroX, gyroY, gyroZ));
+        ret = CALL(calculateAccelAxes(&m_buff[6], accelX, accelY, accelZ));
 
         RESET();
         return ret;
     }
 
+    /**
+     * Get all raw sensor data
+     * @param buff - pointer to buffer of at least 12 bytes
+     * @return Scheduler Status
+     */
     RetType getAxesRaw(uint8_t *buff) {
         RESUME();
 
-        RetType ret = CALL(readReg(LSM6DSL_ACC_GYRO_OUTX_L_XL, buff, 12));
+        RetType ret = CALL(readReg(LSM6DSL_ACC_GYRO_OUTX_L_G, buff, 12));
 
         RESET();
         return ret;
