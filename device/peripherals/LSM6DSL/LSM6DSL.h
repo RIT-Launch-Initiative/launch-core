@@ -39,6 +39,7 @@ public:
         LSM6DSL_I2C_ADDR_SECONDARY = 0x6B
     };
 
+
     static constexpr float LSM6DSL_ACC_SENSITIVITY_FOR_FS_2G = 0.061;  /**< Sensitivity value for 2 g full scale [mg/LSB] */
     static constexpr float LSM6DSL_ACC_SENSITIVITY_FOR_FS_4G = 0.122;  /**< Sensitivity value for 4 g full scale [mg/LSB] */
     static constexpr float LSM6DSL_ACC_SENSITIVITY_FOR_FS_8G = 0.244;  /**< Sensitivity value for 8 g full scale [mg/LSB] */
@@ -105,11 +106,36 @@ public:
      */
     RetType getData(LSM6DSL_DATA_T *data) {
         RESUME();
+//        RetType ret = CALL(getData(&data->x_accel, &data->y_accel, &data->z_accel, &data->x_gyro, &data->y_gyro, &data->z_gyro));
 
         RetType ret = CALL(getAccelAxes(&data->x_accel, &data->y_accel, &data->z_accel));
         if (RET_SUCCESS == ret) {
             ret = CALL(getGyroAxes(&data->x_gyro, &data->y_gyro, &data->z_gyro));
         }
+
+        RESET();
+        return ret;
+    }
+
+    RetType getData(int32_t *accelX, int32_t *accelY, int32_t *accelZ, int32_t *gyroX, int32_t *gyroY, int32_t *gyroZ) {
+        RESUME();
+
+        RetType ret = CALL(getAxesRaw(m_buff));
+        ERROR_CHECK(ret);
+
+        ret = CALL(calculateAccelAxes(&m_buff[0], accelX, accelY, accelZ));
+        ERROR_CHECK(ret);
+
+        ret = CALL(calculateGyroAxes(&m_buff[6], gyroX, gyroY, gyroZ));
+
+        RESET();
+        return ret;
+    }
+
+    RetType getAxesRaw(uint8_t *buff) {
+        RESUME();
+
+        RetType ret = CALL(readReg(LSM6DSL_ACC_GYRO_OUTX_L_XL, buff, 12));
 
         RESET();
         return ret;
@@ -130,15 +156,33 @@ public:
         RESUME();
 
         RetType ret = CALL(getAccelAxesRaw(m_buff));
-        ERROR_CHECK(ret);
+        if (RET_SUCCESS == ret) {
+            ret = CALL(calculateAccelAxes(m_buff, accelX, accelY, accelZ));
+        }
 
-        ret = CALL(getAccelSens(&m_buff[6]));
+        RESET();
+        return ret;
+    }
+
+
+    /**
+     * Calculate accelerometer values
+     * @param buff - Pointer to buffer of raw accel data containing 6 bytes
+     * @param accelX - Pointer to X axis accelerometer value
+     * @param accelY - Pointer to Y axis accelerometer value
+     * @param accelZ - Pointer to Z axis accelerometer value
+     * @return Scheduler Status
+     */
+    RetType calculateAccelAxes(uint8_t *buff, int32_t *accelX, int32_t *accelY, int32_t *accelZ) {
+        RESUME();
+
+        RetType ret = CALL(getAccelSens(&m_sens));
         if (ret == RET_SUCCESS) {
-            float sens = determineAccelSens(m_buff[6]);
+            float sens = determineAccelSens(m_sens);
 
-            int16_t rawX = static_cast<int16_t>(m_buff[1] << 8) | static_cast<int16_t>(m_buff[0]);
-            int16_t rawY = static_cast<int16_t>(m_buff[3] << 8) | static_cast<int16_t>(m_buff[2]);
-            int16_t rawZ = static_cast<int16_t>(m_buff[5] << 8) | static_cast<int16_t>(m_buff[4]);
+            int16_t rawX = static_cast<int16_t>(buff[1] << 8) | static_cast<int16_t>(buff[0]);
+            int16_t rawY = static_cast<int16_t>(buff[3] << 8) | static_cast<int16_t>(buff[2]);
+            int16_t rawZ = static_cast<int16_t>(buff[5] << 8) | static_cast<int16_t>(buff[4]);
 
             *accelX = static_cast<int32_t>(rawX * sens);
             *accelY = static_cast<int32_t>(rawY * sens);
@@ -227,19 +271,8 @@ public:
         RESUME();
 
         RetType ret = CALL(getGyroAxesRaw(m_buff));
-        ERROR_CHECK(ret);
-
-        ret = CALL(getGyroSens(&m_buff[6]));
         if (RET_SUCCESS == ret) {
-            int16_t rawX = static_cast<int16_t>(m_buff[1] << 8) | static_cast<int16_t>(m_buff[0]);
-            int16_t rawY = static_cast<int16_t>(m_buff[3] << 8) | static_cast<int16_t>(m_buff[2]);
-            int16_t rawZ = static_cast<int16_t>(m_buff[5] << 8) | static_cast<int16_t>(m_buff[4]);
-
-            float sens = determineGyroSens(m_buff[6]);
-
-            *gyroX = static_cast<int32_t>(rawX * sens);
-            *gyroY = static_cast<int32_t>(rawY * sens);
-            *gyroZ = static_cast<int32_t>(rawZ * sens);
+            ret = CALL(calculateGyroAxes(m_buff, gyroX, gyroY, gyroZ));
         }
 
         RESET();
@@ -255,6 +288,34 @@ public:
         RESUME();
 
         RetType ret = CALL(readReg(LSM6DSL_ACC_GYRO_OUTX_L_G, buff, 6));
+
+        RESET();
+        return ret;
+    }
+
+    /**
+     * Calculate gyroscope values
+     * @param buff - Pointer to raw gyroscope data containing 6 bytes
+     * @param gyroX - Pointer to X axis gyroscope value
+     * @param gyroY - Pointer to Y axis gyroscope value
+     * @param gyroZ - Pointer to Z axis gyroscope value
+     * @return Scheduler Status
+     */
+    RetType calculateGyroAxes(uint8_t *buff, int32_t *gyroX, int32_t *gyroY, int32_t *gyroZ) {
+        RESUME();
+
+        RetType ret = CALL(getGyroSens(&m_sens));
+        if (RET_SUCCESS == ret) {
+            int16_t rawX = static_cast<int16_t>(buff[1] << 8) | static_cast<int16_t>(buff[0]);
+            int16_t rawY = static_cast<int16_t>(buff[3] << 8) | static_cast<int16_t>(buff[2]);
+            int16_t rawZ = static_cast<int16_t>(buff[5] << 8) | static_cast<int16_t>(buff[4]);
+
+            float sens = determineGyroSens(sens);
+
+            *gyroX = static_cast<int32_t>(rawX * sens);
+            *gyroY = static_cast<int32_t>(rawY * sens);
+            *gyroZ = static_cast<int32_t>(rawZ * sens);
+        }
 
         RESET();
         return ret;
@@ -636,7 +697,13 @@ public:
 private:
     I2CDevice *m_i2c;
     I2CAddr_t m_i2cAddr;
-    uint8_t m_buff[10];
+    uint8_t m_buff[12];
+    uint8_t m_sens;
+
+    static constexpr uint8_t NUM_CALIBRATION_SAMPLES = 64;
+    uint8_t samples_taken = 0;
+    int32_t m_accelBias[3] = {};
+    int32_t m_gyroBias[3] = {};
 
     /**
      * Check the chip ID to ensure valid communication
@@ -650,6 +717,19 @@ private:
 
         RESET();
         return ret;
+    }
+
+    RetType calibrate() {
+        RESUME();
+
+        while (samples_taken++ < NUM_CALIBRATION_SAMPLES) {
+            RetType ret = CALL(getAccelAxes(&m_accelBias[0], &m_accelBias[1], &m_accelBias[2]));
+            CALL(getGyroAxes(&m_gyroBias[0], &m_gyroBias[1], &m_gyroBias[2]));
+        }
+
+
+        RESET();
+        return RET_SUCCESS;
     }
 
     /**
@@ -750,6 +830,16 @@ private:
             default:
                 return LSM6DSL_GYRO_SENSITIVITY_FOR_FS_125DPS;
         }
+    }
+
+    void calcAccelVals(int32_t *accelX, int32_t *accelY, int32_t *accelZ, float sens) {
+        *accelX = static_cast<int32_t>(*accelX * sens);
+        *accelY = static_cast<int32_t>(*accelY * sens);
+        *accelZ = static_cast<int32_t>(*accelZ * sens);
+
+        *accelX = (*accelX * GRAVITY) / 1000;
+        *accelY = (*accelY * GRAVITY) / 1000;
+        *accelZ = (*accelZ * GRAVITY) / 1000;
     }
 };
 
