@@ -66,7 +66,7 @@ public:
         uint8_t range;
     } ADXL375_CONFIG_T;
 
-    static constexpr uint8_t ADXL375_DEV_ADDR_PRIM = 0x3B;
+    static constexpr uint8_t ADXL375_DEV_ADDR_PRIM = 0x1D;
     static constexpr uint8_t ADXL375_DEV_ADDR_SEC = 0x53;
     static constexpr uint8_t ADXL375_REG_BW_RATE = 0x2C;
     static constexpr uint8_t ADXL375_POWER_CTL = 0x2D;
