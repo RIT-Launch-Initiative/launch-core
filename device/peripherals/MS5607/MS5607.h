@@ -66,7 +66,7 @@ public:
     static constexpr uint8_t MS5607_PRIMARY_ADDRESS = 0x76;
     static constexpr uint8_t MS5607_SECONDARY_ADDRESS = 0x77;
 
-    MS5607(I2CDevice &i2cDevice, const uint8_t address = MS5607_PRIMARY_ADDRESS, const char *name = "MS5607") : Device(name),
+    explicit MS5607(I2CDevice &i2cDevice, const uint8_t address = MS5607_PRIMARY_ADDRESS, const char *name = "MS5607") : Device(name),
     mI2C(&i2cDevice), mAddr({.dev_addr = static_cast<uint8_t>(address << 1), .mem_addr = 0, .mem_addr_size = 1}) {}
 
     RetType init() override {
@@ -235,28 +235,28 @@ private:
         RESUME();
 
         RetType ret = CALL(readReg(COEFFICIENT_ONE_ADDR, m_buff, 2, 300));
-        if (RET_SUCCESS == ret) pressureSens = (m_buff[0] << 8) | m_buff[1];
-        else ERROR_CHECK(RET_ERROR);
+        ERROR_CHECK(RET_ERROR);
+        pressureSens = (m_buff[0] << 8) | m_buff[1];
 
         ret = CALL(readReg(COEFFICIENT_TWO_ADDR, m_buff, 2, 300));
-        if (RET_SUCCESS == ret) pressureOffset = (m_buff[0] << 8) | m_buff[1];
-        else ERROR_CHECK(RET_ERROR);
+        ERROR_CHECK(RET_ERROR);
+        pressureOffset = (m_buff[0] << 8) | m_buff[1];
 
         ret = CALL(readReg(COEFFICIENT_THREE_ADDR, m_buff, 2, 300));
-        if (RET_SUCCESS == ret) pressureSensTempCo = (m_buff[0] << 8) | m_buff[1];
-        else ERROR_CHECK(RET_ERROR);
+        ERROR_CHECK(RET_ERROR);
+        pressureSensTempCo = (m_buff[0] << 8) | m_buff[1];
 
         ret = CALL(readReg(COEFFICIENT_FOUR_ADDR, m_buff, 2, 300));
-        if (RET_SUCCESS == ret) pressureOffsetTempCo = (m_buff[0] << 8) | m_buff[1];
-        else ERROR_CHECK(RET_ERROR);
+        ERROR_CHECK(RET_ERROR);
+        pressureOffsetTempCo = (m_buff[0] << 8) | m_buff[1];
 
         ret = CALL(readReg(COEFFICIENT_FIVE_ADDR, m_buff, 2, 300));
-        if (RET_SUCCESS == ret) tempRef = (m_buff[0] << 8) | m_buff[1];
-        else ERROR_CHECK(RET_ERROR);
+        ERROR_CHECK(RET_ERROR);
+        tempRef = (m_buff[0] << 8) | m_buff[1];
 
         ret = CALL(readReg(COEFFICIENT_SIX_ADDR, m_buff, 2, 300));
-        if (RET_SUCCESS == ret) tempSens = (m_buff[0] << 8) | m_buff[1];
-        else ERROR_CHECK(RET_ERROR);
+        ERROR_CHECK(RET_ERROR);
+        tempSens = (m_buff[0] << 8) | m_buff[1];
 
         RESET();
         return ret;
