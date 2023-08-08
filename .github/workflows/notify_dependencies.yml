@@ -1,5 +1,9 @@
 name: Notify Submodule Dependencies
-on: [push, workflow_dispatch]
+on:
+    push:
+        branches:
+        - main
+
 jobs:
   dispatch:
     runs-on: ubuntu-latest
