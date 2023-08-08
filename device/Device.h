@@ -68,6 +68,10 @@ public:
         return m_uid;
     }
 
+    const char* getName() const {
+        return m_name;
+    }
+
 #ifdef DEBUG
     /// @brief print a textual representation of the device using 'printf'
     virtual void print() {
