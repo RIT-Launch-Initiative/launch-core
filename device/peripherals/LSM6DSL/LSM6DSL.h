@@ -59,7 +59,7 @@ public:
 
     static constexpr float GRAVITY = 9.80665f;
 
-    LSM6DSL(I2CDevice &i2CDevice, uint16_t address = LSM6DSL_I2C_ADDR_SECONDARY, const char *name = "LSM6DSL") : Device(name), m_i2c(&i2CDevice),
+    explicit LSM6DSL(I2CDevice &i2CDevice, uint16_t address = LSM6DSL_I2C_ADDR_SECONDARY, const char *name = "LSM6DSL") : Device(name), m_i2c(&i2CDevice),
     m_i2cAddr({.dev_addr = static_cast<uint16_t>(address << 1), .mem_addr = 0, .mem_addr_size = 1}) {}
 
     RetType init() override {
@@ -89,10 +89,13 @@ public:
         ERROR_CHECK(ret);
 
         // Full Scale
-        ret = CALL(setAccelFullScale(LSM6DSL_ACC_GYRO_FS_XL_2g));
+        ret = CALL(setAccelFullScale(LSM6DSL_ACC_GYRO_FS_XL_16g));
         ERROR_CHECK(ret);
 
-        ret = CALL(setGyroFullScale(LSM6DSL_ACC_GYRO_FS_G_125dps));
+        ret = CALL(setGyroFullScale(LSM6DSL_ACC_GYRO_FS_G_2000dps));
+        ERROR_CHECK(ret);
+
+        ret = CALL(calibrate());
 
         RESET();
         return ret;
@@ -106,9 +109,16 @@ public:
      */
     RetType getData(LSM6DSL_DATA_T *data) {
         RESUME();
+
         RetType ret = CALL(getData(&data->x_accel, &data->y_accel, &data->z_accel, &data->x_gyro, &data->y_gyro, &data->z_gyro));
 
+        data->x_accel -= m_accelBias[0];
+        data->y_accel -= m_accelBias[1];
+        data->z_accel -= m_accelBias[2];
 
+        data->x_gyro -= m_gyroBias[0];
+        data->y_gyro -= m_gyroBias[1];
+        data->z_gyro -= m_gyroBias[2];
 
         RESET();
         return ret;
@@ -707,15 +717,20 @@ public:
     }
 
 private:
-    I2CDevice *m_i2c;
-    I2CAddr_t m_i2cAddr;
-    uint8_t m_buff[12];
-    uint8_t m_sens;
-
-    static constexpr uint8_t NUM_CALIBRATION_SAMPLES = 64;
-    uint8_t samples_taken = 0;
+    // Variables for handling sensor calibration
+    uint8_t m_samplesTaken = 0;
+    uint8_t m_calibErrCnt = 0;
+    int32_t m_calibBuff[6] = {};
     int32_t m_accelBias[3] = {};
     int32_t m_gyroBias[3] = {};
+    static constexpr int NUM_CALIBRATION_SAMPLES = 50;
+
+    I2CDevice *m_i2c;
+    I2CAddr_t m_i2cAddr;
+    uint8_t m_buff[12] = {};
+    uint8_t m_sens = 0;
+
+
 
     /**
      * Check the chip ID to ensure valid communication
@@ -731,14 +746,36 @@ private:
         return ret;
     }
 
+
+    /**
+     * Calibrate the sensor
+     * @return Scheduler Status
+     */
     RetType calibrate() {
         RESUME();
 
-        while (samples_taken++ < NUM_CALIBRATION_SAMPLES) {
-            RetType ret = CALL(getAccelAxes(&m_accelBias[0], &m_accelBias[1], &m_accelBias[2]));
-            CALL(getGyroAxes(&m_gyroBias[0], &m_gyroBias[1], &m_gyroBias[2]));
+        while (m_samplesTaken < NUM_CALIBRATION_SAMPLES) {
+            RetType ret = CALL(getData(&m_calibBuff[0], &m_calibBuff[1], &m_calibBuff[2], &m_calibBuff[3], &m_calibBuff[4], &m_calibBuff[5]));
+            if (RET_SUCCESS == ret) {
+                m_accelBias[0] += m_calibBuff[0];
+                m_accelBias[1] += m_calibBuff[1];
+                m_accelBias[2] += m_calibBuff[2];
+                m_gyroBias[0] += m_calibBuff[3];
+                m_gyroBias[1] += m_calibBuff[4];
+                m_gyroBias[2] += m_calibBuff[5];
+                ++m_samplesTaken;
+            } else {
+                if (++m_calibErrCnt >= 3) { // 3 strikes you're out
+                    RESET();
+                    return RET_ERROR;
+                }
+            }
         }
 
+        for (int i = 0; i < 3; i++) {
+            m_accelBias[i] /= NUM_CALIBRATION_SAMPLES;
+            m_gyroBias[i] /= NUM_CALIBRATION_SAMPLES;
+        }
 
         RESET();
         return RET_SUCCESS;
@@ -842,16 +879,6 @@ private:
             default:
                 return LSM6DSL_GYRO_SENSITIVITY_FOR_FS_125DPS;
         }
-    }
-
-    void calcAccelVals(int32_t *accelX, int32_t *accelY, int32_t *accelZ, float sens) {
-        *accelX = static_cast<int32_t>(*accelX * sens);
-        *accelY = static_cast<int32_t>(*accelY * sens);
-        *accelZ = static_cast<int32_t>(*accelZ * sens);
-
-        *accelX = (*accelX * GRAVITY) / 1000;
-        *accelY = (*accelY * GRAVITY) / 1000;
-        *accelZ = (*accelZ * GRAVITY) / 1000;
     }
 };
 
