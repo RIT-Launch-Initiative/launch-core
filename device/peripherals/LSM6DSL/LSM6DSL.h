@@ -9,8 +9,6 @@
 
 
 #define LSM6DSL_DATA_STRUCT(variable_name) LSM6DSL_DATA_T variable_name = {.id = 11000, .x_accel = 0, .x_gyro = 0, .y_accel = 0, .y_gyro = 0, .z_accel = 0, .z_gyro = 0}
-#define ERROR_CHECK(ret) if (ret != RET_SUCCESS) {RESET(); return ret;}
-
 
 #include <stdint.h>
 #include "device/I2CDevice.h"
@@ -38,7 +36,6 @@ public:
         LSM6DSL_I2C_ADDR_PRIMARY = 0x6A,
         LSM6DSL_I2C_ADDR_SECONDARY = 0x6B
     };
-
 
     static constexpr float LSM6DSL_ACC_SENSITIVITY_FOR_FS_2G = 0.061;  /**< Sensitivity value for 2 g full scale [mg/LSB] */
     static constexpr float LSM6DSL_ACC_SENSITIVITY_FOR_FS_4G = 0.122;  /**< Sensitivity value for 4 g full scale [mg/LSB] */
