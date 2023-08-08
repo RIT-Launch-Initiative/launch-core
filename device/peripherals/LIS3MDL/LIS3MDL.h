@@ -8,8 +8,8 @@
 #define LAUNCH_CORE_LIS3MDL_H
 #define LIS3MDL_DATA_STRUCT(variable_name) LIS3MDL_DATA_T variable_name = {.id = 15000, .x_mag = 0, .y_mag = 0, .z_mag = 0, .temperature = 0}
 
-#include "lis3mdl_reg.h"
 #include "device/I2CDevice.h"
+#include "lis3mdl_reg.h"
 #include "sched/macros.h"
 
 
@@ -28,9 +28,21 @@ public:
         LIS3MDL_I2C_ADDR_SECONDARY = 0x1E,
     } LIS3MDL_I2C_ADDR;
 
+    typedef enum {
+        LIS3MDL_OUT_X_L = 0x28U,
+        LIS3MDL_OUT_X_H = 0x29U,
+        LIS3MDL_OUT_Y_L = 0x2AU,
+        LIS3MDL_OUT_Y_H = 0x2BU,
+        LIS3MDL_OUT_Z_L = 0x2CU,
+        LIS3MDL_OUT_Z_H = 0x2DU,
+        LIS3MDL_TEMP_OUT_L = 0x2EU,
+        LIS3MDL_TEMP_OUT_H = 0x2FU,
+        LIS3MDL_INT_CFG = 0x30U
+    } LIS3MDL_DATA_REGISTER_T;
+
     explicit LIS3MDL(I2CDevice &i2cDevice, const uint16_t address = LIS3MDL::LIS3MDL_I2C_ADDR_PRIMARY, const char *name = "LIS3MDL")
-            : Device(name), mI2C(&i2cDevice),
-              i2cAddr({.dev_addr = static_cast<uint16_t>(address << 1), .mem_addr = 0, .mem_addr_size = 1}) {}
+            : Device(name), m_i2cDev(&i2cDevice),
+              m_i2cAddr({.dev_addr = static_cast<uint16_t>(address << 1), .mem_addr = 0, .mem_addr_size = 1}) {}
 
     RetType init() override {
         RESUME();
@@ -67,35 +79,40 @@ public:
     RetType pullSensorData(float *magX, float *magY, float *magZ, float *temp) {
         RESUME();
 
-        RetType ret = CALL(getRawMagnetic(m_buff));
+        RetType ret = CALL(getRawData(m_buff));
         if (RET_SUCCESS == ret) {
-            *magX = fs16ToGauss((m_buff[1] << 8) | (int16_t) m_buff[0]);
-            *magY = fs16ToGauss((m_buff[3] << 8) | (int16_t) m_buff[2]);
-            *magZ = fs16ToGauss((m_buff[5] << 8) | (int16_t) m_buff[4]);
-        }
-
-        ret = CALL(getRawTemp(m_buff));
-        if (RET_SUCCESS == ret) {
-            *temp = lsbToCelsius((m_buff[1] << 8) + (int16_t) m_buff[0]);
+            *magX = fs16ToGauss(static_cast<int16_t>(m_buff[1] << 8) | static_cast<int16_t>(m_buff[0]));
+            *magY = fs16ToGauss(static_cast<int16_t>(m_buff[3] << 8) | static_cast<int16_t>(m_buff[2]));
+            *magZ = fs16ToGauss(static_cast<int16_t>(m_buff[5] << 8) | static_cast<int16_t>(m_buff[4]));
+            *temp = lsbToCelsius(static_cast<int16_t>(m_buff[6] << 8) | static_cast<int16_t>(m_buff[5]));
         }
 
         RESET();
         return ret;
     }
 
-    RetType getRawMagnetic(uint8_t *val) {
+    RetType getRawData(uint8_t *buff) {
         RESUME();
 
-        RetType ret = CALL(readReg(LIS3MDL_OUT_X_L, m_buff, 6));
+        RetType ret = CALL(readReg(LIS3MDL_OUT_X_L, buff, 8));
 
         RESET();
         return ret;
     }
 
-    RetType getRawTemp(uint8_t *val) {
+    RetType getRawMagnetic(uint8_t *buff) {
         RESUME();
 
-        RetType ret = CALL(readReg(LIS3MDL_TEMP_OUT_L, m_buff, 2));
+        RetType ret = CALL(readReg(LIS3MDL_OUT_X_L, buff, 6));
+
+        RESET();
+        return ret;
+    }
+
+    RetType getRawTemp(uint8_t *buff) {
+        RESUME();
+
+        RetType ret = CALL(readReg(LIS3MDL_TEMP_OUT_L, buff, 2));
 
         RESET();
         return ret;
@@ -104,8 +121,8 @@ public:
     RetType readReg(uint8_t reg, uint8_t *data, uint16_t len, uint32_t timeout = 0) {
         RESUME();
 
-        i2cAddr.mem_addr = reg;
-        RetType ret = CALL(mI2C->read(i2cAddr, data, len, timeout));
+        m_i2cAddr.mem_addr = reg;
+        RetType ret = CALL(m_i2cDev->read(m_i2cAddr, data, len, timeout));
 
         RESET();
         return ret;
@@ -114,9 +131,9 @@ public:
     RetType writeReg(uint8_t reg, uint8_t *data, uint16_t len, uint32_t timeout = 0) {
         RESUME();
 
-        i2cAddr.mem_addr = reg;
+        m_i2cAddr.mem_addr = reg;
 
-        RetType ret = CALL(mI2C->write(i2cAddr, data, len, timeout));
+        RetType ret = CALL(m_i2cDev->write(m_i2cAddr, data, len, timeout));
 
         RESET();
         return ret;
@@ -130,18 +147,18 @@ public:
     RetType setDataRate(lis3mdl_om_t val) {
         RESUME();
 
-        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG1, (uint8_t * ) &mCtrlReg1, 1));
+        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG1, (uint8_t * ) &m_ctrlReg1, 1));
         ERROR_CHECK(ret);
 
-        mCtrlReg1.om = val;
-        ret = CALL(readReg(LIS3MDL_CTRL_REG4, (uint8_t * ) &mCtrlReg4, 1));
+        m_ctrlReg1.om = val;
+        ret = CALL(readReg(LIS3MDL_CTRL_REG4, (uint8_t * ) &m_ctrlReg4, 1));
         ERROR_CHECK(ret);
 
-        ret = CALL(writeReg(LIS3MDL_CTRL_REG1, (uint8_t * ) &mCtrlReg1, 1));
+        ret = CALL(writeReg(LIS3MDL_CTRL_REG1, (uint8_t * ) &m_ctrlReg1, 1));
         ERROR_CHECK(ret);
 
-        mCtrlReg4.omz = val;
-        ret = CALL(writeReg(LIS3MDL_CTRL_REG4, (uint8_t * ) &mCtrlReg4, 1));
+        m_ctrlReg4.omz = val;
+        ret = CALL(writeReg(LIS3MDL_CTRL_REG4, (uint8_t * ) &m_ctrlReg4, 1));
 
         RESET();
         return ret;
@@ -156,11 +173,11 @@ public:
         RESUME();
 
 
-        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG1, reinterpret_cast<uint8_t*>(&mCtrlReg1), 1));
+        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG1, reinterpret_cast<uint8_t*>(&m_ctrlReg1), 1));
         ERROR_CHECK(ret);
 
-        mCtrlReg1.temp_en = val;
-        ret = CALL(writeReg(LIS3MDL_CTRL_REG1, reinterpret_cast<uint8_t*>(&mCtrlReg1), 1));
+        m_ctrlReg1.temp_en = val;
+        ret = CALL(writeReg(LIS3MDL_CTRL_REG1, reinterpret_cast<uint8_t*>(&m_ctrlReg1), 1));
 
         RESET();
         return ret;
@@ -175,13 +192,13 @@ public:
     RetType setFullScale(uint8_t val) {
         RESUME();
 
-        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG2, reinterpret_cast<uint8_t *>(&mCtrlReg2), 1));
+        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG2, reinterpret_cast<uint8_t *>(&m_ctrlReg2), 1));
         ERROR_CHECK(ret);
         if (LIS3MDL_4_GAUSS == val || LIS3MDL_8_GAUSS == val || LIS3MDL_12_GAUSS == val || LIS3MDL_16_GAUSS == val) {
-            mCtrlReg2.fs = val;
+            m_ctrlReg2.fs = val;
         }
 
-        ret = CALL(writeReg(LIS3MDL_CTRL_REG2, reinterpret_cast<uint8_t *>(&mCtrlReg2), 1));
+        ret = CALL(writeReg(LIS3MDL_CTRL_REG2, reinterpret_cast<uint8_t *>(&m_ctrlReg2), 1));
 
         RESET();
         return ret;
@@ -195,11 +212,11 @@ public:
     RetType setOperatingMode(lis3mdl_md_t val) {
         RESUME();
 
-        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG3, reinterpret_cast<uint8_t *>(&mCtrlReg3), 1));
+        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG3, reinterpret_cast<uint8_t *>(&m_ctrlReg3), 1));
 
         if (RET_SUCCESS == ret) {
-            mCtrlReg3.md = val;
-            ret = CALL(writeReg(LIS3MDL_CTRL_REG3, reinterpret_cast<uint8_t *>(&mCtrlReg3), 1));
+            m_ctrlReg3.md = val;
+            ret = CALL(writeReg(LIS3MDL_CTRL_REG3, reinterpret_cast<uint8_t *>(&m_ctrlReg3), 1));
         }
 
         RESET();
@@ -215,11 +232,11 @@ public:
     RetType setPowerMode(uint8_t val) {
         RESUME();
 
-        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG3, reinterpret_cast<uint8_t *>(&mCtrlReg3), 1));
+        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG3, reinterpret_cast<uint8_t *>(&m_ctrlReg3), 1));
 
         if (RET_SUCCESS == ret) {
-            mCtrlReg3.lp = val;
-            ret = CALL(writeReg(LIS3MDL_CTRL_REG3, reinterpret_cast<uint8_t *>(&mCtrlReg3), 1));
+            m_ctrlReg3.lp = val;
+            ret = CALL(writeReg(LIS3MDL_CTRL_REG3, reinterpret_cast<uint8_t *>(&m_ctrlReg3), 1));
         }
 
         RESET();
@@ -230,10 +247,10 @@ public:
         RESUME();
 
 
-        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG4, reinterpret_cast<uint8_t *>(&mCtrlReg5), 1));
+        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG4, reinterpret_cast<uint8_t *>(&m_ctrlReg5), 1));
         if (RET_SUCCESS == ret) {
-            mCtrlReg5.bdu = val;
-            ret = CALL(writeReg(LIS3MDL_CTRL_REG4, reinterpret_cast<uint8_t *>(&mCtrlReg5), 1));
+            m_ctrlReg5.bdu = val;
+            ret = CALL(writeReg(LIS3MDL_CTRL_REG4, reinterpret_cast<uint8_t *>(&m_ctrlReg5), 1));
         }
 
         RESET();
@@ -247,7 +264,7 @@ public:
         RetType ret = CALL(writeReg(LIS3MDL_CTRL_REG5, &val, 1));
 
         if (val == 0 && ret == RET_SUCCESS) {
-            ret = CALL(readReg(LIS3MDL_CTRL_REG5, reinterpret_cast<uint8_t *>(&mCtrlReg5), 1));
+            ret = CALL(readReg(LIS3MDL_CTRL_REG5, reinterpret_cast<uint8_t *>(&m_ctrlReg5), 1));
         }
 
         RESET();
@@ -264,7 +281,7 @@ public:
     RetType reset() {
         RESUME();
 
-        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG2, reinterpret_cast<uint8_t *>(&mCtrlReg2), 1));
+        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG2, reinterpret_cast<uint8_t *>(&m_ctrlReg2), 1));
 
         RESET();
         return ret;
@@ -273,7 +290,7 @@ public:
     RetType reboot() {
         RESUME();
 
-        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG2, reinterpret_cast<uint8_t *>(&mCtrlReg2), 1));
+        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG2, reinterpret_cast<uint8_t *>(&m_ctrlReg2), 1));
 
         RESET();
         return ret;
@@ -288,7 +305,7 @@ public:
     RetType setDataEndianness(uint8_t val) {
         RESUME();
 
-        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG4, reinterpret_cast<uint8_t *>(&mCtrlReg4), 1));
+        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG4, reinterpret_cast<uint8_t *>(&m_ctrlReg4), 1));
 
         RESET();
         return ret;
@@ -303,9 +320,8 @@ public:
     RetType getDataEndianness(uint8_t *val) {
         RESUME();
 
-        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG4, reinterpret_cast<uint8_t *>(&mCtrlReg4), 1));
-
-        *val = mCtrlReg4.ble;
+        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG4, reinterpret_cast<uint8_t *>(&m_ctrlReg4), 1));
+        *val = m_ctrlReg4.ble;
 
         RESET();
         return ret;
@@ -375,15 +391,14 @@ public:
     }
 
 private:
-    I2CDevice *mI2C;
-    I2CAddr_t i2cAddr;
+    I2CDevice *m_i2cDev;
+    I2CAddr_t m_i2cAddr;
     uint8_t m_buff[10];
-    int16_t m_buff16[5];
-    lis3mdl_ctrl_reg1_t mCtrlReg1;
-    lis3mdl_ctrl_reg2_t mCtrlReg2;
-    lis3mdl_ctrl_reg3_t mCtrlReg3;
-    lis3mdl_ctrl_reg4_t mCtrlReg4;
-    lis3mdl_ctrl_reg5_t mCtrlReg5;
+    lis3mdl_ctrl_reg1_t m_ctrlReg1;
+    lis3mdl_ctrl_reg2_t m_ctrlReg2;
+    lis3mdl_ctrl_reg3_t m_ctrlReg3;
+    lis3mdl_ctrl_reg4_t m_ctrlReg4;
+    lis3mdl_ctrl_reg5_t m_ctrlReg5;
 
 
     RetType initSettings() {

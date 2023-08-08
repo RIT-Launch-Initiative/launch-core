@@ -59,6 +59,7 @@ typedef struct {
 ///         - loops forever
 ///
 /// @param init_args      the init arguments, an init_arg_t* cast to void*
+
 RetType init(void *init_args) {
     RESUME();
 
@@ -75,7 +76,10 @@ RetType init(void *init_args) {
             // add a handler for this device
             // NOTE: not checking the return here, nothing we can really do
             //       if it fails
-            sched_start(PollDevice, (void *) dev);
+            tid_t tid = sched_start(PollDevice, (void *) dev);
+#ifdef SWDEBUG_H
+            swprintf("%s initialized with a TID of %d\n", dev->getName(), tid);
+#endif
         }
         // otherwise this device failed to init, don't add it's handler to
         // the scheduler

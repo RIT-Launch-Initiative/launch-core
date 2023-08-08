@@ -239,15 +239,7 @@ typedef struct {
 #endif /* DRV_BYTE_ORDER */
 } lis3mdl_status_reg_t;
 
-#define LIS3MDL_OUT_X_L        0x28U
-#define LIS3MDL_OUT_X_H        0x29U
-#define LIS3MDL_OUT_Y_L        0x2AU
-#define LIS3MDL_OUT_Y_H        0x2BU
-#define LIS3MDL_OUT_Z_L        0x2CU
-#define LIS3MDL_OUT_Z_H        0x2DU
-#define LIS3MDL_TEMP_OUT_L     0x2EU
-#define LIS3MDL_TEMP_OUT_H     0x2FU
-#define LIS3MDL_INT_CFG        0x30U
+
 typedef struct {
 #if DRV_BYTE_ORDER == DRV_LITTLE_ENDIAN
     uint8_t ien: 1;
