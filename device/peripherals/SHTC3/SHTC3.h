@@ -71,7 +71,7 @@ public:
     /**
      * @brief Initialize the sensor
      *
-     * @return RetType The scheduler status
+     * @return Scheduler Status
      */
     RetType init() {
         RESUME();
@@ -82,10 +82,8 @@ public:
         ret = CALL(reset());
         ERROR_CHECK(ret);
 
-        ret = CALL(getID(&this->id));
+        ret = CALL(checkID());
         ERROR_CHECK(ret);
-
-        if (0x807 != (this->id & 0x083F)) ERROR_CHECK(RET_ERROR);
 
         if (m_isLowPower) {
             ret = CALL(writeCommand(LOW_POW_MEAS_TEMP));
@@ -112,55 +110,31 @@ public:
      *
      * @param temperature A pointer to the temperature variable
      * @param humidity A pointer to the humidity variable
-     * @return RetType The scheduler status
+     * @return Scheduler Status
      */
     RetType getHumidityAndTemp(float *temperature, float *humidity) {
         RESUME();
-        static uint16_t rawTemp;
-        static uint16_t rawHumidity;
 
-        static uint8_t buffer[2] = {};
-        RetType ret = CALL(readCommand(NORMAL_POW_MEAS_HUM_STRETCH, buffer, 2));
-        ERROR_CHECK(ret);
+        RetType ret = CALL(readCommand(NORMAL_POW_MEAS_HUM_STRETCH, m_buff, 2));
+        if (RET_SUCCESS == ret) {
+            *humidity = calcHumidity((m_buff[0] << 8) | m_buff[1]);
+        }
 
-        rawHumidity = (buffer[0] << 8) | buffer[1];
-        *humidity = calcHumidity(rawHumidity);
-
-        ret = CALL(readCommand(NORMAL_POW_MEAS_TEMP_STRETCH, buffer, 2));
-        ERROR_CHECK(ret);
-
-        rawTemp = (buffer[0] << 8) | buffer[1];
-        *temperature = calcTemp(rawTemp);
+        ret = CALL(readCommand(NORMAL_POW_MEAS_TEMP_STRETCH, m_buff, 2));
+        if (RET_SUCCESS == ret) {
+            *temperature = calcTemp((m_buff[0] << 8) | m_buff[1]);
+        }
 
         RESET();
         return RET_SUCCESS;
     }
 
-    /**
-     * @brief Calculate the temperature from the raw value
-     *
-     * @param rawValue  The raw value from the sensor
-     * @return float  The temperature
-     */
-    static float calcTemp(uint16_t rawValue) {
-        return 175 * static_cast<float>(rawValue) / 65536.0f - 45.0f;
-    }
-
-    /**
-     * @brief Calculate the humidity from the raw value
-     *
-     * @param rawValue The raw value from the sensor
-     * @return float The humidity
-     */
-    static float calcHumidity(uint16_t rawValue) {
-        return 100 * static_cast<float>(rawValue) / 65536.0f;
-    }
 
     /**
      * @brief Toggle the sleep mode of the sensor
      *
      * @param setSleep Whether to set the sensor to sleep or not
-     * @return RetType The scheduler status
+     * @return Scheduler Status
      */
     RetType toggleSleep(bool setSleep) {
         RESUME();
@@ -180,7 +154,7 @@ public:
     /**
      * @brief Reset the sensor
      *
-     * @return RetType The scheduler status
+     * @return Scheduler Status
      */
     RetType reset() {
         RESUME();
@@ -191,67 +165,6 @@ public:
         RESET();
         return ret;
     }
-
-    /**
-     * @brief Writes a command to the sensor and ignores the response
-     *
-     * @param command16 The command to write
-     * @return RetType The scheduler status
-     */
-    RetType writeCommand(SHTC3_CMD command16) {
-        RESUME();
-        m_i2cAddr.dev_addr = (SHTC3_I2C_ADDR << 1);
-
-        static uint8_t command8[2];
-        uint16ToUint8(command16, command8);
-        RetType ret = CALL(m_i2c.transmit(m_i2cAddr, command8, 2, 80));
-
-        RESET();
-        return ret;
-    }
-
-    /**
-     * @brief Write a command to the sensor, and read the response
-     *
-     * @param command16 The command to write
-     * @param buff The buffer to read into
-     * @param numBytes The number of bytes to read
-     * @return RetType The scheduler status
-     */
-    RetType readCommand(SHTC3_CMD command16, uint8_t *buff, uint8_t numBytes) {
-        RESUME();
-        m_i2cAddr.dev_addr = (SHTC3_I2C_ADDR << 1);
-
-        RetType ret = CALL(m_i2c.transmit(m_i2cAddr, reinterpret_cast<uint8_t *>(&command16), 2, 50));
-        ERROR_CHECK(ret);
-
-        m_i2cAddr.dev_addr = (SHTC3_I2C_ADDR << 1) | 0x01;
-        ret = CALL(m_i2c.receive(m_i2cAddr, buff, numBytes, 50));
-
-        RESET();
-        return ret;
-    }
-
-    /**
-     * @brief Read the ID of the sensor
-     *
-     * @param id A pointer to the ID variable
-     * @return RetType The scheduler status
-     */
-    RetType getID(uint16_t *id) {
-        RESUME();
-
-        static uint8_t data[2] = {};
-        RetType ret = CALL(readCommand(READ_ID_CMD, data, 2));
-        *id = data[0] << 8 | data[1];
-
-        RESET();
-        return ret;
-    }
-
-    //    RetType setPowerMode(bool lowPowerMode) {
-    //        this->inLowPowerMode = lowPowerMode;
-    //    }
 
     RetType poll() override {
         return RET_SUCCESS;
@@ -274,7 +187,7 @@ private:
     bool m_isLowPower;
     /* The ID of the sensor */
     uint16_t id;
-    uint8_t m_buff[2];
+    uint8_t m_buff[4];
 
     /**
      * @brief Perform a 16 bit to 8 bit conversion
@@ -285,6 +198,83 @@ private:
     void uint16ToUint8(uint16_t data16, uint8_t *data8) {
         data8[0] = static_cast<uint8_t>(data16 >> 8);
         data8[1] = static_cast<uint8_t>(data16 & 0xFF);
+    }
+
+    /**
+     * @brief Writes a command to the sensor and ignores the response
+     *
+     * @param command16 The command to write
+     * @return Scheduler Status
+     */
+    RetType writeCommand(SHTC3_CMD command16) {
+        RESUME();
+        m_i2cAddr.dev_addr = (SHTC3_I2C_ADDR << 1);
+
+        static uint8_t command8[2];
+        uint16ToUint8(command16, command8);
+        RetType ret = CALL(m_i2c.transmit(m_i2cAddr, command8, 2, 80));
+
+        RESET();
+        return ret;
+    }
+
+    /**
+     * @brief Write a command to the sensor, and read the response
+     *
+     * @param command16 The command to write
+     * @param buff The buffer to read into
+     * @param numBytes The number of bytes to read
+     * @return Scheduler Status
+     */
+    RetType readCommand(SHTC3_CMD command16, uint8_t *buff, uint8_t numBytes) {
+        RESUME();
+        m_i2cAddr.dev_addr = (SHTC3_I2C_ADDR << 1);
+
+        RetType ret = CALL(m_i2c.transmit(m_i2cAddr, reinterpret_cast<uint8_t *>(&command16), 2, 50));
+        ERROR_CHECK(ret);
+
+        m_i2cAddr.dev_addr = (SHTC3_I2C_ADDR << 1) | 0x01;
+        ret = CALL(m_i2c.receive(m_i2cAddr, buff, numBytes, 50));
+
+        RESET();
+        return ret;
+    }
+
+    /**
+     * @brief Check the sensor ID is correct
+     *
+     * @return Scheduler Status
+     */
+    RetType checkID() {
+        RESUME();
+
+        RetType ret = CALL(readCommand(READ_ID_CMD, m_buff, 2));
+        ERROR_CHECK(ret);
+
+        if (0x807 != ((m_buff[0] << 8 | m_buff[1]) & 0x083F)) ret = RET_ERROR;
+
+        RESET();
+        return ret;
+    }
+
+    /**
+     * @brief Calculate the temperature from the raw value
+     *
+     * @param rawValue  The raw value from the sensor
+     * @return float  The temperature
+     */
+    static float calcTemp(uint16_t rawValue) {
+        return 175 * static_cast<float>(rawValue) / 65536.0f - 45.0f;
+    }
+
+    /**
+     * @brief Calculate the humidity from the raw value
+     *
+     * @param rawValue The raw value from the sensor
+     * @return float The humidity
+     */
+    static float calcHumidity(uint16_t rawValue) {
+        return 100 * static_cast<float>(rawValue) / 65536.0f;
     }
 
     /**
