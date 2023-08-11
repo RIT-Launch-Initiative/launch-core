@@ -101,7 +101,7 @@ public:
      * @param buff - Buffer of at least 8 bytes
      * @return Scheduler Status
      */
-    RetType getRawMagData(uint8_t *buff) {
+    RetType getRawData(uint8_t *buff) {
         RESUME();
 
         RetType ret = CALL(readReg(LIS3MDL_OUT_X_L, buff, 8));
