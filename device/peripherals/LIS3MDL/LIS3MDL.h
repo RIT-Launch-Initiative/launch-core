@@ -15,10 +15,10 @@
 
 using LIS3MDL_DATA_T = struct {
     const uint16_t id;
-    float x_mag;
-    float y_mag;
-    float z_mag;
-    float temperature;
+    int16_t x_mag;
+    int16_t y_mag;
+    int16_t z_mag;
+    int16_t temperature;
 };
 
 class LIS3MDL : public Device {
@@ -61,7 +61,7 @@ public:
     RetType getData(LIS3MDL_DATA_T *data) {
         RESUME();
 
-        RetType ret = CALL(pullSensorData(&data->x_mag, &data->y_mag, &data->z_mag, &data->temperature));
+        RetType ret = CALL(getData(&data->x_mag, &data->y_mag, &data->z_mag, &data->temperature));
 
         RESET();
         return ret;
@@ -76,7 +76,7 @@ public:
      * @param temp - Celsius Temperature
      * @return
      */
-    RetType pullSensorData(float *magX, float *magY, float *magZ, float *temp) {
+    RetType getData(int16_t *magX, int16_t *magY, int16_t *magZ, int16_t *temp) {
         RESUME();
 
         RetType ret = CALL(getRawData(m_buff));
@@ -84,7 +84,7 @@ public:
             *magX = fs16ToGauss(static_cast<int16_t>(m_buff[1] << 8) | static_cast<int16_t>(m_buff[0]));
             *magY = fs16ToGauss(static_cast<int16_t>(m_buff[3] << 8) | static_cast<int16_t>(m_buff[2]));
             *magZ = fs16ToGauss(static_cast<int16_t>(m_buff[5] << 8) | static_cast<int16_t>(m_buff[4]));
-            *temp = lsbToCelsius(static_cast<int16_t>(m_buff[6] << 8) | static_cast<int16_t>(m_buff[5]));
+            *temp = lsbToCelsius(static_cast<int16_t>(m_buff[7] << 8) | static_cast<int16_t>(m_buff[6]));
         }
 
         RESET();
@@ -393,12 +393,12 @@ public:
 private:
     I2CDevice *m_i2cDev;
     I2CAddr_t m_i2cAddr;
-    uint8_t m_buff[10];
-    lis3mdl_ctrl_reg1_t m_ctrlReg1;
-    lis3mdl_ctrl_reg2_t m_ctrlReg2;
-    lis3mdl_ctrl_reg3_t m_ctrlReg3;
-    lis3mdl_ctrl_reg4_t m_ctrlReg4;
-    lis3mdl_ctrl_reg5_t m_ctrlReg5;
+    uint8_t m_buff[10] = {0};
+    lis3mdl_ctrl_reg1_t m_ctrlReg1 = {0};
+    lis3mdl_ctrl_reg2_t m_ctrlReg2 = {0};
+    lis3mdl_ctrl_reg3_t m_ctrlReg3 = {0};
+    lis3mdl_ctrl_reg4_t m_ctrlReg4 = {0};
+    lis3mdl_ctrl_reg5_t m_ctrlReg5 = {0};
 
 
     RetType initSettings() {
