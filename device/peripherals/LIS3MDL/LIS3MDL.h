@@ -58,6 +58,11 @@ public:
         return ret;
     }
 
+    /**
+     * Get all calculated sensor data
+     * @param data - Struct to sensor data
+     * @return Scheduler Status
+     */
     RetType getData(LIS3MDL_DATA_T *data) {
         RESUME();
 
@@ -74,7 +79,7 @@ public:
      * @param magY - Y Gauss
      * @param magZ - Z Gauss
      * @param temp - Celsius Temperature
-     * @return
+     * @return Scheduler Status
      */
     RetType getData(int16_t *magX, int16_t *magY, int16_t *magZ, int16_t *temp) {
         RESUME();
@@ -91,7 +96,12 @@ public:
         return ret;
     }
 
-    RetType getRawData(uint8_t *buff) {
+    /**
+     * Get all raw data (mag and temp)
+     * @param buff - Buffer of at least 8 bytes
+     * @return Scheduler Status
+     */
+    RetType getRawMagData(uint8_t *buff) {
         RESUME();
 
         RetType ret = CALL(readReg(LIS3MDL_OUT_X_L, buff, 8));
@@ -100,6 +110,11 @@ public:
         return ret;
     }
 
+    /**
+     * Get raw mag data
+     * @param buff - Buffer of at least 6 bytes
+     * @return Scheduler Status
+     */
     RetType getRawMagnetic(uint8_t *buff) {
         RESUME();
 
@@ -109,6 +124,11 @@ public:
         return ret;
     }
 
+    /**
+     * Get raw temp data
+     * @param buff - Buffer of at least 2 bytes
+     * @return Scheduler Status
+     */
     RetType getRawTemp(uint8_t *buff) {
         RESUME();
 
@@ -118,31 +138,10 @@ public:
         return ret;
     }
 
-    RetType readReg(uint8_t reg, uint8_t *data, uint16_t len, uint32_t timeout = 0) {
-        RESUME();
-
-        m_i2cAddr.mem_addr = reg;
-        RetType ret = CALL(m_i2cDev->read(m_i2cAddr, data, len, timeout));
-
-        RESET();
-        return ret;
-    };
-
-    RetType writeReg(uint8_t reg, uint8_t *data, uint16_t len, uint32_t timeout = 0) {
-        RESUME();
-
-        m_i2cAddr.mem_addr = reg;
-
-        RetType ret = CALL(m_i2cDev->write(m_i2cAddr, data, len, timeout));
-
-        RESET();
-        return ret;
-    };
-
     /**
      * Sets the output data rate
      * @param val Modify the value of the OM field in the CTRL_REG1 register
-     * @return
+     * @return Scheduler Status
      */
     RetType setDataRate(lis3mdl_om_t val) {
         RESUME();
@@ -189,14 +188,13 @@ public:
      * @param val Modify the value of the FS field in the CTRL_REG2 register
      * @return
      */
-    RetType setFullScale(uint8_t val) {
+    RetType setFullScale(lis3mdl_fs_t val) {
         RESUME();
 
         RetType ret = CALL(readReg(LIS3MDL_CTRL_REG2, reinterpret_cast<uint8_t *>(&m_ctrlReg2), 1));
         ERROR_CHECK(ret);
-        if (LIS3MDL_4_GAUSS == val || LIS3MDL_8_GAUSS == val || LIS3MDL_12_GAUSS == val || LIS3MDL_16_GAUSS == val) {
-            m_ctrlReg2.fs = val;
-        }
+
+        m_ctrlReg2.fs = val;
 
         ret = CALL(writeReg(LIS3MDL_CTRL_REG2, reinterpret_cast<uint8_t *>(&m_ctrlReg2), 1));
 
@@ -429,6 +427,43 @@ private:
         RESET();
         return ret;
     }
+
+    /**
+     * Read from sensor register(s)
+     * @param reg - Register to start reading from
+     * @param buff - Buffer to read data into
+     * @param len - Number of bytes to read
+     * @param timeout - Time before error
+     * @return Scheduler Status
+     */
+    RetType readReg(uint8_t reg, uint8_t *buff, uint16_t len, uint32_t timeout = 0) {
+        RESUME();
+
+        m_i2cAddr.mem_addr = reg;
+        RetType ret = CALL(m_i2cDev->read(m_i2cAddr, buff, len, timeout));
+
+        RESET();
+        return ret;
+    };
+
+    /**
+     * Write to sensor register(s)
+     * @param reg - Register to start writing tfrom
+     * @param buff - Buffer of data to write
+     * @param len - Number of bytes to write
+     * @param timeout - Time before error
+     * @return Scheduler Status
+     */
+    RetType writeReg(uint8_t reg, uint8_t *buff, uint16_t len, uint32_t timeout = 0) {
+        RESUME();
+
+        m_i2cAddr.mem_addr = reg;
+        RetType ret = CALL(m_i2cDev->write(m_i2cAddr, buff, len, timeout));
+
+        RESET();
+        return ret;
+    };
+
 
     float fs4ToGauss(int16_t lsb) {
         return lsb / 6842.0f;
