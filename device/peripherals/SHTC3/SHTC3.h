@@ -9,15 +9,10 @@
 #define SHTC3_DATA_STRUCT(variable_name) SHTC3_DATA_T variable_name = {.id = 16000, .temperature = 0, .humidity = 0}
 
 #include "device/I2CDevice.h"
+#include "sched/macros.h"
 #include "return.h"
-#include "sched/macros/call.h"
-#include "sched/macros/reset.h"
-#include "sched/macros/resume.h"
 
 /* The SHTC3 I2C address (8 bits) */
-#define SHTC3_I2C_ADDR 0x70
-
-
 using SHTC3_DATA_T = struct {
     const uint16_t id;
     float temperature;
@@ -64,16 +59,17 @@ using SHTC3_CMD = enum {
  */
 class SHTC3 : public Device {
 public:
-    explicit SHTC3(I2CDevice &i2CDevice, uint16_t address = SHTC3_I2C_ADDR, const char *name = "SHTC3")
-            : Device(name), m_i2c(i2CDevice), m_isLowPower(false),
-              m_i2cAddr({.dev_addr = static_cast<uint16_t>(address << 1), .mem_addr = 0, .mem_addr_size = 2}) {}
+    static constexpr uint8_t SHTC3_I2C_ADDR = 0x70;
+
+    explicit SHTC3(I2CDevice &i2CDevice, const char *name = "SHTC3") : Device(name), m_i2c(i2CDevice), m_isLowPower(false),
+              m_i2cAddr({.dev_addr = static_cast<uint16_t>(SHTC3_I2C_ADDR << 1), .mem_addr = 0, .mem_addr_size = 2}) {}
 
     /**
      * @brief Initialize the sensor
      *
      * @return Scheduler Status
      */
-    RetType init() {
+    RetType init() override {
         RESUME();
 
         RetType ret = CALL(toggleSleep(false));
@@ -148,6 +144,7 @@ public:
         }
 
         RESET();
+
         return ret;
     }
 
@@ -190,29 +187,18 @@ private:
     uint8_t m_buff[4];
 
     /**
-     * @brief Perform a 16 bit to 8 bit conversion
-     *
-     * @param data16 The 16 bit data (should be 2 bytes)
-     * @param data8 The 8 bit data buffer
-     */
-    void uint16ToUint8(uint16_t data16, uint8_t *data8) {
-        data8[0] = static_cast<uint8_t>(data16 >> 8);
-        data8[1] = static_cast<uint8_t>(data16 & 0xFF);
-    }
-
-    /**
      * @brief Writes a command to the sensor and ignores the response
      *
-     * @param command16 The command to write
+     * @param command The command to write
      * @return Scheduler Status
      */
-    RetType writeCommand(SHTC3_CMD command16) {
+    RetType writeCommand(SHTC3_CMD command) {
         RESUME();
-        m_i2cAddr.dev_addr = (SHTC3_I2C_ADDR << 1);
 
-        static uint8_t command8[2];
-        uint16ToUint8(command16, command8);
-        RetType ret = CALL(m_i2c.transmit(m_i2cAddr, command8, 2, 80));
+        m_buff[0] = command >> 8;
+        m_buff[1] = command & 0xFF;
+        m_i2cAddr.dev_addr = (SHTC3_I2C_ADDR << 1);
+        RetType ret = CALL(m_i2c.transmit(m_i2cAddr, m_buff, 2, 80));
 
         RESET();
         return ret;
@@ -221,16 +207,16 @@ private:
     /**
      * @brief Write a command to the sensor, and read the response
      *
-     * @param command16 The command to write
+     * @param command The command to write
      * @param buff The buffer to read into
      * @param numBytes The number of bytes to read
      * @return Scheduler Status
      */
-    RetType readCommand(SHTC3_CMD command16, uint8_t *buff, uint8_t numBytes) {
+    RetType readCommand(SHTC3_CMD command, uint8_t *buff, uint8_t numBytes) {
         RESUME();
-        m_i2cAddr.dev_addr = (SHTC3_I2C_ADDR << 1);
 
-        RetType ret = CALL(m_i2c.transmit(m_i2cAddr, reinterpret_cast<uint8_t *>(&command16), 2, 50));
+        m_i2cAddr.dev_addr = (SHTC3_I2C_ADDR << 1);
+        RetType ret = CALL(m_i2c.transmit(m_i2cAddr, reinterpret_cast<uint8_t *>(&command), 2, 50));
         ERROR_CHECK(ret);
 
         m_i2cAddr.dev_addr = (SHTC3_I2C_ADDR << 1) | 0x01;
