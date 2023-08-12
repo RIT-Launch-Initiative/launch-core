@@ -3,63 +3,42 @@
  *
  * @author Aaron Chan
  * @author Nate Aquino
+ *
+ * @note As of Aug 11, 2023 there should be no more software support unless the sensor is used in a new project
  */
+
 #ifndef LAUNCH_CORE_SHTC3_H
 #define LAUNCH_CORE_SHTC3_H
-#define SHTC3_DATA_STRUCT(variable_name) SHTC3_DATA_T variable_name = {.id = 16000, .temperature = 0, .humidity = 0}
+#define SHTC3_DATA_STRUCT(variable_name) SHTC3::SHTC3_DATA_T variable_name = {.id = 16000, .temperature = 0, .humidity = 0}
 
 #include "device/I2CDevice.h"
 #include "sched/macros.h"
 #include "return.h"
 
-/* The SHTC3 I2C address (8 bits) */
-using SHTC3_DATA_T = struct {
-    const uint16_t id;
-    float temperature;
-    float humidity;
-};
-
-/**
- * @brief The SHTC3 Commands
- *
- */
-using SHTC3_CMD = enum {
-    /* Sleep command */
-    SLEEP_CMD = 0xB098,
-    /* Wakeup command */
-    WAKEUP_CMD = 0x3517,
-    /* Soft reset command */
-    RESET_CMD = 0x805D,
-
-    /* Read ID */
-    READ_ID_CMD = 0xEFC8,
-
-    /* Normal power measure temperature */
-    NORMAL_POW_MEAS_TEMP = 0x7866,
-    /* Low power measure temperature */
-    LOW_POW_MEAS_TEMP = 0x609C,
-    /* Normal power measure humidity */
-    NORMAL_POW_MEAS_HUM = 0x58E0,
-    /* Low power measure humidity */
-    LOW_POW_MEAS_HUM = 0x401A,
-
-    /* Normal power measure temperature with clock stretching */
-    NORMAL_POW_MEAS_TEMP_STRETCH = 0x7CA2,
-    /* Low power measure temperature with clock stretching */
-    LOW_POW_MEAS_TEMP_STRETCH = 0x6458,
-    /* Normal power measure humidity with clock stretching */
-    NORMAL_POW_MEAS_HUM_STRETCH = 0x5C24,
-    /* Low power measure humidity with clock stretching */
-    LOW_POW_MEAS_HUM_STRETCH = 0x44DE,
-};
-
-/**
- * @brief Platform Independent Driver for the SHTC3 Sensor
- *
- */
 class SHTC3 : public Device {
 public:
     static constexpr uint8_t SHTC3_I2C_ADDR = 0x70;
+
+    typedef struct {
+        const uint16_t id;
+        float temperature;
+        float humidity;
+    } SHTC3_DATA_T;
+
+    typedef enum {
+        SLEEP_CMD = 0xB098,
+        WAKEUP_CMD = 0x3517,
+        RESET_CMD = 0x805D,
+        READ_ID_CMD = 0xEFC8,
+        NORMAL_POW_MEAS_TEMP = 0x7866,
+        LOW_POW_MEAS_TEMP = 0x609C,
+        NORMAL_POW_MEAS_HUM = 0x58E0,
+        LOW_POW_MEAS_HUM = 0x401A,
+        NORMAL_POW_MEAS_TEMP_STRETCH = 0x7CA2,
+        LOW_POW_MEAS_TEMP_STRETCH = 0x6458,
+        NORMAL_POW_MEAS_HUM_STRETCH = 0x5C24,
+        LOW_POW_MEAS_HUM_STRETCH = 0x44DE,
+    } SHTC3_CMD_T;
 
     explicit SHTC3(I2CDevice &i2CDevice, const char *name = "SHTC3") : Device(name), m_i2c(i2CDevice), m_isLowPower(false),
               m_i2cAddr({.dev_addr = static_cast<uint16_t>(SHTC3_I2C_ADDR << 1), .mem_addr = 0, .mem_addr_size = 2}) {}
@@ -183,7 +162,6 @@ private:
     /* Is the sensor in low power mode */
     bool m_isLowPower;
     /* The ID of the sensor */
-    uint16_t id;
     uint8_t m_buff[4];
 
     /**
@@ -192,7 +170,7 @@ private:
      * @param command The command to write
      * @return Scheduler Status
      */
-    RetType writeCommand(SHTC3_CMD command) {
+    RetType writeCommand(SHTC3_CMD_T command) {
         RESUME();
 
         m_buff[0] = command >> 8;
@@ -212,7 +190,7 @@ private:
      * @param numBytes The number of bytes to read
      * @return Scheduler Status
      */
-    RetType readCommand(SHTC3_CMD command, uint8_t *buff, uint8_t numBytes) {
+    RetType readCommand(SHTC3_CMD_T command, uint8_t *buff, uint8_t numBytes) {
         RESUME();
 
         m_i2cAddr.dev_addr = (SHTC3_I2C_ADDR << 1);
