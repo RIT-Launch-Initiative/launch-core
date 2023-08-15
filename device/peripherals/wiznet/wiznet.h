@@ -13,9 +13,7 @@
 #include <cstdlib>
 #include <cstdint>
 
-#include "device/peripherals/W5500/W5500_defines.h"
-#include "device/peripherals/W5500/W5500_socket.h"
-#include "device/peripherals/W5500/W5500_defs.h"
+#include "device/peripherals/wiznet/wiznet_defs.h"
 #include "device/StreamDevice.h"
 #include "net/network_layer/NetworkLayer.h"
 #include "net/packet/Packet.h"
@@ -31,9 +29,9 @@
 
 class Wiznet : public NetworkLayer, public Device {
 public:
-    Wiznet(SPIDevice &spi, GPIODevice &cs_pin, GPIODevice &reset_pin, const char *name = "W5500") : Device(name), m_spi(&spi),
+    Wiznet(SPIDevice &spi, GPIODevice &cs_pin, GPIODevice &reset_pin, GPIODevice &led_pin, NetworkLayer &upper_layer, Packet &packet, const char *name = "W5500") : Device(name), m_spi(&spi),
                                                                                           m_cs(&cs_pin),
-                                                                                          m_reset(&reset_pin) {};
+                                                                                          m_reset(&reset_pin), m_upper(upper_layer), m_rxPacket(packet) {};
 
     RetType init() {
         RESUME();
@@ -63,39 +61,36 @@ public:
 //        RetType ret = CALL(hw_reset()); // Should always return success
 
         RetType ret = CALL(getVERSIONR(&tmp)); // Make sure we can read the Wiznet
-        if (tmp != 4) {
-            ret = RET_ERROR;
-            goto init_end;
-        }
+        if (tmp != 4) ERROR_CHECK(RET_ERROR);
 
         ret = CALL(setMR(MR_RST));
+        ERROR_CHECK(ret);
 
         ret = CALL(setSHAR(mac_addr));
-        if (ret != RET_SUCCESS) goto init_end;
-
+        ERROR_CHECK(ret);
 
         ret = CALL(setPHYCFGR(0b10111000));
-        if (ret != RET_SUCCESS) goto init_end;
+        ERROR_CHECK(ret);
 
         SLEEP(30);
 
         ret = CALL(setPHYCFGR(phy_cfg));
-        if (ret != RET_SUCCESS) goto init_end;
+        ERROR_CHECK(ret);
 
         ret = CALL(setMR(mode));
-        if (ret != RET_SUCCESS) goto init_end;
+        ERROR_CHECK(ret);
 
         ret = CALL(setSn_RXBUF_SIZE(DEFAULT_SOCKET_NUM, 16));
-        if (ret != RET_SUCCESS) goto init_end;
+        ERROR_CHECK(ret);
 
         ret = CALL(setSn_TXBUF_SIZE(DEFAULT_SOCKET_NUM, 16));
-        if (ret != RET_SUCCESS) goto init_end;
+        ERROR_CHECK(ret);
 
         ret = CALL(setSn_MR(DEFAULT_SOCKET_NUM, Sn_MR_MACRAW));
-        if (ret != RET_SUCCESS) goto init_end;
+        ERROR_CHECK(ret);
 
         ret = CALL(setSn_CR(DEFAULT_SOCKET_NUM, Sn_CR_OPEN));
-        if (ret != RET_SUCCESS) goto init_end;
+        ERROR_CHECK(ret);
 
         ret = CALL(getSn_CR(DEFAULT_SOCKET_NUM, &tmp));
         if (tmp != SOCK_MACRAW) ret = RET_ERROR;
@@ -105,17 +100,79 @@ public:
 
         // Enable interrupts for sock 0
         ret = CALL(setSn_IMR(DEFAULT_SOCKET_NUM, 0b00000001));
-        if (ret != RET_SUCCESS) goto init_end;
+        ERROR_CHECK(ret);
 
 
 
-        init_end:
+
         RESET();
         return ret;
     }
 
     RetType receive(Packet&, netinfo_t&, NetworkLayer*) {
         return RET_ERROR;
+    }
+
+    RetType poll() override {
+        RESUME();
+
+        static uint8_t mr;
+        static uint8_t tmp;
+        static uint8_t head[8];
+        static uint16_t packet_len;
+        static netinfo_t info;
+
+        RetType ret = CALL(getSn_MR(DEFAULT_SOCKET_NUM, &mr));
+        if (RET_SUCCESS == ret && !sock_remaining_size[DEFAULT_SOCKET_NUM]) {
+            while (true) {
+                ret = CALL(getSn_RX_RSR(DEFAULT_SOCKET_NUM, &packet_len));
+                ERROR_CHECK(ret);
+
+                ret = CALL(getSn_SR(DEFAULT_SOCKET_NUM, &tmp));
+                if (ret == RET_ERROR || tmp == SOCK_CLOSED) ERROR_CHECK(RET_ERROR);
+
+                if ((sock_io_mode & (1 << DEFAULT_SOCKET_NUM) && (packet_len == 0))) {
+                    ERROR_CHECK(RET_ERROR); // Maybe we can just YIELD instead?
+                }
+                if (packet_len != 0) break;
+                YIELD(); // Don't want this loop to hog everything
+            }
+        }
+
+        // Only supporting MACRAW for now.
+        // Original code also checked for same conditional as above for some reason?
+        ret = CALL(wiz_recv_data(DEFAULT_SOCKET_NUM, head, 2));
+        ERROR_CHECK(ret);
+
+        ret = CALL(setSn_CR(DEFAULT_SOCKET_NUM, Sn_CR_RECV));
+        ERROR_CHECK(ret);
+
+        // Read IP, port and packet length
+        static uint8_t current_cr;
+        ret = CALL(getSn_CR(DEFAULT_SOCKET_NUM, &current_cr));
+        ERROR_CHECK(ret);
+
+        while (current_cr) {
+            YIELD();
+            CALL(getSn_CR(DEFAULT_SOCKET_NUM, &current_cr));
+        }
+
+        sock_remaining_size[DEFAULT_SOCKET_NUM] = (head[0] << 8) + head[1] - 2;
+        if (sock_remaining_size[DEFAULT_SOCKET_NUM] > 1514) ERROR_CHECK(RET_ERROR); // Exceeded size
+
+        if (m_rxPacket.available() < sock_remaining_size[DEFAULT_SOCKET_NUM]) {
+            packet_len = m_rxPacket.available();
+        } else {
+            packet_len = sock_remaining_size[DEFAULT_SOCKET_NUM];
+        }
+
+        ret = CALL(wiz_recv_data(DEFAULT_SOCKET_NUM, m_rxPacket.read_ptr<uint8_t>(), packet_len));
+        ERROR_CHECK(ret);
+
+        ret = CALL(m_upper.receive(m_rxPacket, info, this));
+
+        RESET();
+        return ret;
     }
 
     RetType transmit(Packet&, netinfo_t&, NetworkLayer*) {
@@ -141,23 +198,21 @@ public:
         };
 
         RetType ret = CALL(setSn_DIPR(DEFAULT_SOCKET_NUM, ip));
-        if (ret != RET_SUCCESS) goto transmit2_end;
+        ERROR_CHECK(ret);
 
         ret = CALL(setSn_DPORT(DEFAULT_SOCKET_NUM, info.dst.udp_port));
-        if (ret != RET_SUCCESS) goto transmit2_end;
+        ERROR_CHECK(ret);
 
         // TODO: Packet sizing checks?
-
         ret = CALL(wiz_send_data(DEFAULT_SOCKET_NUM, buff, len));
-        if (ret != RET_SUCCESS) goto transmit2_end;
+        ERROR_CHECK(ret);
 
         ret = CALL(setSn_CR(DEFAULT_SOCKET_NUM, Sn_CR_SEND));
-        if (ret != RET_SUCCESS) goto transmit2_end;
-
+        ERROR_CHECK(ret);
 
         while (true) {
             ret = CALL(getSn_IR(DEFAULT_SOCKET_NUM, &tmp));
-            if (ret != RET_SUCCESS) goto transmit2_end;
+            ERROR_CHECK(ret);
 
             if (tmp & Sn_IR_SENDOK) {
                 ret = CALL(setSn_IR(DEFAULT_SOCKET_NUM, Sn_IR_SENDOK));
@@ -172,82 +227,8 @@ public:
             YIELD();
         }
 
-        transmit2_end:
 
-        RESET();
-        return ret;
-    }
 
-    RetType recv_data(NetworkLayer &upper, Packet packet) {
-        RESUME();
-
-        static uint8_t mr;
-        static uint8_t tmp;
-        static uint8_t head[8];
-        static uint16_t packet_len;
-        static netinfo_t info;
-
-        RetType ret = CALL(getSn_MR(DEFAULT_SOCKET_NUM, &mr));
-        if (ret != RET_SUCCESS) goto RECV_DATA_END;
-        if (!sock_remaining_size[DEFAULT_SOCKET_NUM]) {
-            while (true) {
-                ret = CALL(getSn_RX_RSR(DEFAULT_SOCKET_NUM, &packet_len));
-                if (ret != RET_SUCCESS) goto RECV_DATA_END;
-
-                ret = CALL(getSn_SR(DEFAULT_SOCKET_NUM, &tmp));
-                if (ret != RET_SUCCESS) goto RECV_DATA_END;
-                if (tmp == SOCK_CLOSED) {
-                    ret = RET_ERROR;
-                    goto RECV_DATA_END;
-                }
-
-                if ((sock_io_mode & (1 << DEFAULT_SOCKET_NUM) && (packet_len == 0))) {
-                    ret = RET_ERROR; // Maybe we can just YIELD instead?
-                    goto RECV_DATA_END;
-                }
-                if (packet_len != 0) break;
-                YIELD(); // Don't want this loop to hog everything
-            }
-        }
-
-        // Only supporting MACRAW for now.
-        // Original code also checked for same conditional as above for some reason?
-        ret = CALL(wiz_recv_data(DEFAULT_SOCKET_NUM, head, 2));
-        if (ret != RET_SUCCESS) goto RECV_DATA_END;
-
-        ret = CALL(setSn_CR(DEFAULT_SOCKET_NUM, Sn_CR_RECV));
-        if (ret != RET_SUCCESS) goto RECV_DATA_END;
-
-        // Read IP, port and packet length
-        static uint8_t current_cr;
-        ret = CALL(getSn_CR(DEFAULT_SOCKET_NUM, &current_cr));
-        if (ret != RET_SUCCESS) goto RECV_DATA_END;
-
-        while (current_cr) {
-            YIELD();
-            CALL(getSn_CR(DEFAULT_SOCKET_NUM, &current_cr));
-        }
-
-        sock_remaining_size[DEFAULT_SOCKET_NUM] = (head[0] << 8) + head[1] - 2;
-        if (sock_remaining_size[DEFAULT_SOCKET_NUM] > 1514) { // Exceeded size
-            // TODO: Close the socket here
-            ret = RET_ERROR;
-            goto RECV_DATA_END;
-        }
-
-        if (packet.available() < sock_remaining_size[DEFAULT_SOCKET_NUM]) {
-            packet_len = packet.available();
-        } else {
-            packet_len = sock_remaining_size[DEFAULT_SOCKET_NUM];
-        }
-
-        ret = CALL(wiz_recv_data(DEFAULT_SOCKET_NUM, packet.read_ptr<uint8_t>(), packet_len));
-        if (ret != RET_SUCCESS) goto RECV_DATA_END;
-
-        ret = CALL(upper.receive(packet, info, this));
-        if (ret != RET_SUCCESS) goto RECV_DATA_END;
-
-        RECV_DATA_END:
         RESET();
         return ret;
     }
@@ -274,8 +255,14 @@ public:
         return RET_SUCCESS;
     }
 
+    Packet get_rx_packet() {
+        return m_rxPacket;
+    }
+
 private:
     // passed in SPI controller
+    NetworkLayer &m_upper;
+    Packet &m_rxPacket;
     SPIDevice *m_spi;
     GPIODevice *m_cs;
     GPIODevice *m_reset;
@@ -296,22 +283,19 @@ private:
         static uint32_t addr_sel = 0;
 
         RetType ret;
-        if (len == 0) {
-            ret = RET_ERROR;
-            goto SEND_DATA_END;
-        }
+        if (len == 0) ERROR_CHECK(RET_ERROR);
 
         ret = CALL(getSn_TX_WR(sn, &ptr));
-        if (ret != RET_SUCCESS) goto SEND_DATA_END;
+        ERROR_CHECK(ret);
 
         addr_sel = ((uint32_t) ptr << 8) + (WIZCHIP_TXBUF_BLOCK(sn) << 3);
         ret = CALL(WIZCHIP_WRITE_BUF(addr_sel, wizdata, len));
-        if (ret != RET_SUCCESS) goto SEND_DATA_END;
+        ERROR_CHECK(ret);
 
         ptr += len;
         ret = CALL(setSn_TX_WR(sn, ptr));
 
-        SEND_DATA_END:
+
         RESET();
         return ret;
     }
@@ -322,23 +306,20 @@ private:
         static uint32_t addr_sel = 0;
 
         RetType ret;
-        if (len == 0) {
-            ret = RET_ERROR;
-            goto RECV_DATA_END;
+        if (len != 0) {
+            ret = CALL(getSn_RX_RD(sn, &ptr));
+            ERROR_CHECK(ret);
+            addr_sel = ((uint32_t) ptr << 8) + (WIZCHIP_RXBUF_BLOCK(sn) << 3);
+
+            ret = CALL(WIZCHIP_READ_BUF(addr_sel, wizdata, len));
+            ERROR_CHECK(ret);
+
+            ptr += len;
+
+            ret = CALL(setSn_RX_RD(sn, ptr));
+            ERROR_CHECK(ret);
         }
-        ret = CALL(getSn_RX_RD(sn, &ptr));
-        if (ret != RET_SUCCESS) goto RECV_DATA_END;
-        addr_sel = ((uint32_t) ptr << 8) + (WIZCHIP_RXBUF_BLOCK(sn) << 3);
 
-        ret = CALL(WIZCHIP_READ_BUF(addr_sel, wizdata, len));
-        if (ret != RET_SUCCESS) goto RECV_DATA_END;
-
-        ptr += len;
-
-        ret = CALL(setSn_RX_RD(sn, ptr));
-        if (ret != RET_SUCCESS) goto RECV_DATA_END;
-
-        RECV_DATA_END:
         RESET();
         return ret;
     }
@@ -350,12 +331,12 @@ private:
         static uint16_t ptr;
 
         RetType ret = CALL(getSn_RX_RD(sn, &ptr));
-        if (ret != RET_SUCCESS) goto RECV_IGNORE_END;
+        ERROR_CHECK(ret);
 
         ptr += len;
         ret = CALL(setSn_RX_RD(sn, ptr));
 
-        RECV_IGNORE_END:
+
         RESET();
         return ret;
     }
@@ -372,11 +353,11 @@ private:
         spi_data[1] = (addr_sel & 0x0000FF00) >> 8;
         spi_data[2] = (addr_sel & 0x000000FF) >> 0;
         ret = CALL(m_spi->write(spi_data, 3)); // TODO: Might be able to do this in a single call
-        if (ret != RET_SUCCESS) goto WIZCHIP_READ_END;
+        ERROR_CHECK(ret);
 
         ret = CALL(m_spi->read(read_byte, 1));
 
-        WIZCHIP_READ_END:
+
         CALL(m_cs->set(1));
         RESET();
         return ret;
@@ -416,11 +397,11 @@ private:
         spi_data[2] = (addr_sel & 0x000000FF) >> 0;
 
         ret = CALL(m_spi->write(spi_data, 3));
-        if (ret != RET_SUCCESS) goto WIZCHIP_READ_BUF_END;
+        ERROR_CHECK(ret);
 
         ret = CALL(m_spi->read(buff, len));
 
-        WIZCHIP_READ_BUF_END:
+
         CALL(m_cs->set(1));
         RESET();
         return ret;
@@ -439,11 +420,11 @@ private:
         spi_data[2] = (addr_sel & 0x000000FF) >> 0;
 
         ret = CALL(m_spi->write(spi_data, 3));
-        if (ret != RET_SUCCESS) goto WIZCHIP_WRITE_BUF_END;
+        ERROR_CHECK(ret);
 
         ret = CALL(m_spi->write(buff, len));
 
-        WIZCHIP_WRITE_BUF_END:
+
         CALL(m_cs->set(1));
         RESET();
         return ret;
@@ -463,25 +444,25 @@ private:
         RetType ret;
         do {
             ret = CALL(WIZCHIP_READ(Sn_TX_FSR(sn), (uint8_t *) &val1));
-            if (ret != RET_SUCCESS) goto GET_SN_TX_FSR_END;
+            ERROR_CHECK(ret);
 
             ret = CALL(WIZCHIP_READ(WIZCHIP_OFFSET_INC(Sn_TX_FSR(sn), 1), (uint8_t *) &tmp));
-            if (ret != RET_SUCCESS) goto GET_SN_TX_FSR_END;
+            ERROR_CHECK(ret);
 
             val1 = (val1 << 8) + tmp;
 
             if (val1 != 0) {
                 ret = CALL(WIZCHIP_READ(Sn_TX_FSR(sn), (uint8_t *) &val));
-                if (ret != RET_SUCCESS) goto GET_SN_TX_FSR_END;
+                ERROR_CHECK(ret);
 
                 ret = CALL(WIZCHIP_READ(WIZCHIP_OFFSET_INC(Sn_TX_FSR(sn), 1), (uint8_t *) &tmp));
-                if (ret != RET_SUCCESS) goto GET_SN_TX_FSR_END;
+                ERROR_CHECK(ret);
             }
         } while (val != val1);
 
         *result = val;
 
-        GET_SN_TX_FSR_END:
+
     RESET();
         return ret;
     }
@@ -496,25 +477,25 @@ private:
         RetType ret;
         do {
             ret = CALL(WIZCHIP_READ(Sn_RX_RSR(sn), (uint8_t *) &val1));
-            if (ret != RET_SUCCESS) goto GET_SN_RX_RSR_END;
+            ERROR_CHECK(ret);
 
             ret = CALL(WIZCHIP_READ(WIZCHIP_OFFSET_INC(Sn_RX_RSR(sn), 1), (uint8_t *) &tmp));
-            if (ret != RET_SUCCESS) goto GET_SN_RX_RSR_END;
+            ERROR_CHECK(ret);
 
             val1 = (val1 << 8) + tmp;
 
             if (val1 == 0) continue;
             ret = CALL(WIZCHIP_READ(Sn_RX_RSR(sn), (uint8_t *) &val));
-            if (ret != RET_SUCCESS) goto GET_SN_RX_RSR_END;
+            ERROR_CHECK(ret);
 
             ret = CALL(WIZCHIP_READ(WIZCHIP_OFFSET_INC(Sn_RX_RSR(sn), 1), (uint8_t *) &tmp));
-            if (ret != RET_SUCCESS) goto GET_SN_RX_RSR_END;
+            ERROR_CHECK(ret);
 
             val = (val << 8) + tmp;
         } while (val != val1);
 
         *result = val;
-        GET_SN_RX_RSR_END:
+
         RESET();
         return ret;
     }
@@ -667,11 +648,11 @@ private:
         RESUME();
 
         RetType ret = CALL(WIZCHIP_WRITE(INTLEVEL, (uint8_t) (intlevel >> 8)));
-        if (ret != RET_SUCCESS) goto SET_INT_LEVEL_END;
+        ERROR_CHECK(ret);
 
         ret = CALL(WIZCHIP_WRITE(WIZCHIP_OFFSET_INC(INTLEVEL, 1), (uint8_t) intlevel));
 
-        SET_INT_LEVEL_END:
+
     RESET();
         return ret;
     }
@@ -686,14 +667,14 @@ private:
         RESUME();
         static uint8_t tmp;
         RetType ret = CALL(WIZCHIP_READ(INTLEVEL, &tmp));
-        if (ret != RET_SUCCESS) goto GET_INT_LEVEL_END;
+        ERROR_CHECK(ret);
 
         *intlevel = (uint16_t) tmp << 8;
 
         ret = CALL(WIZCHIP_READ(WIZCHIP_OFFSET_INC(INTLEVEL, 1), &tmp));
         *intlevel += tmp;
 
-        GET_INT_LEVEL_END:
+
         RESET();
         return ret;
     }
@@ -833,11 +814,11 @@ private:
         RESUME();
 
         RetType ret = CALL(WIZCHIP_WRITE(_RTR_, (uint8_t) (rtr >> 8)));
-        if (ret != RET_SUCCESS) goto SET_RTR_END;
+        ERROR_CHECK(ret);
 
         ret = CALL(WIZCHIP_WRITE(WIZCHIP_OFFSET_INC(_RTR_, 1), (uint8_t) rtr));
 
-        SET_RTR_END:
+
     RESET();
         return ret;
     }
@@ -853,14 +834,14 @@ private:
         static uint8_t tmp;
 
         RetType ret = CALL(WIZCHIP_READ(_RTR_, &tmp));
-        if (ret != RET_SUCCESS) goto GET_RTR_END;
+        ERROR_CHECK(ret);
 
         *rtr = (uint16_t) tmp << 8;
 
         ret = CALL(WIZCHIP_READ(WIZCHIP_OFFSET_INC(_RTR_, 1), &tmp));
         *rtr += tmp;
 
-        GET_RTR_END:
+
         RESET();
         return ret;
     }
@@ -1006,11 +987,11 @@ private:
         RESUME();
 
         RetType ret = CALL(WIZCHIP_WRITE(PSID, (uint8_t) (psid >> 8)));
-        if (ret != RET_SUCCESS) goto SET_PSID_END;
+        ERROR_CHECK(ret);
 
         ret = CALL(WIZCHIP_WRITE(WIZCHIP_OFFSET_INC(PSID, 1), (uint8_t) psid));
 
-        SET_PSID_END:
+
         RESET();
         return ret;
     }
@@ -1027,13 +1008,13 @@ private:
         static uint8_t tmp;
 
         RetType ret = CALL(WIZCHIP_READ(PSID, &tmp));
-        if (ret != RET_SUCCESS) goto GET_PSID_END;
+        ERROR_CHECK(ret);
         psid = (uint16_t) tmp << 8;
 
         ret = CALL(WIZCHIP_READ(WIZCHIP_OFFSET_INC(PSID, 1), &tmp));
         psid += tmp;
 
-        GET_PSID_END:
+
         RESET();
         return ret;
     }
@@ -1048,11 +1029,11 @@ private:
         RESUME();
 
         RetType ret = CALL(WIZCHIP_WRITE(PMRU, (uint8_t) (pmru >> 8)));
-        if (ret != RET_SUCCESS) goto SET_PMRU_END;
+        ERROR_CHECK(ret);
 
         ret = CALL(WIZCHIP_WRITE(WIZCHIP_OFFSET_INC(PMRU, 1), (uint8_t) pmru));
 
-        SET_PMRU_END:
+
         RESET();
         return ret;
     }
@@ -1108,13 +1089,13 @@ private:
         static uint8_t tmp;
 
         RetType ret = CALL(WIZCHIP_READ(UPORTR, &tmp));
-        if (ret != RET_SUCCESS) goto GET_UPORTR_END;
+        ERROR_CHECK(ret);
         *uportr = (uint16_t) tmp << 8;
 
         ret = CALL(WIZCHIP_READ(WIZCHIP_OFFSET_INC(UPORTR, 1), &tmp));
         *uportr += tmp;
 
-        GET_UPORTR_END:
+
         RESET();
         return ret;
     }
@@ -1328,11 +1309,11 @@ private:
     RetType setSn_PORT(uint8_t sn, uint8_t port) {
         RESUME();
         RetType ret = CALL(WIZCHIP_WRITE(Sn_PORT(sn), (uint8_t) (port >> 8)));
-        if (ret != RET_SUCCESS) goto SET_SN_PORT_END;
+        ERROR_CHECK(ret);
 
         ret = CALL(WIZCHIP_WRITE(WIZCHIP_OFFSET_INC(Sn_PORT(sn), 1), (uint8_t) port)); \
 
-        SET_SN_PORT_END:
+
         RESET();
         return ret;
     }
@@ -1350,13 +1331,13 @@ private:
         static uint8_t tmp;
 
         RetType ret = CALL(WIZCHIP_READ(Sn_PORT(sn), &tmp));
-        if (ret != RET_SUCCESS) goto GET_SN_PORT_END;
+        ERROR_CHECK(ret);
         *sn_port = (uint16_t) tmp << 8;
 
         ret = CALL(WIZCHIP_READ(WIZCHIP_OFFSET_INC(Sn_PORT(sn),1), &tmp));
         *sn_port += tmp;
 
-        GET_SN_PORT_END:
+
         RESET();
         return ret;
     }
@@ -1439,11 +1420,11 @@ private:
         RESUME();
 
         RetType ret = CALL(WIZCHIP_WRITE(Sn_DPORT(sn), (uint8_t) (dport >> 8)));
-        if (ret != RET_SUCCESS) goto SET_SN_DPORT_END;
+        ERROR_CHECK(ret);
 
         ret = CALL(WIZCHIP_WRITE(WIZCHIP_OFFSET_INC(Sn_DPORT(sn), 1), (uint8_t) dport));
 
-        SET_SN_DPORT_END:
+
         RESET();
         return ret;
     }
@@ -1460,7 +1441,7 @@ private:
         static uint8_t tmp;
 
         RetType ret = CALL(WIZCHIP_READ(Sn_DPORT(sn), &tmp));
-        if (ret != RET_SUCCESS) goto GET_SN_DPORT_END;
+        ERROR_CHECK(ret);
 
         *dport = (uint16_t) tmp << 8;
 
@@ -1468,7 +1449,7 @@ private:
 
         *dport += tmp;
 
-        GET_SN_DPORT_END:
+
         RESET();
         return ret;
     }
@@ -1505,14 +1486,14 @@ private:
 
         static uint8_t tmp;
         RetType ret = CALL(WIZCHIP_READ(Sn_MSSR(sn), &tmp));
-        if (ret != RET_SUCCESS) goto GET_SN_MSSR_END;
+        ERROR_CHECK(ret);
 
         *mssr = (uint16_t) tmp << 8;
 
         ret = CALL(WIZCHIP_READ(WIZCHIP_OFFSET_INC(Sn_MSSR(sn), 1), &tmp));
         *mssr += tmp;
 
-        GET_SN_MSSR_END:
+
         RESET();
         return ret;
     }
@@ -1664,16 +1645,16 @@ private:
         static uint8_t tmp;
 
         RetType ret = CALL(WIZCHIP_READ(Sn_TX_RD(sn), &tmp));
-        if (ret != RET_SUCCESS) goto GET_SN_RX_RD_END;
+        ERROR_CHECK(ret);
 
         *tx_rd = (uint16_t) tmp << 8;
 
         ret = CALL(WIZCHIP_READ(WIZCHIP_OFFSET_INC(Sn_TX_RD(sn),1), &tmp));
-        if (ret != RET_SUCCESS) goto GET_SN_RX_RD_END;
+        ERROR_CHECK(ret);
 
         *tx_rd += tmp;
 
-        GET_SN_RX_RD_END:
+
         RESET();
         return ret;
     }
@@ -1689,11 +1670,11 @@ private:
         RESUME();
 
         RetType ret = CALL(WIZCHIP_WRITE(Sn_TX_WR(sn), (uint8_t) (tx_wr >> 8)));
-        if (ret != RET_SUCCESS) goto SET_SN_TX_WR_END;
+        ERROR_CHECK(ret);
 
         ret = CALL(WIZCHIP_WRITE(WIZCHIP_OFFSET_INC(Sn_TX_WR(sn), 1), (uint8_t) tx_wr));
 
-        SET_SN_TX_WR_END:
+
         RESET();
         return ret;
     }
@@ -1710,16 +1691,16 @@ private:
         static uint8_t tmp;
 
         RetType ret = CALL(WIZCHIP_READ(Sn_TX_WR(sn), &tmp));
-        if (ret != RET_SUCCESS) goto GET_SN_RX_RD_END;
+        ERROR_CHECK(ret);
 
         *tx_wr = (uint16_t) tmp << 8;
 
         ret = CALL(WIZCHIP_READ(WIZCHIP_OFFSET_INC(Sn_TX_WR(sn), 1), &tmp));
-        if (ret != RET_SUCCESS) goto GET_SN_RX_RD_END;
+        ERROR_CHECK(ret);
 
         *tx_wr += tmp;
 
-        GET_SN_RX_RD_END:
+
         RESET();
         return ret;
     }
@@ -1736,11 +1717,11 @@ private:
         RESUME();
 
         RetType ret = CALL(WIZCHIP_WRITE(Sn_RX_RD(sn), (uint8_t)(rx_rd >> 8)));
-        if (ret != RET_SUCCESS) goto SET_SN_RX_RD_END;
+        ERROR_CHECK(ret);
 
         ret = CALL(WIZCHIP_WRITE(WIZCHIP_OFFSET_INC(Sn_RX_RD(sn), 1), (uint8_t) rx_rd));
 
-        SET_SN_RX_RD_END:
+
         RESET();
         return ret;
     }
@@ -1757,16 +1738,16 @@ private:
         static uint8_t tmp;
 
         RetType ret = CALL(WIZCHIP_READ(Sn_RX_RD(sn), &tmp));
-        if (ret != RET_SUCCESS) goto GET_SN_RX_RD_END;
+        ERROR_CHECK(ret);
 
         *rx_rd = (uint16_t) tmp << 8;
 
         ret = CALL(WIZCHIP_READ(WIZCHIP_OFFSET_INC(Sn_RX_RD(sn), 1), &tmp));
-        if (ret != RET_SUCCESS) goto GET_SN_RX_RD_END;
+        ERROR_CHECK(ret);
 
         *rx_rd += tmp;
 
-        GET_SN_RX_RD_END:
+
         RESET();
         return ret;
     }
@@ -1782,16 +1763,16 @@ private:
         static uint8_t tmp;
 
         RetType ret = CALL(WIZCHIP_READ(Sn_RX_WR(sn), &tmp));
-        if (ret != RET_SUCCESS) goto GET_SN_RX_RD_END;
+        ERROR_CHECK(ret);
 
         *rx_wr = (uint16_t) tmp << 8;
 
         ret = CALL(WIZCHIP_READ(WIZCHIP_OFFSET_INC(Sn_RX_WR(sn),1), &tmp));
-        if (ret != RET_SUCCESS) goto GET_SN_RX_RD_END;
+        ERROR_CHECK(ret);
 
         *rx_wr += tmp;
 
-        GET_SN_RX_RD_END:
+
         RESET();
         return ret;
     }
@@ -1807,11 +1788,11 @@ private:
         RESUME();
 
         RetType ret = CALL(WIZCHIP_WRITE(Sn_FRAG(sn),  (uint8_t) (frag >> 8)));
-        if (ret != RET_SUCCESS) goto SET_SN_FRAG_END;
+        ERROR_CHECK(ret);
 
         ret = CALL(WIZCHIP_WRITE(WIZCHIP_OFFSET_INC(Sn_FRAG(sn),1), (uint8_t) frag));
 
-        SET_SN_FRAG_END:
+
         RESET();
         return ret;
     }
@@ -1828,16 +1809,16 @@ private:
         static uint8_t tmp;
 
         RetType ret = CALL(WIZCHIP_READ(Sn_FRAG(sn), &tmp));
-        if (ret != RET_SUCCESS) goto GET_SN_RX_RD_END;
+        ERROR_CHECK(ret);
 
         *frag = (uint16_t) tmp << 8;
 
         ret = CALL(WIZCHIP_READ(WIZCHIP_OFFSET_INC(Sn_FRAG(sn),1), &tmp));
-        if (ret != RET_SUCCESS) goto GET_SN_RX_RD_END;
+        ERROR_CHECK(ret);
 
         *frag += tmp;
 
-        GET_SN_RX_RD_END:
+
         RESET();
         return ret;
     }
