@@ -17,24 +17,21 @@
 #include "device/StreamDevice.h"
 #include "device/I2CDevice.h"
 #include "device/GPIODevice.h"
+#include "common/MeasurementTypes.h"
 
 class MAXM10S : public Device {
 public:
     static const uint8_t MAXM10S_I2C_ADDR = 0x42;
 
-    typedef enum {
+    using MAXM10S_REG = enum {
         /* The hight byte of the amount of data available from the sensor */
         BYTE_COUNT_HIGH = 0xFD,
         /* The low byte of the amount of data available from the sensor */
         BYTE_COUNT_LOW = 0xFE,
         /* The data stream register */
         DATA_STREAM = 0xFF
-    } MAXM10S_REG;
+    };
 
-    /**
-     * @brief CTOR For MAXM10S
-     * @param i2c_device the I2C device to use
-     */
     MAXM10S(I2CDevice &i2c_device, StreamDevice &stream_device, GPIODevice &reset_pin, GPIODevice &interrupt_pin, const char *device_name = "MAXM10S") :
             Device(device_name), m_i2c(i2c_device), m_stream(stream_device), m_reset_pin(reset_pin),
             m_interrupt_pin(interrupt_pin) {};
@@ -52,18 +49,18 @@ public:
     }
 
     /**
-     * @brief Reads the amount of data available from the sensor
-     * @details This is a random access read (all at once)
-     * @param buff the gps data buffer
-     * @param buff_len the length of the buffer
-     * @param bytes_available pointer to the number of bytes available to be read
+     * Reads the amount of data available from the sensor
+     *
+     * @param buff[out] GPS data buffer
+     * @param buff_len[in] Buffer Length
+     * @param bytes_available[out] Pointer to available bytes to read
      * @return Scheduler Status
      */
     RetType read_data_rand_access(uint8_t *buff, size_t buff_len, size_t *bytes_available) {
         RESUME();
 
         RetType ret = CALL(get_amt_data(bytes_available));
-        if (*bytes_available == 0 || *bytes_available > buff_len) { // No data available
+        if (*bytes_available == 0 || *bytes_available > buff_len) {
             ret = RET_ERROR;
         } else {
             ret = CALL(read_reg(DATA_STREAM, buff, *bytes_available));
@@ -76,7 +73,7 @@ public:
     /**
      * @brief Get the amount of data available from the sensor
      *
-     * @param amt ptr to the amount of data available
+     * @param amt[out] Pointer to available bytes to read
      * @return Scheduler Status
      */
     RetType get_amt_data(size_t *amt) {
@@ -90,16 +87,15 @@ public:
     }
 
     /**
-     * @brief Reads the amount of data available from the sensor
-     * @details This is a current access read (stream read)
-     * @param buff the gps data buffer
+     * @brief Reads available data through a stream
+     *
+     * @param buff[out] the gps data buffer
      * @return Scheduler Status
      */
     RetType read_data_curr_access(uint8_t *buff) {  // TODO: Untested
         RESUME();
 
         RetType ret;
-
         addr.mem_addr = DATA_STREAM;
 
         do {
@@ -113,32 +109,36 @@ public:
 
 
     /**
-     * @brief Requests and reads positional data
-     * @details This is a current access read (stream read)
-     * @param buff the buffer to read data into
+     * Requests and reads positional data using a stream
+     *
+     * @param buff[out] Buffer to read data into
      * @return Scheduler Status
      */
-    RetType uart_read_posllh_data(uint8_t *buff) {
+    RetType posllh_stream_read(uint8_t *buff) {
         RESUME();
 
         static constexpr uint8_t posllh[] = {0xB5, 0x62, 0x01, 0x21, 0x00, 0x00, 0x22, 0x67};
         RetType ret = CALL(m_stream.write(const_cast<uint8_t *>(posllh), 8));
-        if (RET_SUCCESS != ret) {
-            RESET();
-            return ret;
-        };
-
-        ret = CALL(m_stream.read(buff, 28));
+        if (RET_SUCCESS == ret) {
+            ret = CALL(m_stream.read(buff, 28));
+        }
 
         RESET();
         return ret;
     }
 
+    /**
+     * Reset the MAXM10S device
+     *
+     * @return Scheduler Status
+     */
     RetType reset() {
         RESUME();
+
         CALL(m_reset_pin.set(0));
         SLEEP(10);
         CALL(m_reset_pin.set(1));
+
         RESET();
         return RET_SUCCESS;
     }
@@ -155,9 +155,9 @@ private:
     /**
      * @brief Reads a register from the MAXM10S sensor
      *
-     * @param reg the register to read from
-     * @param buff the buffer to read into
-     * @param numBytes the number of bytes to read
+     * @param reg[in] the register to read from
+     * @param buff[out] the buffer to read into
+     * @param numBytes[in] the number of bytes to read
      * @return Scheduler Status
      */
     RetType read_reg(MAXM10S_REG reg, uint8_t *buff, size_t numBytes) {
@@ -173,24 +173,6 @@ private:
         read_reg_end:
         RESET();
         return ret;
-    }
-
-    /**
-     * @brief Writes commands to the MAXM10S sensor
-     *
-     * @param cmdBuff The NMBA or UBX command to send
-     * @param cmdLen The length of the command
-     * @return Scheduler Status
-     */
-    RetType sendCommand(uint8_t *cmdBuff, int cmdLen) {
-        RESUME();
-
-        RetType ret = CALL(m_i2c.transmit(addr, cmdBuff, cmdLen, 50));
-        if (RET_SUCCESS != ret)
-            return ret;
-
-        RESET();
-        return RET_SUCCESS;
     }
 };
 
