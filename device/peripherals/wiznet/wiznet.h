@@ -20,7 +20,7 @@
 #include "sched/macros.h"
 #include "return.h"
 
-#define _W5500_SPI_VDM_OP_          0x00
+#define SPI_VDM_OP          0x00
 #define _W5500_SPI_FDM_OP_LEN1_     0x01
 #define _W5500_SPI_FDM_OP_LEN2_     0x02
 #define _W5500_SPI_FDM_OP_LEN4_     0x03
@@ -29,6 +29,14 @@
 
 class Wiznet : public NetworkLayer, public Device {
 public:
+    typedef enum {
+        SPI_VDM_OP = 0x00,
+        SPI_FDM_OP_LEN1 = 0x01,
+        SPI_FDM_OP_LEN2 = 0x02,
+        SPI_FDM_OP_LEN4 = 0x03
+    } W5500_SPI_MODE;
+
+
     Wiznet(SPIDevice &spi, GPIODevice &cs_pin, GPIODevice &reset_pin, GPIODevice &led_pin, NetworkLayer &upper_layer, Packet &packet, const char *name = "W5500") : Device(name), m_spi(&spi),
                                                                                           m_cs(&cs_pin),
                                                                                           m_reset(&reset_pin), m_upper(upper_layer), m_rxPacket(packet) {};
@@ -227,8 +235,6 @@ public:
             YIELD();
         }
 
-
-
         RESET();
         return ret;
     }
@@ -295,7 +301,6 @@ private:
         ptr += len;
         ret = CALL(setSn_TX_WR(sn, ptr));
 
-
         RESET();
         return ret;
     }
@@ -336,7 +341,6 @@ private:
         ptr += len;
         ret = CALL(setSn_RX_RD(sn, ptr));
 
-
         RESET();
         return ret;
     }
@@ -347,7 +351,7 @@ private:
 
         RetType ret = CALL(m_cs->set(0));
 
-        addr_sel |= (_W5500_SPI_READ_ | _W5500_SPI_VDM_OP_);
+        addr_sel |= (_W5500_SPI_READ_ | SPI_VDM_OP);
 
         spi_data[0] = (addr_sel & 0x00FF0000) >> 16;
         spi_data[1] = (addr_sel & 0x0000FF00) >> 8;
@@ -369,7 +373,7 @@ private:
 
         RetType ret = CALL(m_cs->set(0));
 
-        addr_sel |= (_W5500_SPI_WRITE_ | _W5500_SPI_VDM_OP_);
+        addr_sel |= (_W5500_SPI_WRITE_ | SPI_VDM_OP);
 
         spi_data[0] = (addr_sel & 0x00FF0000) >> 16;
         spi_data[1] = (addr_sel & 0x0000FF00) >> 8;
@@ -390,7 +394,7 @@ private:
 
         RetType ret = CALL(m_cs->set(0));
 
-        addr_sel |= (_W5500_SPI_READ_ | _W5500_SPI_VDM_OP_);
+        addr_sel |= (_W5500_SPI_READ_ | SPI_VDM_OP);
 
         spi_data[0] = (addr_sel & 0x00FF0000) >> 16;
         spi_data[1] = (addr_sel & 0x0000FF00) >> 8;
@@ -413,7 +417,7 @@ private:
 
         RetType ret = CALL(m_cs->set(0));
 
-        addr_sel |= (_W5500_SPI_WRITE_ | _W5500_SPI_VDM_OP_);
+        addr_sel |= (_W5500_SPI_WRITE_ | SPI_VDM_OP);
 
         spi_data[0] = (addr_sel & 0x00FF0000) >> 16;
         spi_data[1] = (addr_sel & 0x0000FF00) >> 8;
