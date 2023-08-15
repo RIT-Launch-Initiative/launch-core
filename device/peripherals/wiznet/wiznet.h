@@ -20,21 +20,12 @@
 #include "sched/macros.h"
 #include "return.h"
 
-#define SPI_VDM_OP          0x00
-#define _W5500_SPI_FDM_OP_LEN1_     0x01
-#define _W5500_SPI_FDM_OP_LEN2_     0x02
-#define _W5500_SPI_FDM_OP_LEN4_     0x03
 
 #define DEFAULT_SOCKET_NUM          0   // Hardcoded 0 since all packets will be tx/rx through sock 0
 
 class Wiznet : public NetworkLayer, public Device {
 public:
-    typedef enum {
-        SPI_VDM_OP = 0x00,
-        SPI_FDM_OP_LEN1 = 0x01,
-        SPI_FDM_OP_LEN2 = 0x02,
-        SPI_FDM_OP_LEN4 = 0x03
-    } W5500_SPI_MODE;
+
 
 
     Wiznet(SPIDevice &spi, GPIODevice &cs_pin, GPIODevice &reset_pin, GPIODevice &led_pin, NetworkLayer &upper_layer, Packet &packet, const char *name = "W5500") : Device(name), m_spi(&spi),
@@ -282,6 +273,13 @@ private:
 
     uint8_t rx_int_flag = 0;
     uint8_t tx_int_flag = 0;
+
+    typedef enum {
+        SPI_VDM_OP = 0x00,
+        SPI_FDM_OP_LEN1 = 0x01,
+        SPI_FDM_OP_LEN2 = 0x02,
+        SPI_FDM_OP_LEN4 = 0x03
+    } W5500_SPI_MODE;
 
     RetType wiz_send_data(uint8_t sn, uint8_t *wizdata, uint16_t len) {
         RESUME();
