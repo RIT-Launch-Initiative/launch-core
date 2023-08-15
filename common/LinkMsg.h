@@ -3,8 +3,8 @@
  *
  * @author Aaron Chan
  */
-#ifndef LAUNCH_CORE_LINKMSG_H
-#define LAUNCH_CORE_LINKMSG_H
+#ifndef LINK_MSG_H
+#define LINK_MSG_H
 
 #include <stdint.h>
 
@@ -20,4 +20,4 @@ private:
 };
 
 
-#endif //LAUNCH_CORE_LINKMSG_H
+#endif //LINK_MSG_H

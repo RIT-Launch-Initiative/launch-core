@@ -1,11 +1,11 @@
 /**
- * Data Structures for standardizing measurements
+ * Structures for standardizing measurements
  *
  * @author Aaron Chan
  */
 
-#ifndef LAUNCH_CORE_MEASUREMENTTYPES_H
-#define LAUNCH_CORE_MEASUREMENTTYPES_H
+#ifndef MEASUREMENT_TYPES_H
+#define MEASUREMENT_TYPES_H
 
 #include <stdint.h>
 
@@ -65,4 +65,4 @@ typedef struct {
 
 
 
-#endif //LAUNCH_CORE_MEASUREMENTTYPES_H
+#endif // MEASUREMENT_TYPES_H

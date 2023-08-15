@@ -4,10 +4,21 @@
  * @author Aaron Chan
  */
 
-#ifndef FCDEFINES_H
-#define FCDEFINES_H
+#ifndef FC_DEFINES_H
+#define FC_DEFINES_H
+
+typedef enum {
+    AUTOPILOT_MODULE = 0,
+    POWER_MODULE,
+    RADIO_MODULE,
+    SENSOR_MODULE
+} BackplaneModule;
+
+/*******************************
+ * Networking Definitions
+ *******************************/
+
+// TODO: Finalize standards
 
 
-
-
-#endif //FCDEFINES_H
+#endif // FC_DEFINES_H
