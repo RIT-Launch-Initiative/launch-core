@@ -48,26 +48,21 @@ public:
             return RET_ERROR;
         }
 
-        if(hdr->dst[0] & 0b1) {
-            // a 1 in the least significant bit of the first octet is a multicast
-            return RET_SUCCESS;
-        }
-
         bool match = true;
-        bool broadcast = true;
-        for(size_t i = 0; i < 6; i++) {
-            if(hdr->dst[i] != m_mac[i]) {
-                // bad dst MAC
-                match = false;
-            }
-
-            if(hdr->dst[i] != 0xFF) {
-                // not all 1s
-                broadcast = false;
+        if(!(hdr->dst[0] & 0b1)) {
+            for(size_t i = 0; i < 6; i++) {
+                if(hdr->dst[i] != m_mac[i]) {
+                    // bad dst MAC
+                    match = false;
+                }
             }
         }
+        // otherwise a multicast or broadcast address
+        // a 1 in the least significant bit of the first octet is a multicast
+        // or it's all 1s and is a broadcast
 
-        if(!match and !broadcast) {
+
+        if(!match) {
             return RET_ERROR;
         }
 
