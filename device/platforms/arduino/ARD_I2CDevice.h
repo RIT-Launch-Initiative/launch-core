@@ -7,39 +7,22 @@
 #ifndef ARD_I2C_DEVICE_H
 #define ARD_I2C_DEVICE_H
 
-#include "device/platforms/arduino/Wire/Wire.h"		// TODO fix this later so it can actually find arduino libraries
+#include <Wire.h>		
 #include "device/I2CDevice.h"
-#include "device/platforms/arduino/ARD_Handlers.h"
 #include "sched/macros.h"
 #include "sync/BlockingSemaphore.h"
 
 /// @brief I2C device controller
-class ARDI2CDevice : public I2CDevice, public CallbackDevice {
+class ARDI2CDevice : public I2CDevice{
 public:
     /// @brief constructor
     /// @param name    the name of this device
-    /// @param ai2c    the ARD I2C device wrapped by this device
-    ARDI2CDevice(const char *name, I2C_HandleTypeDef *ai2c) : 
+    ARDI2CDevice(const char *name) : 
 	    I2CDevice(name),
-	    m_blocked(-1),
-	    m_i2c(ai2c),
-	    m_lock(1),
-	    m_isr_flag(0) {};
 
     /// @brief initialize
+	/// @return always successful
     RetType init() {
-	    // register for tx callback
-	    RetType ret = ARDHandlers::register_i2c_tx(m_i2c, this, TX_NUM);
-	    if (ret != RET_SUCCESS) {
-	        return ret;
-	    }
-
-	    //register for rx callback
-	    ret = ARDHandlers::register_i2c_rx(m_i2c, this, RX_NUM);
-	    if (ret != RET_SUCCESS) {
-	        return ret;
-	    }
-
 	    return RET_SUCCESS;
     }
 
@@ -56,27 +39,8 @@ public:
     }
 
     /// @brief poll this device
-    RetType poll() {
-	// disable interrupts to protect access to 'm_isr_flag'
-	    __disable_irq();
-
-	    if (m_isr_flag) {
-	        // an interrupt occured
-	        // reset the flag
-	        m_isr_flag = 0;
-
-	        // re-enable interrupts
-	        __enable_irq();
-
-	        // if a task was blocked waiting for completion of this ISR, wake it up
-	        if (m_blocked != -1) {
-		        WAKE(m_blocked);
-		        m_blocked = -1;
-	        }
-	    } else {
-	        __enable_irq();
-	    }
-
+	/// @return always successful
+    RetType poll() { 
 	    return RET_SUCCESS;
     }
 
@@ -85,30 +49,14 @@ public:
     /// @param buff     the buffer to write
     /// @param len      the size of 'buff' in bytes
     /// @return
-    RetType transmit(I2CAddr_t &addr, uint8_t *buff, size_t len, uint32_t timeout) {
-        RESUME();
+    RetType transmit(I2CAddr_t &addr, uint8_t *buff, size_t len) {
 
-        RetType ret = CALL(m_lock.acquire()); // Will this work or should I use Wire lib here
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
+		Wire.begin();
+		Wire.beginTransmission(addr.dev_addr); 
+		Wire.write(&buff);	
+		Wire.endTransmission();
 
-	m_blocked = sched_dispatched;
-
-	Wire.begin();
-	Wire.beginTransmission(addr.dev_addr); // Write to a device number, doubt this will work, seems to want an integer in documentation
-	Wire.write(&buff);	// Inherently blocking? Should wait until the buffer gets written and then continue
-	Wire.endTransmission;
-
-	ret = CALL(m_lock.release());
-	if (ret != RET_SUCCESS) {
-	    RESET();
-	    return ret;
-	}
-
-	RESET();
-	return RET_SUCCESS;
+		return RET_SUCCESS;
     }
 
 	/// @brief transmit to an I2C device
@@ -116,28 +64,30 @@ public:
     /// @param buff     the buffer to write
     /// @param len      the size of 'buff' in bytes
     /// @return
-	RetType write(I2CAddr_t &addr, uint8_t *buff, size_t len, uint32_t timeout) {
-		RESUME();
-
-		RetType ret = CALL(m_lock.acquire());
-        if (ret != RET_SUCCESS) {
-            // some error
-            RESET();
-            return ret;
-        }
-
-		m_blocked = sched_dispatched;
+	RetType write(I2CAddr_t &addr, uint8_t *buff, size_t len) {
 
 		Wire.begin();
-		
+		Wire.beginTransmission(addr.mem_addr);
+		Wire.write(&buff);
+		Wire.endTransmission();
+
+		return RET_SUCCESS;
 	}
 
-	/// @brief write to the I2C register
-    /// @param addr     the I2C address to write to
-    /// @param buff     the buffer to write
-    /// @param len      the size of 'buff' in bytes
+	/// @brief read from any I2C device on the wire that transmits
+    /// @param addr     the I2C address to read from 
+    /// @param buff     the buffer to read into
+    /// @param len      the number of bytes to read
     /// @return
-	RetType receive(I2CAddr_t &addr, uint8_t *buff, size_t len, uint32_t timeout) {
+	RetType receive(I2CAddr_t &addr, uint8_t *buff, size_t len) {
+
+		Wire.begin();
+		int i = 0;
+		while (Wire.available() && i < len) {
+			*(buff + i++) = Wire.read();
+		} 
+
+		return RET_SUCCESS;
 	}
 	
 	/// @brief read from the I2C register
@@ -146,19 +96,9 @@ public:
     /// @param buff     the buffer to read into
     /// @param len      the number of bytes to read
     /// @return
-	RetType read(I2CAddr_t &addr, uint8_t *buff, size_t len, uint32_t timeout) {	// Do I need the timeout? Arduino seems to automatically block
-		RESUME();
+	RetType read(I2CAddr_t &addr, uint8_t *buff, size_t len) {	
 
-		// block and wait for the device to be available
-        RetType ret = CALL(m_lock.acquire());
-        if (ret != RET_SUCCESS) {
-            // some error
-            RESET();
-            return ret;
-        }
-
-		m_blocked = sched_dispatched;
-
+		Wire.begin();
 		Wire.beginTransmission(addr.dev_addr);
 		Wire.write(addr.mem_addr);				
 		Wire.requestFrom(addr, len);
@@ -168,47 +108,8 @@ public:
 		} 
 		Wire.endTransmission();
 
-		ret = CALL(m_lock.release());
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
-		RESET();
+		return RET_SUCCESS;
 	}
-
-	/// @brief Request a transfer from the I2C slave
-    /// @param addr     the I2C address to read from
-    /// @param buff     the buffer to send command and store data in
-    /// @param inLen    the number of bytes to send
-    /// @param outLen   the number of bytes to receive
-    /// @return
-    RetType transmitReceive(I2CAddr_t &addr, uint8_t *buff, size_t inLen, size_t outLen, uint32_t timeout, uint8_t secondAddr) {
-	}
-
-	/// @brief called by I2C handler asynchronously
-    void callback(int) {
-        // all this does is set a flag
-        // the interrupt is actually "handled" in 'poll'
-        m_isr_flag = 1;
-    }
-
-	private:
-    // unique numbers for tx vs. rx callback
-    static const int TX_NUM = 0;
-    static const int RX_NUM = 1;
-
-    // currently blocked task
-    tid_t m_blocked;
-
-    // HAL I2C handle
-    I2C_HandleTypeDef *m_i2c;
-
-    // Device lock
-    BlockingSemaphore m_lock;
-
-    // Flag when an interrupt has occurred
-    uint8_t m_isr_flag;
 
 };
 
