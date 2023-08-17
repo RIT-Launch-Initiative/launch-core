@@ -29,8 +29,7 @@ public:
 
 
     Wiznet(SPIDevice &spi, GPIODevice &cs_pin, GPIODevice &reset_pin, GPIODevice &led_pin, NetworkLayer &upper_layer, Packet &packet, const char *name = "W5500") : Device(name), m_spi(&spi),
-                                                                                          m_cs(&cs_pin),
-                                                                                          m_reset(&reset_pin), m_upper(upper_layer), m_rxPacket(packet) {};
+                                                                                          m_cs(&cs_pin), m_reset(&reset_pin), m_upper(&upper_layer), m_rxPacket(packet) {};
 
     RetType init() {
         RESUME();
@@ -57,9 +56,9 @@ public:
 
         static uint8_t mac_addr[6] = {0};
 
-//        RetType ret = CALL(hw_reset()); // Should always return success
+        RetType ret = CALL(hw_reset()); // Should always return success
 
-        RetType ret = CALL(getVERSIONR(&tmp)); // Make sure we can read the Wiznet
+        ret = CALL(getVERSIONR(&tmp)); // Make sure we can read the Wiznet
         if (tmp != 4) ERROR_CHECK(RET_ERROR);
 
         ret = CALL(setMR(MR_RST));
@@ -101,9 +100,6 @@ public:
         ret = CALL(setSn_IMR(DEFAULT_SOCKET_NUM, 0b00000001));
         ERROR_CHECK(ret);
 
-
-
-
         RESET();
         return ret;
     }
@@ -115,61 +111,116 @@ public:
     RetType poll() override {
         RESUME();
 
+        static netinfo_t info = {0};
+        static uint16_t len;
+
         static uint8_t mr;
         static uint8_t tmp;
         static uint8_t head[8];
         static uint16_t packet_len;
-        static netinfo_t info;
 
-        RetType ret = CALL(getSn_MR(DEFAULT_SOCKET_NUM, &mr));
-        if (RET_SUCCESS == ret && !sock_remaining_size[DEFAULT_SOCKET_NUM]) {
-            while (true) {
-                ret = CALL(getSn_RX_RSR(DEFAULT_SOCKET_NUM, &packet_len));
+        RetType ret = CALL(getSn_RX_RSR(DEFAULT_SOCKET_NUM, &len));
+
+        if (len > 0) {
+            static uint16_t data_len = 0;
+
+            ret = CALL(wiz_recv_data(DEFAULT_SOCKET_NUM, head, 2));
+            ERROR_CHECK(ret);
+
+            ret = CALL(setSn_CR(DEFAULT_SOCKET_NUM, Sn_CR_RECV));
+            ERROR_CHECK(ret);
+
+            data_len = (head[0] << 8 | head[1]) - 2;
+
+            if (data_len > m_rxPacket.capacity()) {
+                ret = CALL(wiz_recv_ignore(DEFAULT_SOCKET_NUM, data_len));
                 ERROR_CHECK(ret);
 
+                ret = CALL(setSn_CR(DEFAULT_SOCKET_NUM, Sn_CR_RECV));
+
+                RESET();
+                return RET_ERROR;
+            }
+
+            ret = CALL(wiz_recv_data(DEFAULT_SOCKET_NUM, m_rxPacket.raw(), data_len));
+            ERROR_CHECK(ret);
+
+            ret = CALL(setSn_CR(DEFAULT_SOCKET_NUM, Sn_CR_RECV));
+            if (RET_SUCCESS == ret) {
+                m_rxPacket.skip_write(data_len);
+                ret = CALL(m_upper->receive(m_rxPacket, info, this));
+            }
+        }
+
+        RESET();
+        return ret;
+    }
+
+    RetType recv_data(Packet packet) {
+        RESUME();
+
+        static uint8_t mr;
+        static uint8_t tmp;
+        static uint8_t head[8];
+        static uint16_t packet_len;
+
+        RetType ret = CALL(getSn_MR(DEFAULT_SOCKET_NUM, &mr));
+        if (ret != RET_SUCCESS) goto RECV_DATA_END;
+        if (!sock_remaining_size[DEFAULT_SOCKET_NUM]) {
+            while (true) {
+                ret = CALL(getSn_RX_RSR(DEFAULT_SOCKET_NUM, &packet_len));
+                if (ret != RET_SUCCESS) goto RECV_DATA_END;
+
                 ret = CALL(getSn_SR(DEFAULT_SOCKET_NUM, &tmp));
-                if (ret == RET_ERROR || tmp == SOCK_CLOSED) ERROR_CHECK(RET_ERROR);
+                if (ret != RET_SUCCESS) goto RECV_DATA_END;
+                if (tmp == SOCK_CLOSED) {
+                    ret = RET_ERROR;
+                    goto RECV_DATA_END;
+                }
 
                 if ((sock_io_mode & (1 << DEFAULT_SOCKET_NUM) && (packet_len == 0))) {
-                    ERROR_CHECK(RET_ERROR); // Maybe we can just YIELD instead?
+                    ret = RET_ERROR; // Maybe we can just YIELD instead?
+                    goto RECV_DATA_END;
                 }
                 if (packet_len != 0) break;
                 YIELD(); // Don't want this loop to hog everything
             }
         }
 
-        // Only supporting MACRAW for now.
         // Original code also checked for same conditional as above for some reason?
         ret = CALL(wiz_recv_data(DEFAULT_SOCKET_NUM, head, 2));
-        ERROR_CHECK(ret);
+        if (ret != RET_SUCCESS) goto RECV_DATA_END;
 
         ret = CALL(setSn_CR(DEFAULT_SOCKET_NUM, Sn_CR_RECV));
-        ERROR_CHECK(ret);
+        if (ret != RET_SUCCESS) goto RECV_DATA_END;
 
         // Read IP, port and packet length
         static uint8_t current_cr;
         ret = CALL(getSn_CR(DEFAULT_SOCKET_NUM, &current_cr));
-        ERROR_CHECK(ret);
+        if (ret != RET_SUCCESS) goto RECV_DATA_END;
 
         while (current_cr) {
             YIELD();
             CALL(getSn_CR(DEFAULT_SOCKET_NUM, &current_cr));
         }
 
-        sock_remaining_size[DEFAULT_SOCKET_NUM] = (head[0] << 8) + head[1] - 2;
-        if (sock_remaining_size[DEFAULT_SOCKET_NUM] > 1514) ERROR_CHECK(RET_ERROR); // Exceeded size
+        sock_remaining_size[DEFAULT_SOCKET_NUM] = static_cast<uint16_t>((head[0] << 8) | head[1]) - 2;
+        if (sock_remaining_size[DEFAULT_SOCKET_NUM] > 1514) { // Exceeded size
+            // TODO: Close the socket here
+            ret = RET_ERROR;
+            goto RECV_DATA_END;
+        }
 
-        if (m_rxPacket.available() < sock_remaining_size[DEFAULT_SOCKET_NUM]) {
-            packet_len = m_rxPacket.available();
+        if (packet.available() < sock_remaining_size[DEFAULT_SOCKET_NUM]) {
+            packet_len = packet.available();
         } else {
             packet_len = sock_remaining_size[DEFAULT_SOCKET_NUM];
         }
 
-        ret = CALL(wiz_recv_data(DEFAULT_SOCKET_NUM, m_rxPacket.read_ptr<uint8_t>(), packet_len));
-        ERROR_CHECK(ret);
+        ret = CALL(wiz_recv_data(DEFAULT_SOCKET_NUM, packet.read_ptr<uint8_t>(), packet_len));
+        if (ret != RET_SUCCESS) goto RECV_DATA_END;
 
-        ret = CALL(m_upper.receive(m_rxPacket, info, this));
-
+        RECV_DATA_END:
         RESET();
         return ret;
     }
@@ -247,6 +298,7 @@ public:
         CALL(m_reset->set(0));
         SLEEP(50);
         CALL(m_reset->set(1));
+        SLEEP(50);
 
         RESET();
         return RET_SUCCESS;
@@ -256,9 +308,12 @@ public:
         return m_rxPacket;
     }
 
+    void set_upper(NetworkLayer *upper) {
+        m_upper = upper;
+    }
+
 private:
-    // passed in SPI controller
-    NetworkLayer &m_upper;
+    NetworkLayer *m_upper;
     Packet &m_rxPacket;
     SPIDevice *m_spi;
     GPIODevice *m_cs;
