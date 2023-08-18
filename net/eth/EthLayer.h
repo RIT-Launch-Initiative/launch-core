@@ -69,10 +69,14 @@ public:
         }
 
         // calculate the FCS
-        uint32_t calc_fcs = calculate_fcs(packet.raw(), packet.size() + packet.header_size());
+        uint32_t calc_fcs = calculate_fcs(packet.raw(), packet.size() + packet.header_size() - sizeof(uint32_t));
 
         // get the transmitted FCS
-        uint32_t fcs = packet.raw()[packet.available() - sizeof(uint32_t)];
+        uint32_t fcs = (packet.raw()[packet.available() - sizeof(uint32_t)]) |
+                      (packet.raw()[packet.available() - sizeof(uint32_t) + 1] << 8) |
+                      (packet.raw()[packet.available() - sizeof(uint32_t) + 2] << 16) |
+                      (packet.raw()[packet.available() - sizeof(uint32_t) + 3] << 24);
+
 
         // check that the calculated and sent FCS match
         if(calc_fcs != fcs) {

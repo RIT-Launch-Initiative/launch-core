@@ -149,11 +149,12 @@ public:
             if (RET_SUCCESS == ret) {
                 m_rxPacket.skip_write(data_len);
                 ret = CALL(m_upper->receive(m_rxPacket, info, this));
+                m_rxPacket.clear();
             }
         }
 
         RESET();
-        return ret;
+        return RET_SUCCESS;
     }
 
     RetType recv_data(Packet packet) {
