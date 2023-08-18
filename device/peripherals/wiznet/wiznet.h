@@ -148,6 +148,7 @@ public:
             ret = CALL(setSn_CR(DEFAULT_SOCKET_NUM, Sn_CR_RECV));
             if (RET_SUCCESS == ret) {
                 m_rxPacket.skip_write(data_len);
+                m_rxPacket.seek_read(true);
                 ret = CALL(m_upper->receive(m_rxPacket, info, this));
                 m_rxPacket.clear();
             }
