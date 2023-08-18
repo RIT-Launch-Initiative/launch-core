@@ -45,6 +45,7 @@ public:
         EthHeader_t* hdr = packet.read_ptr<EthHeader_t>();
 
         if(hdr == NULL) {
+            RESET();
             return RET_ERROR;
         }
 
@@ -63,18 +64,24 @@ public:
 
 
         if(!match) {
+            RESET();
             return RET_ERROR;
         }
 
         // calculate the FCS
-        uint32_t calc_fcs = calculate_fcs(packet.raw(), packet.size() + packet.header_size());
+        uint32_t calc_fcs = calculate_fcs(packet.raw(), packet.size() + packet.header_size() - sizeof(uint32_t));
 
         // get the transmitted FCS
-        uint32_t fcs = packet.raw()[packet.available() - sizeof(uint32_t)];
+        uint32_t fcs = (packet.raw()[packet.available() - sizeof(uint32_t)]) |
+                      (packet.raw()[packet.available() - sizeof(uint32_t) + 1] << 8) |
+                      (packet.raw()[packet.available() - sizeof(uint32_t) + 2] << 16) |
+                      (packet.raw()[packet.available() - sizeof(uint32_t) + 3] << 24);
+
 
         // check that the calculated and sent FCS match
         if(calc_fcs != fcs) {
             // some error occurred in transmission!
+            RESET();
             return RET_ERROR;
         }
 
@@ -88,6 +95,7 @@ public:
 
         // skip ahead reading
         if(RET_SUCCESS != packet.skip_read(sizeof(EthHeader_t))) {
+            RESET();
             return RET_ERROR;
         }
 
@@ -105,6 +113,7 @@ public:
 
         EthHeader_t* hdr = packet.allocate_header<EthHeader_t>();
         if(hdr == NULL) {
+            RESET();
             return RET_ERROR;
         }
 
@@ -126,6 +135,7 @@ public:
 
         EthHeader_t* hdr = packet.allocate_header<EthHeader_t>();
         if(hdr == NULL) {
+            RESET();
             return RET_ERROR;
         }
 
@@ -146,6 +156,7 @@ public:
             uint32_t fcs = calculate_fcs(packet.raw(), packet.size() + packet.header_size());
 
             if(RET_SUCCESS != packet.push(fcs)) {
+                RESET();
                 return RET_ERROR;
             }
         }

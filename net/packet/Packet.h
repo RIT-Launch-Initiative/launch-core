@@ -133,7 +133,7 @@ public:
         }
 
         // shrink by the difference b/w available and size
-        m_rpos -= (available() - size);
+        m_wpos -= (available() - size);
 
         return RET_SUCCESS;
     }

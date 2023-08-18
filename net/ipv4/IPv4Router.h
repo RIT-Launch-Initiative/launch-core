@@ -263,11 +263,11 @@ public:
 
         if(!info.ignore_checksums) {
             // zero the checksum in order to calculate, cache first
-            uint16_t check = ntoh16(hdr->checksum);
+            uint16_t check = hdr->checksum;
             hdr->checksum = 0;
 
             // check the checksum
-            if(check != checksum((uint16_t*)hdr, header_len / sizeof(uint16_t))) {
+            if(check != checksum((uint16_t*) hdr, header_len)) {
                 // invalid checksum
 
                 #ifdef NET_STATISTICS
@@ -362,8 +362,9 @@ public:
         hdr->checksum = checksum((uint16_t*)hdr, sizeof(IPv4Header_t));
 
         // record information about the packet for lower layers to use
-        info.dst.ipv4_addr = hdr->dst;
-        info.src.ipv4_addr = hdr->src;
+        // Commenting this out because it causes issues with multi/broadcast
+//        info.dst.ipv4_addr = hdr->dst;
+//        info.src.ipv4_addr = hdr->src;
 
         RetType ret = CALL(m_route->next->transmit(packet, info, this));
 
