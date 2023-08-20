@@ -7,18 +7,18 @@
 #ifndef ARD_I2C_DEVICE_H
 #define ARD_I2C_DEVICE_H
 
-#include <Wire.h>		
+#include <Wire.h>
 #include "device/I2CDevice.h"
+#include "return.h"
 #include "sched/macros.h"
 #include "sync/BlockingSemaphore.h"
 
 /// @brief I2C device controller
-class ARDI2CDevice : public I2CDevice{
+class ARDI2CDevice : public I2CDevice {
 public:
     /// @brief constructor
     /// @param name    the name of this device
-    ARDI2CDevice(const char *name) : 
-	    I2CDevice(name),
+    ARDI2CDevice(const char *name) : I2CDevice(name) {}
 
     /// @brief initialize
 	/// @return always successful
@@ -40,7 +40,7 @@ public:
 
     /// @brief poll this device
 	/// @return always successful
-    RetType poll() { 
+    RetType poll() {
 	    return RET_SUCCESS;
     }
 
@@ -52,8 +52,8 @@ public:
     RetType transmit(I2CAddr_t &addr, uint8_t *buff, size_t len) {
 
 		Wire.begin();
-		Wire.beginTransmission(addr.dev_addr); 
-		Wire.write(&buff);	
+		Wire.beginTransmission(addr.dev_addr);
+		Wire.write(buff, len);
 		Wire.endTransmission();
 
 		return RET_SUCCESS;
@@ -68,14 +68,14 @@ public:
 
 		Wire.begin();
 		Wire.beginTransmission(addr.mem_addr);
-		Wire.write(&buff);
+		Wire.write(buff, len);
 		Wire.endTransmission();
 
 		return RET_SUCCESS;
 	}
 
 	/// @brief read from any I2C device on the wire that transmits
-    /// @param addr     the I2C address to read from 
+    /// @param addr     the I2C address to read from
     /// @param buff     the buffer to read into
     /// @param len      the number of bytes to read
     /// @return
@@ -85,27 +85,27 @@ public:
 		int i = 0;
 		while (Wire.available() && i < len) {
 			*(buff + i++) = Wire.read();
-		} 
+		}
 
 		return RET_SUCCESS;
 	}
-	
+
 	/// @brief read from the I2C register
     ///        blocks until enough data is ready
     /// @param addr     the I2C address to read from
     /// @param buff     the buffer to read into
     /// @param len      the number of bytes to read
     /// @return
-	RetType read(I2CAddr_t &addr, uint8_t *buff, size_t len) {	
+	RetType read(I2CAddr_t &addr, uint8_t *buff, size_t len) {
 
 		Wire.begin();
 		Wire.beginTransmission(addr.dev_addr);
-		Wire.write(addr.mem_addr);				
-		Wire.requestFrom(addr, len);
+		Wire.write(addr.mem_addr);
+		Wire.requestFrom(addr.dev_addr, len);
 		int i = 0;
 		while (Wire.available() && i < len) {
 			*(buff + i++) = Wire.read();
-		} 
+		}
 		Wire.endTransmission();
 
 		return RET_SUCCESS;
