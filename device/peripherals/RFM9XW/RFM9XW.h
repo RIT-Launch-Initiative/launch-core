@@ -10,10 +10,10 @@
 #define RADIO_MODULE_RFM9XW_H
 
 #include "net/network_layer/NetworkLayer.h"
+#include "sched/macros.h"
 #include "device/GPIODevice.h"
 #include "device/SPIDevice.h"
 
-#define RFM9XW_VERSION 0x12
 
 using RFM9WX_PA_CONFIG_T = struct {
         uint8_t output_power : 4;
@@ -21,6 +21,7 @@ using RFM9WX_PA_CONFIG_T = struct {
         uint8_t pa_select : 1;
 	};
 
+static constexpr uint8_t RFM9XW_VERSION = 0x12;
 static constexpr uint8_t RFM9XW_NUM_IRQS = 3;
 static constexpr uint8_t DAC_LOW_POWER_MODE = 0x84;
 static constexpr uint8_t DAC_HIGH_POWER_MODE = 0x87;
@@ -88,41 +89,33 @@ public:
 
         static uint8_t tmp;
         RetType ret = CALL(reset());
-        if (ret != RET_SUCCESS) goto init_end;
+        ERROR_CHECK(ret);
 
         ret = CALL(read_reg(RFM9XW_REG_VERSION, &tmp, 1));
-        if (ret != RET_SUCCESS) goto init_end;
-        if (tmp != RFM9XW_VERSION) {
-            ret = RET_ERROR;
-            goto init_end;
-        }
+        FAIL_IF(RET_SUCCESS != ret && tmp != RFM9XW_VERSION);
 
         ret = CALL(set_mode(RFM9XW_MODE_SLEEP));
-        if (ret != RET_SUCCESS) goto init_end;
+        ERROR_CHECK(ret);
 
         ret = CALL(set_mode(RFM9XW_MODE_LORA_SLEEP));
-        if (ret != RET_SUCCESS) goto init_end;
+        ERROR_CHECK(ret);
 
         // TODO: Don't know enough about RF to config this yet
         // Preamble, LNA, Sync Word set to default
+
         ret = CALL(set_power(20));
-        if (ret != RET_SUCCESS) goto init_end;
-
+        ERROR_CHECK(ret);
         ret = CALL(set_payload_len(128));
-        if (ret != RET_SUCCESS) goto init_end;
-
+        ERROR_CHECK(ret);
         ret = CALL(set_preamble(0x0, 0x8));
-        if (ret != RET_SUCCESS) goto init_end;
-
+        ERROR_CHECK(ret);
         ret = CALL(set_lna(0b01000000));
-        if (ret != RET_SUCCESS) goto init_end;
-
+        ERROR_CHECK(ret);
         ret = CALL(set_mode(RFM9XW_MODE_LORA_SLEEP));
-        if (ret != RET_SUCCESS) goto init_end;
+        ERROR_CHECK(ret);
 
         ret = CALL(set_frequency(frequency));
 
-        init_end:
         RESET();
         return ret;
     }
@@ -146,52 +139,52 @@ public:
 
         // Configure modem
         RetType ret = CALL(write_reg(RFM9XW_REG_MODEM_CONFIG_1, 0x72));
-        if (ret != RET_SUCCESS) goto send_data_end;
+        ERROR_CHECK(ret);
 
         ret = CALL(write_reg(RFM9XW_REG_MODEM_CONFIG_2, 0x74));
-        if (ret != RET_SUCCESS) goto send_data_end;
+        ERROR_CHECK(ret);
 
         ret = CALL(write_reg(RFM9XW_REG_MODEM_CONFIG_3, 0x04));
-        if (ret != RET_SUCCESS) goto send_data_end;
+        ERROR_CHECK(ret);
 
         // Payload Length
         ret = CALL(set_payload_len(len));
-        if (ret != RET_SUCCESS) goto send_data_end;
+        ERROR_CHECK(ret);
 
         // IQ Registers
         ret = CALL(write_reg(RFM9XW_REG_INVERT_IQ_1, 0x27));
-        if (ret != RET_SUCCESS) goto send_data_end;
+        ERROR_CHECK(ret);
 
         ret = CALL(write_reg(RFM9XW_REG_INVERT_IQ_2, 0x1D));
-        if (ret != RET_SUCCESS) goto send_data_end;
+        ERROR_CHECK(ret);
 
         // LORA Standby
         ret = CALL(set_mode(RFM9XW_MODE_STANDBY));
-        if (ret != RET_SUCCESS) goto send_data_end;
+        ERROR_CHECK(ret);
 
         // TODO: Interrupt
         SLEEP(timeout_time);
 
         // FIFO Write
         ret = CALL(write_reg(RFM9XW_REG_FIFO_ADDR_PTR, 0x80));
-        if (ret != RET_SUCCESS) goto send_data_end;
+        ERROR_CHECK(ret);
 
         for (; i < len; i++) {
             ret = CALL(write_reg(RFM9XW_REG_FIFO_ACCESS, buff[i]));
-            if (ret != RET_SUCCESS) goto send_data_end;
+            ERROR_CHECK(ret);
         }
         i = 0;
 
         // Transmit
         ret = CALL(set_mode(RFM9XW_MODE_TX));
-        if (ret != RET_SUCCESS) goto send_data_end;
+        ERROR_CHECK(ret);
 
         // Wait
 //        ret = CALL(wait_for_irq(RFM9XW_INT_DIO0, timeout_time));
         SLEEP(timeout_time);
 
         ret = CALL(set_mode(RFM9XW_MODE_STANDBY));
-        if (ret != RET_SUCCESS) goto send_data_end;
+        ERROR_CHECK(ret);
 
         tx_frame_count++;
 
@@ -221,30 +214,30 @@ public:
 
         // Configure modem (125kHz, 4/6 error coding rate, SF7, single packet, CRC enable, AGC auto on)
         RetType ret = CALL(write_reg(RFM9XW_REG_MODEM_CONFIG_1, 0x72));
-        if (ret != RET_SUCCESS) goto recv_data_end;
+        ERROR_CHECK(ret);
 
         ret = CALL(write_reg(RFM9XW_REG_MODEM_CONFIG_2, 0x74 | ((rx1_window_symbols >> 8) & 0x3)));
-        if (ret != RET_SUCCESS) goto recv_data_end;
+        ERROR_CHECK(ret);
 
         ret = CALL(write_reg(RFM9XW_REG_MODEM_CONFIG_3, rx1_window_symbols & 0xff));
-        if (ret != RET_SUCCESS) goto recv_data_end;
+        ERROR_CHECK(ret);
 
         // Set maximum symbol timeout.
         ret = CALL(write_reg(RFM9XW_REG_SYMB_TIMEOUT_LSB, rx1_window_symbols));
-        if (ret != RET_SUCCESS) goto recv_data_end;
+        ERROR_CHECK(ret);
 
         // Set IQ registers according to AN1200.24.
         ret = CALL(write_reg(RFM9XW_REG_INVERT_IQ_1, RFM9XW_REG_INVERT_IQ_1));
-        if (ret != RET_SUCCESS) goto recv_data_end;
+        ERROR_CHECK(ret);
 
         ret = CALL(write_reg(RFM9XW_REG_INVERT_IQ_2, RFM9XW_REG_INVERT_IQ_2));
-        if (ret != RET_SUCCESS) goto recv_data_end;
+        ERROR_CHECK(ret);
 
         // TODO: Interrupts
         SLEEP(timeout_time);
 
         ret = CALL(read_reg(RFM9XW_REG_IRQ_FLAGS, &irq_flags, 1));
-        if (ret != RET_SUCCESS) goto recv_data_end;
+        ERROR_CHECK(ret);
 
         // CRC Check
         if (irq_flags & 0x20) {
@@ -258,17 +251,17 @@ public:
 
         // Read packet len and then data
         ret = CALL(read_reg(RFM9XW_REG_FIFO_RX_BYTES_NB, &calc_len, 1));
-        if (ret != RET_SUCCESS) goto recv_data_end;
+        ERROR_CHECK(ret);
 
         ret = CALL(write_reg(RFM9XW_REG_FIFO_ADDR_PTR, 0));
-        if (ret != RET_SUCCESS) goto recv_data_end;
+        ERROR_CHECK(ret);
 
         ret = CALL(read_reg(RFM9XW_REG_FIFO_ACCESS, buff, calc_len));
-        if (ret != RET_SUCCESS) goto recv_data_end;
+        ERROR_CHECK(ret);
 
         // Return modem to sleep.
         ret = CALL(set_mode(RFM9XW_MODE_LORA_SLEEP));
-        if (ret != RET_SUCCESS) goto recv_data_end;
+        ERROR_CHECK(ret);
 
         // Successful payload receive, set payload length to tell caller.
         *len = calc_len;
@@ -348,13 +341,13 @@ private:
 
         // TODO: Write one byte and then proceed to read or is this ok?
 //        ret = CALL(m_spi.write_read(buff, buff, len));
-//        if (ret != RET_SUCCESS) goto read_reg_end;
+//        ERROR_CHECK(ret);
 
         ret = CALL(m_spi.write(buff, len));
-        if (ret != RET_SUCCESS) goto read_reg_end;
+        ERROR_CHECK(ret);
 
         ret = CALL(m_spi.read(buff, len));
-        if (ret != RET_SUCCESS) goto read_reg_end;
+        ERROR_CHECK(ret);
 
         read_reg_end:
         ret = CALL(m_cs.set(1));
@@ -372,7 +365,7 @@ private:
         RetType ret = CALL(m_cs.set(0));
 
         ret = CALL(m_spi.write(buff, 2));
-        if (ret != RET_SUCCESS) goto write_reg_end;
+        ERROR_CHECK(ret);
 
         write_reg_end:
         ret = CALL(m_cs.set(1));
@@ -386,10 +379,10 @@ private:
         static uint64_t new_freq;
         new_freq = (static_cast<uint64_t>(freq * 1000000) << 19) / 32000000;
         RetType ret = CALL(write_reg(RFM9XW_REG_FR_MSB, static_cast<uint8_t>(new_freq >> 16)));
-        if (ret != RET_SUCCESS) goto set_frequency_end;
+        ERROR_CHECK(ret);
 
         ret = CALL(write_reg(RFM9XW_REG_FR_MID, static_cast<uint8_t>(new_freq >> 8)));
-        if (ret != RET_SUCCESS) goto set_frequency_end;
+        ERROR_CHECK(ret);
 
         ret = CALL(write_reg(RFM9XW_REG_FR_LSB, static_cast<uint8_t>(new_freq)));
 
@@ -436,7 +429,7 @@ private:
         }
 
         ret = CALL(write_reg(RFM9XW_REG_PA_CONFIG, reinterpret_cast<uint8_t *>(&config)[0])); // TODO: Check if this is correct
-        if (ret != RET_SUCCESS) goto set_power_end;
+        ERROR_CHECK(ret);
 
         ret = CALL(write_reg(RFM9XW_REG_PA_DAC, dac_config));
 
@@ -467,7 +460,7 @@ private:
         RESUME();
 
         RetType ret = CALL(write_reg(RFM9XW_REG_PREAMBLE_MSB, msb));
-        if (ret != RET_SUCCESS) goto set_preamble_end;
+        ERROR_CHECK(ret);
 
         ret = CALL(write_reg(RFM9XW_REG_PREAMBLE_LSB, lsb));
 
