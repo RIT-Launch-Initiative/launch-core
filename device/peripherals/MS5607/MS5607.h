@@ -15,6 +15,11 @@
 #include "device/I2CDevice.h"
 #include <cmath>
 
+#include "stm32f4xx_hal_i2c.h"
+
+extern I2C_HandleTypeDef hi2c3;
+extern int swprintf(const char* fmt, ...);
+
 #define CHECK_RET {if (ret != RET_SUCCESS) {RESET(); return ret;}}
 #define CONCAT(a, b) a ## b
 
@@ -26,14 +31,14 @@ using MS5607_DATA_T = struct {
 };
 
 typedef enum {
-    FACTORY_DATA_ADDR = 0,
-    COEFFICIENT_ONE_ADDR = 2,
-    COEFFICIENT_TWO_ADDR = 4,
-    COEFFICIENT_THREE_ADDR = 6,
-    COEFFICIENT_FOUR_ADDR = 8,
-    COEFFICIENT_FIVE_ADDR = 10,
-    COEFFICIENT_SIX_ADDR = 12,
-    SERIAL_CRC_ADDR = 14,
+    FACTORY_DATA_ADDR = 0xA0,
+    COEFFICIENT_ONE_ADDR = 0xA2,
+    COEFFICIENT_TWO_ADDR = 0xA4,
+    COEFFICIENT_THREE_ADDR = 0xA6,
+    COEFFICIENT_FOUR_ADDR = 0xA8,
+    COEFFICIENT_FIVE_ADDR = 0xAA,
+    COEFFICIENT_SIX_ADDR = 0xAC,
+    SERIAL_CRC_ADDR = 0xAE,
 } PROM_ADDR_T;
 
 
@@ -64,14 +69,13 @@ typedef enum {
     MS5607_OSR_4096 = 4,
 } MS5607_OSR_T;
 
-class MS5607 {
+class MS5607 : public Device {
 public:
-    MS5607(I2CDevice &i2cDevice) : mI2C(&i2cDevice) {}
+    MS5607(I2CDevice &i2cDevice, const uint8_t address = 0x76, const char *name = "MS5607") : Device(name), mI2C(&i2cDevice),
+                                                                                        mAddr({.dev_addr = static_cast<uint8_t>(address << 1), .mem_addr = 0, .mem_addr_size = 1}) {}
 
-    RetType init(uint8_t address = 0x76) {
+    RetType init() override {
         RESUME();
-
-        mAddr.dev_addr = address << 1;
 
         RetType ret = CALL(reset());
         if (ret != RET_SUCCESS) {
@@ -79,7 +83,7 @@ public:
             return ret;
         }
 
-        SLEEP(280); // 2.8ms delay for register reload
+        SLEEP(5000); // 2.8ms delay for register reload
         ret = CALL(readCalibration());
         if (ret != RET_SUCCESS) {
             RESET();
@@ -96,17 +100,76 @@ public:
         return 153.84615 * (pow(pressure / 1013.25f, 0.1903f) - 1) * (temp + 273.15);
     }
 
+    RetType getData(MS5607_DATA_T *data) {
+        RESUME();
+
+        RetType ret = CALL(getPressureTemp(&data->pressure, &data->temperature));
+
+        RESET();
+
+        return ret;
+    }
+
     RetType getPressureTemp(float *pressure, float *temp) {
         RESUME();
 
         static uint32_t pressureVal;
         static uint32_t tempVal;
 
-        RetType ret = CALL(readDigitalVals(&pressureVal, &tempVal));
+        RetType ret = CALL(conversion(true));
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
         }
+
+        ret = CALL(startMeasAndGetVal(&pressureVal));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
+
+        ret = CALL(conversion(false));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
+
+        ret = CALL(startMeasAndGetVal(&tempVal));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
+
+
+//        ret = CALL(startMeasurement());
+//        if (ret != RET_SUCCESS) {
+//            RESET();
+//            return ret;
+//        }
+//
+//        ret = CALL(getDigitalVal(&pressureVal));
+//        if (ret != RET_SUCCESS) {
+//            RESET();
+//            return ret;
+//        }
+//
+//        ret = CALL(conversion(false));
+//        if (ret != RET_SUCCESS) {
+//            RESET();
+//            return ret;
+//        }
+//
+//        ret = CALL(startMeasurement());
+//        if (ret != RET_SUCCESS) {
+//            RESET();
+//            return ret;
+//        }
+//
+//        ret = CALL(getDigitalVal(&tempVal));
+//        if (ret != RET_SUCCESS) {
+//            RESET();
+//            return ret;
+//        }
 
         int32_t dT;
 
@@ -124,14 +187,16 @@ public:
     RetType reset() {
         RESUME();
 
-        RetType ret = CALL(mI2C->transmit(mAddr, reinterpret_cast<uint8_t *>(RESET_COMMAND), 1, 10));
+        static uint8_t rst_cmd = RESET_COMMAND;
+
+        RetType ret = CALL(mI2C->transmit(mAddr, &rst_cmd, 1, 3000));
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
         }
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
 
@@ -154,61 +219,202 @@ private:
     uint16_t tempRef = 0;
     uint16_t tempSens = 0;
 
+    uint16_t coefficients[6] = {0};
+
     RetType readCalibration() {
         RESUME();
 
-        static uint8_t data[2];
-        RetType ret = CALL(readPROM(data, COEFFICIENT_ONE_ADDR));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-        pressureSens = (data[0] << 8) | data[1];
+        read16Bit(COEFFICIENT_ONE_ADDR, &pressureSens);
+        read16Bit(COEFFICIENT_TWO_ADDR, &pressureOffset);
+        read16Bit(COEFFICIENT_THREE_ADDR, &pressureSensTempCo);
+        read16Bit(COEFFICIENT_FOUR_ADDR, &pressureOffsetTempCo);
+        read16Bit(COEFFICIENT_FIVE_ADDR, &tempRef);
+        read16Bit(COEFFICIENT_SIX_ADDR, &tempSens);
 
-        ret = CALL(readPROM(data, COEFFICIENT_TWO_ADDR));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-        pressureOffset = (data[0] << 8) | data[1];
+        swprintf("pressureSens: %d\n", pressureSens);
+        swprintf("pressureOffset: %d\n", pressureOffset);
+        swprintf("pressureSensTempCo: %d\n", pressureSensTempCo);
+        swprintf("pressureOffsetTempCo: %d\n", pressureOffsetTempCo);
+        swprintf("tempRef: %d\n", tempRef);
+        swprintf("tempSens: %d\n", tempSens);
 
-        ret = CALL(readPROM(data, COEFFICIENT_THREE_ADDR));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-        pressureSensTempCo = (data[0] << 8) | data[1];
 
-        ret = CALL(readPROM(data, COEFFICIENT_FOUR_ADDR));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-        pressureOffsetTempCo = (data[0] << 8) | data[1];
 
-        ret = CALL(readPROM(data, COEFFICIENT_FIVE_ADDR));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-        tempRef = (data[0] << 8) | data[1];
 
-        ret = CALL(readPROM(data, COEFFICIENT_SIX_ADDR));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-        tempSens = (data[0] << 8) | data[1];
+
+//        static uint8_t buff[2];
+//        buff[0] = PROM_READ + COEFFICIENT_ONE_ADDR;
+//        RetType ret = CALL(mI2C->transmitReceive(mAddr, buff, 1, 2, 1000));
+//        pressureSens = buff[0] << 8 | buff[1];
+//
+//        buff[0] = PROM_READ + COEFFICIENT_TWO_ADDR;
+//        ret = CALL(mI2C->transmitReceive(mAddr, buff, 1, 2, 1000));
+//        pressureOffset = buff[0] << 8 | buff[1];
+//
+//        buff[0] = PROM_READ + COEFFICIENT_THREE_ADDR;
+//        ret = CALL(mI2C->transmitReceive(mAddr, buff, 1, 2, 1000));
+//        pressureSensTempCo = buff[0] << 8 | buff[1];
+//
+//        buff[0] = PROM_READ + COEFFICIENT_FOUR_ADDR;
+//        ret = CALL(mI2C->transmitReceive(mAddr, buff, 1, 2, 1000));
+//        pressureOffsetTempCo = buff[0] << 8 | buff[1];
+//
+//        buff[0] = PROM_READ + COEFFICIENT_FIVE_ADDR;
+//        ret = CALL(mI2C->transmitReceive(mAddr, buff, 1, 2, 1000));
+//        tempRef = buff[0] << 8 | buff[1];
+//
+//        buff[0] = PROM_READ + COEFFICIENT_SIX_ADDR;
+//        ret = CALL(mI2C->transmitReceive(mAddr, buff, 1, 2, 1000));
+//        tempSens = buff[0] << 8 | buff[1];
+
+//        static uint8_t buff[16];
+//        buff[0] = PROM_READ;
+//        coefficients[0] = PROM_READ + 2;
+//        RetType ret = CALL(mI2C->transmitReceive(mAddr, buff, 1, 16, 1000));
+//        if (RET_SUCCESS != ret) {
+//            RESET();
+//            return ret;
+//        }
+//
+//        pressureSens = buff[2] << 8 | buff[3];
+//        pressureOffset = buff[4] << 8 | buff[5];
+//        pressureSensTempCo = buff[6] << 8 | buff[7];
+//        pressureOffsetTempCo = buff[8] << 8 | buff[9];
+//        tempRef = buff[10] << 8 | buff[11];
+//        tempSens = buff[12] << 8 | buff[13];
+//
+//        pressureSens = coefficients[1];
+//        pressureOffset = coefficients[2];
+//        pressureSensTempCo = coefficients[3];
+//        pressureOffsetTempCo = coefficients[4];
+//        tempRef = coefficients[5];
+//        tempSens = coefficients[6];
+
+//        static uint8_t data[2];
+//        RetType ret = CALL(readPROM(data, COEFFICIENT_ONE_ADDR));
+//        if (ret != RET_SUCCESS) {
+//            RESET();
+//            return ret;
+//        }
+//        pressureSens = (data[0] << 8) | data[1];
+//
+//        ret = CALL(readPROM(data, COEFFICIENT_TWO_ADDR));
+//        if (ret != RET_SUCCESS) {
+//            RESET();
+//            return ret;
+//        }
+//        pressureOffset = (data[0] << 8) | data[1];
+//
+//        ret = CALL(readPROM(data, COEFFICIENT_THREE_ADDR));
+//        if (ret != RET_SUCCESS) {
+//            RESET();
+//            return ret;
+//        }
+//        pressureSensTempCo = (data[0] << 8) | data[1];
+//
+//        ret = CALL(readPROM(data, COEFFICIENT_FOUR_ADDR));
+//        if (ret != RET_SUCCESS) {
+//            RESET();
+//            return ret;
+//        }
+//        pressureOffsetTempCo = (data[0] << 8) | data[1];
+//
+//        ret = CALL(readPROM(data, COEFFICIENT_FIVE_ADDR));
+//        if (ret != RET_SUCCESS) {
+//            RESET();
+//            return ret;
+//        }
+//        tempRef = (data[0] << 8) | data[1];
+//
+//        ret = CALL(readPROM(data, COEFFICIENT_SIX_ADDR));
+//        if (ret != RET_SUCCESS) {
+//            RESET();
+//            return ret;
+//        }
+//        tempSens = (data[0] << 8) | data[1];
 
         RESET();
         return RET_SUCCESS;
     }
+
+    void read16Bit(uint8_t command, uint16_t *value) {
+        uint8_t data[2];
+
+//        HAL_I2C_Master_Transmit(&hi2c3, mAddr.dev_addr, &command, 1, 1000);
+//        HAL_I2C_Master_Receive(&hi2c3, mAddr.dev_addr, data, 2, 1000);
+
+        HAL_I2C_Mem_Read(&hi2c3, mAddr.dev_addr, command, 1, data, 2, 1000);
+        *value = data[0] << 8 | data[1];
+
+
+//        *value = (((unsigned int) data[0] * (1 << 8)) | (unsigned int) data[1]);
+    }
+
+
 
     RetType readPROM(uint8_t *data, uint8_t offset) {
         RESUME();
 
         data[0] = PROM_READ + offset;
-        RetType ret = CALL(mI2C->transmitReceive(mAddr, data, 1, 2, 50));
+        RetType ret = CALL(mI2C->transmitReceive(mAddr, data, 1, 2, 300));
+
+//        RetType ret = CALL(mI2C->transmit(mAddr, data, 1, 1000));
+//        if (ret != RET_SUCCESS) {
+//            RESET();
+//            return ret;
+//        }
+//
+//        ret = CALL(mI2C->receive(mAddr, data, 2, 1000));
+//        if (ret != RET_SUCCESS) {
+//            RESET();
+//            return ret;
+//        }
+
+        RESET();
+        return ret;
+    }
+
+    RetType readPROM() {
+        RESUME();
+
+        static uint8_t buff[8];
+        static uint8_t data[2];
+        static int i = 0;
+
+        RetType ret = CALL(reset());
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
+
+        SLEEP(300);
+
+        for (; i < 8; i++) {
+            data[0] = PROM_READ + (i * 2);
+            ret = CALL(mI2C->transmitReceive(mAddr, data, 1, 2, 50));
+            if (ret != RET_SUCCESS) {
+                RESET();
+                return ret;
+            }
+
+            buff[i] = (data[0] << 8) + data[1];
+        }
+
+        i = 0;
+
+        pressureSens = (buff[0] << 8) | buff[1];
+        pressureOffset = (buff[2] << 8) | buff[3];
+        pressureSensTempCo = (buff[4] << 8) | buff[5];
+        pressureOffsetTempCo = (buff[6] << 8) | buff[7];
+
+        RESET();
+        return ret;
+    }
+
+    RetType conversion(const bool isD1) {
+        RESUME();
+
+        RetType ret = CALL(mI2C->transmit(mAddr, isD1 ? &d1Conversion : &d2Conversion, conversionDelay + 5));
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
@@ -218,19 +424,38 @@ private:
         return RET_SUCCESS;
     }
 
-    RetType conversion(bool isD1) {
+    RetType startMeasAndGetVal(uint32_t *val) {
         RESUME();
 
-        RetType ret = CALL(mI2C->transmit(mAddr, isD1 ? &d1Conversion : &d2Conversion, 1));
+        static uint8_t data[3];
+        data[0] = ADC_READ;
+        RetType ret = CALL(mI2C->transmitReceive(mAddr, data, 1, 3, 3000));
         if (ret != RET_SUCCESS) {
             RESET();
             return ret;
         }
 
-        SLEEP(conversionDelay);
+        *val = (data[0] << 16) | (data[1] << 8) | data[2];
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
+    }
+
+    RetType startMeasurement() {
+        RESUME();
+
+        RetType ret = CALL(mI2C->transmit(mAddr, reinterpret_cast<uint8_t *>(ADC_READ), 1, 4000));
+
+        RESET();
+        return ret;
+    }
+
+    RetType getDigitalVal(uint32_t *val) {
+        RESUME();
+
+        RetType ret = CALL(mI2C->receive(mAddr, reinterpret_cast<uint8_t *>(val), 3, 1000));
+        RESET();
+        return ret;
     }
 
     RetType readDigitalVals(uint32_t *pressure, uint32_t *temp) {
@@ -245,7 +470,12 @@ private:
         }
 
         data[0] = ADC_READ;
-        ret = CALL(mI2C->transmitReceive(mAddr, data, 1, 3, 50));
+        ret = CALL(mI2C->transmitReceive(mAddr, data, 1, 3, 100));
+        if (RET_SUCCESS != ret) {
+            RESET();
+            return ret;
+        }
+
         *pressure = (data[0] << 16) | (data[1] << 8) | data[2];
 
         ret = CALL(conversion(false));
@@ -336,6 +566,38 @@ private:
                 conversionDelay = 1;
                 break;
         }
+    }
+
+    RetType adcRead(uint32_t *pressure_adc, uint32_t *temperature_adc) {
+        RESUME();
+
+        static uint8_t data[3];
+
+        data[0] = ADC_READ + d1Conversion;
+        RetType ret = CALL(mI2C->transmitReceive(mAddr, data, 1, 3, 50));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
+
+        SLEEP(conversionDelay);
+
+        *pressure_adc = (data[0] << 16) | (data[1] << 8) | data[2];
+
+
+        data[0] = ADC_READ + d2Conversion;
+        ret = CALL(mI2C->transmitReceive(mAddr, data, 1, 3, 50));
+        if (ret != RET_SUCCESS) {
+            RESET();
+            return ret;
+        }
+
+        SLEEP(conversionDelay);
+
+        *temperature_adc = (data[0] << 16) | (data[1] << 8) | data[2];
+
+        RESET();
+        return ret;
     }
 
 };

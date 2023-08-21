@@ -13,7 +13,7 @@
 #include <cstdio>
 
 
-#include "sched/macros.h"
+#include "sched/macros/macros.h"
 #include "device/GPIODevice.h"
 #include "sync/BlockingSemaphore.h"
 

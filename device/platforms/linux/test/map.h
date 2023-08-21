@@ -6,7 +6,7 @@
 //      for now it's convenient to test with
 
 #include "device/DeviceMap.h"
-#include "sched/macros.h"
+#include "sched/macros/macros.h"
 #include "device/platforms/linux/ConsoleDevice.h"
 #include "device/platforms/linux/DebugDevice.h"
 // #include "device/platforms/linux/LinuxUdpSocketPool.h"

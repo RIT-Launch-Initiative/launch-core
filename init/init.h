@@ -21,16 +21,16 @@
 ///        function of 'dev'
 /// @param dev     a Device class pointer to the device to poll
 /// @return
-void PollDevice(void* dev) {
+RetType PollDevice(void *dev) {
     RESUME();
 
     // returns blocked or yield to return back to the scheduler
-    RetType ret = CALL(((Device*)dev)->poll());
+    RetType ret = CALL(((Device *) dev)->poll());
 
     // in cases where we get an error, don't want to stop handling the device.
     // hopefully this doesn't happen, but if it does just pretend everything is
     // fine so this task gets scheduled again.
-    if(RET_ERROR == ret) {
+    if (RET_ERROR == ret) {
         RESET();
         return RET_SUCCESS;
     }
@@ -41,9 +41,9 @@ void PollDevice(void* dev) {
 
 /// Argument passed to the init task
 typedef struct {
-    DeviceMap* dev_map;     // platform device map
-    task_func_t* tasks;     // list of tasks to initialize and poll
-    void** args;            // list of arguments passed to these tasks
+    DeviceMap *dev_map;     // platform device map
+    task_func_t *tasks;     // list of tasks to initialize and poll
+    void **args;            // list of arguments passed to these tasks
     size_t num_tasks;       // number of tasks passed in the list
 } init_arg_t;
 
@@ -59,23 +59,26 @@ typedef struct {
 ///         - loops forever
 ///
 /// @param init_args      the init arguments, an init_arg_t* cast to void*
-void init(void* init_args) {
+
+RetType init(void *init_args) {
     RESUME();
 
-    init_arg_t args = (init_arg_t*)init_args;
-
-    DeviceMap* map = args->dev_map;
-    Device* dev = map->next();
+    init_arg_t *args = (init_arg_t *) init_args;
+    DeviceMap *map = args->dev_map;
+    Device *dev = map->next();
 
     // iterate through all the devices
-    while(dev != NULL) {
+    while (nullptr != dev) {
         RetType ret = CALL(dev->init());
 
-        if(RET_SUCCESS == ret) {
+        if (RET_SUCCESS == ret) {
             // add a handler for this device
             // NOTE: not checking the return here, nothing we can really do
             //       if it fails
-            sched_start(PollDevice, (void*)dev);
+            tid_t tid = sched_start(PollDevice, (void *) dev);
+#ifdef SWDEBUG_H
+            swprintf("%s initialized with a TID of %d\n", dev->getName(), tid);
+#endif
         }
         // otherwise this device failed to init, don't add it's handler to
         // the scheduler
@@ -84,14 +87,16 @@ void init(void* init_args) {
     }
 
     // start all the tasks we were passed
-    for(size_t i = 0; i < args->num_tasks; i++) {
-        task_func_t* task = args->tasks[i];
-        void* arg = args->args[i];
+    for (size_t i = 0; i < args->num_tasks; i++) {
+        task_func_t task = args->tasks[i];
+        void *arg = args->args[i];
 
         // NOTE: again not checking return here
         sched_start(task, arg);
     }
 
     // spin forever
-    while(1) {};
+    while (1) {
+        YIELD();
+    };
 }

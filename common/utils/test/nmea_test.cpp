@@ -4,7 +4,7 @@
 
 // TODO: Write real tests
 
-#include "utils/nmea.h"
+#include "common/utils/nmea.h"
 #include <stdio.h>
 #include <assert.h>
 
