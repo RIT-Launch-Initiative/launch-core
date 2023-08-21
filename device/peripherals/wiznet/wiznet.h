@@ -9,10 +9,10 @@
  */
 
 #include <cstdio>
-#include "wiznet_defs.h"
 #include <cstdlib>
 #include <cstdint>
 
+#include "wiznet_defs.h"
 #include "device/peripherals/wiznet/wiznet_defs.h"
 #include "device/StreamDevice.h"
 #include "net/network_layer/NetworkLayer.h"
@@ -25,14 +25,16 @@
 
 class Wiznet : public NetworkLayer, public Device {
 public:
-
-
-
-    Wiznet(SPIDevice &spi, GPIODevice &cs_pin, GPIODevice &reset_pin, GPIODevice &led_pin, NetworkLayer &upper_layer, Packet &packet, const char *name = "W5500") : Device(name), m_spi(&spi),
-                                                                                          m_cs(&cs_pin), m_reset(&reset_pin), m_upper(&upper_layer), m_rxPacket(packet) {};
+    Wiznet(SPIDevice &spi, GPIODevice &cs_pin, GPIODevice &reset_pin, GPIODevice &led_pin, Packet &packet, const char *name = "W5500") : Device(name), m_spi(&spi),
+                                                                                          m_cs(&cs_pin), m_reset(&reset_pin), m_upper(nullptr), m_rxPacket(packet) {};
 
     RetType init() {
         RESUME();
+
+        if (nullptr == m_upper) {
+            RESET();
+            return RET_ERROR;
+        }
 
         static uint8_t tmp;
 

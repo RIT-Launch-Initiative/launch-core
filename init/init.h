@@ -64,12 +64,11 @@ RetType init(void *init_args) {
     RESUME();
 
     init_arg_t *args = (init_arg_t *) init_args;
-
     DeviceMap *map = args->dev_map;
     Device *dev = map->next();
 
     // iterate through all the devices
-    while (NULL != dev) {
+    while (nullptr != dev) {
         RetType ret = CALL(dev->init());
 
         if (RET_SUCCESS == ret) {

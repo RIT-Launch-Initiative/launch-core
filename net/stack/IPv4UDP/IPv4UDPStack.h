@@ -33,8 +33,6 @@
 #include "sched/macros.h"
 #include "net/stack/IPv4UDP/IPv4UDPSocket.h"
 
-
-
 // TODO make this store multiple Ethernet devices? (or any layer 1 device)
 class IPv4UDPStack {
 public:
