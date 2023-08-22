@@ -145,7 +145,6 @@ public:
         ERROR_CHECK(ret);
 
         // Payload Length
-
         ret = CALL(set_payload_len(packet.size()));
         ERROR_CHECK(ret);
 
@@ -168,7 +167,6 @@ public:
         ERROR_CHECK(ret);
 
         packet.seek_read(false);
-
         current_tx_buff = packet.read_ptr<uint8_t>();
         current_tx_buff_end = current_tx_buff + packet.available();
         for (; current_tx_buff < current_tx_buff_end; current_tx_buff++) {
@@ -202,6 +200,9 @@ public:
     }
 
 private:
+    uint8_t *current_tx_buff = nullptr;
+    uint8_t *current_tx_buff_end = nullptr;
+
     SPIDevice &m_spi;
     GPIODevice &m_cs;
     GPIODevice &m_rst;
@@ -218,8 +219,7 @@ private:
     uint32_t timeout_time = 10;
 
 
-    uint8_t *current_tx_buff = nullptr;
-    uint8_t *current_tx_buff_end = nullptr;
+
 
     RetType recv_data(uint8_t *buff, size_t *len, int8_t* snr, uint32_t tx_ticks) {
         RESUME();
