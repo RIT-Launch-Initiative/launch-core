@@ -44,6 +44,7 @@ class RFM9XW : public NetworkLayer {
         RFM9XW_REG_FIFO_ADDR_PTR = 0x0D,
         RFM9XW_REG_FIFO_TX_BASE_ADDR = 0x0E,
         RFM9XW_REG_FIFO_RX_BASE_ADDR = 0x0F,
+        RFM9XW_REG_FIFO_RX_CURRENT_ADDR = 0x10,
         RFM9XW_REG_IRQ_FLAGS = 0x12,
         RFM9XW_REG_FIFO_RX_BYTES_NB = 0x13,
         RFM9XW_REG_PACKET_SNR = 0x19,
@@ -86,7 +87,11 @@ class RFM9XW : public NetworkLayer {
     } RFM9XW_INT_T;
 
 public:
-    explicit RFM9XW(SPIDevice &spi, GPIODevice &cs, GPIODevice &rst) : m_spi(spi), m_cs(cs), m_rst(rst) {}
+    explicit RFM9XW(SPIDevice &spi, GPIODevice &cs, GPIODevice &rst,
+                    GPIODevice &dio_zero, GPIODevice &dio_one, GPIODevice &dio_two,
+                    GPIODevice &dio_three, GPIODevice &dio_four, GPIODevice &dio_five
+                    ) : m_spi(spi), m_cs(cs), m_rst(rst), m_dio_zero(dio_zero), m_dio_one(dio_one),
+                    m_dio_two(dio_two), m_dio_three(dio_three), m_dio_four(dio_four), m_dio_five(dio_five)  {}
 
     RetType init() {
         RESUME();
@@ -122,6 +127,31 @@ public:
         ERROR_CHECK(ret);
 
         ret = CALL(set_frequency(920));
+
+        RESET();
+        return ret;
+    }
+
+    RetType send_data(uint8_t *data, size_t len) {
+        RESUME();
+
+        RetType ret = CALL(setup_data_transmit(data, len));
+
+        RESET();
+        return ret;
+    }
+
+    RetType receive_data(uint8_t *buff, size_t buff_len, uint8_t *rx_len) {
+        RESUME();
+
+        RetType ret = CALL(setup_data_receive(rx_len));
+        if (RET_SUCCESS == ret) {
+            if (*rx_len > buff_len) { // Prevent an overflow. Up to the user to give a large enough buffer
+                ret = CALL(read_reg(RFM9XW_REG_FIFO_RX_CURRENT_ADDR, buff, buff_len));
+            } else {
+                ret = CALL(read_reg(RFM9XW_REG_FIFO_RX_CURRENT_ADDR, buff, *rx_len));
+            }
+        }
 
         RESET();
         return ret;
@@ -194,32 +224,6 @@ public:
     RetType receive(Packet &packet, netinfo_t &info, NetworkLayer *caller) override {
         return RET_ERROR;
     }
-
-    RetType poll() {
-        return RET_SUCCESS;
-    }
-
-private:
-    uint8_t *current_tx_buff = nullptr;
-    uint8_t *current_tx_buff_end = nullptr;
-
-    SPIDevice &m_spi;
-    GPIODevice &m_cs;
-    GPIODevice &m_rst;
-
-    uint16_t magic;
-    uint16_t rx_frame_count;
-    uint16_t tx_frame_count;
-    uint8_t rx_one_delay;
-    uint32_t channel_frequencies[16];
-    uint16_t channel_mask;
-    RFM9XW_RX_MODE_T rx_mode;
-    uint32_t irq_times[RFM9XW_NUM_IRQS] = {};
-    uint32_t precision_tick_freq;
-    uint32_t timeout_time = 10;
-
-
-
 
     RetType recv_data(uint8_t *buff, size_t *len, int8_t* snr, uint32_t tx_ticks) {
         RESUME();
@@ -297,6 +301,72 @@ private:
 
     }
 
+    RetType poll() {
+        return RET_SUCCESS;
+    }
+
+private:
+    uint8_t *current_tx_buff = nullptr;
+    uint8_t *current_tx_buff_end = nullptr;
+
+    SPIDevice &m_spi;
+    GPIODevice &m_cs;
+    GPIODevice &m_rst;
+    GPIODevice &m_dio_zero;
+    GPIODevice &m_dio_one;
+    GPIODevice &m_dio_two;
+    GPIODevice &m_dio_three;
+    GPIODevice &m_dio_four;
+    GPIODevice &m_dio_five;
+
+    uint8_t m_buff[16];
+
+    uint16_t magic;
+    uint16_t rx_frame_count;
+    uint16_t tx_frame_count;
+    uint8_t rx_one_delay;
+    uint32_t channel_frequencies[16];
+    uint16_t channel_mask;
+    RFM9XW_RX_MODE_T rx_mode;
+    uint32_t irq_times[RFM9XW_NUM_IRQS] = {};
+    uint32_t precision_tick_freq;
+    uint32_t timeout_time = 10;
+
+    RetType setup_data_transmit(uint8_t *buff, const size_t len) {
+        RESUME();
+
+        // Set FifoAddrPtr to FifoTxBaseAddr
+        RetType ret = CALL(write_reg(RFM9XW_REG_FIFO_ADDR_PTR, 0x80));
+        ERROR_CHECK(ret);
+
+        // Set PayloadLength
+        ret = CALL(write_reg(RFM9XW_REG_PAYLOAD_LENGTH, len));
+
+        // Write data to FIFO
+        ret = CALL(write_reg(RFM9XW_REG_FIFO_ACCESS, buff, len));
+
+        RESET();
+        return ret;
+    }
+
+    RetType setup_data_receive(uint8_t *rx_len) {
+        RESUME();
+
+        // Set FifoAddrPtr to FifoRxBaseAddr
+        RetType ret = CALL(write_reg(RFM9XW_REG_FIFO_ADDR_PTR, 0x00));
+
+        // Read number of bytes received
+        uint8_t rx_len_raw;
+
+        ret = CALL(read_reg(RFM9XW_REG_FIFO_RX_BYTES_NB, &rx_len_raw, 1));
+
+
+
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
     //TODO
     RetType wait_for_irq(const RFM9XW_INT_T irq, const uint32_t timeout) {
         RESUME();
@@ -339,14 +409,14 @@ private:
         buff[0] = reg & 0x7FU;
 
         // TODO: Write one byte and then proceed to read or is this ok?
-//        ret = CALL(m_spi.write_read(buff, buff, len));
+        ret = CALL(m_spi.write_read(buff, buff, len));
+        ERROR_CHECK(ret);
+
+//        ret = CALL(m_spi.write(buff, len));
 //        ERROR_CHECK(ret);
-
-        ret = CALL(m_spi.write(buff, len));
-        ERROR_CHECK(ret);
-
-        ret = CALL(m_spi.read(buff, len));
-        ERROR_CHECK(ret);
+//
+//        ret = CALL(m_spi.read(buff, len));
+//        ERROR_CHECK(ret);
 
         ret = CALL(m_cs.set(1));
         RESET();
@@ -356,14 +426,30 @@ private:
     RetType write_reg(const uint8_t reg, const uint8_t val) {
         RESUME();
 
-        static uint8_t buff[2];
-        buff[0] = reg | 0x80U;
-        buff[1] = reg;
+        m_buff[0] = reg | 0x80U;
+        m_buff[1] = val;
 
         RetType ret = CALL(m_cs.set(0));
 
-        ret = CALL(m_spi.write(buff, 2));
+        ret = CALL(m_spi.write(m_buff, 2));
         ERROR_CHECK(ret);
+
+        ret = CALL(m_cs.set(1));
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType write_reg(const uint8_t reg, const uint8_t *buff, const size_t len) {
+        RESUME();
+
+        m_buff[0] = reg | 0x80U;
+
+        RetType ret = CALL(m_cs.set(0));
+
+        ret = CALL(m_spi.write(m_buff, 1));
+        if (RET_SUCCESS == ret) {
+            ret = CALL(m_spi.write(const_cast<uint8_t *>(buff), len));
+        }
 
         ret = CALL(m_cs.set(1));
         RESET();
