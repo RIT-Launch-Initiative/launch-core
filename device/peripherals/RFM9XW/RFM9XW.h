@@ -84,9 +84,13 @@ using RFM9XW_INT_T = enum {
 
 class RFM9XW : public NetworkLayer {
 public:
-    RFM9XW(SPIDevice &spi, GPIODevice &cs, GPIODevice &rst) : m_spi(spi), m_cs(cs), m_rst(rst) {}
-    RetType init(const uint32_t frequency = 920, const RFM9XW_RX_MODE_T rx_mode = RFM9XW_RX_MODE_1_2) {
+    explicit RFM9XW(SPIDevice &spi, GPIODevice &cs, GPIODevice &rst) : m_spi(spi), m_cs(cs), m_rst(rst) {}
+
+    RetType init() {
         RESUME();
+
+        constexpr uint32_t frequency = 920;
+        constexpr RFM9XW_RX_MODE_T rx_mode = RFM9XW_RX_MODE_1_2;
 
         static uint8_t tmp;
         RetType ret = CALL(reset());
@@ -115,14 +119,10 @@ public:
         ret = CALL(set_mode(RFM9XW_MODE_LORA_SLEEP));
         ERROR_CHECK(ret);
 
-        ret = CALL(set_frequency(frequency));
+        ret = CALL(set_frequency(920));
 
         RESET();
         return ret;
-    }
-
-    RetType receive(Packet &packet, netinfo_t &info, NetworkLayer *caller) override {
-        return RET_ERROR;
     }
 
     RetType transmit(Packet &packet, netinfo_t &info, NetworkLayer *caller) override {
@@ -130,13 +130,7 @@ public:
     }
 
     RetType transmit2(Packet &packet, netinfo_t &info, NetworkLayer *caller) override {
-        return RET_ERROR; // TODO
-    }
-
-    RetType send_data(const uint8_t *buff, const size_t len) {
         RESUME();
-
-        static int i = 0;
 
         // Configure modem
         RetType ret = CALL(write_reg(RFM9XW_REG_MODEM_CONFIG_1, 0x72));
@@ -149,7 +143,8 @@ public:
         ERROR_CHECK(ret);
 
         // Payload Length
-        ret = CALL(set_payload_len(len));
+
+        ret = CALL(set_payload_len(packet.size()));
         ERROR_CHECK(ret);
 
         // IQ Registers
@@ -170,31 +165,59 @@ public:
         ret = CALL(write_reg(RFM9XW_REG_FIFO_ADDR_PTR, 0x80));
         ERROR_CHECK(ret);
 
-        for (; i < len; i++) {
-            ret = CALL(write_reg(RFM9XW_REG_FIFO_ACCESS, buff[i]));
+        packet.seek_read(false);
+
+        current_tx_buff = packet.read_ptr<uint8_t>();
+        current_tx_buff_end = current_tx_buff + packet.available();
+        for (; current_tx_buff < current_tx_buff_end; current_tx_buff++) {
+            ret = CALL(write_reg(RFM9XW_REG_FIFO_ACCESS, *current_tx_buff));
             ERROR_CHECK(ret);
         }
-        i = 0;
 
         // Transmit
         ret = CALL(set_mode(RFM9XW_MODE_TX));
         ERROR_CHECK(ret);
 
         // Wait
-//        ret = CALL(wait_for_irq(RFM9XW_INT_DIO0, timeout_time));
-        SLEEP(timeout_time);
+        ret = CALL(wait_for_irq(RFM9XW_INT_DIO0, timeout_time));
+        SLEEP(5000);
 
         ret = CALL(set_mode(RFM9XW_MODE_STANDBY));
-        ERROR_CHECK(ret);
+        if (RET_SUCCESS == ret) {
+            tx_frame_count++;
+        }
 
-        tx_frame_count++;
-
-        send_data_end:
         RESET();
+        return ret;
+    }
+
+    RetType receive(Packet &packet, netinfo_t &info, NetworkLayer *caller) override {
+        return RET_ERROR;
+    }
+
+    RetType poll() {
         return RET_SUCCESS;
     }
 
+private:
+    SPIDevice &m_spi;
+    GPIODevice &m_cs;
+    GPIODevice &m_rst;
 
+    uint16_t magic;
+    uint16_t rx_frame_count;
+    uint16_t tx_frame_count;
+    uint8_t rx_one_delay;
+    uint32_t channel_frequencies[16];
+    uint16_t channel_mask;
+    RFM9XW_RX_MODE_T rx_mode;
+    uint32_t irq_times[RFM9XW_NUM_IRQS] = {};
+    uint32_t precision_tick_freq;
+    uint32_t timeout_time = 10;
+
+
+    uint8_t *current_tx_buff = nullptr;
+    uint8_t *current_tx_buff_end = nullptr;
 
     RetType recv_data(uint8_t *buff, size_t *len, int8_t* snr, uint32_t tx_ticks) {
         RESUME();
@@ -267,43 +290,19 @@ public:
         // Successful payload receive, set payload length to tell caller.
         *len = calc_len;
 
-        recv_data_end:
         RESET();
         return ret;
 
     }
 
-    RetType poll() {
-        return RET_SUCCESS;
-    }
-
-private:
-    SPIDevice &m_spi;
-    GPIODevice &m_cs;
-    GPIODevice &m_rst;
-
-    uint16_t magic;
-    uint16_t rx_frame_count;
-    uint16_t tx_frame_count;
-    uint8_t rx_one_delay;
-    uint32_t channel_frequencies[16];
-    uint16_t channel_mask;
-    RFM9XW_RX_MODE_T rx_mode;
-    uint32_t irq_times[RFM9XW_NUM_IRQS] = {};
-    uint32_t precision_tick_freq;
-    uint32_t timeout_time = 10;
-
+    //TODO
     RetType wait_for_irq(const RFM9XW_INT_T irq, const uint32_t timeout) {
         RESUME();
         static uint32_t timeout_time;
         timeout_time = sched_time() + timeout * precision_tick_freq / 1000;
 
         while (irq_times[irq] == 0) {
-            if (sched_time() >= timeout_time) {
-                RESET();
-                return RET_ERROR;
-            }
-
+            FAIL_IF(sched_time() >= timeout_time);
             YIELD();
         }
 
@@ -328,9 +327,6 @@ private:
         RESET();
         return RET_SUCCESS;
     }
-
-
-
 
     RetType read_reg(const uint8_t reg, uint8_t* buff, const size_t len) {
         RESUME();
