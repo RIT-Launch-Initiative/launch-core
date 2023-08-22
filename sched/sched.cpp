@@ -59,7 +59,7 @@ bool sched_init(time_func_t func) {
 
 /// @brief get the system time used by the scheduler
 /// @return the system time, in units of the function passed to 'sched_init'
-inline uint32_t sched_time() {
+uint32_t sched_time() {
     return get_time();
 }
 

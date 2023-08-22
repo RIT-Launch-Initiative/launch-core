@@ -30,59 +30,61 @@ static constexpr uint8_t DIO_MAPPING_1_IRQ_TX_DONE = 0x40;
 static constexpr uint8_t DIO_MAPPING_1_IRQ_RX_DONE = 0x00;
 static constexpr uint32_t RX_TIMEOUT = 1000;
 
-using RFM9XW_REGISTER_T = enum {
-    RFM9XW_REG_FIFO_ACCESS = 0x00,
-    RFM9XW_REG_OP_MODE = 0x01,
-    RFM9XW_REG_FR_MSB = 0x06,
-    RFM9XW_REG_FR_MID = 0x07,
-    RFM9XW_REG_FR_LSB = 0x08,
-    RFM9XW_REG_PA_CONFIG = 0x09,
-    RFM9XW_REG_LNA = 0x0C,
-    RFM9XW_REG_FIFO_ADDR_PTR = 0x0D,
-    RFM9XW_REG_FIFO_TX_BASE_ADDR = 0x0E,
-    RFM9XW_REG_FIFO_RX_BASE_ADDR = 0x0F,
-    RFM9XW_REG_IRQ_FLAGS = 0x12,
-    RFM9XW_REG_FIFO_RX_BYTES_NB = 0x13,
-    RFM9XW_REG_PACKET_SNR = 0x19,
-    RFM9XW_REG_MODEM_CONFIG_1 = 0x1D,
-    RFM9XW_REG_MODEM_CONFIG_2 = 0x1E,
-    RFM9XW_REG_SYMB_TIMEOUT_LSB = 0x1F,
-    RFM9XW_REG_PREAMBLE_MSB = 0x20,
-    RFM9XW_REG_PREAMBLE_LSB = 0x21,
-    RFM9XW_REG_PAYLOAD_LENGTH = 0x22,
-    RFM9XW_REG_MAX_PAYLOAD_LENGTH = 0x23,
-    RFM9XW_REG_MODEM_CONFIG_3 = 0x26,
-    RFM9XW_REG_DETECTION_OPTIMIZE = 0x31,
-    RFM9XW_REG_INVERT_IQ_1 = 0x33,
-    RFM9XW_REG_DETECTION_THRESHOLD = 0x37,
-    RFM9XW_REG_SYNC_WORD = 0x39,
-    RFM9XW_REG_INVERT_IQ_2 = 0x3B,
-    RFM9XW_REG_DIO_MAPPING_1 = 0x40,
-    RFM9XW_REG_VERSION = 0x42,
-    RFM9XW_REG_PA_DAC = 0x4D
-};
 
-using RFM9XW_MODE_T = enum {
-    RFM9XW_MODE_SLEEP = 0x00,
-    RFM9XW_MODE_LORA_SLEEP = 0x80,
-    RFM9XW_MODE_STANDBY = 0x81,
-    RFM9XW_MODE_TX = 0x83,
-    RFM9XW_MODE_RX_SINGLE = 0x86
-};
-
-using RFM9XW_RX_MODE_T = enum {
-    RFM9XW_RX_MODE_NONE = 0,
-    RFM9XW_RX_MODE_1 = 1,
-    RFM9XW_RX_MODE_1_2 = 2
-};
-
-using RFM9XW_INT_T = enum {
-    RFM9XW_INT_DIO0,
-    RFM9XW_INT_DIO1,
-    RFM9XW_INT_DIO5,
-};
 
 class RFM9XW : public NetworkLayer {
+    typedef enum {
+        RFM9XW_REG_FIFO_ACCESS = 0x00,
+        RFM9XW_REG_OP_MODE = 0x01,
+        RFM9XW_REG_FR_MSB = 0x06,
+        RFM9XW_REG_FR_MID = 0x07,
+        RFM9XW_REG_FR_LSB = 0x08,
+        RFM9XW_REG_PA_CONFIG = 0x09,
+        RFM9XW_REG_LNA = 0x0C,
+        RFM9XW_REG_FIFO_ADDR_PTR = 0x0D,
+        RFM9XW_REG_FIFO_TX_BASE_ADDR = 0x0E,
+        RFM9XW_REG_FIFO_RX_BASE_ADDR = 0x0F,
+        RFM9XW_REG_IRQ_FLAGS = 0x12,
+        RFM9XW_REG_FIFO_RX_BYTES_NB = 0x13,
+        RFM9XW_REG_PACKET_SNR = 0x19,
+        RFM9XW_REG_MODEM_CONFIG_1 = 0x1D,
+        RFM9XW_REG_MODEM_CONFIG_2 = 0x1E,
+        RFM9XW_REG_SYMB_TIMEOUT_LSB = 0x1F,
+        RFM9XW_REG_PREAMBLE_MSB = 0x20,
+        RFM9XW_REG_PREAMBLE_LSB = 0x21,
+        RFM9XW_REG_PAYLOAD_LENGTH = 0x22,
+        RFM9XW_REG_MAX_PAYLOAD_LENGTH = 0x23,
+        RFM9XW_REG_MODEM_CONFIG_3 = 0x26,
+        RFM9XW_REG_DETECTION_OPTIMIZE = 0x31,
+        RFM9XW_REG_INVERT_IQ_1 = 0x33,
+        RFM9XW_REG_DETECTION_THRESHOLD = 0x37,
+        RFM9XW_REG_SYNC_WORD = 0x39,
+        RFM9XW_REG_INVERT_IQ_2 = 0x3B,
+        RFM9XW_REG_DIO_MAPPING_1 = 0x40,
+        RFM9XW_REG_VERSION = 0x42,
+        RFM9XW_REG_PA_DAC = 0x4D
+    } RFM9XW_REGISTER_T;
+
+    typedef enum {
+        RFM9XW_MODE_SLEEP = 0x00,
+        RFM9XW_MODE_LORA_SLEEP = 0x80,
+        RFM9XW_MODE_STANDBY = 0x81,
+        RFM9XW_MODE_TX = 0x83,
+        RFM9XW_MODE_RX_SINGLE = 0x86
+    } RFM9XW_MODE_T;
+
+    typedef enum {
+        RFM9XW_RX_MODE_NONE = 0,
+        RFM9XW_RX_MODE_1 = 1,
+        RFM9XW_RX_MODE_1_2 = 2
+    } RFM9XW_RX_MODE_T;
+
+    typedef enum {
+        RFM9XW_INT_DIO0,
+        RFM9XW_INT_DIO1,
+        RFM9XW_INT_DIO5,
+    } RFM9XW_INT_T;
+
 public:
     explicit RFM9XW(SPIDevice &spi, GPIODevice &cs, GPIODevice &rst) : m_spi(spi), m_cs(cs), m_rst(rst) {}
 
@@ -90,7 +92,7 @@ public:
         RESUME();
 
         constexpr uint32_t frequency = 920;
-        constexpr RFM9XW_RX_MODE_T rx_mode = RFM9XW_RX_MODE_1_2;
+        rx_mode = RFM9XW_RX_MODE_1_2;
 
         static uint8_t tmp;
         RetType ret = CALL(reset());
@@ -346,7 +348,6 @@ private:
         ret = CALL(m_spi.read(buff, len));
         ERROR_CHECK(ret);
 
-        read_reg_end:
         ret = CALL(m_cs.set(1));
         RESET();
         return RET_SUCCESS;
@@ -364,7 +365,6 @@ private:
         ret = CALL(m_spi.write(buff, 2));
         ERROR_CHECK(ret);
 
-        write_reg_end:
         ret = CALL(m_cs.set(1));
         RESET();
         return RET_SUCCESS;
@@ -383,7 +383,6 @@ private:
 
         ret = CALL(write_reg(RFM9XW_REG_FR_LSB, static_cast<uint8_t>(new_freq)));
 
-        set_frequency_end:
         RESET();
         return ret;
     }
@@ -430,7 +429,6 @@ private:
 
         ret = CALL(write_reg(RFM9XW_REG_PA_DAC, dac_config));
 
-        set_power_end:
         RESET();
         return ret;
     }
@@ -461,7 +459,6 @@ private:
 
         ret = CALL(write_reg(RFM9XW_REG_PREAMBLE_LSB, lsb));
 
-        set_preamble_end:
         RESET();
         return ret;
     }
@@ -486,6 +483,9 @@ private:
 
     void calculate_rx_timings(const uint32_t bw, const uint8_t sf, const uint32_t tx_ticks, uint32_t* const rx_target, uint32_t* const rx_window_symbols) {
     }
+
+
+
 };
 
 #endif //RFM9XW_H
