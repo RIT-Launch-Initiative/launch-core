@@ -7,6 +7,12 @@
 #define RFM9XW_DEFS_H
 
 namespace RFM9XW_DEFS {
+
+    typedef enum {
+        FSK_OOK_MODE = 0,
+        LORA_MODE = 1
+    } RFM9XW_OPERATING_MODE_T;
+
     typedef enum {
         RFM9XW_REG_FIFO_ACCESS = 0x00,
         RFM9XW_REG_OP_MODE = 0x01,
@@ -43,33 +49,33 @@ namespace RFM9XW_DEFS {
     } RFM9XW_REGISTER_T;
 
     typedef enum {
-        REG_FIFO = 0x00,
-        REG_OP_MODE = 0x01,
+        COMMON_REG_FIFO = 0x00,
+        COMMON_REG_OP_MODE = 0x01,
 
-        REG_FRF_MSB = 0x06,
-        REG_FRF_MID = 0x07,
-        REG_FRF_LSB = 0x08,
+        COMMON_REG_FRF_MSB = 0x06,
+        COMMON_REG_FRF_MID = 0x07,
+        COMMON_REG_FRF_LSB = 0x08,
 
-        REG_PA_CONFIG = 0x09,
-        REG_PA_RAMP = 0x0A,
-        REG_OCP = 0x0B,
-        REG_LNA = 0x0C,
+        COMMON_REG_PA_CONFIG = 0x09,
+        COMMON_REG_PA_RAMP = 0x0A,
+        COMMON_REG_OCP = 0x0B,
+        COMMON_REG_LNA = 0x0C,
 
-        REG_DIO_MAPPING_1 = 0x40,
-        REG_DIO_MAPPING_2 = 0x41,
-        REG_VERSION = 0x42,
+        COMMON_REG_DIO_MAPPING_1 = 0x40,
+        COMMON_REG_DIO_MAPPING_2 = 0x41,
+        COMMON_REG_VERSION = 0x42,
 
-        REG_TCXO = 0x4B,
-        REG_PA_DAC = 0x4D,
-        REG_FORMER_TEMP = 0x5B,
-        REG_AGC_REF = 0x61,
+        COMMON_REG_TCXO = 0x4B,
+        COMMON_REG_PA_DAC = 0x4D,
+        COMMON_REG_FORMER_TEMP = 0x5B,
+        COMMON_REG_AGC_REF = 0x61,
 
-        REG_AGC_THRESH_1 = 0x62,
-        REG_AGC_THRESH_2 = 0x63,
-        REG_AGC_THRESH_3 = 0x64,
+        COMMON_REG_AGC_THRESH_1 = 0x62,
+        COMMON_REG_AGC_THRESH_2 = 0x63,
+        COMMON_REG_AGC_THRESH_3 = 0x64,
 
-        REG_PLL = 0x70,
-        REG_TEST = 0x71
+        COMMON_REG_PLL = 0x70,
+        COMMON_REG_TEST = 0x71
     } RFM9XW_COMMON_REGISTER_T;
 
     typedef enum {
@@ -142,12 +148,12 @@ namespace RFM9XW_DEFS {
     } RFM9XW_MODE_T;
 
     typedef enum {
-        RFM9XW_REG_OP_MODE_SLEEP = 0b000,
-        RFM9XW_REG_OP_MODE_STANDBY = 0b001,
-        RFM9XW_REG_OP_MODE_FSTx = 0b010,
-        RFM9XW_REG_OP_MODE_Tx = 0b011,
-        RFM9XW_REG_OP_MODE_FSRx = 0b100,
-        RFM9XW_REG_OP_MODE_Rx = 0b101,
+        REG_OP_MODE_SLEEP = 0b000,
+        REG_OP_MODE_STANDBY = 0b001,
+        REG_OP_MODE_FSTx = 0b010,
+        REG_OP_MODE_Tx = 0b011,
+        REG_OP_MODE_FSRx = 0b100,
+        REG_OP_MODE_Rx = 0b101,
     } RFM9XW_REG_OP_MODE_T;
 
     typedef enum {

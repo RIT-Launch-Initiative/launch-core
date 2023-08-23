@@ -1,5 +1,5 @@
 /**
- * Platform Independent RFM (RFM95W, RFM96W, RFM98W) Driver
+ * Platform Independent RFM9xW (RFM95W, RFM96W, RFM98W) Driver using LoRa mode
  *
  * @author Aaron Chan
  * @link https://www.hoperf.com/data/upload/portal/20190801/RFM95W-V2.0.pdf
@@ -54,11 +54,13 @@ public:
         RetType ret = CALL(reset());
         ERROR_CHECK(ret);
 
-        ret = CALL(read_reg(RFM9XW_REG_VERSION, &tmp, 1));
+        ret = CALL(read_reg(COMMON_REG_VERSION, &tmp, 1));
         FAIL_IF(RET_SUCCESS != ret && tmp != RFM9XW_VERSION);
 
-        ret = CALL(set_mode(true, true, RFM9XW_REG_OP_MODE_STANDBY));
+        // Configure to be in LoRa, low frequency sleep mode
+        ret = CALL(set_mode(true, true, REG_OP_MODE_SLEEP));
         ERROR_CHECK(ret);
+
 
         // TODO: Don't know enough about RF to config this yet
         // Preamble, LNA, Sync Word set to default
@@ -73,9 +75,6 @@ public:
         ERROR_CHECK(ret);
 
         ret = CALL(set_lna(0b01000000));
-        ERROR_CHECK(ret);
-
-        ret = CALL(set_mode(RFM9XW_MODE_LORA_SLEEP));
         ERROR_CHECK(ret);
 
         ret = CALL(set_frequency(920));
@@ -143,7 +142,7 @@ public:
         ERROR_CHECK(ret);
 
         // Set to Rx mode
-        ret = CALL(set_mode(true, true, RFM9XW_REG_OP_MODE_Rx));
+        ret = CALL(set_mode(true, true, REG_OP_MODE_Rx));
         ERROR_CHECK(ret);
 
         ret = CALL(check_rx_termination());
@@ -587,11 +586,11 @@ private:
     RetType get_valid_rx_headers(uint16_t *val) {
         RESUME();
 
-        RetType ret = CALL(read_reg(RFM9XW_REG_RX_HEADER_CNT_VALUE_MSB, &m_buff[0]));
+        RetType ret = CALL(read_reg(LORA_REG_RX_HEADER_CNT_VALUE_MSB, &m_buff[0], 2));
         ERROR_CHECK(ret);
 
-        ret = CALL(read_reg(RFM9XW_REG_RX_HEADER_CNT_VALUE_LSB, &m_buff[1]));
-        ERROR_CHECK(ret);
+//        ret = CALL(read_reg(LORA_REG_RX_HEADER_CNT_VALUE_LSB, &m_buff[1]));
+//        ERROR_CHECK(ret);
 
         *val = (m_buff[0] << 8) | m_buff[1];
 
@@ -634,7 +633,7 @@ private:
         RESUME();
 
         m_buff[0] = (dio_two_val << 6) | (dio_one_val << 4) | dio_zero_val;
-        RetType ret = CALL(write_reg(RFM9XW_REG_DIO_MAPPING_1, m_buff[0]));
+        RetType ret = CALL(write_reg(COMMON_REG_DIO_MAPPING_1, m_buff[0]));
 
         RESET();
         return ret;
@@ -644,7 +643,7 @@ private:
         RESUME();
 
         m_buff[0] = (dio_three_val << 6) | (dio_four_val << 4) | dio_five_val;
-        RetType ret = CALL(write_reg(RFM9XW_REG_DIO_MAPPING_2, m_buff[0]));
+        RetType ret = CALL(write_reg(COMMON_REG_DIO_MAPPING_2, m_buff[0]));
 
         RESET();
         return ret;
