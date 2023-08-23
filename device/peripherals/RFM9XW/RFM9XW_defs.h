@@ -30,15 +30,108 @@ namespace RFM9XW_DEFS {
         RFM9XW_REG_PAYLOAD_LENGTH = 0x22,
         RFM9XW_REG_MAX_PAYLOAD_LENGTH = 0x23,
         RFM9XW_REG_MODEM_CONFIG_3 = 0x26,
-        RFM9XW_REG_DETECTION_OPTIMIZE = 0x31,
+        RFM9XW_REG_PACKET_CONFIG_1 = 0x30,
+        RFM9XW_REG_PACKET_CONFIG_2 = 0x31,
         RFM9XW_REG_INVERT_IQ_1 = 0x33,
         RFM9XW_REG_DETECTION_THRESHOLD = 0x37,
         RFM9XW_REG_SYNC_WORD = 0x39,
         RFM9XW_REG_INVERT_IQ_2 = 0x3B,
         RFM9XW_REG_DIO_MAPPING_1 = 0x40,
+        RFM9XW_REG_DIO_MAPPING_2 = 0x41,
         RFM9XW_REG_VERSION = 0x42,
         RFM9XW_REG_PA_DAC = 0x4D
     } RFM9XW_REGISTER_T;
+
+    typedef enum {
+        REG_FIFO = 0x00,
+        REG_OP_MODE = 0x01,
+
+        REG_FRF_MSB = 0x06,
+        REG_FRF_MID = 0x07,
+        REG_FRF_LSB = 0x08,
+
+        REG_PA_CONFIG = 0x09,
+        REG_PA_RAMP = 0x0A,
+        REG_OCP = 0x0B,
+        REG_LNA = 0x0C,
+
+        REG_DIO_MAPPING_1 = 0x40,
+        REG_DIO_MAPPING_2 = 0x41,
+        REG_VERSION = 0x42,
+
+        REG_TCXO = 0x4B,
+        REG_PA_DAC = 0x4D,
+        REG_FORMER_TEMP = 0x5B,
+        REG_AGC_REF = 0x61,
+
+        REG_AGC_THRESH_1 = 0x62,
+        REG_AGC_THRESH_2 = 0x63,
+        REG_AGC_THRESH_3 = 0x64,
+
+        REG_PLL = 0x70,
+        REG_TEST = 0x71
+    } RFM9XW_COMMON_REGISTER_T;
+
+    typedef enum {
+        LORA_REG_FIFO_ADDR_PTR = 0x0D,
+        LORA_REG_FIFO_TX_BASE_ADDR = 0x0E,
+        LORA_REG_FIFO_RX_BASE_ADDR = 0x0F,
+        LORA_REG_FIFO_RX_CURRENT_ADDR = 0x10,
+
+        LORA_REG_IRQ_FLAGS_MASK = 0x11,
+        LORA_REG_IRQ_FLAGS = 0x12,
+
+        LORA_REG_RX_NB_BYTES = 0x13,
+        LORA_REG_RX_HEADER_CNT_VALUE_MSB = 0x14,
+        LORA_REG_RX_HEADER_CNT_VALUE_LSB = 0x15,
+        LORA_REG_RX_PACKET_CNT_VALUE_MSB = 0x16,
+        LORA_REG_RX_PACKET_CNT_VALUE_LSB = 0x17,
+
+        LORA_REG_MODEM_STAT = 0x18,
+
+        LORA_REG_PKT_SNR_VALUE = 0x19,
+        LORA_REG_PKT_RSSI_VALUE = 0x1A,
+
+        LORA_REG_RSSI_VALUE = 0x1B,
+
+        LORA_REG_HOP_CHANNEL = 0x1C,
+
+        LORA_REG_MODEM_CONFIG_1 = 0x1D,
+        LORA_REG_MODEM_CONFIG_2 = 0x1E,
+
+        LORA_REG_SYMB_TIMEOUT_LSB = 0x1F,
+
+        LORA_REG_PREAMBLE_MSB = 0x20,
+        LORA_REG_PREAMBLE_LSB = 0x21,
+
+        LORA_REG_PAYLOAD_LENGTH = 0x22,
+        LORA_REG_MAX_PAYLOAD_LENGTH = 0x23,
+
+        LORA_REG_HOP_PERIOD = 0x24,
+        LORA_REG_FIFO_RX_BYTE_ADDR = 0x25,
+        LORA_REG_MODEM_CONFIG_3 = 0x26,
+
+        LORA_REG_FEI_MSB = 0x28,
+        LORA_REG_FEI_MID = 0x29,
+        LORA_REG_FEI_LSB = 0x2A,
+
+        LORA_REG_RSSI_WIDEBAND = 0x2C,
+
+        LORA_REG_IF_FREQ_1 = 0x2F,
+        LORA_REG_IF_FREQ_2 = 0x30,
+
+        LORA_REG_DETECT_OPTIMIZE = 0x31,
+
+        LORA_REG_INVERT_IQ = 0x33,
+
+        LORA_REG_HIGH_BW_OPTIMIZE_1 = 0x36,
+        LORA_REG_DETECTION_THRESHOLD = 0x37,
+
+        LORA_REG_SYNC_WORD = 0x39,
+
+        LORA_REG_HIGH_BW_OPTIMIZE_2 = 0x3A,
+        LORA_REG_INVERT_IQ_2 = 0x3B,
+    } RFM9XW_LORA_REGISTER_T;
 
     typedef enum {
         RFM9XW_MODE_SLEEP = 0x00,

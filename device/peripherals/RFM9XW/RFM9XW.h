@@ -584,6 +584,52 @@ private:
         return ret;
     }
 
+    RetType get_valid_rx_headers(uint16_t *val) {
+        RESUME();
+
+        RetType ret = CALL(read_reg(RFM9XW_REG_RX_HEADER_CNT_VALUE_MSB, &m_buff[0]));
+        ERROR_CHECK(ret);
+
+        ret = CALL(read_reg(RFM9XW_REG_RX_HEADER_CNT_VALUE_LSB, &m_buff[1]));
+        ERROR_CHECK(ret);
+
+        *val = (m_buff[0] << 8) | m_buff[1];
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType configure_fsk_packet(bool variable_len = true, uint8_t dc_free_encoding = 0b00, bool crc_enabled = false,
+                                  bool crc_auto_clear_off = false, uint8_t addr_filter = 0b00, bool ibm_whitening = false) {
+        RESUME();
+
+        m_buff[0] = 0;
+        if (variable_len) {
+            m_buff[0] |= 0b1 << 7;
+        }
+
+        m_buff[0] |= (dc_free_encoding & 0b11) << 5;
+
+        if (crc_enabled) {
+            m_buff[0] |= 0b1 << 4;
+        }
+
+        if (crc_auto_clear_off) {
+            m_buff[0] |= 0b1 << 3;
+        }
+
+        m_buff[0] |= (addr_filter & 0b11) << 1;
+
+        if (ibm_whitening) {
+            m_buff[0] |= 0b1;
+        }
+
+        RetType ret = CALL(write_reg(RFM9XW_REG_PACKET_CONFIG_1, m_buff[0]));
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
     RetType configure_dio_mapping_one(const uint8_t dio_zero_val, const uint8_t dio_one_val, const uint8_t dio_two_val) {
         RESUME();
 
@@ -598,7 +644,7 @@ private:
         RESUME();
 
         m_buff[0] = (dio_three_val << 6) | (dio_four_val << 4) | dio_five_val;
-        RetType ret = CALL(write_reg(RFM9XW_REG_DIO_MAPPING_1, m_buff[0]));
+        RetType ret = CALL(write_reg(RFM9XW_REG_DIO_MAPPING_2, m_buff[0]));
 
         RESET();
         return ret;
