@@ -75,6 +75,15 @@ class RFM9XW : public NetworkLayer {
     } RFM9XW_MODE_T;
 
     typedef enum {
+        RFM9XW_REG_OP_MODE_SLEEP = 0b000,
+        RFM9XW_REG_OP_MODE_STANDBY = 0b001,
+        RFM9XW_REG_OP_MODE_FSTx = 0b010,
+        RFM9XW_REG_OP_MODE_Tx = 0b011,
+        RFM9XW_REG_OP_MODE_FSRx = 0b100,
+        RFM9XW_REG_OP_MODE_Rx = 0b101,
+    } RFM9XW_REG_OP_MODE_T;
+
+    typedef enum {
         RFM9XW_RX_MODE_NONE = 0,
         RFM9XW_RX_MODE_1 = 1,
         RFM9XW_RX_MODE_1_2 = 2
@@ -106,10 +115,7 @@ public:
         ret = CALL(read_reg(RFM9XW_REG_VERSION, &tmp, 1));
         FAIL_IF(RET_SUCCESS != ret && tmp != RFM9XW_VERSION);
 
-        ret = CALL(set_mode(RFM9XW_MODE_SLEEP));
-        ERROR_CHECK(ret);
-
-        ret = CALL(set_mode(RFM9XW_MODE_LORA_SLEEP));
+        ret = CALL(set_mode(true, true, RFM9XW_REG_OP_MODE_STANDBY));
         ERROR_CHECK(ret);
 
         // TODO: Don't know enough about RF to config this yet
@@ -132,10 +138,46 @@ public:
         return ret;
     }
 
-    RetType send_data(uint8_t *data, size_t len) {
+    RetType send_data(uint8_t *buff, size_t len) {
         RESUME();
 
-        RetType ret = CALL(setup_data_transmit(data, len));
+        // Guarantee that we are in standby mode
+        RetType ret = CALL(set_mode(RFM9XW_MODE_STANDBY));
+        ERROR_CHECK(ret);
+
+        // Set to Tx mode
+        ret = CALL(set_mode(RFM9XW_MODE_TX));
+        ERROR_CHECK(ret);
+
+        // Set FifoAddrPtr to FifoTxBaseAddr
+        ret = CALL(write_reg(RFM9XW_REG_FIFO_ADDR_PTR, 0x80));
+        ERROR_CHECK(ret);
+
+        // Set PayloadLength
+        ret = CALL(write_reg(RFM9XW_REG_PAYLOAD_LENGTH, len));
+        ERROR_CHECK(ret);
+
+        // Write data to FIFO
+        ret = CALL(write_reg(RFM9XW_REG_FIFO_ACCESS, buff, len));
+        ERROR_CHECK(ret);
+
+        // Transmit
+        ret = CALL(set_mode(RFM9XW_MODE_TX));
+        ERROR_CHECK(ret);
+
+        // Wait for TxDone
+        while (true) { // TODO: At some point this should just block and be woken by interrupt
+            ret = CALL(read_reg(RFM9XW_REG_IRQ_FLAGS, &m_buff[0], 1));
+            ERROR_CHECK(ret);
+
+            if (m_buff[0] & 0b00001000) {
+                break;
+            }
+
+            YIELD();
+        }
+
+        ret = CALL(set_mode(RFM9XW_MODE_STANDBY));
 
         RESET();
         return ret;
@@ -144,7 +186,10 @@ public:
     RetType receive_data(uint8_t *buff, size_t buff_len, uint8_t *rx_len) {
         RESUME();
 
-        RetType ret = CALL(setup_data_receive(rx_len));
+        RetType ret = CALL(check_rx_termination());
+        ERROR_CHECK(ret);
+
+        ret = CALL(setup_data_receive(rx_len));
         if (RET_SUCCESS == ret) {
             if (*rx_len > buff_len) { // Prevent an overflow. Up to the user to give a large enough buffer
                 ret = CALL(read_reg(RFM9XW_REG_FIFO_RX_CURRENT_ADDR, buff, buff_len));
@@ -157,11 +202,11 @@ public:
         return ret;
     }
 
-    RetType transmit(Packet &packet, netinfo_t &info, NetworkLayer *caller) override {
+    RetType transmit(Packet&, netinfo_t&, NetworkLayer*) override {
         return RET_SUCCESS;
     }
 
-    RetType transmit2(Packet &packet, netinfo_t &info, NetworkLayer *caller) override {
+    RetType transmit2(Packet &packet, netinfo_t&, NetworkLayer*) override {
         RESUME();
 
         // Configure modem
@@ -221,7 +266,7 @@ public:
         return ret;
     }
 
-    RetType receive(Packet &packet, netinfo_t &info, NetworkLayer *caller) override {
+    RetType receive(Packet&, netinfo_t&, NetworkLayer*) override {
         return RET_ERROR;
     }
 
@@ -332,18 +377,19 @@ private:
     uint32_t precision_tick_freq;
     uint32_t timeout_time = 10;
 
-    RetType setup_data_transmit(uint8_t *buff, const size_t len) {
+    RetType check_rx_termination() {
         RESUME();
 
-        // Set FifoAddrPtr to FifoTxBaseAddr
-        RetType ret = CALL(write_reg(RFM9XW_REG_FIFO_ADDR_PTR, 0x80));
-        ERROR_CHECK(ret);
+        RetType ret = CALL(read_reg(RFM9XW_REG_IRQ_FLAGS, m_buff, 1));
+        if (RET_SUCCESS == ret) {
+            // ValidHeader, PayloadCrcError, RxDone and RxTimeout
+            constexpr uint8_t mask = 0b11110000;
+            if (0 != (m_buff[0] & mask)) {
+                ret = RET_ERROR;
+            }
+        }
 
-        // Set PayloadLength
-        ret = CALL(write_reg(RFM9XW_REG_PAYLOAD_LENGTH, len));
 
-        // Write data to FIFO
-        ret = CALL(write_reg(RFM9XW_REG_FIFO_ACCESS, buff, len));
 
         RESET();
         return ret;
@@ -353,15 +399,13 @@ private:
         RESUME();
 
         // Set FifoAddrPtr to FifoRxBaseAddr
-        RetType ret = CALL(write_reg(RFM9XW_REG_FIFO_ADDR_PTR, 0x00));
+        RetType ret = CALL(read_reg(RFM9XW_REG_FIFO_ADDR_PTR, m_buff, 1));
+        ERROR_CHECK(ret);
+
+        ret = CALL(write_reg(RFM9XW_REG_FIFO_ADDR_PTR, m_buff[0]));
 
         // Read number of bytes received
-        uint8_t rx_len_raw;
-
-        ret = CALL(read_reg(RFM9XW_REG_FIFO_RX_BYTES_NB, &rx_len_raw, 1));
-
-
-
+        ret = CALL(read_reg(RFM9XW_REG_FIFO_RX_BYTES_NB, rx_len, 1));
 
         RESET();
         return RET_SUCCESS;
@@ -527,6 +571,28 @@ private:
         RESET();
         return ret;
     }
+
+    RetType set_mode(bool lora_mode, bool low_freq_mode, RFM9XW_REG_OP_MODE_T mode, bool ook_modulation = false) {
+        RESUME();
+
+        m_buff[0] = 0;
+        if (!lora_mode && ook_modulation) {
+            m_buff[0] |= 0b01 << 5;
+        } else {
+            m_buff[0] |= 0b1 << 7;
+        }
+
+        if (low_freq_mode) {
+            m_buff[0] |= 0b1 << 3;
+        }
+
+        m_buff[0] |= mode;
+        RetType ret = CALL(write_reg(RFM9XW_REG_OP_MODE, m_buff[0]));
+
+        RESET();
+        return ret;
+    }
+
 
     RetType set_payload_len(const size_t len) {
         RESUME();
