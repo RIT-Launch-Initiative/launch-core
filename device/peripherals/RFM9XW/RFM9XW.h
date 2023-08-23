@@ -14,7 +14,9 @@
 #include "device/GPIODevice.h"
 #include "device/SPIDevice.h"
 #include "sched/macros.h"
+#include "RFM9XW_defs.h"
 
+using namespace RFM9XW_DEFS;
 
 using RFM9WX_PA_CONFIG_T = struct {
         uint8_t output_power : 4;
@@ -32,75 +34,15 @@ static constexpr uint32_t RX_TIMEOUT = 1000;
 
 
 
-class RFM9XW : public NetworkLayer {
-    typedef enum {
-        RFM9XW_REG_FIFO_ACCESS = 0x00,
-        RFM9XW_REG_OP_MODE = 0x01,
-        RFM9XW_REG_FR_MSB = 0x06,
-        RFM9XW_REG_FR_MID = 0x07,
-        RFM9XW_REG_FR_LSB = 0x08,
-        RFM9XW_REG_PA_CONFIG = 0x09,
-        RFM9XW_REG_LNA = 0x0C,
-        RFM9XW_REG_FIFO_ADDR_PTR = 0x0D,
-        RFM9XW_REG_FIFO_TX_BASE_ADDR = 0x0E,
-        RFM9XW_REG_FIFO_RX_BASE_ADDR = 0x0F,
-        RFM9XW_REG_FIFO_RX_CURRENT_ADDR = 0x10,
-        RFM9XW_REG_IRQ_FLAGS = 0x12,
-        RFM9XW_REG_FIFO_RX_BYTES_NB = 0x13,
-        RFM9XW_REG_PACKET_SNR = 0x19,
-        RFM9XW_REG_MODEM_CONFIG_1 = 0x1D,
-        RFM9XW_REG_MODEM_CONFIG_2 = 0x1E,
-        RFM9XW_REG_SYMB_TIMEOUT_LSB = 0x1F,
-        RFM9XW_REG_PREAMBLE_MSB = 0x20,
-        RFM9XW_REG_PREAMBLE_LSB = 0x21,
-        RFM9XW_REG_PAYLOAD_LENGTH = 0x22,
-        RFM9XW_REG_MAX_PAYLOAD_LENGTH = 0x23,
-        RFM9XW_REG_MODEM_CONFIG_3 = 0x26,
-        RFM9XW_REG_DETECTION_OPTIMIZE = 0x31,
-        RFM9XW_REG_INVERT_IQ_1 = 0x33,
-        RFM9XW_REG_DETECTION_THRESHOLD = 0x37,
-        RFM9XW_REG_SYNC_WORD = 0x39,
-        RFM9XW_REG_INVERT_IQ_2 = 0x3B,
-        RFM9XW_REG_DIO_MAPPING_1 = 0x40,
-        RFM9XW_REG_VERSION = 0x42,
-        RFM9XW_REG_PA_DAC = 0x4D
-    } RFM9XW_REGISTER_T;
-
-    typedef enum {
-        RFM9XW_MODE_SLEEP = 0x00,
-        RFM9XW_MODE_LORA_SLEEP = 0x80,
-        RFM9XW_MODE_STANDBY = 0x81,
-        RFM9XW_MODE_TX = 0x83,
-        RFM9XW_MODE_RX_SINGLE = 0x86
-    } RFM9XW_MODE_T;
-
-    typedef enum {
-        RFM9XW_REG_OP_MODE_SLEEP = 0b000,
-        RFM9XW_REG_OP_MODE_STANDBY = 0b001,
-        RFM9XW_REG_OP_MODE_FSTx = 0b010,
-        RFM9XW_REG_OP_MODE_Tx = 0b011,
-        RFM9XW_REG_OP_MODE_FSRx = 0b100,
-        RFM9XW_REG_OP_MODE_Rx = 0b101,
-    } RFM9XW_REG_OP_MODE_T;
-
-    typedef enum {
-        RFM9XW_RX_MODE_NONE = 0,
-        RFM9XW_RX_MODE_1 = 1,
-        RFM9XW_RX_MODE_1_2 = 2
-    } RFM9XW_RX_MODE_T;
-
-    typedef enum {
-        RFM9XW_INT_DIO0,
-        RFM9XW_INT_DIO1,
-        RFM9XW_INT_DIO5,
-    } RFM9XW_INT_T;
-
+class RFM9XW : public NetworkLayer, public Device {
 public:
-    explicit RFM9XW(SPIDevice &spi, GPIODevice &cs, GPIODevice &rst,
-                    GPIODevice &dio_zero, GPIODevice &dio_one, GPIODevice &dio_two,
-                    GPIODevice &dio_three, GPIODevice &dio_four, GPIODevice &dio_five
-                    ) : m_spi(spi), m_cs(cs), m_rst(rst), m_dio_zero(dio_zero), m_dio_one(dio_one),
-                    m_dio_two(dio_two), m_dio_three(dio_three), m_dio_four(dio_four), m_dio_five(dio_five)  {}
+    explicit RFM9XW(SPIDevice &spi, GPIODevice &cs, GPIODevice &rst, GPIODevice &dio_zero,
+                    GPIODevice &dio_one, GPIODevice &dio_two, GPIODevice &dio_three, GPIODevice &dio_four,
+                    GPIODevice &dio_five, const char *name = "RFM9XW") : Device(name),
+                                                                         m_spi(spi), m_cs(cs), m_rst(rst),
+                                                                         m_dio_zero(dio_zero), m_dio_one(dio_one),
+                                                                         m_dio_two(dio_two), m_dio_three(dio_three),
+                                                                         m_dio_four(dio_four), m_dio_five(dio_five) {}
 
     RetType init() {
         RESUME();
@@ -123,16 +65,26 @@ public:
 
         ret = CALL(set_power(20));
         ERROR_CHECK(ret);
+
         ret = CALL(set_payload_len(128));
         ERROR_CHECK(ret);
+
         ret = CALL(set_preamble(0x0, 0x8));
         ERROR_CHECK(ret);
+
         ret = CALL(set_lna(0b01000000));
         ERROR_CHECK(ret);
+
         ret = CALL(set_mode(RFM9XW_MODE_LORA_SLEEP));
         ERROR_CHECK(ret);
 
         ret = CALL(set_frequency(920));
+        ERROR_CHECK(ret);
+
+        ret = CALL(configure_dio_mapping_one(DIO_ZERO_PAY_RDY_PKT_SNT, DIO_ONE_FIFO_FULL, DIO_TWO_RX_RDY));
+        ERROR_CHECK(ret);
+
+        ret = CALL(configure_dio_mapping_two(DIO_THREE_TX_READY, DIO_FOUR_RX_TIME_OUT, DIO_FIVE_DATA));
 
         RESET();
         return ret;
@@ -186,7 +138,15 @@ public:
     RetType receive_data(uint8_t *buff, size_t buff_len, uint8_t *rx_len) {
         RESUME();
 
-        RetType ret = CALL(check_rx_termination());
+        // Clear all flags
+        RetType ret = CALL(write_reg(RFM9XW_REG_IRQ_FLAGS, 0));
+        ERROR_CHECK(ret);
+
+        // Set to Rx mode
+        ret = CALL(set_mode(true, true, RFM9XW_REG_OP_MODE_Rx));
+        ERROR_CHECK(ret);
+
+        ret = CALL(check_rx_termination());
         ERROR_CHECK(ret);
 
         ret = CALL(setup_data_receive(rx_len));
@@ -364,30 +324,30 @@ private:
     GPIODevice &m_dio_four;
     GPIODevice &m_dio_five;
 
-    uint8_t m_buff[16];
+    uint8_t m_buff[16]{};
 
-    uint16_t magic;
-    uint16_t rx_frame_count;
-    uint16_t tx_frame_count;
-    uint8_t rx_one_delay;
-    uint32_t channel_frequencies[16];
-    uint16_t channel_mask;
+    uint16_t magic{};
+    uint16_t rx_frame_count{};
+    uint16_t tx_frame_count{};
+    uint8_t rx_one_delay{};
+    uint32_t channel_frequencies[16]{};
+    uint16_t channel_mask{};
     RFM9XW_RX_MODE_T rx_mode;
     uint32_t irq_times[RFM9XW_NUM_IRQS] = {};
-    uint32_t precision_tick_freq;
+    uint32_t precision_tick_freq{};
     uint32_t timeout_time = 10;
 
     RetType check_rx_termination() {
         RESUME();
 
         RetType ret = CALL(read_reg(RFM9XW_REG_IRQ_FLAGS, m_buff, 1));
-        if (RET_SUCCESS == ret) {
-            // ValidHeader, PayloadCrcError, RxDone and RxTimeout
-            constexpr uint8_t mask = 0b11110000;
-            if (0 != (m_buff[0] & mask)) {
-                ret = RET_ERROR;
-            }
-        }
+//        if (RET_SUCCESS == ret) {
+//            // ValidHeader, PayloadCrcError, RxDone and RxTimeout
+//            constexpr uint8_t mask = 0b11110000;
+//            if (0 != (m_buff[0] & mask)) {
+//                ret = RET_ERROR;
+//            }
+//        }
 
 
 
@@ -619,6 +579,26 @@ private:
         RESUME();
 
         RetType ret = CALL(write_reg(RFM9XW_REG_LNA, val));
+
+        RESET();
+        return ret;
+    }
+
+    RetType configure_dio_mapping_one(const uint8_t dio_zero_val, const uint8_t dio_one_val, const uint8_t dio_two_val) {
+        RESUME();
+
+        m_buff[0] = (dio_two_val << 6) | (dio_one_val << 4) | dio_zero_val;
+        RetType ret = CALL(write_reg(RFM9XW_REG_DIO_MAPPING_1, m_buff[0]));
+
+        RESET();
+        return ret;
+    }
+
+    RetType configure_dio_mapping_two(const uint8_t dio_three_val, const uint8_t dio_four_val, const uint8_t dio_five_val) {
+        RESUME();
+
+        m_buff[0] = (dio_three_val << 6) | (dio_four_val << 4) | dio_five_val;
+        RetType ret = CALL(write_reg(RFM9XW_REG_DIO_MAPPING_1, m_buff[0]));
 
         RESET();
         return ret;
