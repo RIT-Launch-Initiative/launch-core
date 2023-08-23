@@ -1,0 +1,3 @@
+[submodule "extern/launch-core"]
+	path = extern/launch-core
+	url = https://github.com/RIT-Launch-Initiative/launch-core
