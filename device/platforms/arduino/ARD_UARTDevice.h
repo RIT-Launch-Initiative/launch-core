@@ -11,6 +11,7 @@
 #include "sched/macros.h"
 #include "sync/BlockingSemaphore.h"
 #include "return.h"
+#include "device/StreamDevice.h"
 
 /// @brief HAL UART device
 class ARDUARTDevice :  public StreamDevice {
@@ -48,7 +49,7 @@ public:
     /// @param len      the size of 'buff' in bytes
     /// @return
     RetType write(uint8_t *buff, size_t len) {
-        
+
     }
 
 }
