@@ -7,7 +7,6 @@
 #ifndef ARD_UART_DEVICE_H
 #define ARD_UART_DEVICE_H
 
-#include <Wire.h>
 #include "sched/macros.h"
 #include "sync/BlockingSemaphore.h"
 #include "return.h"
@@ -16,6 +15,7 @@
 /// @brief HAL UART device
 class ARDUARTDevice :  public StreamDevice {
 public:
+
     /// @brief constructor
     /// @param name    the name of this device
     ARDUARTDevice(const char *name) : StreamDevice(name) {}
@@ -49,7 +49,25 @@ public:
     /// @param len      the size of 'buff' in bytes
     /// @return
     RetType write(uint8_t *buff, size_t len) {
+        Serial.begin();
+    
+        Serial.write(buff,len);
+        Serial.end()
 
+        return RET_SUCCESS;
+    }
+
+    /// @brief read from the UART
+    ///        blocks until enough data is ready
+    /// @param buff     the buffer to read into
+    /// @param len      the number of bytes to read
+    /// @return
+    RetType read(uint8_t *buff, size_t len) {
+        Serial.begin();
+        if (Serial.available() > len) {
+            Serial.write(buff,len);
+        }
+        Serial.end()
     }
 
 };
