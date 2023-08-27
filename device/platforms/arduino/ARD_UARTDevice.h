@@ -16,6 +16,9 @@
 class ARDUARTDevice :  public StreamDevice {
 public:
 
+    //im not sure how to get the bits per second is obtained HELP FIX
+    const long speed;
+
     /// @brief constructor
     /// @param name    the name of this device
     ARDUARTDevice(const char *name) : StreamDevice(name) {}
@@ -49,9 +52,11 @@ public:
     /// @param len      the size of 'buff' in bytes
     /// @return
     RetType write(uint8_t *buff, size_t len) {
-        Serial.begin();
-    
-        Serial.write(buff,len);
+        Serial.begin(speed);
+        //send buff
+        if (Serial.availableForWrite() >= len){
+            Serial.write(buff,len);
+        }
         Serial.end()
 
         return RET_SUCCESS;
@@ -63,11 +68,14 @@ public:
     /// @param len      the number of bytes to read
     /// @return
     RetType read(uint8_t *buff, size_t len) {
-        Serial.begin();
-        if (Serial.available() > len) {
-            Serial.write(buff,len);
+        Serial.begin(speed);
+        if (Serial.available() >= len) {
+            // read incoming data
+            *buff = Serial.read();
         }
         Serial.end()
+
+        return RET_SUCCESS;
     }
 
 };
