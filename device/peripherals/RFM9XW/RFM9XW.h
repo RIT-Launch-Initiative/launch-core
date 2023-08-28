@@ -159,8 +159,11 @@ public:
     RetType continuous_rx(uint8_t *buff, size_t buff_len, uint8_t *rx_len) {
         RESUME();
 
-        RetType ret = read_reg(RFM9XW_REG_IRQ_FLAGS, &m_buff[0], 1);
-        if (RET_SUCCESS == ret && m_buff[0] & 0b00001000) {
+        RetType ret = read_reg(RFM9XW_REG_IRQ_FLAGS, &m_buff[0], 1); // TODO: Use GPIO interrupts
+        if (RET_SUCCESS == ret && m_buff[0] & 0b01100000) { // Check for RxDone and PayloadCrcError
+            ret = write_reg(RFM9XW_REG_IRQ_FLAGS, 0xFF); // Clear all flags
+            ERROR_CHECK(ret);
+
             ret = CALL(receive_data(buff, buff_len, rx_len));
         }
 
