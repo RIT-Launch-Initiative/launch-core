@@ -153,7 +153,7 @@ namespace RFM9XW_DEFS {
         REG_OP_MODE_FSTx = 0b010,
         REG_OP_MODE_Tx = 0b011,
         REG_OP_MODE_FSRx = 0b100,
-        REG_OP_MODE_Rx = 0b101,
+        REG_OP_MODE_CONT_Rx = 0b101,
     } RFM9XW_REG_OP_MODE_T;
 
     typedef enum {

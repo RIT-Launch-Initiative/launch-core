@@ -9,12 +9,12 @@
 #ifndef RFM9XW_H
 #define RFM9XW_H
 
+#include "RFM9XW_defs.h"
 #include "net/network_layer/NetworkLayer.h"
 #include "sched/macros.h"
 #include "device/GPIODevice.h"
 #include "device/SPIDevice.h"
 #include "sched/macros.h"
-#include "RFM9XW_defs.h"
 
 using namespace RFM9XW_DEFS;
 
@@ -96,10 +96,6 @@ public:
         RetType ret = CALL(set_mode(RFM9XW_MODE_STANDBY));
         ERROR_CHECK(ret);
 
-        // Set to Tx mode
-        ret = CALL(set_mode(RFM9XW_MODE_TX));
-        ERROR_CHECK(ret);
-
         // Set FifoAddrPtr to FifoTxBaseAddr
         ret = CALL(write_reg(RFM9XW_REG_FIFO_ADDR_PTR, 0x80));
         ERROR_CHECK(ret);
@@ -128,8 +124,6 @@ public:
             YIELD();
         }
 
-        ret = CALL(set_mode(RFM9XW_MODE_STANDBY));
-
         RESET();
         return ret;
     }
@@ -137,24 +131,37 @@ public:
     RetType receive_data(uint8_t *buff, size_t buff_len, uint8_t *rx_len) {
         RESUME();
 
-        // Clear all flags
-        RetType ret = CALL(write_reg(RFM9XW_REG_IRQ_FLAGS, 0));
-        ERROR_CHECK(ret);
-
-        // Set to Rx mode
-        ret = CALL(set_mode(true, true, REG_OP_MODE_Rx));
-        ERROR_CHECK(ret);
-
-        ret = CALL(check_rx_termination());
-        ERROR_CHECK(ret);
-
-        ret = CALL(setup_data_receive(rx_len));
+        RetType ret = CALL(setup_data_receive(rx_len));
         if (RET_SUCCESS == ret) {
             if (*rx_len > buff_len) { // Prevent an overflow. Up to the user to give a large enough buffer
                 ret = CALL(read_reg(RFM9XW_REG_FIFO_RX_CURRENT_ADDR, buff, buff_len));
             } else {
                 ret = CALL(read_reg(RFM9XW_REG_FIFO_RX_CURRENT_ADDR, buff, *rx_len));
             }
+        }
+
+        RESET();
+        return ret;
+    }
+
+    RetType enable_continuous_rx() {
+        RESUME();
+
+        RetType ret = CALL(set_mode(RFM9XW_MODE_STANDBY));
+        if (RET_SUCCESS == ret) {
+            ret = CALL(set_mode(true, true, REG_OP_MODE_CONT_Rx));
+        }
+
+        RESET();
+        return ret;
+    }
+
+    RetType continuous_rx(uint8_t *buff, size_t buff_len, uint8_t *rx_len) {
+        RESUME();
+
+        RetType ret = read_reg(RFM9XW_REG_IRQ_FLAGS, &m_buff[0], 1);
+        if (RET_SUCCESS == ret && m_buff[0] & 0b00001000) {
+            ret = CALL(receive_data(buff, buff_len, rx_len));
         }
 
         RESET();
@@ -577,7 +584,7 @@ private:
     RetType set_lna(const uint8_t val) {
         RESUME();
 
-        RetType ret = CALL(write_reg(RFM9XW_REG_LNA, val));
+        RetType ret = CALL(write_reg(COMMON_REG_LNA, val));
 
         RESET();
         return ret;
