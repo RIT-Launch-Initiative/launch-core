@@ -42,8 +42,12 @@ public:
     /// @return
     RetType write(uint8_t *buff, size_t len, uint32_t timeout) {
         SPI.begin();
-        
+        SPI.transfer(buff,len);
         SPI.end();
+    }
+
+    RetType read(uint8_t *buff, size_t len, uint32_t timeout) {
+
     }
 }
 #endif
