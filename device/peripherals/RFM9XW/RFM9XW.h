@@ -345,7 +345,7 @@ private:
     uint32_t precision_tick_freq{};
     uint32_t timeout_time = 10;
 
-    RetType check_rx_termination() {
+    RetType check_rx_termination(void) {
         RESUME();
 
         RetType ret = CALL(read_reg(RFM9XW_REG_IRQ_FLAGS, m_buff, 1));
@@ -394,7 +394,7 @@ private:
         return RET_SUCCESS;
     }
 
-    RetType wait_for_rx_irq() {
+    RetType wait_for_rx_irq(void) {
         RESUME();
         static uint32_t timeout_time;
         timeout_time = sched_time() + RX_TIMEOUT * precision_tick_freq / 1000;
@@ -499,7 +499,7 @@ private:
         return ret;
     }
 
-    RetType set_power(int8_t power) {
+    RetType set_power(const int8_t power) {
         RESUME();
 
         RetType ret;
@@ -540,7 +540,7 @@ private:
         return ret;
     }
 
-    RetType set_mode(bool lora_mode, bool low_freq_mode, RFM9XW_REG_OP_MODE_T mode, bool ook_modulation = false) {
+    RetType set_mode(const bool lora_mode, const bool low_freq_mode, const RFM9XW_REG_OP_MODE_T mode, const bool ook_modulation = false) {
         RESUME();
 
         m_buff[0] = 0;
@@ -607,30 +607,17 @@ private:
         return RET_SUCCESS;
     }
 
-    RetType configure_fsk_packet(bool variable_len = true, uint8_t dc_free_encoding = 0b00, bool crc_enabled = false,
-                                  bool crc_auto_clear_off = false, uint8_t addr_filter = 0b00, bool ibm_whitening = false) {
+    RetType configure_fsk_packet(const bool variable_len = true, const uint8_t dc_free_encoding = 0b00, const bool crc_enabled = false,
+                                  const bool crc_auto_clear_off = false, const uint8_t addr_filter = 0b00, const bool ibm_whitening = false) {
         RESUME();
 
         m_buff[0] = 0;
-        if (variable_len) {
-            m_buff[0] |= 0b1 << 7;
-        }
-
+        if (variable_len) m_buff[0] |= 0b1 << 7;
         m_buff[0] |= (dc_free_encoding & 0b11) << 5;
-
-        if (crc_enabled) {
-            m_buff[0] |= 0b1 << 4;
-        }
-
-        if (crc_auto_clear_off) {
-            m_buff[0] |= 0b1 << 3;
-        }
-
+        if (crc_enabled) m_buff[0] |= 0b1 << 4;
+        if (crc_auto_clear_off) m_buff[0] |= 0b1 << 3;
         m_buff[0] |= (addr_filter & 0b11) << 1;
-
-        if (ibm_whitening) {
-            m_buff[0] |= 0b1;
-        }
+        if (ibm_whitening) m_buff[0] |= 0b1;
 
         RetType ret = CALL(write_reg(RFM9XW_REG_PACKET_CONFIG_1, m_buff[0]));
 
@@ -666,12 +653,6 @@ private:
         RESET();
         return RET_SUCCESS;
     }
-
-    void calculate_rx_timings(const uint32_t bw, const uint8_t sf, const uint32_t tx_ticks, uint32_t* const rx_target, uint32_t* const rx_window_symbols) {
-    }
-
-
-
 };
 
 #endif //RFM9XW_H
