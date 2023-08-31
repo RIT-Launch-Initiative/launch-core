@@ -133,11 +133,10 @@ public:
 
         RetType ret = CALL(setup_data_receive(rx_len));
         if (RET_SUCCESS == ret) {
-            if (*rx_len > buff_len) { // Prevent an overflow. Up to the user to give a large enough buffer
-                ret = CALL(read_reg(RFM9XW_REG_FIFO_RX_CURRENT_ADDR, buff, buff_len));
-            } else {
-                ret = CALL(read_reg(RFM9XW_REG_FIFO_RX_CURRENT_ADDR, buff, *rx_len));
+            if (*rx_len > buff_len) {
+                *rx_len = buff_len; // Prevent an overflow. Up to the user to give a large enough buffer
             }
+            ret = CALL(read_reg(RFM9XW_REG_FIFO_RX_CURRENT_ADDR, buff, *rx_len));
         }
 
         RESET();
