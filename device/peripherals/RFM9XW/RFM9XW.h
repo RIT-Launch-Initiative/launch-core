@@ -47,7 +47,7 @@ public:
     RetType init() {
         RESUME();
 
-        constexpr uint32_t frequency = 920;
+        static constexpr uint32_t frequency = 920;
         rx_mode = RFM9XW_RX_MODE_1_2;
 
         static uint8_t tmp;
@@ -84,6 +84,9 @@ public:
         ERROR_CHECK(ret);
 
         ret = CALL(configure_dio_mapping_two(DIO_THREE_TX_READY, DIO_FOUR_RX_TIME_OUT, DIO_FIVE_DATA));
+        ERROR_CHECK(ret);
+
+        ret = CALL(write_reg(RFM9XW_REG_IRQ_FLAGS, 0xFF)); // Clear all interrupt flags
 
         RESET();
         return ret;
@@ -158,12 +161,14 @@ public:
     RetType continuous_rx(uint8_t *buff, size_t buff_len, uint8_t *rx_len) {
         RESUME();
 
-        RetType ret = read_reg(RFM9XW_REG_IRQ_FLAGS, &m_buff[0], 1); // TODO: Use GPIO interrupts
-        if (RET_SUCCESS == ret && m_buff[0] & 0b01100000) { // Check for RxDone and PayloadCrcError
-            ret = write_reg(RFM9XW_REG_IRQ_FLAGS, 0xFF); // Clear all flags
+        RetType ret = CALL(read_reg(RFM9XW_REG_IRQ_FLAGS, &m_buff[0], 1)); // TODO: Use GPIO interrupts
+        if (RET_SUCCESS == ret ) { // Check for RxDone and PayloadCrcError
+            ret = CALL(write_reg(RFM9XW_REG_IRQ_FLAGS, 0xFF)); // Clear all flags
             ERROR_CHECK(ret);
 
             ret = CALL(receive_data(buff, buff_len, rx_len));
+        } else {
+            ret = RET_ERROR;
         }
 
         RESET();
@@ -248,7 +253,7 @@ public:
         static int8_t packet_snr;
         static uint8_t calc_len;
 
-        calculate_rx_timings(125000, 7, tx_ticks, &rx1_target, &rx1_window_symbols);
+//        calculate_rx_timings(125000, 7, tx_ticks, &rx1_target, &rx1_window_symbols);
 
         if (rx1_window_symbols > 0x3ff) {
             RESET();
@@ -357,8 +362,6 @@ private:
 //            }
 //        }
 
-
-
         RESET();
         return ret;
     }
@@ -370,13 +373,13 @@ private:
         RetType ret = CALL(read_reg(RFM9XW_REG_FIFO_ADDR_PTR, m_buff, 1));
         ERROR_CHECK(ret);
 
-        ret = CALL(write_reg(RFM9XW_REG_FIFO_ADDR_PTR, m_buff[0]));
+        ret = CALL(write_reg(LORA_REG_FIFO_RX_BYTE_ADDR, m_buff[0]));
 
         // Read number of bytes received
         ret = CALL(read_reg(RFM9XW_REG_FIFO_RX_BYTES_NB, rx_len, 1));
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     //TODO
@@ -412,7 +415,7 @@ private:
         return RET_SUCCESS;
     }
 
-    RetType read_reg(const uint8_t reg, uint8_t* buff, const size_t len) {
+    RetType read_reg(const uint8_t reg, uint8_t* buff, const size_t len, const uint32_t timeout = 0) {
         RESUME();
 
         RetType ret = CALL(m_cs.set(0));
@@ -421,7 +424,7 @@ private:
         buff[0] = reg & 0x7FU;
 
         // TODO: Write one byte and then proceed to read or is this ok?
-        ret = CALL(m_spi.write_read(buff, buff, len));
+        ret = CALL(m_spi.write_read(buff, buff, len, timeout));
         ERROR_CHECK(ret);
 
 //        ret = CALL(m_spi.write(buff, len));
