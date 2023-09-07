@@ -9,10 +9,10 @@
 
 #include <stdint.h>
 
+#include "common/utils/conversion.h"
 #include "device/I2CDevice.h"
 #include "sched/macros.h"
 #include "return.h"
-#include "utils/conversion.h"
 
 #define TMP117_DATA_STRUCT(variable_name) TMP117::TMP117_DATA_T variable_name = {.id = 16001, .temperature = 0}
 
