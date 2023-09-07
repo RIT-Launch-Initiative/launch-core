@@ -9,16 +9,16 @@
 
 #define ADXL375_DATA_STRUCT(variable_name) ADXL375::ADXL375_DATA_T variable_name = {.id = 12000, .x_accel = 0, .y_accel = 0, .z_accel = 0}
 
-#include <stdlib.h>
 #include <stdint.h>
+#include <stdlib.h>
 
+#include "common/utils/conversion.h"
 #include "device/I2CDevice.h"
-#include "utils/conversion.h"
-#include "sched/macros.h"
 #include "return.h"
+#include "sched/macros.h"
 
 class ADXL375 : public Device {
-public:
+   public:
     typedef enum {
         xLSBDataReg = 0x32,
         xMSBDataReg = 0x33,
@@ -76,8 +76,7 @@ public:
     static constexpr float ADXL375_GRAVITY = 9.80665F;
 
     explicit ADXL375(I2CDevice &i2c, const uint16_t address = ADXL375_DEV_ADDR_PRIM, const char *name = "ADXl375")
-            : Device(name), m_i2c(&i2c),
-              i2cAddr({.dev_addr = static_cast<uint16_t>(address << 1), .mem_addr = 0, .mem_addr_size = 1}) {}
+        : Device(name), m_i2c(&i2c), i2cAddr({.dev_addr = static_cast<uint16_t>(address << 1), .mem_addr = 0, .mem_addr_size = 1}) {}
 
     RetType init() override {
         RESUME();
@@ -123,7 +122,7 @@ public:
      */
     RetType readXYZ(int16_t *xAxis, int16_t *yAxis, int16_t *zAxis) {
         constexpr float scale = ADXL375_MG2G_MULTIPLIER * ADXL375_GRAVITY;
-        constexpr float bound = 500; // Good chance we're not going past Mach 1.5
+        constexpr float bound = 500;  // Good chance we're not going past Mach 1.5
 
         RESUME();
 
@@ -134,7 +133,7 @@ public:
         *yAxis = static_cast<int16_t>((m_buff[3] << 8) | m_buff[2]) * scale;
         *zAxis = static_cast<int16_t>((m_buff[5] << 8) | m_buff[4]) * scale;
 
-        if ((bound < abs(*xAxis)) || (bound < abs(*yAxis)) || (bound < abs(*zAxis)) ) {
+        if ((bound < abs(*xAxis)) || (bound < abs(*yAxis)) || (bound < abs(*zAxis))) {
             ret = RET_ERROR;
         }
 
@@ -286,7 +285,7 @@ public:
         return ret;
     }
 
-private:
+   private:
     I2CDevice *m_i2c;
     I2CAddr_t i2cAddr;
     uint8_t m_buff[6];
@@ -341,8 +340,6 @@ private:
         RESET();
         return ret;
     }
-
 };
 
-
-#endif //ADXL375_H
+#endif  // ADXL375_H

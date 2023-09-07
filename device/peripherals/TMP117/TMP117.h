@@ -9,15 +9,15 @@
 
 #include <stdint.h>
 
+#include "common/utils/conversion.h"
 #include "device/I2CDevice.h"
-#include "sched/macros.h"
 #include "return.h"
-#include "utils/conversion.h"
+#include "sched/macros.h"
 
 #define TMP117_DATA_STRUCT(variable_name) TMP117::TMP117_DATA_T variable_name = {.id = 16001, .temperature = 0}
 
 class TMP117 : public Device {
-public:
+   public:
     typedef struct {
         const uint16_t id;
         float temperature;
@@ -56,10 +56,7 @@ public:
     constexpr static uint16_t DEVICE_ID_VALUE = 0x0117;
     constexpr static float TMP117_RESOLUTION = 0.0078125f;
 
-
-    explicit TMP117(I2CDevice &i2CDevice, const uint16_t address = TMP_117_DEVICE_ADDR, const char *name = "TMP117") :
-            Device(name), mI2C(&i2CDevice),
-            i2cAddr({.dev_addr = static_cast<uint16_t>(address << 1), .mem_addr = 0, .mem_addr_size = 1}) {}
+    explicit TMP117(I2CDevice &i2CDevice, const uint16_t address = TMP_117_DEVICE_ADDR, const char *name = "TMP117") : Device(name), mI2C(&i2CDevice), i2cAddr({.dev_addr = static_cast<uint16_t>(address << 1), .mem_addr = 0, .mem_addr_size = 1}) {}
 
     /**
      * @brief Initialize the TMP117 sensor
@@ -95,7 +92,6 @@ public:
         return ret;
     }
 
-
     /**
      * @brief Get the data from the TMP117 sensor in Celsius
      *
@@ -115,7 +111,6 @@ public:
         return ret;
     }
 
-
     /**
      * Get the data from the TMP117 sensor in Fahrenheit
      * @param temp[out] - Pointer to the temperature variable in F
@@ -129,11 +124,9 @@ public:
             *temp = celsius_to_fahrenheit(*temp);
         }
 
-
         RESET();
         return ret;
     }
-
 
     /**
      * Get the temperature offset in mC for calibration
@@ -169,7 +162,6 @@ public:
         RESET();
         return ret;
     }
-
 
     /**
      * @brief Gets the limit set for alerts
@@ -247,7 +239,7 @@ public:
         return ret;
     }
 
-private:
+   private:
     I2CDevice *mI2C;
     I2CAddr_t i2cAddr;
     uint8_t tx_buff[2]{};
@@ -307,4 +299,4 @@ private:
     }
 };
 
-#endif //LAUNCH_CORE_TMP117_H
+#endif  // LAUNCH_CORE_TMP117_H
