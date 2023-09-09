@@ -12,8 +12,8 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+#include "common/utils/conversion.h"
 #include "device/I2CDevice.h"
-#include "utils/conversion.h"
 #include "sched/macros.h"
 #include "return.h"
 
