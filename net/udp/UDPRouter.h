@@ -55,20 +55,26 @@ namespace udp {
             packet.skip_read(sizeof(UDP_HEADER_T));
 
             if(!info.ignore_checksums) {
-                if(header->checksum != checksum(header, (uint8_t*)(&info.src.ipv4_addr),
-                                (uint8_t*)(&info.dst.ipv4_addr),
-                                packet.read_ptr<uint8_t>(), packet.available())) {
+                uint32_t src_ip = ntoh32(info.src.ipv4_addr);
+                uint32_t dst_ip = ntoh32(info.dst.ipv4_addr);
+                uint16_t original_checksum = header->checksum;
+                header->checksum = 0;
+                uint16_t calc_checksum = checksum(header, reinterpret_cast<uint8_t *>(&src_ip), reinterpret_cast<uint8_t *>(&dst_ip), packet.read_ptr<uint8_t>(), packet.available());
+                if(original_checksum != calc_checksum) {
+                    RESET();
                     return RET_ERROR;
                 }
             }
 
             NetworkLayer **next_ptr = port_bindings[ntoh16(header->dst)];
             if (next_ptr == nullptr) {
+                RESET();
                 return RET_ERROR;
             }
 
             NetworkLayer *next = *next_ptr;
             if (next == nullptr) {
+                RESET();
                 return RET_ERROR;
             }
             RetType ret = CALL(next->receive(packet, info, this));
@@ -83,11 +89,13 @@ namespace udp {
             UDP_HEADER_T *header = packet.allocate_header<UDP_HEADER_T>();
 
             if (header == nullptr) {
+                RESET();
                 return RET_ERROR;
             }
 
             uint16_t *src_port = layer_bindings[caller];
             if (src_port == nullptr) {
+                RESET();
                 return RET_ERROR;
             }
 
@@ -108,6 +116,7 @@ namespace udp {
             UDP_HEADER_T *header = packet.allocate_header<UDP_HEADER_T>();
 
             if(NULL == header) {
+                RESET();
                 return RET_ERROR;
             }
 

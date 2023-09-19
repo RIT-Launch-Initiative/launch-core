@@ -1,10 +1,15 @@
 /**
  * Defines helper functions for converting between different integer types
- * 
+ *
  * @author Aaron Chan
  */
-#ifndef LAUNCH_CORE_CONVERSION_H
-#define LAUNCH_CORE_CONVERSION_H
+#ifndef CONVERSION_H
+#define CONVERSION_H
+
+#define celsius_to_fahrenheit(x) (x * 1.8) + 32
+#define fahrenheit_to_celsius(x) (x - 32) / 1.8
+
+
 
 #define uint16_to_uint8(x, buff) \
     *(buff) = (x >> 8) & 0xFF;   \
@@ -70,4 +75,4 @@
     ((int64_t) *(buff + 4) << 24) | ((int64_t) *(buff + 5) << 16) | ((int64_t) *(buff + 6) << 8) | *(buff + 7)
 
 
-#endif //LAUNCH_CORE_CONVERSION_H
+#endif //CONVERSION_H

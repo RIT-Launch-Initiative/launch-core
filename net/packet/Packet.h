@@ -109,6 +109,20 @@ public:
         return RET_SUCCESS;
     }
 
+    /// @brief move write position backwards and zero out the data
+    /// @param len  the number of bytes to undo
+    /// @return
+    RetType erase(size_t len) {
+        if (m_wpos - len < m_headerSize) {
+            return RET_ERROR;
+        }
+
+        m_wpos -= len;
+        memset(m_buff + m_wpos, 0, len);
+
+        return RET_SUCCESS;
+    }
+
     /// @brief truncate the packet to only have a certain size remaining
     /// @param size     the new amount of unread data in the packet
     /// @return
@@ -119,7 +133,7 @@ public:
         }
 
         // shrink by the difference b/w available and size
-        m_rpos -= (available() - size);
+        m_wpos -= (available() - size);
 
         return RET_SUCCESS;
     }

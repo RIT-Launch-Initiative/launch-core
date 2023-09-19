@@ -1,5 +1,5 @@
 /**
- * LIS3MDL sensor driver integrated with launch-core scheduler
+ * LIS3MDL Platform Independent Driver
  *
  * @author Aaron Chan
  */
@@ -9,53 +9,64 @@
 #define LIS3MDL_DATA_STRUCT(variable_name) LIS3MDL_DATA_T variable_name = {.id = 15000, .x_mag = 0, .y_mag = 0, .z_mag = 0, .temperature = 0}
 
 #include "device/I2CDevice.h"
-#include "sched/macros/resume.h"
-#include "sched/macros/reset.h"
 #include "lis3mdl_reg.h"
-#include "sched/macros/call.h"
+#include "sched/macros.h"
 
 
 using LIS3MDL_DATA_T = struct {
     const uint16_t id;
-    float x_mag;
-    float y_mag;
-    float z_mag;
-    float temperature;
-};
-
-enum LIS3MDL_I2C_ADDR {
-    LIS3MDL_I2C_ADDR_PRIMARY = 0x1C,
-    LIS3MDL_I2C_ADDR_SECONDARY = 0x1E,
+    int16_t x_mag;
+    int16_t y_mag;
+    int16_t z_mag;
+    int16_t temperature;
 };
 
 class LIS3MDL : public Device {
 public:
-    LIS3MDL(I2CDevice &i2cDevice, const uint16_t address = LIS3MDL_I2C_ADDR_PRIMARY, const char *name = "LIS3MDL") : Device(name), mI2C(&i2cDevice), i2cAddr({.dev_addr = static_cast<uint16_t>(address << 1), .mem_addr = 0, .mem_addr_size = 1}) {}
+    typedef enum {
+        LIS3MDL_I2C_ADDR_PRIMARY = 0x1C,
+        LIS3MDL_I2C_ADDR_SECONDARY = 0x1E,
+    } LIS3MDL_I2C_ADDR;
+
+    typedef enum {
+        LIS3MDL_OUT_X_L = 0x28U,
+        LIS3MDL_OUT_X_H = 0x29U,
+        LIS3MDL_OUT_Y_L = 0x2AU,
+        LIS3MDL_OUT_Y_H = 0x2BU,
+        LIS3MDL_OUT_Z_L = 0x2CU,
+        LIS3MDL_OUT_Z_H = 0x2DU,
+        LIS3MDL_TEMP_OUT_L = 0x2EU,
+        LIS3MDL_TEMP_OUT_H = 0x2FU,
+        LIS3MDL_INT_CFG = 0x30U
+    } LIS3MDL_DATA_REGISTER_T;
+
+    explicit LIS3MDL(I2CDevice &i2cDevice, const uint16_t address = LIS3MDL::LIS3MDL_I2C_ADDR_PRIMARY, const char *name = "LIS3MDL")
+            : Device(name), m_i2cDev(&i2cDevice),
+              m_i2cAddr({.dev_addr = static_cast<uint16_t>(address << 1), .mem_addr = 0, .mem_addr_size = 1}) {}
+
     RetType init() override {
         RESUME();
 
-        static uint8_t whoAmI = 0;
-        RetType ret = CALL(readReg(LIS3MDL_WHO_AM_I, &whoAmI, 1, 50));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-        if (whoAmI != LIS3MDL_ID) return RET_ERROR;
+        RetType ret = CALL(readReg(LIS3MDL_WHO_AM_I, m_buff, 1, 50));
+        if (LIS3MDL_ID != m_buff[0]) ret = RET_ERROR;
 
-        ret = CALL(initSettings());
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
+        if (RET_SUCCESS == ret) {
+            ret = CALL(initSettings());
         }
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
+    /**
+     * Get all calculated sensor data
+     * @param data - Struct to sensor data
+     * @return Scheduler Status
+     */
     RetType getData(LIS3MDL_DATA_T *data) {
         RESUME();
 
-        RetType ret = CALL(pullSensorData(&data->x_mag, &data->y_mag, &data->z_mag, &data->temperature));
+        RetType ret = CALL(getData(&data->x_mag, &data->y_mag, &data->z_mag, &data->temperature));
 
         RESET();
         return ret;
@@ -68,101 +79,389 @@ public:
      * @param magY - Y Gauss
      * @param magZ - Z Gauss
      * @param temp - Celsius Temperature
+     * @return Scheduler Status
+     */
+    RetType getData(int16_t *magX, int16_t *magY, int16_t *magZ, int16_t *temp) {
+        RESUME();
+
+        RetType ret = CALL(getRawData(m_buff));
+        if (RET_SUCCESS == ret) {
+            *magX = fs16ToGauss(static_cast<int16_t>(m_buff[1] << 8) | static_cast<int16_t>(m_buff[0]));
+            *magY = fs16ToGauss(static_cast<int16_t>(m_buff[3] << 8) | static_cast<int16_t>(m_buff[2]));
+            *magZ = fs16ToGauss(static_cast<int16_t>(m_buff[5] << 8) | static_cast<int16_t>(m_buff[4]));
+            *temp = lsbToCelsius(static_cast<int16_t>(m_buff[7] << 8) | static_cast<int16_t>(m_buff[6]));
+        }
+
+        RESET();
+        return ret;
+    }
+
+    /**
+     * Get all raw data (mag and temp)
+     * @param buff - Buffer of at least 8 bytes
+     * @return Scheduler Status
+     */
+    RetType getRawData(uint8_t *buff) {
+        RESUME();
+
+        RetType ret = CALL(readReg(LIS3MDL_OUT_X_L, buff, 8));
+
+        RESET();
+        return ret;
+    }
+
+    /**
+     * Get raw mag data
+     * @param buff - Buffer of at least 6 bytes
+     * @return Scheduler Status
+     */
+    RetType getRawMagnetic(uint8_t *buff) {
+        RESUME();
+
+        RetType ret = CALL(readReg(LIS3MDL_OUT_X_L, buff, 6));
+
+        RESET();
+        return ret;
+    }
+
+    /**
+     * Get raw temp data
+     * @param buff - Buffer of at least 2 bytes
+     * @return Scheduler Status
+     */
+    RetType getRawTemp(uint8_t *buff) {
+        RESUME();
+
+        RetType ret = CALL(readReg(LIS3MDL_TEMP_OUT_L, buff, 2));
+
+        RESET();
+        return ret;
+    }
+
+    /**
+     * Sets the output data rate
+     * @param val Modify the value of the OM field in the CTRL_REG1 register
+     * @return Scheduler Status
+     */
+    RetType setDataRate(lis3mdl_om_t val) {
+        RESUME();
+
+        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG1, (uint8_t * ) &m_ctrlReg1, 1));
+        ERROR_CHECK(ret);
+
+        m_ctrlReg1.om = val;
+        ret = CALL(readReg(LIS3MDL_CTRL_REG4, (uint8_t * ) &m_ctrlReg4, 1));
+        ERROR_CHECK(ret);
+
+        ret = CALL(writeReg(LIS3MDL_CTRL_REG1, (uint8_t * ) &m_ctrlReg1, 1));
+        ERROR_CHECK(ret);
+
+        m_ctrlReg4.omz = val;
+        ret = CALL(writeReg(LIS3MDL_CTRL_REG4, (uint8_t * ) &m_ctrlReg4, 1));
+
+        RESET();
+        return ret;
+    }
+
+    /**
+     * Enables or disables temperature measurements
+     * @param val Value of temperature measurement enable bit in CTRL_REG1 register
      * @return
      */
-    RetType pullSensorData(float *magX, float *magY, float *magZ, float *temp) {
+    RetType setTempMeas(uint8_t val) {
         RESUME();
 
-        static int16_t rawMagneticData[3];
-        static int16_t rawTemp;
 
-        RetType ret = CALL(getRawMagnetic(rawMagneticData));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
+        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG1, reinterpret_cast<uint8_t*>(&m_ctrlReg1), 1));
+        ERROR_CHECK(ret);
 
-        *magX = fs16ToGauss(rawMagneticData[0]);
-        *magY = fs16ToGauss(rawMagneticData[1]);
-        *magZ = fs16ToGauss(rawMagneticData[2]);
-
-        ret = CALL(getRawTemp(&rawTemp));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-        *temp = lsbToCelsius(rawTemp);
+        m_ctrlReg1.temp_en = val;
+        ret = CALL(writeReg(LIS3MDL_CTRL_REG1, reinterpret_cast<uint8_t*>(&m_ctrlReg1), 1));
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
-    RetType getRawMagnetic(int16_t *val) {
+    /**
+     * Sets the full scale of the magnetometer
+     *
+     * @param val Modify the value of the FS field in the CTRL_REG2 register
+     * @return
+     */
+    RetType setFullScale(lis3mdl_fs_t val) {
         RESUME();
 
-        static uint8_t buff[6];
-        RetType ret = CALL(readReg(LIS3MDL_OUT_X_L, buff, 6));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
+        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG2, reinterpret_cast<uint8_t *>(&m_ctrlReg2), 1));
+        ERROR_CHECK(ret);
 
-        // TODO: Below calculations cause a hardfault
-        val[0] = (int16_t) buff[1];
-        val[0] = (val[0] * 256) + (int16_t) buff[0];
-        val[1] = (int16_t) buff[3];
-        val[1] = (val[1] * 256) + (int16_t) buff[2];
-        val[2] = (int16_t) buff[5];
-        val[2] = (val[2] * 256) + (int16_t) buff[4];
+        m_ctrlReg2.fs = val;
+
+        ret = CALL(writeReg(LIS3MDL_CTRL_REG2, reinterpret_cast<uint8_t *>(&m_ctrlReg2), 1));
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
-    RetType getRawTemp(int16_t *val) {
+    /**
+     * Sets the operating mode of the magnetometer
+     * @param val The value of the MD field in the CTRL_REG3 register
+     * @return
+     */
+    RetType setOperatingMode(lis3mdl_md_t val) {
         RESUME();
 
-        static uint8_t data[2];
-        RetType ret = CALL(readReg(LIS3MDL_TEMP_OUT_L, (uint8_t *) data, 2));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
+        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG3, reinterpret_cast<uint8_t *>(&m_ctrlReg3), 1));
+
+        if (RET_SUCCESS == ret) {
+            m_ctrlReg3.md = val;
+            ret = CALL(writeReg(LIS3MDL_CTRL_REG3, reinterpret_cast<uint8_t *>(&m_ctrlReg3), 1));
         }
 
-        *val = (int16_t) data[1];
-        *val = (*val * 256) + (int16_t) data[0];
-
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
-    RetType readReg(uint8_t reg, uint8_t *data, uint16_t len, uint32_t timeout = 0) {
+    /**
+     * Sets the power mode of the magnetometer
+     * @param val Value of the LP field in the CTRL_REG3 register
+     *            1 = low power mode   0 = normal mode
+     * @return
+     */
+    RetType setPowerMode(uint8_t val) {
         RESUME();
 
-        i2cAddr.mem_addr = reg;
-        RetType ret = CALL(mI2C->read(i2cAddr, data, len, timeout));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
+        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG3, reinterpret_cast<uint8_t *>(&m_ctrlReg3), 1));
+
+        if (RET_SUCCESS == ret) {
+            m_ctrlReg3.lp = val;
+            ret = CALL(writeReg(LIS3MDL_CTRL_REG3, reinterpret_cast<uint8_t *>(&m_ctrlReg3), 1));
         }
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
+    }
+
+    RetType setBlockDataUpdate(uint8_t val) {
+        RESUME();
+
+
+        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG4, reinterpret_cast<uint8_t *>(&m_ctrlReg5), 1));
+        if (RET_SUCCESS == ret) {
+            m_ctrlReg5.bdu = val;
+            ret = CALL(writeReg(LIS3MDL_CTRL_REG4, reinterpret_cast<uint8_t *>(&m_ctrlReg5), 1));
+        }
+
+        RESET();
+        return ret;
+    }
+
+
+    RetType setHighPartCycle(uint8_t val) {
+        RESUME();
+
+        RetType ret = CALL(writeReg(LIS3MDL_CTRL_REG5, &val, 1));
+
+        if (val == 0 && ret == RET_SUCCESS) {
+            ret = CALL(readReg(LIS3MDL_CTRL_REG5, reinterpret_cast<uint8_t *>(&m_ctrlReg5), 1));
+        }
+
+        RESET();
+        return ret;
+    }
+
+
+    /**
+     * Software reset. Restore default values in user registers
+     *
+     * @param val
+     * @return
+     */
+    RetType reset() {
+        RESUME();
+
+        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG2, reinterpret_cast<uint8_t *>(&m_ctrlReg2), 1));
+
+        RESET();
+        return ret;
+    }
+
+    RetType reboot() {
+        RESUME();
+
+        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG2, reinterpret_cast<uint8_t *>(&m_ctrlReg2), 1));
+
+        RESET();
+        return ret;
+    }
+
+    /**
+     * Set the endianness of the data output
+     *
+     * @param val 1 = little endian   0 = big endian
+     * @return
+     */
+    RetType setDataEndianness(uint8_t val) {
+        RESUME();
+
+        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG4, reinterpret_cast<uint8_t *>(&m_ctrlReg4), 1));
+
+        RESET();
+        return ret;
+    }
+
+    /**
+     * Get the endianness of the data output
+     *
+     * @param val 1 = little endian   0 = big endian
+     * @return
+     */
+    RetType getDataEndianness(uint8_t *val) {
+        RESUME();
+
+        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG4, reinterpret_cast<uint8_t *>(&m_ctrlReg4), 1));
+        *val = m_ctrlReg4.ble;
+
+        RESET();
+        return ret;
+    }
+
+    RetType setConfig(lis3mdl_int_cfg_t *val) {
+        RESUME();
+
+        RetType ret = CALL(writeReg(LIS3MDL_INT_CFG, reinterpret_cast<uint8_t *>(val), 1));
+
+        RESET();
+        return ret;
+    }
+
+    /**
+     * Enable INT pin
+     * @param val 1 = enable   0 = disable
+     * @return
+     */
+    RetType enableInterrupt(uint8_t val) {
+        RESUME();
+
+        RetType ret = RET_ERROR;
+        if (LIS3MDL_ACTIVE_HIGH == val || LIS3MDL_ACTIVE_LOW == val) {
+            ret = CALL(writeReg(LIS3MDL_INT_CFG, &val, 1));
+        }
+
+        RESET();
+        return ret;
+    }
+
+    RetType setInterruptNotifications(uint8_t val) {
+        RESUME();
+
+        RetType ret = RET_ERROR;
+        if (LIS3MDL_INT_LATCHED == val || LIS3MDL_INT_PULSED == val) {
+            ret = CALL(writeReg(LIS3MDL_INT_SRC, &val, 1));
+        }
+
+        RESET();
+        return ret;
+    }
+
+    /**
+     * Set the polarity of the INT pin
+     *
+     * @param val 1 = active high   0 = active low
+     * @return
+     */
+    RetType setInterruptPolarity(uint8_t val) {
+        RESUME();
+
+        RetType ret = CALL(writeReg(LIS3MDL_INT_CFG, &val, 1));
+
+        RESET();
+        return ret;
+    }
+
+
+    RetType getStatus(lis3mdl_status_reg_t *val) {
+        RESUME();
+
+        RetType ret = CALL(readReg(LIS3MDL_STATUS_REG, reinterpret_cast<uint8_t *>(val), 1));
+
+        RESET();
+        return ret;
+    }
+
+private:
+    I2CDevice *m_i2cDev;
+    I2CAddr_t m_i2cAddr;
+    uint8_t m_buff[10] = {0};
+    lis3mdl_ctrl_reg1_t m_ctrlReg1 = {0};
+    lis3mdl_ctrl_reg2_t m_ctrlReg2 = {0};
+    lis3mdl_ctrl_reg3_t m_ctrlReg3 = {0};
+    lis3mdl_ctrl_reg4_t m_ctrlReg4 = {0};
+    lis3mdl_ctrl_reg5_t m_ctrlReg5 = {0};
+
+
+    RetType initSettings() {
+        RESUME();
+
+        // Reset the sensor
+        RetType ret = CALL(reset());
+
+        // Enable Block Update
+        ret = CALL(setBlockDataUpdate(PROPERTY_ENABLE));
+        ERROR_CHECK(ret);
+
+        // Set ODR
+        ret = CALL(setDataRate(LIS3MDL_HP_80Hz));
+        ERROR_CHECK(ret);
+
+        // Set FS
+        ret = CALL(setFullScale(LIS3MDL_16_GAUSS));
+        ERROR_CHECK(ret);
+
+        // Enable temp sensing
+        ret = CALL(setTempMeas(PROPERTY_ENABLE));
+        ERROR_CHECK(ret);
+
+        // Set to continuous mode
+        ret = CALL(setOperatingMode(LIS3MDL_CONTINUOUS_MODE));
+
+        RESET();
+        return ret;
+    }
+
+    /**
+     * Read from sensor register(s)
+     * @param reg - Register to start reading from
+     * @param buff - Buffer to read data into
+     * @param len - Number of bytes to read
+     * @param timeout - Time before error
+     * @return Scheduler Status
+     */
+    RetType readReg(uint8_t reg, uint8_t *buff, uint16_t len, uint32_t timeout = 0) {
+        RESUME();
+
+        m_i2cAddr.mem_addr = reg;
+        RetType ret = CALL(m_i2cDev->read(m_i2cAddr, buff, len, timeout));
+
+        RESET();
+        return ret;
     };
 
-    RetType writeReg(uint8_t reg, uint8_t *data, uint16_t len, uint32_t timeout = 0) {
+    /**
+     * Write to sensor register(s)
+     * @param reg - Register to start writing tfrom
+     * @param buff - Buffer of data to write
+     * @param len - Number of bytes to write
+     * @param timeout - Time before error
+     * @return Scheduler Status
+     */
+    RetType writeReg(uint8_t reg, uint8_t *buff, uint16_t len, uint32_t timeout = 0) {
         RESUME();
 
-        i2cAddr.mem_addr = reg;
-
-        RetType ret = CALL(mI2C->write(i2cAddr, data, len, timeout));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
+        m_i2cAddr.mem_addr = reg;
+        RetType ret = CALL(m_i2cDev->write(m_i2cAddr, buff, len, timeout));
 
         RESET();
-        return RET_SUCCESS;
+        return ret;
     };
 
 
@@ -184,406 +483,6 @@ public:
 
     float lsbToCelsius(int16_t lsb) {
         return (lsb / 8.0f) + 25.0f;
-    }
-
-    /**
-     * Sets the output data rate
-     * @param val Modify the value of the OM field in the CTRL_REG1 register
-     * @return
-     */
-    RetType setDataRate(lis3mdl_om_t val) {
-        RESUME();
-
-        static lis3mdl_ctrl_reg1_t ctrlReg1;
-        static lis3mdl_ctrl_reg4_t ctrlReg4;
-
-        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG1, (uint8_t *) &ctrlReg1, 1));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
-        ctrlReg1.om = val;
-        ret = CALL(readReg(LIS3MDL_CTRL_REG4, (uint8_t *) &ctrlReg4, 1));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
-        ret = CALL(writeReg(LIS3MDL_CTRL_REG1, (uint8_t *) &ctrlReg1, 1));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
-        ctrlReg4.omz = val;
-        ret = CALL(writeReg(LIS3MDL_CTRL_REG4, (uint8_t *) &ctrlReg4, 1));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
-        RESET();
-        return ret;
-    }
-
-    /**
-     * Enables or disables temperature measurements
-     * @param val Value of temperature measurement enable bit in CTRL_REG1 register
-     * @return
-     */
-    RetType setTempMeas(uint8_t val) {
-        RESUME();
-
-        static lis3mdl_ctrl_reg1_t ctrlReg1;
-
-        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG1, reinterpret_cast<uint8_t *>(&ctrlReg1), 1));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
-        ctrlReg1.temp_en = val;
-        ret = CALL(writeReg(LIS3MDL_CTRL_REG1, reinterpret_cast<uint8_t *>(&ctrlReg1), 1));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
-        RESET();
-        return ret;
-    }
-
-    /**
-     * Sets the full scale of the magnetometer
-     *
-     * @param val Modify the value of the FS field in the CTRL_REG2 register
-     * @return
-     */
-    RetType setFullScale(lis3mdl_fs_t val) {
-        RESUME();
-
-        static lis3mdl_ctrl_reg2_t ctrlReg2;
-
-        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG2, reinterpret_cast<uint8_t *>(&ctrlReg2), 1));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
-        ctrlReg2.fs = val;
-        ret = CALL(writeReg(LIS3MDL_CTRL_REG2, reinterpret_cast<uint8_t *>(&ctrlReg2), 1));
-
-        RESET();
-        return RET_SUCCESS;
-    }
-
-    /**
-     * Sets the operating mode of the magnetometer
-     * @param val The value of the MD field in the CTRL_REG3 register
-     * @return
-     */
-    RetType setOperatingMode(lis3mdl_md_t val) {
-        RESUME();
-
-        static lis3mdl_ctrl_reg3_t ctrlReg3;
-
-        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG3, reinterpret_cast<uint8_t *>(&ctrlReg3), 1));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
-        ctrlReg3.md = val;
-        ret = CALL(writeReg(LIS3MDL_CTRL_REG3, reinterpret_cast<uint8_t *>(&ctrlReg3), 1));
-
-        RESET();
-        return ret;
-    }
-
-    /**
-     * Sets the power mode of the magnetometer
-     * @param val Value of the LP field in the CTRL_REG3 register
-     *            1 = low power mode   0 = normal mode
-     * @return
-     */
-    RetType setPowerMode(uint8_t val) {
-        RESUME();
-
-        static lis3mdl_ctrl_reg3_t ctrlReg3;
-
-        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG3, reinterpret_cast<uint8_t *>(&ctrlReg3), 1));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
-        ctrlReg3.lp = val;
-        ret = CALL(writeReg(LIS3MDL_CTRL_REG3, reinterpret_cast<uint8_t *>(&ctrlReg3), 1));
-
-        RESET();
-        return ret;
-    }
-
-    RetType setBlockDataUpdate(uint8_t val) {
-        RESUME();
-
-        static lis3mdl_ctrl_reg5_t ctrlReg5;
-
-        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG4, reinterpret_cast<uint8_t *>(&ctrlReg5), 1));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
-        ctrlReg5.bdu = val;
-        ret = CALL(writeReg(LIS3MDL_CTRL_REG4, reinterpret_cast<uint8_t *>(&ctrlReg5), 1));
-
-        RESET();
-        return RET_SUCCESS;
-    }
-
-
-    RetType setHighPartCycle(uint8_t val) {
-        RESUME();
-
-        RetType ret = CALL(writeReg(LIS3MDL_CTRL_REG5, &val, 1));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
-        if (val == 0) {
-            static lis3mdl_ctrl_reg5_t ctrlReg5;
-            ret = CALL(readReg(LIS3MDL_CTRL_REG5, reinterpret_cast<uint8_t *>(&ctrlReg5), 1));
-            if (ret != RET_SUCCESS) {
-                RESET();
-                return ret;
-            }
-        }
-
-        RESET();
-        return RET_SUCCESS;
-    }
-
-
-    /**
-     * Software reset. Restore default values in user registers
-     *
-     * @param val
-     * @return
-     */
-    RetType reset(uint8_t val) {
-        RESUME();
-        static lis3mdl_ctrl_reg2_t ctrlReg2;
-
-        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG2, reinterpret_cast<uint8_t *>(&ctrlReg2), 1));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
-        RESET();
-        return RET_SUCCESS;
-    }
-
-    RetType reboot(uint8_t val) {
-        RESUME();
-        static lis3mdl_ctrl_reg2_t ctrlReg2;
-
-        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG2, reinterpret_cast<uint8_t *>(&ctrlReg2), 1));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
-        RESET();
-        return RET_SUCCESS;
-    }
-
-    /**
-     * Set the endianness of the data output
-     *
-     * @param val 1 = little endian   0 = big endian
-     * @return
-     */
-    RetType setDataEndianness(uint8_t val) {
-        RESUME();
-        static lis3mdl_ctrl_reg4_t ctrlReg4;
-
-        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG4, reinterpret_cast<uint8_t *>(&ctrlReg4), 1));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
-        RESET();
-        return RET_SUCCESS;
-    }
-
-    /**
-     * Get the endianness of the data output
-     *
-     * @param val 1 = little endian   0 = big endian
-     * @return
-     */
-    RetType getDataEndianness(uint8_t *val) {
-        RESUME();
-        static lis3mdl_ctrl_reg4_t ctrlReg4;
-
-        RetType ret = CALL(readReg(LIS3MDL_CTRL_REG4, reinterpret_cast<uint8_t *>(&ctrlReg4), 1));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
-        switch (ctrlReg4.ble) {
-            case LIS3MDL_LSB_AT_LOW_ADD:
-                *val = LIS3MDL_LSB_AT_LOW_ADD;
-                break;
-
-            case LIS3MDL_MSB_AT_LOW_ADD:
-                *val = LIS3MDL_MSB_AT_LOW_ADD;
-                break;
-
-            default:
-                *val = LIS3MDL_LSB_AT_LOW_ADD;
-                break;
-        }
-
-        RESET();
-        return RET_SUCCESS;
-    }
-
-    RetType setConfig(lis3mdl_int_cfg_t *val) {
-        RESUME();
-
-        RetType ret = CALL(writeReg(LIS3MDL_INT_CFG, reinterpret_cast<uint8_t *>(val), 1));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
-        RESET();
-        return RET_SUCCESS;
-    }
-
-    /**
-     * Enable INT pin
-     * @param val 1 = enable   0 = disable
-     * @return
-     */
-    RetType enableInterrupt(uint8_t val) {
-        RESUME();
-
-        RetType ret = CALL(writeReg(LIS3MDL_INT_CFG, &val, 1));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
-        RESET();
-        return RET_SUCCESS;
-    }
-
-    RetType setInterruptNotifications(lis3mdl_lir_t *val) {
-        RESUME();
-
-        RetType ret = CALL(writeReg(LIS3MDL_INT_SRC, reinterpret_cast<uint8_t *>(val), 1));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
-        RESET();
-        return RET_SUCCESS;
-    }
-
-
-    /**
-     * Set the polarity of the INT pin
-     *
-     * @param val 1 = active high   0 = active low
-     * @return
-     */
-    RetType setInterruptPolarity(lis3mdl_iea_t val) {
-        RESUME();
-
-        RetType ret = CALL(writeReg(LIS3MDL_INT_CFG, reinterpret_cast<uint8_t *>(&val), 1));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
-        RESET();
-        return RET_SUCCESS;
-    }
-
-
-    RetType getStatus(lis3mdl_status_reg_t *val) {
-        RESUME();
-
-        RetType ret = CALL(readReg(LIS3MDL_STATUS_REG, reinterpret_cast<uint8_t *>(val), 1));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
-        RESET();
-        return RET_SUCCESS;
-    }
-
-private:
-    I2CDevice *mI2C;
-    I2CAddr_t i2cAddr = {
-            .dev_addr = 0x1C << 1,
-            .mem_addr = 0x00,
-            .mem_addr_size = sizeof(uint8_t),
-    };
-
-    RetType initSettings() {
-        RESUME();
-
-        // Reset the sensor
-        RetType ret = CALL(reset(PROPERTY_ENABLE));
-
-        // Enable Block Update
-        ret = CALL(setBlockDataUpdate(PROPERTY_ENABLE));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
-        // Set ODR
-        ret = CALL(setDataRate(LIS3MDL_HP_80Hz));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
-        // Set FS
-        ret = CALL(setFullScale(LIS3MDL_16_GAUSS));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
-        // Enable temp sensing
-        ret = CALL(setTempMeas(PROPERTY_ENABLE));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
-        // Set to continuous mode
-        ret = CALL(setOperatingMode(LIS3MDL_CONTINUOUS_MODE));
-        if (ret != RET_SUCCESS) {
-            RESET();
-            return ret;
-        }
-
-        RESET();
-        return RET_SUCCESS;
     }
 
 

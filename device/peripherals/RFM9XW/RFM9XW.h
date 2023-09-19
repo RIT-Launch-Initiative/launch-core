@@ -6,12 +6,13 @@
  *
  */
 
-#ifndef RADIO_MODULE_RFM9XW_H
-#define RADIO_MODULE_RFM9XW_H
+#ifndef RFM9XW_H
+#define RFM9XW_H
 
 #include "net/network_layer/NetworkLayer.h"
 #include "device/GPIODevice.h"
 #include "device/SPIDevice.h"
+#include "sched/macros.h"
 
 #define RFM9XW_VERSION 0x12
 
@@ -310,4 +311,4 @@ private:
 
 };
 
-#endif //RADIO_MODULE_RFM9XW_H
+#endif //RFM9XW_H

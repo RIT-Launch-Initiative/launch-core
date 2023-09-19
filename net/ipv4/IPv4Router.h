@@ -263,11 +263,11 @@ public:
 
         if(!info.ignore_checksums) {
             // zero the checksum in order to calculate, cache first
-            uint16_t check = ntoh16(hdr->checksum);
+            uint16_t check = hdr->checksum;
             hdr->checksum = 0;
 
             // check the checksum
-            if(check != checksum((uint16_t*)hdr, header_len / sizeof(uint16_t))) {
+            if(check != checksum((uint16_t*) hdr, header_len)) {
                 // invalid checksum
 
                 #ifdef NET_STATISTICS
