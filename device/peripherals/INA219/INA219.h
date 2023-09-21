@@ -42,8 +42,50 @@ public:
         RESUME();
 
         RetType ret = CALL(checkChipID());
+        ERROR_CHECK(ret);
+
+        ret = CALL(softReset());
+        ERROR_CHECK(ret);
+        
+        ret = CALL(getCalibrationData());
+        ERROR_CHECK(ret);
+
+        ret = CALL(initSettings());
+        ERROR_CHECK(ret);
 
         RESET();
+        return ret;
+    }
+
+    /**
+     * @brief Wrapper for filling in INA219_DATA_T struct
+     * @param data - Pointer to INAXX_DATA_T struct
+     * @return Scheduler Status
+     */
+    RetType getData(INA219_DATA_T *data) {
+        RESUME();
+        RetType ret = CALL(getPressureAndTemp(&data->pressure, &data->temperature));
+
+        RESET();
+        return ret;
+    }
+
+    RetType getInfo(uint16_t *shuntVoltage, uint16_t *busVoltage, uint16_t *power, uint16_t *current) {
+        RESUME();
+
+        RetType ret = CALL(getRegister(BMP3_REG_DATA, mBuff, BMP3_LEN_P_T_DATA));
+        ERROR_CHECK(ret);
+
+        struct bmp3_uncomp_data uncompensatedData = {0};
+        parseSensorData(mBuff, &uncompensatedData);
+        ret = compensateData(&uncompensatedData, &this->device.calib_data); // Bounds checked here
+        if (RET_SUCCESS == ret) {
+            *pressure = this->data.pressure;
+            *temperature = this->data.temperature;
+        }
+
+        RESET();
+        return ret;
     }
 
 
@@ -90,16 +132,49 @@ private:
         RESET();
     }
 
+    /**
+     * @brief Check if the chip ID is correct for the INA219
+     * @return Scheduler status
+     */
      RetType checkChipID() {
         RESUME();
 
-        ADD_ADRESS = 9999; //add chip INA address
+        RESET();
+        return ret;
+     }
 
-        this->i2cAddr.mem_addr = ADD_ADRESS;
-        RetType ret = CALL(getRegister(ADD_ADRESS, mBuff, 1));
+     /**
+     * @brief Soft reset the INA sensor
+     * @return
+     */
+     RetType softReset() {
+        RESUME();
 
         RESET();
-     }
+        return ret;
+    }
+
+    /**
+     * @brief Soft reset the INA sensor
+     * @return
+     */
+    RetType softReset() {
+        RESUME();
+
+        RESET();
+        return ret;
+    }
+
+    /**
+     * @brief Get the calibration values for sensor data
+     * @return Scheduler status
+     */
+    RetType getCalibrationData() {
+        RESUME();
+
+        RESET();
+        return ret;
+    }
 
      RetType getRegister(uint8_t regAddress, uint8_t *regData, uint32_t len) {
         RESUME();
