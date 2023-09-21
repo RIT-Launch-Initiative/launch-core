@@ -115,8 +115,6 @@ private:
         RESET();
     }
 
-
-
     RetType getBusVolt(){
         RESUME();
         RESET();
@@ -176,8 +174,28 @@ private:
         return ret;
     }
 
-     RetType getRegister(uint8_t regAddress, uint8_t *regData, uint32_t len) {
+    RetType getRegister(uint8_t regAddress, uint8_t *regData, uint32_t len) {
         RESUME();
         RESET();
-     }
+    }
+
+    RetType readReg(uint8_t reg, uint8_t *buff, uint16_t len){
+        RESUME();
+
+        i2cAddr.mem_addr = reg;
+        RetType ret = CALL(mI2C->read(i2cAddr, buff, len));
+
+        RESET();
+        return ret;
+    }
+
+    RetType writeReg(uint8_t reg, uint8_t *buff, uint16_t len){
+        RESUME();
+
+        i2cAddr.mem_addr = reg;
+        RetType ret = CALL(mI2C->write(i2cAddr, buff, len));
+
+        RESET();
+        return ret;
+    }
 };
