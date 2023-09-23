@@ -40,4 +40,6 @@ public:
     virtual RetType get(uint32_t* val) = 0;
 };
 
+
+
 #endif

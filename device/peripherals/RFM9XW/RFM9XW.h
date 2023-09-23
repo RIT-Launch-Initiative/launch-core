@@ -19,10 +19,10 @@
 using namespace RFM9XW_DEFS;
 
 using RFM9WX_PA_CONFIG_T = struct {
-        uint8_t output_power : 4;
-        uint8_t max_power : 3;
-        uint8_t pa_select : 1;
-	};
+    uint8_t output_power: 4;
+    uint8_t max_power: 3;
+    uint8_t pa_select: 1;
+};
 
 static constexpr uint8_t RFM9XW_VERSION = 0x12;
 static constexpr uint8_t RFM9XW_NUM_IRQS = 3;
@@ -31,7 +31,6 @@ static constexpr uint8_t DAC_HIGH_POWER_MODE = 0x87;
 static constexpr uint8_t DIO_MAPPING_1_IRQ_TX_DONE = 0x40;
 static constexpr uint8_t DIO_MAPPING_1_IRQ_RX_DONE = 0x00;
 static constexpr uint32_t RX_TIMEOUT = 1000;
-
 
 
 class RFM9XW : public NetworkLayer, public Device {
@@ -60,6 +59,13 @@ public:
         // Configure to be in LoRa, low frequency sleep mode
         ret = CALL(set_mode(true, true, REG_OP_MODE_SLEEP));
         ERROR_CHECK(ret);
+
+        ret = CALL(write_reg(RFM9XW_REG_OP_MODE, 0x00));
+        ERROR_CHECK(ret);
+
+        ret = CALL(write_reg(RFM9XW_REG_OP_MODE, 0x80));
+        ERROR_CHECK(ret);
+
 
 
         // TODO: Don't know enough about RF to config this yet
@@ -100,7 +106,9 @@ public:
         ERROR_CHECK(ret);
 
         // Set FifoAddrPtr to FifoTxBaseAddr
-        ret = CALL(write_reg(RFM9XW_REG_FIFO_ADDR_PTR, 0x80));
+        ret = CALL(read_reg(LORA_REG_FIFO_TX_BASE_ADDR, m_buff, 1));
+
+        ret = CALL(write_reg(RFM9XW_REG_FIFO_ADDR_PTR, m_buff[0]));
         ERROR_CHECK(ret);
 
         // Set PayloadLength
@@ -131,7 +139,7 @@ public:
         return ret;
     }
 
-    RetType receive_data(uint8_t *buff, size_t buff_len, uint8_t *rx_len) {
+    RetType receive_data(uint8_t *buff, uint8_t buff_len, uint8_t *rx_len) {
         RESUME();
 
         RetType ret = CALL(setup_data_receive(rx_len));
@@ -161,25 +169,43 @@ public:
     RetType continuous_rx(uint8_t *buff, size_t buff_len, uint8_t *rx_len) {
         RESUME();
 
-        RetType ret = CALL(read_reg(RFM9XW_REG_IRQ_FLAGS, &m_buff[0], 1)); // TODO: Use GPIO interrupts
-        if (RET_SUCCESS == ret ) { // Check for RxDone and PayloadCrcError
-            ret = CALL(write_reg(RFM9XW_REG_IRQ_FLAGS, 0xFF)); // Clear all flags
-            ERROR_CHECK(ret);
+        RetType ret = CALL(write_reg(RFM9XW_REG_IRQ_FLAGS, 0xFF)); // Clear all flags
+        ERROR_CHECK(ret);
 
-            ret = CALL(receive_data(buff, buff_len, rx_len));
-        } else {
-            ret = RET_ERROR;
+        while (true) {
+
+
+            // Check for DIO1 interrupt
+            ret = CALL(read_reg(RFM9XW_REG_DIO_MAPPING_1, &m_buff[0], 1)); // TODO: Use GPIO interrupts
+            if (RET_SUCCESS == ret && (m_buff[0] & 0b00000001) != 0) {
+                // Make sure ValidHeader, PayloadCrcError, RxDone and RxTimeout are not asserted
+                ret = CALL(read_reg(RFM9XW_REG_IRQ_FLAGS, &m_buff[0], 1));
+
+                if (RET_SUCCESS == ret && ((0b11110000 & m_buff[0]) == 0)) {
+                    break;
+                }
+            }
+
+            YIELD();
         }
+        ret = CALL(receive_data(buff, buff_len, rx_len));
+        ERROR_CHECK(ret);
+
+        ret = CALL(write_reg(RFM9XW_REG_IRQ_FLAGS, 0xFF)); // Clear IRQ flags
+        ERROR_CHECK(ret);
+
+        ret = CALL(write_reg(RFM9XW_REG_DIO_MAPPING_1, 0x00)); // Clear interrupt flags
+
 
         RESET();
         return ret;
     }
 
-    RetType transmit(Packet&, netinfo_t&, NetworkLayer*) override {
+    RetType transmit(Packet &, netinfo_t &, NetworkLayer *) override {
         return RET_SUCCESS;
     }
 
-    RetType transmit2(Packet &packet, netinfo_t&, NetworkLayer*) override {
+    RetType transmit2(Packet &packet, netinfo_t &, NetworkLayer *) override {
         RESUME();
 
         // Configure modem
@@ -239,11 +265,11 @@ public:
         return ret;
     }
 
-    RetType receive(Packet&, netinfo_t&, NetworkLayer*) override {
+    RetType receive(Packet &, netinfo_t &, NetworkLayer *) override {
         return RET_ERROR;
     }
 
-    RetType recv_data(uint8_t *buff, size_t *len, int8_t* snr, uint32_t tx_ticks) {
+    RetType recv_data(uint8_t *buff, size_t *len, int8_t *snr, uint32_t tx_ticks) {
         RESUME();
         *len = 0;
 
@@ -370,10 +396,10 @@ private:
         RESUME();
 
         // Set FifoAddrPtr to FifoRxBaseAddr
-        RetType ret = CALL(read_reg(RFM9XW_REG_FIFO_ADDR_PTR, m_buff, 1));
+        RetType ret = CALL(read_reg(LORA_REG_FIFO_RX_BYTE_ADDR, m_buff, 1));
         ERROR_CHECK(ret);
 
-        ret = CALL(write_reg(LORA_REG_FIFO_RX_BYTE_ADDR, m_buff[0]));
+        ret = CALL(write_reg(RFM9XW_REG_FIFO_ADDR_PTR, m_buff[0]));
 
         // Read number of bytes received
         ret = CALL(read_reg(RFM9XW_REG_FIFO_RX_BYTES_NB, rx_len, 1));
@@ -415,7 +441,7 @@ private:
         return RET_SUCCESS;
     }
 
-    RetType read_reg(const uint8_t reg, uint8_t* buff, const size_t len, const uint32_t timeout = 0) {
+    RetType read_reg(const uint8_t reg, uint8_t *buff, const size_t len, const uint32_t timeout = 0) {
         RESUME();
 
         RetType ret = CALL(m_cs.set(0));
@@ -507,7 +533,7 @@ private:
 
         RetType ret;
         static uint8_t dac_config;
-        static RFM9WX_PA_CONFIG_T config {
+        static RFM9WX_PA_CONFIG_T config{
                 .output_power = 0,
                 .max_power = 7,
                 .pa_select = 1,
@@ -525,7 +551,8 @@ private:
             return RET_ERROR;
         }
 
-        ret = CALL(write_reg(RFM9XW_REG_PA_CONFIG, reinterpret_cast<uint8_t *>(&config)[0])); // TODO: Check if this is correct
+        ret = CALL(write_reg(RFM9XW_REG_PA_CONFIG,
+                             reinterpret_cast<uint8_t *>(&config)[0])); // TODO: Check if this is correct
         ERROR_CHECK(ret);
 
         ret = CALL(write_reg(RFM9XW_REG_PA_DAC, dac_config));
@@ -543,7 +570,8 @@ private:
         return ret;
     }
 
-    RetType set_mode(const bool lora_mode, const bool low_freq_mode, const RFM9XW_REG_OP_MODE_T mode, const bool ook_modulation = false) {
+    RetType set_mode(const bool lora_mode, const bool low_freq_mode, const RFM9XW_REG_OP_MODE_T mode,
+                     const bool ook_modulation = false) {
         RESUME();
 
         m_buff[0] = 0;
@@ -610,8 +638,10 @@ private:
         return RET_SUCCESS;
     }
 
-    RetType configure_fsk_packet(const bool variable_len = true, const uint8_t dc_free_encoding = 0b00, const bool crc_enabled = false,
-                                  const bool crc_auto_clear_off = false, const uint8_t addr_filter = 0b00, const bool ibm_whitening = false) {
+    RetType configure_fsk_packet(const bool variable_len = true, const uint8_t dc_free_encoding = 0b00,
+                                 const bool crc_enabled = false,
+                                 const bool crc_auto_clear_off = false, const uint8_t addr_filter = 0b00,
+                                 const bool ibm_whitening = false) {
         RESUME();
 
         m_buff[0] = 0;
@@ -628,7 +658,8 @@ private:
         return RET_SUCCESS;
     }
 
-    RetType configure_dio_mapping_one(const uint8_t dio_zero_val, const uint8_t dio_one_val, const uint8_t dio_two_val) {
+    RetType
+    configure_dio_mapping_one(const uint8_t dio_zero_val, const uint8_t dio_one_val, const uint8_t dio_two_val) {
         RESUME();
 
         m_buff[0] = (dio_two_val << 6) | (dio_one_val << 4) | dio_zero_val;
@@ -638,7 +669,8 @@ private:
         return ret;
     }
 
-    RetType configure_dio_mapping_two(const uint8_t dio_three_val, const uint8_t dio_four_val, const uint8_t dio_five_val) {
+    RetType
+    configure_dio_mapping_two(const uint8_t dio_three_val, const uint8_t dio_four_val, const uint8_t dio_five_val) {
         RESUME();
 
         m_buff[0] = (dio_three_val << 6) | (dio_four_val << 4) | dio_five_val;
