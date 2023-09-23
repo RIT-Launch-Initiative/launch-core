@@ -19,6 +19,8 @@
 #define INA219_3V3RAIL_ADDR UINT8_C(0x44)
 #define INA219_5V0RAIL_ADDR UINT8_C(0x41)
 
+
+
 #define INA219_DATA_STRUCT(variable_name) INA219_DATA_T variable_name = {.shuntVoltage = 0, .busVoltage = 0, .power = 0, .current = 0}
 
 using INA219_DATA_T = struct {
@@ -30,6 +32,15 @@ using INA219_DATA_T = struct {
 
 class INA219 : public Device {
 public:
+    typedef enum {
+        CONFIG_REG = 0x00,
+        SHUNT_VOLT_REG = 0x01,
+        BUS_VOLT_REG = 0x02,
+        POWER_REG = 0x03,
+        CURRENT_REG = 0x04,
+        CALIB_REG = 0x05
+    } INA219_REGISTER;
+
     INA219(I2CDevice &i2cDev, const uint16_t address = INA219_BATTERY_ADDR, const char *name = "INA219") 
             : Device(name), mI2C(&i2cDev),
               i2cAddr({.dev_addr = static_cast<uint16_t>(address << 1), .mem_addr = 0, .mem_addr_size = 1}) {}
@@ -45,7 +56,7 @@ public:
         RetType ret = CALL(checkChipID());
         ERROR_CHECK(ret);
 
-        ret = CALL(softReset());
+        ret = CALL(reset());
         ERROR_CHECK(ret);
         
         ret = CALL(getCalibrationData());
@@ -65,29 +76,22 @@ public:
      */
     RetType getData(INA219_DATA_T *data) {
         RESUME();
-        RetType ret = CALL(getInfo(&data->shuntVoltage, &data->busVoltage, &data->power, &data->current));
+
+
+        RetType ret = CALL(getData(&data->shuntVoltage, &data->busVoltage, &data->power, &data->current));
 
         RESET();
         return ret;
     }
 
-    RetType getInfo(uint16_t *shuntVoltage, uint16_t *busVoltage, uint16_t *power, uint16_t *current) {
+    RetType getData(uint16_t *shuntVoltage, uint16_t *busVoltage, uint16_t *power, uint16_t *current) {
         RESUME();
 
-        RetType ret = CALL(getRegister(INA_REG_DATA, mBuff, INA_LEN_P_T_DATA));
-        ERROR_CHECK(ret);
-        /** 
-        struct ina219_uncomp_data uncompensatedData = {0};
-        parseSensorData(mBuff, &uncompensatedData);
-        ret = compensateData(&uncompensatedData, &this->device.calib_data); // Bounds checked here
-        **/
-        if (RET_SUCCESS == ret) {
-            *huntVoltage = this->data.huntVoltage;
-            *busVoltage = this->data.busVoltage;
-            *power = this-> data.power;
-            *current = this ->data.current;
-        }
-
+        RetType ret = CALL(read_reg(SHUNT_VOLT_REG, mBuff, 8));
+        *shuntVoltage = (mBuff[0] << 8) | (mBuff[1]);
+        *busVoltage = (mBuff[2] << 8) | (mBuff[4]);
+        *power = (mBuff[5] << 8) | (mBuff[6]); 
+        *current = (mBuff[7] << 8) | (mBuff[8]);
         RESET();
         return ret;
     }
@@ -98,19 +102,26 @@ public:
      *************************************************************************************/
 
 private:
-    I2CDevice *mI2C;
+    I2CDevice &mI2C;
     I2CAddr_t i2cAddr;
-     uint8_t mBuff[INA219_LEN_CALIB_DATA]; // INA219_LEN_CALIB_DATA is largest size
+     uint8_t mBuff[10]; // INA219_LEN_CALIB_DATA is largest size
 
     RetType read_reg(uint8_t reg, uint8_t *buff, size_t len) {
         RESUME();
+        i2cAddr.mem_addr = reg;
+        RetType ret = CALL(mI2C.read(i2cAddr, buff, len));
 
         RESET();
+        return ret;
     }
 
     RetType write_reg(uint8_t reg, uint8_t *buff, size_t len) {
-        uint8_t temporaryBuffer[len * 2];
-        size_t temporaryLen = len;
+        RESUME();
+        i2cAddr.mem_addr = reg;
+        RetType ret = CALL(mI2C.write(i2cAddr, buff, len));
+
+        RESET();
+        return ret;
 
     }
 
@@ -118,6 +129,8 @@ private:
         RESUME();
         RESET();
     }
+
+
 
     RetType getBusVolt(){
         RESUME();
@@ -149,19 +162,12 @@ private:
      * @brief Soft reset the INA sensor
      * @return
      */
-     RetType softReset() {
+     RetType reset() {
         RESUME();
 
-        RESET();
-        return ret;
-    }
-
-    /**
-     * @brief Soft reset the INA sensor
-     * @return
-     */
-    RetType softReset() {
-        RESUME();
+        mBuff[0] = 0x39;
+        mBuff[1] = 0x9F;
+        RetType ret = CALL(write_reg(CONFIG_REG, mBuff, 2)); 
 
         RESET();
         return ret;
@@ -178,34 +184,9 @@ private:
         return ret;
     }
 
-    RetType getRegister(uint8_t regAddress, uint8_t *regData, uint32_t len) {
+     RetType getRegister(uint8_t regAddress, uint8_t *regData, uint32_t len) {
         RESUME();
         RESET();
-<<<<<<< HEAD
      }
 };
  #endif
-=======
-    }
-
-    RetType readReg(uint8_t reg, uint8_t *buff, uint16_t len){
-        RESUME();
-
-        i2cAddr.mem_addr = reg;
-        RetType ret = CALL(mI2C->read(i2cAddr, buff, len));
-
-        RESET();
-        return ret;
-    }
-
-    RetType writeReg(uint8_t reg, uint8_t *buff, uint16_t len){
-        RESUME();
-
-        i2cAddr.mem_addr = reg;
-        RetType ret = CALL(mI2C->write(i2cAddr, buff, len));
-
-        RESET();
-        return ret;
-    }
-};
->>>>>>> d0378837a6b11ee9eb23a6c9055d4fe0aa051485
