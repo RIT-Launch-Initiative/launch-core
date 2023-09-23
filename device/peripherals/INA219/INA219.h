@@ -11,6 +11,7 @@
 
 #include <stdint.h>
 
+#include "sched/macros.h"
 #include "device/Device.h"
 #include "device/I2CDevice.h"
 
@@ -64,7 +65,7 @@ public:
      */
     RetType getData(INA219_DATA_T *data) {
         RESUME();
-        RetType ret = CALL(getPressureAndTemp(&data->pressure, &data->temperature));
+        RetType ret = CALL(getInfo(&data->shuntVoltage, &data->busVoltage, &data->power, &data->current));
 
         RESET();
         return ret;
@@ -73,15 +74,18 @@ public:
     RetType getInfo(uint16_t *shuntVoltage, uint16_t *busVoltage, uint16_t *power, uint16_t *current) {
         RESUME();
 
-        RetType ret = CALL(getRegister(BMP3_REG_DATA, mBuff, BMP3_LEN_P_T_DATA));
+        RetType ret = CALL(getRegister(INA_REG_DATA, mBuff, INA_LEN_P_T_DATA));
         ERROR_CHECK(ret);
-
-        struct bmp3_uncomp_data uncompensatedData = {0};
+        /** 
+        struct ina219_uncomp_data uncompensatedData = {0};
         parseSensorData(mBuff, &uncompensatedData);
         ret = compensateData(&uncompensatedData, &this->device.calib_data); // Bounds checked here
+        **/
         if (RET_SUCCESS == ret) {
-            *pressure = this->data.pressure;
-            *temperature = this->data.temperature;
+            *huntVoltage = this->data.huntVoltage;
+            *busVoltage = this->data.busVoltage;
+            *power = this-> data.power;
+            *current = this ->data.current;
         }
 
         RESET();
@@ -100,13 +104,13 @@ private:
 
     RetType read_reg(uint8_t reg, uint8_t *buff, size_t len) {
         RESUME();
+
         RESET();
     }
 
     RetType write_reg(uint8_t reg, uint8_t *buff, size_t len) {
         uint8_t temporaryBuffer[len * 2];
         size_t temporaryLen = len;
-
 
     }
 
@@ -181,3 +185,4 @@ private:
         RESET();
      }
 };
+ #endif
