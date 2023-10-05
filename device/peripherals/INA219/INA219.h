@@ -10,6 +10,7 @@
 #define INA219_H
 
 #include <stdint.h>
+#include <iostream>
 
 #include "sched/macros.h"
 #include "device/Device.h"
@@ -62,9 +63,6 @@ public:
         ret = CALL(getCalibrationData());
         ERROR_CHECK(ret);
 
-        ret = CALL(initSettings());
-        ERROR_CHECK(ret);
-
         RESET();
         return ret;
     }
@@ -80,6 +78,8 @@ public:
 
         RetType ret = CALL(getData(&data->shuntVoltage, &data->busVoltage, &data->power, &data->current));
 
+
+
         RESET();
         return ret;
     }
@@ -88,8 +88,8 @@ public:
         RESUME();
 
         RetType ret = CALL(read_reg(SHUNT_VOLT_REG, mBuff, 8));
-        *shuntVoltage = (mBuff[0] << 8) | (mBuff[1]);
-        *busVoltage = (mBuff[2] << 8) | (mBuff[4]);
+        *shuntVoltage = (mBuff[2] << 8) | (mBuff[2]);
+        *busVoltage = (mBuff[3] << 8) | (mBuff[4]);
         *power = (mBuff[5] << 8) | (mBuff[6]); 
         *current = (mBuff[7] << 8) | (mBuff[8]);
         RESET();
@@ -125,25 +125,52 @@ private:
 
     }
 
-    RetType getShuntVolt(){
+    RetType getShuntVolt(int16_t *shunt_vol, INA219_REGISTER inaReg){
         RESUME();
+        
+        RetType ret = CALL(read_reg(inaReg,mBuff,8));
+        uint16_t raw_shunt_voltage = (mBuff[1] << 8) | (mBuff[2]);
+        *shunt_vol = abs(~raw_shunt_voltage) +1;
+        
         RESET();
     }
 
 
 
-    RetType getBusVolt(){
+    RetType getBusVolt(int16_t *bus_vol, INA219_REGISTER inaReg){
         RESUME();
+
+        RetType ret = CALL(read_reg(inaReg,mBuff,8));
+        int16_t raw_bus_vol = (mBuff[3] << 8) | (mBuff[4]);
+
+        *bus_vol = raw_bus_vol;
+
         RESET();
     }
 
-    RetType getPower(){
+    RetType getPower(uint16_t *power, INA219_REGISTER inaReg){
         RESUME();
+
+        RetType ret = CALL(read_reg(inaReg,mBuff,8));
+        int16_t raw_power = (mBuff[5] << 8) | (mBuff[6]);
+
+        *power = raw_power;
+
         RESET();
     }
 
-    RetType getCurrent(){
+    RetType getCurrent(uint16_t *current, INA219_REGISTER inaReg){
         RESUME();
+
+        RetType ret = CALL(read_reg(inaReg,mBuff,8));
+        int16_t raw_power = (mBuff[7] << 8) | (mBuff[8]);
+        int16_t mask = 0x8000; // 1000000000000000 in binary
+
+        if ( raw_power & mask ){
+            *current = ~raw_power;
+        } else{
+            *current = raw_power;
+        }
         RESET();
     }
 
@@ -155,7 +182,6 @@ private:
         RESUME();
 
         RESET();
-        return ret;
      }
 
      /**
@@ -167,7 +193,8 @@ private:
 
         mBuff[0] = 0x39;
         mBuff[1] = 0x9F;
-        RetType ret = CALL(write_reg(CONFIG_REG, mBuff, 2)); 
+        RetType ret = CALL(write_reg(CONFIG_REG, mBuff, 2));
+
 
         RESET();
         return ret;
@@ -181,7 +208,6 @@ private:
         RESUME();
 
         RESET();
-        return ret;
     }
 
      RetType getRegister(uint8_t regAddress, uint8_t *regData, uint32_t len) {
