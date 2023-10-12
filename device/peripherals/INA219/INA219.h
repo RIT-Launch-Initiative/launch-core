@@ -125,10 +125,10 @@ private:
 
     }
 
-    RetType getShuntVolt(int16_t *shunt_vol, INA219_REGISTER inaReg){
+    RetType getShuntVolt(int16_t *shunt_vol){
         RESUME();
         
-        RetType ret = CALL(read_reg(inaReg,mBuff,8));
+        RetType ret = CALL(read_reg(SHUNT_VOLT_REG,mBuff,2));
         uint16_t raw_shunt_voltage = (mBuff[1] << 8) | (mBuff[2]);
         *shunt_vol = abs(~raw_shunt_voltage) +1;
         
@@ -137,10 +137,10 @@ private:
 
 
 
-    RetType getBusVolt(int16_t *bus_vol, INA219_REGISTER inaReg){
+    RetType getBusVolt(int16_t *bus_vol){
         RESUME();
 
-        RetType ret = CALL(read_reg(inaReg,mBuff,8));
+        RetType ret = CALL(read_reg(BUS_VOLT_REG,mBuff,2));
         int16_t raw_bus_vol = (mBuff[3] << 8) | (mBuff[4]);
 
         *bus_vol = raw_bus_vol;
@@ -148,10 +148,10 @@ private:
         RESET();
     }
 
-    RetType getPower(uint16_t *power, INA219_REGISTER inaReg){
+    RetType getPower(uint16_t *power){
         RESUME();
 
-        RetType ret = CALL(read_reg(inaReg,mBuff,8));
+        RetType ret = CALL(read_reg(POWER_REG,mBuff,2));
         int16_t raw_power = (mBuff[5] << 8) | (mBuff[6]);
 
         *power = raw_power;
@@ -159,10 +159,10 @@ private:
         RESET();
     }
 
-    RetType getCurrent(uint16_t *current, INA219_REGISTER inaReg){
+    RetType getCurrent(uint16_t *current){
         RESUME();
 
-        RetType ret = CALL(read_reg(inaReg,mBuff,8));
+        RetType ret = CALL(read_reg(CURRENT_REG,mBuff,2));
         int16_t raw_power = (mBuff[7] << 8) | (mBuff[8]);
         int16_t mask = 0x8000; // 1000000000000000 in binary
 
@@ -180,7 +180,7 @@ private:
      */
      RetType checkChipID() {
         RESUME();
-
+        
         RESET();
      }
 
