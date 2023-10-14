@@ -103,6 +103,82 @@ public:
         return ret;
     }
 
+
+    RetType transmit_data(uint8_t *buff, size_t len) {
+        RESUME();
+
+        //TODO CHECK INTERRUPTS INSTEAD OF SLEEPING
+
+        // Configure
+        RetType ret = CALL(write_reg(RFM9XW_REG_MODEM_CONFIG_1, 0x72));
+        ERROR_CHECK(ret);
+
+        ret = CALL(write_reg(RFM9XW_REG_MODEM_CONFIG_2, 0x74));
+        ERROR_CHECK(ret);
+
+        ret = CALL(write_reg(RFM9XW_REG_MODEM_CONFIG_3, 0x04));
+        ERROR_CHECK(ret);
+
+        ret = CALL(write_reg(RFM9XW_REG_INVERT_IQ_1, 0x27));
+        ERROR_CHECK(ret);
+
+        ret = CALL(write_reg(RFM9XW_REG_INVERT_IQ_2, 0x1D));
+        ERROR_CHECK(ret);
+
+        ret = CALL(write_reg(RFM9XW_REG_PAYLOAD_LENGTH, len));
+        ERROR_CHECK(ret);
+
+        // Enable interrupt and clear flags
+        ret = CALL(write_reg(RFM9XW_REG_DIO_MAPPING_1, 0x40));
+        ERROR_CHECK(ret);
+
+        ret = CALL(write_reg(RFM9XW_REG_IRQ_FLAGS, 0xFF));
+        ERROR_CHECK(ret);
+
+        // Wait in standby
+        ret = CALL(write_reg(RFM9XW_REG_OP_MODE, RFM9XW_MODE_STANDBY));
+        ERROR_CHECK(ret);
+
+        SLEEP(1000);
+
+        // Set mode to TX
+        ret = CALL(write_reg(RFM9XW_REG_OP_MODE, RFM9XW_MODE_STANDBY));
+        ERROR_CHECK(ret);
+
+        // Write data to FIFO
+        ret = CALL(write_reg(RFM9XW_REG_FIFO_ACCESS, buff, len));
+        ERROR_CHECK(ret);
+
+        // Transmit
+        ret = CALL(write_reg(RFM9XW_REG_OP_MODE, RFM9XW_MODE_TX));
+        ERROR_CHECK(ret);
+
+        // Wait for transmission
+        SLEEP(1000);
+
+        // Set mode to standby
+        ret = CALL(write_reg(RFM9XW_REG_OP_MODE, RFM9XW_MODE_STANDBY));
+
+        RESET();
+        return ret;
+    }
+
+    RetType receiver_task(void *) {
+        RESUME();
+
+
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType get_received(uint8_t *buff, size_t *payload_size) {
+        RESUME();
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
     RetType setup_receiver() {
         RESUME();
 
@@ -224,8 +300,6 @@ public:
         ERROR_CHECK(ret);
 
         while (true) {
-
-
             // Check for DIO1 interrupt
             ret = CALL(read_reg(RFM9XW_REG_DIO_MAPPING_1, &m_buff[0], 1)); // TODO: Use GPIO interrupts
             if (RET_SUCCESS == ret && (m_buff[0] & 0b00000001) != 0) {
@@ -402,6 +476,8 @@ public:
 
 private:
     const bool mIsTransmitter;
+    uint8_t rx_buff[256] = {0};
+    uint32_t m_gpio_tmp = 0;
     uint8_t *current_tx_buff = nullptr;
     uint8_t *current_tx_buff_end = nullptr;
 
@@ -727,6 +803,15 @@ private:
 
         m_buff[0] = (dio_three_val << 6) | (dio_four_val << 4) | dio_five_val;
         RetType ret = CALL(write_reg(COMMON_REG_DIO_MAPPING_2, m_buff[0]));
+
+        RESET();
+        return ret;
+    }
+
+    RetType clear_irq_flags() {
+        RESUME();
+
+        RetType ret = CALL(write_reg(RFM9XW_REG_IRQ_FLAGS, 0xFF));
 
         RESET();
         return ret;
