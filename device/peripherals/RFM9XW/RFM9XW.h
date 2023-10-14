@@ -37,11 +37,12 @@ class RFM9XW : public NetworkLayer, public Device {
 public:
     explicit RFM9XW(SPIDevice &spi, GPIODevice &cs, GPIODevice &rst, GPIODevice &dio_zero,
                     GPIODevice &dio_one, GPIODevice &dio_two, GPIODevice &dio_three, GPIODevice &dio_four,
-                    GPIODevice &dio_five, const char *name = "RFM9XW") : Device(name),
+                    GPIODevice &dio_five, const bool isTransmitter = true, const char *name = "RFM9XW") : Device(name),
                                                                          m_spi(spi), m_cs(cs), m_rst(rst),
                                                                          m_dio_zero(dio_zero), m_dio_one(dio_one),
                                                                          m_dio_two(dio_two), m_dio_three(dio_three),
-                                                                         m_dio_four(dio_four), m_dio_five(dio_five) {}
+                                                                         m_dio_four(dio_four), m_dio_five(dio_five),
+                                                                         mIsTransmitter(isTransmitter) {}
 
     RetType init() {
         RESUME();
@@ -65,8 +66,6 @@ public:
 
         ret = CALL(write_reg(RFM9XW_REG_OP_MODE, 0x80));
         ERROR_CHECK(ret);
-
-
 
         // TODO: Don't know enough about RF to config this yet
         // Preamble, LNA, Sync Word set to default
@@ -94,8 +93,60 @@ public:
 
         ret = CALL(write_reg(RFM9XW_REG_IRQ_FLAGS, 0xFF)); // Clear all interrupt flags
 
+        if (mIsTransmitter) {
+            ret = CALL(setup_transmitter());
+        } else {
+            ret = CALL(setup_receiver());
+        }
+
         RESET();
         return ret;
+    }
+
+    RetType setup_receiver() {
+        RESUME();
+
+        m_buff[0] = 0;
+        m_buff[0] |= (0b0000 << 4); // Signal bandwidth
+        m_buff[0] |= (0b000 << 1); // Coding rate
+        m_buff[0] |= (0b0 << 0); // Explicit header mode
+
+        // Config Reg Modem 1
+        RetType ret = CALL(write_reg(RFM9XW_REG_MODEM_CONFIG_1, m_buff[0]));
+        ERROR_CHECK(ret);
+
+        m_buff[0] = 0;
+        m_buff[0] |= (0x07 << 4); // Spreading factor
+        m_buff[0] |= (0b0 << 3); // Tx Continuous Mode
+        m_buff[0] |= (0b0 << 2); // Rx Payload CrC
+        m_buff[0] |= (0x00 << 1); // Symbol Timeout MSB
+        ret = CALL(write_reg(RFM9XW_REG_MODEM_CONFIG_2, m_buff[0]));
+
+        RESET();
+        return RET_SUCCESS;
+    }
+
+    RetType setup_transmitter() {
+        RESUME();
+
+        m_buff[0] = 0;
+        m_buff[0] |= (0b0000 << 4); // Signal bandwidth
+        m_buff[0] |= (0b000 << 1); // Coding rate
+        m_buff[0] |= (0b0 << 0); // Explicit header mode
+
+        // Config Reg Modem 1
+        RetType ret = CALL(write_reg(RFM9XW_REG_MODEM_CONFIG_1, m_buff[0]));
+        ERROR_CHECK(ret);
+
+        m_buff[0] = 0;
+        m_buff[0] |= (0x07 << 4); // Spreading factor
+        m_buff[0] |= (0b1 << 3); // Tx Continuous Mode
+        m_buff[0] |= (0b0 << 2); // Rx Payload CrC
+        m_buff[0] |= (0x00 << 1); // Symbol Timeout MSB
+        ret = CALL(write_reg(RFM9XW_REG_MODEM_CONFIG_2, m_buff[0]));
+
+        RESET();
+        return RET_SUCCESS;
     }
 
     RetType send_data(uint8_t *buff, size_t len) {
@@ -350,6 +401,7 @@ public:
     }
 
 private:
+    const bool mIsTransmitter;
     uint8_t *current_tx_buff = nullptr;
     uint8_t *current_tx_buff_end = nullptr;
 
