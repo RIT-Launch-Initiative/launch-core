@@ -141,7 +141,7 @@ private:
         RESUME();
 
         RetType ret = CALL(read_reg(BUS_VOLT_REG,mBuff,2));
-        int16_t raw_bus_vol = (mBuff[3] << 8) | (mBuff[4]);
+        int16_t raw_bus_vol = (mBuff[1] << 8) | (mBuff[2]);
 
         *bus_vol = raw_bus_vol;
 
@@ -152,7 +152,7 @@ private:
         RESUME();
 
         RetType ret = CALL(read_reg(POWER_REG,mBuff,2));
-        int16_t raw_power = (mBuff[5] << 8) | (mBuff[6]);
+        int16_t raw_power = (mBuff[1] << 8) | (mBuff[2]);
 
         *power = raw_power;
 
@@ -163,7 +163,7 @@ private:
         RESUME();
 
         RetType ret = CALL(read_reg(CURRENT_REG,mBuff,2));
-        int16_t raw_power = (mBuff[7] << 8) | (mBuff[8]);
+        int16_t raw_power = (mBuff[1] << 8) | (mBuff[2]);
         int16_t mask = 0x8000; // 1000000000000000 in binary
 
         if ( raw_power & mask ){
@@ -175,14 +175,17 @@ private:
     }
 
     /**
-     * @brief Check if the chip ID is correct for the INA219
+     * @brief Get the calibration values for sensor data
      * @return Scheduler status
      */
-     RetType checkChipID() {
+    RetType getCalibrationData(uint16_t *calibraion, float current_LSB, float R_shunt) {
         RESUME();
+        RetType ret = CALL(read_reg(CALIB_REG,mBuff,2));
+        int16_t raw_calib = (mBuff[1] << 8) | (mBuff[2]);
         
+
         RESET();
-     }
+    }
 
      /**
      * @brief Soft reset the INA sensor
@@ -200,18 +203,9 @@ private:
         return ret;
     }
 
-    /**
-     * @brief Get the calibration values for sensor data
-     * @return Scheduler status
-     */
-    RetType getCalibrationData() {
-        RESUME();
-
-        RESET();
-    }
-
      RetType getRegister(uint8_t regAddress, uint8_t *regData, uint32_t len) {
         RESUME();
+
         RESET();
      }
 };
