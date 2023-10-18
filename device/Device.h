@@ -40,11 +40,15 @@ public:
 
     /// @brief obtain the device
     /// @return
-    virtual RetType obtain() = 0;
+    virtual RetType obtain() {
+        return RET_ERROR;
+    }
 
     /// @brief release the device
     /// @return
-    virtual RetType release() = 0;
+    virtual RetType release() {
+        return RET_ERROR;
+    }
 
     /// @brief poll the device
     ///        any synchronous work for the device should be done here
@@ -54,12 +58,18 @@ public:
     ///        schedule interrupt handling.
     ///
     /// @return
-    virtual RetType poll() = 0;
+    virtual RetType poll() {
+        return RET_ERROR;
+    }
 
     /// @brief get unique ID of this device
     /// @return the unique id
-    uint16_t uid() {
+    uint16_t uid() const {
         return m_uid;
+    }
+
+    const char* getName() const {
+        return m_name;
     }
 
 #ifdef DEBUG

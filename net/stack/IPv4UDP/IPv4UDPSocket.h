@@ -108,6 +108,7 @@ public:
         RetType ret = packet.push(buff, len);
 
         if(RET_SUCCESS != ret) {
+            RESET();
             return ret;
         }
 

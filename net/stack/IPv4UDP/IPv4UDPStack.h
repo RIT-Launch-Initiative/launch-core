@@ -33,8 +33,6 @@
 #include "sched/macros.h"
 #include "net/stack/IPv4UDP/IPv4UDPSocket.h"
 
-
-
 // TODO make this store multiple Ethernet devices? (or any layer 1 device)
 class IPv4UDPStack {
 public:
@@ -158,6 +156,10 @@ public:
     RetType remove_multicast(ipv4::IPv4Addr_t addr) {
         m_ip.remove_incoming_route(addr);
         return m_ip.remove_outgoing_route(addr, 0xFFFFFFFF);
+    }
+
+    NetworkLayer* get_eth_layer() {
+        return &m_eth;
     }
 
 private:

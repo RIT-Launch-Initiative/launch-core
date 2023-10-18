@@ -74,4 +74,8 @@
 #include "sched/macros/yield.h"
 #include "sched/macros/call.h"
 
+#define ERROR_CHECK(RETURN_VALUE) if (RET_SUCCESS != RETURN_VALUE) {RESET(); return RET_ERROR;};
+
+#define FAIL_IF(CONDITION) if (CONDITION) {RESET(); return RET_ERROR;};
+
 #endif

@@ -50,7 +50,7 @@ public:
             return RET_ERROR;
         }
 
-        // TODO check return?
+        // No need to check return, this is a void
         HAL_GPIO_WritePin(m_gpio, this->m_pin, static_cast<GPIO_PinState>(val));
 
         return RET_SUCCESS;
@@ -58,7 +58,6 @@ public:
 
     RetType get(uint32_t *val) override {
         *val = static_cast<int>(HAL_GPIO_ReadPin(m_gpio, m_pin));
-        // TODO check for error?
 
         return RET_SUCCESS;
     }

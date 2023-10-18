@@ -42,8 +42,9 @@ public:
     RetType transmit(Packet& packet, netinfo_t& info, NetworkLayer*) {
         RESUME();
 
-        if(ipv4::is_multicast(&(info.dst.ipv4_addr)) ||
-           ipv4::is_broadcast(&(info.dst.ipv4_addr))) {
+        uint32_t big_ipv4 = hton32(info.dst.ipv4_addr);
+
+        if(ipv4::is_multicast(&big_ipv4) || ipv4::is_broadcast(&big_ipv4)) {
                // use the broadcast MAC address
                memset(&(info.dst.mac), 0xFF, 6);
         } else {

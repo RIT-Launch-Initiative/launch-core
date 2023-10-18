@@ -5,25 +5,17 @@
  * @author Aaron Chan
  */
 
-#ifndef LAUNCH_CORE_NMEA_H
-#define LAUNCH_CORE_NMEA_H
+#ifndef NMEA_H
+#define NMEA_H
 
 #include <cstdint>
 #include <cstdlib>
 #include <cstdio>
+#include "common/MeasurementTypes.h"
 
 
 namespace nmea {
-    using GGA_DATA_T = struct {
-        float time; // seconds since midnight
-        float latitude; // degrees (N positive)
-        float longitude; // degrees (E positive)
-        float alt; // meters ASL
-        int quality; // fix indicator
-        int num_sats; // number of satellites used
-    };
-
-    int parse_gga(const char *sentence, GGA_DATA_T *dest, size_t n) {
+    int parse_gga(const char *sentence, GPSData *dest, size_t n) {
         // check for terminator
         int i;
         for (i = 0; i < n; i++) {
@@ -72,4 +64,4 @@ namespace nmea {
 }
 
 
-#endif //LAUNCH_CORE_NMEA_H
+#endif //NMEA_H
