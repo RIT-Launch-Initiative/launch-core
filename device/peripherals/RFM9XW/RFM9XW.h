@@ -31,6 +31,7 @@ static constexpr uint8_t DAC_HIGH_POWER_MODE = 0x87;
 static constexpr uint8_t DIO_MAPPING_1_IRQ_TX_DONE = 0x40;
 static constexpr uint8_t DIO_MAPPING_1_IRQ_RX_DONE = 0x00;
 static constexpr uint32_t RX_TIMEOUT = 1000;
+static constexpr uint8_t WRITE_MASK = 0x80;
 
 
 class RFM9XW : public NetworkLayer, public Device {
@@ -56,16 +57,18 @@ public:
 
         ret = CALL(read_reg(COMMON_REG_VERSION, &tmp, 1));
         FAIL_IF(RET_SUCCESS != ret && tmp != RFM9XW_VERSION);
+        if (tmp != RFM9XW_VERSION) {
+            RESET();
+            return RET_ERROR;
+        }
 
-        // Configure to be in LoRa, low frequency sleep mode
-        ret = CALL(set_mode(true, true, REG_OP_MODE_SLEEP));
+        // Put to LoRa mode. Set to sleep before it can go into standby
+        ret = CALL(set_mode(true, false, REG_OP_MODE_SLEEP));
         ERROR_CHECK(ret);
 
-        ret = CALL(write_reg(RFM9XW_REG_OP_MODE, 0x00));
+        ret = CALL(set_mode(true, false, REG_OP_MODE_STANDBY));
         ERROR_CHECK(ret);
 
-        ret = CALL(write_reg(RFM9XW_REG_OP_MODE, 0x80));
-        ERROR_CHECK(ret);
 
         // TODO: Don't know enough about RF to config this yet
         // Preamble, LNA, Sync Word set to default
@@ -104,80 +107,80 @@ public:
     }
 
 
-    RetType transmit_data(uint8_t *buff, size_t len) {
-        RESUME();
-
-        //TODO CHECK INTERRUPTS INSTEAD OF SLEEPING
-
-        // Configure
-        RetType ret = CALL(write_reg(RFM9XW_REG_MODEM_CONFIG_1, 0x72));
-        ERROR_CHECK(ret);
-
-        ret = CALL(write_reg(RFM9XW_REG_MODEM_CONFIG_2, 0x74));
-        ERROR_CHECK(ret);
-
-        ret = CALL(write_reg(RFM9XW_REG_MODEM_CONFIG_3, 0x04));
-        ERROR_CHECK(ret);
-
-        ret = CALL(write_reg(RFM9XW_REG_INVERT_IQ_1, 0x27));
-        ERROR_CHECK(ret);
-
-        ret = CALL(write_reg(RFM9XW_REG_INVERT_IQ_2, 0x1D));
-        ERROR_CHECK(ret);
-
-        ret = CALL(write_reg(RFM9XW_REG_PAYLOAD_LENGTH, len));
-        ERROR_CHECK(ret);
-
-        // Enable interrupt and clear flags
-        ret = CALL(write_reg(RFM9XW_REG_DIO_MAPPING_1, 0x40));
-        ERROR_CHECK(ret);
-
-        ret = CALL(write_reg(RFM9XW_REG_IRQ_FLAGS, 0xFF));
-        ERROR_CHECK(ret);
-
-        // Wait in standby
-        ret = CALL(write_reg(RFM9XW_REG_OP_MODE, RFM9XW_MODE_STANDBY));
-        ERROR_CHECK(ret);
-
-        SLEEP(1000);
-
-        // Set mode to TX
-        ret = CALL(write_reg(RFM9XW_REG_OP_MODE, RFM9XW_MODE_STANDBY));
-        ERROR_CHECK(ret);
-
-        // Write data to FIFO
-        ret = CALL(write_reg(RFM9XW_REG_FIFO_ACCESS, buff, len));
-        ERROR_CHECK(ret);
-
-        // Transmit
-        ret = CALL(write_reg(RFM9XW_REG_OP_MODE, RFM9XW_MODE_TX));
-        ERROR_CHECK(ret);
-
-        // Wait for transmission
-        SLEEP(1000);
-
-        // Set mode to standby
-        ret = CALL(write_reg(RFM9XW_REG_OP_MODE, RFM9XW_MODE_STANDBY));
-
-        RESET();
-        return ret;
-    }
-
-    RetType receiver_task(void *) {
-        RESUME();
-
-
-
-        RESET();
-        return RET_SUCCESS;
-    }
-
-    RetType get_received(uint8_t *buff, size_t *payload_size) {
-        RESUME();
-
-        RESET();
-        return RET_SUCCESS;
-    }
+//    RetType transmit_data(uint8_t *buff, size_t len) {
+//        RESUME();
+//
+//        //TODO CHECK INTERRUPTS INSTEAD OF SLEEPING
+//
+//        // Configure
+//        RetType ret = CALL(write_reg(RFM9XW_REG_MODEM_CONFIG_1, 0x72));
+//        ERROR_CHECK(ret);
+//
+//        ret = CALL(write_reg(RFM9XW_REG_MODEM_CONFIG_2, 0x74));
+//        ERROR_CHECK(ret);
+//
+//        ret = CALL(write_reg(RFM9XW_REG_MODEM_CONFIG_3, 0x04));
+//        ERROR_CHECK(ret);
+//
+//        ret = CALL(write_reg(RFM9XW_REG_INVERT_IQ_1, 0x27));
+//        ERROR_CHECK(ret);
+//
+//        ret = CALL(write_reg(RFM9XW_REG_INVERT_IQ_2, 0x1D));
+//        ERROR_CHECK(ret);
+//
+//        ret = CALL(write_reg(RFM9XW_REG_PAYLOAD_LENGTH, len));
+//        ERROR_CHECK(ret);
+//
+//        // Enable interrupt and clear flags
+//        ret = CALL(write_reg(RFM9XW_REG_DIO_MAPPING_1, 0x40));
+//        ERROR_CHECK(ret);
+//
+//        ret = CALL(write_reg(RFM9XW_REG_IRQ_FLAGS, 0xFF));
+//        ERROR_CHECK(ret);
+//
+//        // Wait in standby
+//        ret = CALL(write_reg(RFM9XW_REG_OP_MODE, RFM9XW_MODE_STANDBY));
+//        ERROR_CHECK(ret);
+//
+//        SLEEP(1000);
+//
+//        // Set mode to TX
+//        ret = CALL(write_reg(RFM9XW_REG_OP_MODE, RFM9XW_MODE_STANDBY));
+//        ERROR_CHECK(ret);
+//
+//        // Write data to FIFO
+//        ret = CALL(write_reg(RFM9XW_REG_FIFO_ACCESS, buff, len));
+//        ERROR_CHECK(ret);
+//
+//        // Transmit
+//        ret = CALL(write_reg(RFM9XW_REG_OP_MODE, RFM9XW_MODE_TX));
+//        ERROR_CHECK(ret);
+//
+//        // Wait for transmission
+//        SLEEP(1000);
+//
+//        // Set mode to standby
+//        ret = CALL(write_reg(RFM9XW_REG_OP_MODE, RFM9XW_MODE_STANDBY));
+//
+//        RESET();
+//        return ret;
+//    }
+//
+//    RetType receiver_task(void *) {
+//        RESUME();
+//
+//
+//
+//        RESET();
+//        return RET_SUCCESS;
+//    }
+//
+//    RetType get_received(uint8_t *buff, size_t *payload_size) {
+//        RESUME();
+//
+//        RESET();
+//        return RET_SUCCESS;
+//    }
 
     RetType setup_receiver() {
         RESUME();
@@ -234,6 +237,7 @@ public:
 
         // Set FifoAddrPtr to FifoTxBaseAddr
         ret = CALL(read_reg(LORA_REG_FIFO_TX_BASE_ADDR, m_buff, 1));
+        ERROR_CHECK(ret);
 
         ret = CALL(write_reg(RFM9XW_REG_FIFO_ADDR_PTR, m_buff[0]));
         ERROR_CHECK(ret);
@@ -241,6 +245,17 @@ public:
         // Set PayloadLength
         ret = CALL(write_reg(RFM9XW_REG_PAYLOAD_LENGTH, len));
         ERROR_CHECK(ret);
+
+        for (int i = 0; i < 128; i++) {
+            m_buff[i] = '\0';
+        }
+        ret = CALL(read_reg(RFM9XW_REG_PAYLOAD_LENGTH, &m_buff[0], 10)); // Testing
+        ERROR_CHECK(ret);
+
+
+        for (int i = 1; i < 128; i++) {
+            m_buff[i] = '\0';
+        }
 
         // Write data to FIFO
         ret = CALL(write_reg(RFM9XW_REG_FIFO_ACCESS, buff, len));
@@ -578,14 +593,12 @@ private:
         buff[0] = reg & 0x7FU;
 
         // TODO: Write one byte and then proceed to read or is this ok?
-        ret = CALL(m_spi.write_read(buff, buff, len, timeout));
+
+        ret = CALL(m_spi.write(buff, len));
         ERROR_CHECK(ret);
 
-//        ret = CALL(m_spi.write(buff, len));
-//        ERROR_CHECK(ret);
-//
-//        ret = CALL(m_spi.read(buff, len));
-//        ERROR_CHECK(ret);
+        ret = CALL(m_spi.read(buff, len));
+        ERROR_CHECK(ret);
 
         ret = CALL(m_cs.set(1));
         RESET();
@@ -595,13 +608,18 @@ private:
     RetType write_reg(const uint8_t reg, const uint8_t val) {
         RESUME();
 
-        m_buff[0] = reg | 0x80U;
+        m_buff[0] = reg | WRITE_MASK;
         m_buff[1] = val;
 
         RetType ret = CALL(m_cs.set(0));
 
         ret = CALL(m_spi.write(m_buff, 2));
         ERROR_CHECK(ret);
+
+//        ret = CALL(m_spi.write(&m_buff[0], 1));
+//        ERROR_CHECK(ret);
+//
+//        ret = CALL(m_spi.write(&m_buff[1], 1));
 
         ret = CALL(m_cs.set(1));
         RESET();
@@ -611,18 +629,20 @@ private:
     RetType write_reg(const uint8_t reg, const uint8_t *buff, const size_t len) {
         RESUME();
 
-        m_buff[0] = reg | 0x80U;
+        m_buff[0] = reg | WRITE_MASK;
 
         RetType ret = CALL(m_cs.set(0));
 
         ret = CALL(m_spi.write(m_buff, 1));
         if (RET_SUCCESS == ret) {
             ret = CALL(m_spi.write(const_cast<uint8_t *>(buff), len));
+        } else {
+            ret = RET_ERROR;
         }
 
-        ret = CALL(m_cs.set(1));
+        CALL(m_cs.set(1));
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     RetType set_frequency(const uint32_t freq) {
