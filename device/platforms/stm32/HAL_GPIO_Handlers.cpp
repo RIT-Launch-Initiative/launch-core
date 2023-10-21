@@ -24,22 +24,23 @@
 
 namespace HALHandlers {
 
-/// @brief This is a map that maps a gpio port struct pointer to a tuple of a device and a unique number
-static alloc::Hashmap<GPIO_TypeDef *, dev_t, MAX_GPIO_DEVICES, MAX_GPIO_DEVICES> gpio_exti_map;
+/// @brief This is a map that maps a gpio pin to a tuple of a device and a unique number
+static alloc::Hashmap<uint16_t, dev_t, MAX_GPIO_DEVICES, MAX_GPIO_DEVICES> gpio_exti_map;
 
 // register a device for GPIO interrupt
 
 /// @brief register a device for GPIO interrupt.
-/// This function stores a mapping between the GPIO port and a tuple of the device and a unique number
+/// This function stores a mapping between the GPIO pin and a tuple of the device and a unique number
 ///     this then allows us to call the callback function of `dev`.
+/// @param pin the pin to register the callback for
 /// @param dev the device registering this callback
 /// @param num some unique number that will be passed back in the 'callback' function of `dev` when the event occurs
-RetType register_gpio_exti(GPIO_TypeDef *hgpio, CallbackDevice *dev, int num) {
-    if (gpio_exti_map[hgpio] != NULL && !gpio_exti_map.remove(hgpio))
+RetType register_gpio_exti(uint16_t pin, CallbackDevice *dev, int num) {
+    if (gpio_exti_map[pin] != NULL && !gpio_exti_map.remove(pin))
         return RET_ERROR;  // error out because a mapping exists and we can't remove it
 
     // get a pointer to the dev_t device struct in the hashmap
-    dev_t *mapping_ptr = gpio_exti_map.add(hgpio);
+    dev_t *mapping_ptr = gpio_exti_map.add(pin);
 
     // check if we failed to add, by seeing if the pointer is null
     if (mapping_ptr == NULL)
@@ -50,14 +51,16 @@ RetType register_gpio_exti(GPIO_TypeDef *hgpio, CallbackDevice *dev, int num) {
 
     return RET_SUCCESS;  // success 😳👍
 }
-}  // namespace HALHandlers
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
-    /// TODO: implement here?
-    if (GPIO_Pin == GPIO_PIN_10) {
-        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
-        // HAL_UART_Transmit(&huart2, (uint8_t *)"Triggered\r\n", 11, 1000);
-    }
+    // find corresponding device in the map to call the callback function
+    dev_t *mapping_ptr = gpio_exti_map[GPIO_Pin];
+
+    // if the device exists call its callback function
+    if (mapping_ptr)
+        mapping_ptr->dev->callback(mapping_ptr->num);
 }
+
+}  // namespace HALHandlers
 
 #endif  // !HAL_GPIO_HANDLERS_H
