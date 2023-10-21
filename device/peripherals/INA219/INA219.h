@@ -129,8 +129,13 @@ private:
         RESUME();
         
         RetType ret = CALL(read_reg(SHUNT_VOLT_REG,mBuff,2));
-        uint16_t raw_shunt_voltage = (mBuff[1] << 8) | (mBuff[2]);
-        *shunt_vol = abs(~raw_shunt_voltage) +1;
+        uint16_t raw_shunt_voltage = (mBuff[0] << 8) | (mBuff[1]);
+
+        if(raw_shunt_voltage & (0b1 << 15)){
+            *shunt_vol = abs(~raw_shunt_voltage) +1;
+        } else {
+            *shunt_vol = raw_shunt_voltage;
+        }
         
         RESET();
     }
@@ -141,7 +146,7 @@ private:
         RESUME();
 
         RetType ret = CALL(read_reg(BUS_VOLT_REG,mBuff,2));
-        int16_t raw_bus_vol = (mBuff[1] << 8) | (mBuff[2]);
+        int16_t raw_bus_vol = (mBuff[0] << 8) | (mBuff[1]);
 
         *bus_vol = raw_bus_vol;
 
@@ -151,26 +156,28 @@ private:
     RetType getPower(uint16_t *power){
         RESUME();
 
-        RetType ret = CALL(read_reg(POWER_REG,mBuff,2));
-        int16_t raw_power = (mBuff[1] << 8) | (mBuff[2]);
-
-        *power = raw_power;
-
+        RetType ret = CALL(read_reg(SHUNT_VOLT_REG, mBuff, 10));
+        uint16_t shuntVoltage = (mBuff[0] << 8) | (mBuff[1]);
+        uint16_t busVoltage = (mBuff[2] << 8) | (mBuff[3]);
+        uint16_t power = (mBuff[4] << 8) | (mBuff[5]); 
+        uint16_t current = (mBuff[6] << 8) | (mBuff[7]);
+        uint16_t calibration = (mBuff[8] << 8) | (mBuff[9]);
+        
+        *power = (current * busVoltage)/5000;
         RESET();
     }
 
     RetType getCurrent(uint16_t *current){
         RESUME();
 
-        RetType ret = CALL(read_reg(CURRENT_REG,mBuff,2));
-        int16_t raw_power = (mBuff[1] << 8) | (mBuff[2]);
-        int16_t mask = 0x8000; // 1000000000000000 in binary
+        RetType ret = CALL(read_reg(SHUNT_VOLT_REG, mBuff, 10));
+        uint16_t shuntVoltage = (mBuff[2] << 8) | (mBuff[2]);
+        uint16_t busVoltage = (mBuff[3] << 8) | (mBuff[4]);
+        uint16_t power = (mBuff[5] << 8) | (mBuff[6]); 
+        uint16_t current = (mBuff[7] << 8) | (mBuff[8]);
+        uint16_t calibration = (mBuff[9] << 8) | (mBuff[10]);
 
-        if ( raw_power & mask ){
-            *current = ~raw_power;
-        } else{
-            *current = raw_power;
-        }
+        *current = (shuntVoltage * calibration)/4096;
         RESET();
     }
 
@@ -178,11 +185,21 @@ private:
      * @brief Get the calibration values for sensor data
      * @return Scheduler status
      */
-    RetType getCalibrationData(uint16_t *calibraion, float current_LSB, float R_shunt) {
+    RetType getCalibrationData(uint16_t *calibraion) {
         RESUME();
-        RetType ret = CALL(read_reg(CALIB_REG,mBuff,2));
-        int16_t raw_calib = (mBuff[1] << 8) | (mBuff[2]);
-        
+
+        RetType ret = CALL(read_reg(SHUNT_VOLT_REG, mBuff, 10));
+        uint16_t shuntVoltage = (mBuff[2] << 8) | (mBuff[2]);
+        uint16_t busVoltage = (mBuff[3] << 8) | (mBuff[4]);
+        uint16_t power = (mBuff[5] << 8) | (mBuff[6]); 
+        uint16_t current = (mBuff[7] << 8) | (mBuff[8]);
+        uint16_t calibration = (mBuff[9] << 8) | (mBuff[10]);
+
+        float max_expected_curr = 1.0;
+        float Current_LSB = max_expected_curr/(2^15);
+        float Power_LSB = 20(Current_LSB);
+
+        *calibraion = (uint16_t)(0.04096/Current_LSB*); 
 
         RESET();
     }
@@ -202,11 +219,5 @@ private:
         RESET();
         return ret;
     }
-
-     RetType getRegister(uint8_t regAddress, uint8_t *regData, uint32_t len) {
-        RESUME();
-
-        RESET();
-     }
 };
  #endif
