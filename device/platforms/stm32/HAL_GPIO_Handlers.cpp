@@ -39,14 +39,14 @@ RetType register_gpio_exti(GPIO_TypeDef *hgpio, CallbackDevice *dev, int num) {
         return RET_ERROR;  // error out because a mapping exists and we can't remove it
 
     // get a pointer to the dev_t device struct in the hashmap
-    dev_t *mappingPtr = gpio_exti_map.add(hgpio);
+    dev_t *mapping_ptr = gpio_exti_map.add(hgpio);
 
     // check if we failed to add, by seeing if the pointer is null
-    if (mappingPtr == NULL)
+    if (mapping_ptr == NULL)
         return RET_ERROR;  // error out because it failed to add
 
     // register this device by dereferencing the mapping pointer and setting the values
-    *mappingPtr = {dev, num};
+    *mapping_ptr = {dev, num};
 
     return RET_SUCCESS;  // success 😳👍
 }
