@@ -1,4 +1,9 @@
-/// @brief handles HAL callback functions
+/**
+ * This file contains functions that handle the HAL callback functions.
+ * @brief handles HAL callback functions
+ * @author Will Merges
+ * @author Nate Aquino
+*/
 
 #ifndef HAL_HANDLERS_H
 #define HAL_HANDLERS_H
@@ -97,6 +102,14 @@ RetType register_spi_tx(SPI_HandleTypeDef* hspi, CallbackDevice* dev, int num);
 ///                 function of 'dev' when the event occurs
 /// @return
 RetType register_spi_rx(SPI_HandleTypeDef* hspi, CallbackDevice* dev, int num);
+
+/// @brief register a device for GPIO interrupt.
+/// This function stores a mapping between the GPIO pin and a tuple of the device and a unique number
+///     this then allows us to call the callback function of `dev`.
+/// @param pin the pin to register the callback for
+/// @param dev the device registering this callback
+/// @param num some unique number that will be passed back in the 'callback' function of `dev` when the event occurs
+RetType register_gpio_exti(uint16_t pin, CallbackDevice *dev, int num);
 
 }
 

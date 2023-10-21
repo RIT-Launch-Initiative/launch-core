@@ -2,6 +2,7 @@
  * HAL Implementation for GPIO Devices
  *
  * @author Aaron Chan
+ * @author Nate Aquino
  */
 
 #ifndef LAUNCH_CORE_HALGPIODEVICE_H
@@ -18,16 +19,38 @@
 #endif
 
 #include "device/GPIODevice.h"
-#include "sched/sched.h"
+#include "device/platforms/stm32/HAL_Handlers.h"
+#include "sched/macros.h"
 
-class HALGPIODevice : public GPIODevice {
+/// @brief GPIO device controller
+class HALGPIODevice : public GPIODevice, public CallbackDevice {
    public:
-    HALGPIODevice(const char *name, GPIO_TypeDef *halGPIO, uint16_t pin) : GPIODevice(name),
-                                                                           m_gpio(halGPIO),
-                                                                           m_pin(pin){};
+    /// @brief Create a new HALGPIODevice
+    /// @param name the name of the device
+    /// @param halGPIO the GPIO port struct pointer (GPIOA, GPIOB, etc)
+    /// @param pin the pin number (0-15)
+    /// @param exti_pin the pin number to enable external interrupts on. If -1 exti is disabled.
+    HALGPIODevice(const char *name, GPIO_TypeDef *halGPIO, uint16_t pin, uint8_t exti_pin)
+        : GPIODevice(name),
+          m_gpio(halGPIO),
+          m_pin(pin),
+          m_isr_flag(0),
+          m_blocked(-1),
+          m_exti_en(exti_pin <= -1 ? 0 : 1),
+          m_exti_pin(exti_pin){};
 
     RetType init() override {
-        return RET_SUCCESS;
+        if (!m_exti_en)
+            return RET_SUCCESS;  // exti disabled so we dont need to init
+        else {
+            // exti is enabled for this device, we need to register it.
+            // num is 0 right now because im not sure how it could be used.
+            RetType ret = HALHandlers::register_gpio_exti(m_exti_pin, this, 0);
+            if (ret != RET_SUCCESS)
+                return ret;  // error out if we failed to register
+
+            return RET_SUCCESS;
+        }
     }
 
     RetType obtain() override {
@@ -39,7 +62,32 @@ class HALGPIODevice : public GPIODevice {
     }
 
     RetType poll() override {
-        return RET_SUCCESS;
+        if (!m_exti_en)
+            return RET_SUCCESS;  // exti disabled, no need to poll
+        else {
+            // aquire lock on isr flag by disabling interrupts
+            __disable_irq();
+
+            // check if the isr flag is set
+            if (m_isr_flag) {
+                // an interrupt occured! Reset the flag
+                m_isr_flag = false;
+
+                // re-enable interrupts now that we are done reading the flag
+                __enable_irq();
+
+                // if a task was blocked waiting for completion of this interrupt, wake it up
+                if (m_blocked != -1) {
+                    // wake macro wakes up the task with the given tid (task id)
+                    WAKE(m_blocked);
+                    // mark this task as no longer blocked
+                    m_blocked = -1;
+                }
+            } else
+                __enable_irq();  // re-enable interrupts if no interrupt occured
+
+            return RET_SUCCESS;
+        }
     }
 
     RetType set(uint32_t val) override {
@@ -59,9 +107,30 @@ class HALGPIODevice : public GPIODevice {
         return RET_SUCCESS;
     }
 
+    /// @brief called by the GPIO interrupt handler asynchronously
+    void callback(int) {
+        // set isr flag to true
+        m_isr_flag = true;
+    }
+
    private:
+    /// @brief The GPIO port struct ptr
     GPIO_TypeDef *m_gpio;
+
+    /// @brief The GPIO pin number
     uint16_t m_pin;
+
+    /// @brief The Interrupt Service Routine flag
+    uint8_t m_isr_flag;
+
+    /// @brief The currently blocked task
+    tid_t m_blocked;
+
+    /// @brief The external interrupt enable flag
+    uint8_t m_exti_en;
+
+    /// @brief The external interrupt pin number
+    uint8_t m_exti_pin;
 };
 
 #endif  // LAUNCH_CORE_HALGPIODEVICE_H
