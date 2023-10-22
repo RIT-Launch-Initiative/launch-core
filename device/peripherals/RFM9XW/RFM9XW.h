@@ -72,20 +72,20 @@ public:
         // TODO: Don't know enough about RF to config this yet
         // Preamble, LNA, Sync Word set to default
 
-        ret = CALL(set_power(20));
-        ERROR_CHECK(ret);
-
-        ret = CALL(set_payload_len(128));
-        ERROR_CHECK(ret);
-
-        ret = CALL(set_preamble(0x0, 0x8));
-        ERROR_CHECK(ret);
-
-        ret = CALL(set_lna(0b01000000));
-        ERROR_CHECK(ret);
-
-        ret = CALL(set_frequency(920));
-        ERROR_CHECK(ret);
+//        ret = CALL(set_power(20));
+//        ERROR_CHECK(ret);
+//
+//        ret = CALL(set_payload_len(128));
+//        ERROR_CHECK(ret);
+//
+//        ret = CALL(set_preamble(0x0, 0x8));
+//        ERROR_CHECK(ret);
+//
+//        ret = CALL(set_lna(0b01000000));
+//        ERROR_CHECK(ret);
+//
+//        ret = CALL(set_frequency(920));
+//        ERROR_CHECK(ret);
 
         ret = CALL(configure_dio_mapping_one(DIO_ZERO_PAY_RDY_PKT_SNT, DIO_ONE_FIFO_FULL, DIO_TWO_RX_RDY));
         ERROR_CHECK(ret);
@@ -95,11 +95,14 @@ public:
 
         ret = CALL(write_reg(RFM9XW_REG_IRQ_FLAGS, 0xFF)); // Clear all interrupt flags
 
-        if (mIsTransmitter) {
-            ret = CALL(setup_transmitter());
-        } else {
-            ret = CALL(setup_receiver());
-        }
+//        if (mIsTransmitter) {
+//            ret = CALL(setup_transmitter());
+//        } else {
+//            ret = CALL(setup_receiver());
+//        }
+//        ERROR_CHECK(ret);
+
+        ret = CALL(set_mode(true, false, REG_OP_MODE_SLEEP));
 
         RESET();
         return ret;
@@ -165,6 +168,10 @@ public:
         ret = CALL(write_reg(RFM9XW_REG_PAYLOAD_LENGTH, len));
         ERROR_CHECK(ret);
 
+        // Make sure interrupts enabled
+        ret = CALL(write_reg(RFM9XW_REG_DIO_MAPPING_1, 0x40));
+
+
         RESET();
         return ret;
     }
@@ -181,30 +188,55 @@ public:
 
         ret = CALL(write_reg(RFM9XW_REG_FIFO_ACCESS, buff, len));
 
-        // Testing
-        ret = CALL(tx_init(len));
-        // Read the fifo
-        static uint8_t i = 0;
-        for (; i < len; i++) {
-            ret = CALL(read_reg(RFM9XW_REG_FIFO_ACCESS, &m_buff[i], 1));
-            ERROR_CHECK(ret);
-        }
-        i = 0;
-
         // Transmit
         ret = CALL(set_mode(RFM9XW_MODE_TX));
         ERROR_CHECK(ret);
 
+        // Check that we are in Tx mode
+        ret = CALL(read_reg(RFM9XW_REG_OP_MODE, m_buff, 1));
+        ERROR_CHECK(ret);
+
         // Wait for TxDone
-        while (true) { // TODO: At some point this should just block and be woken by interrupt
-            ret = CALL(read_reg(RFM9XW_REG_IRQ_FLAGS, &m_buff[0], 1));
+//        ret = CALL(m_dio_zero.get(&m_gpio_tmp));
+//        ERROR_CHECK(ret);
+
+        // TODO: At some point this should just block and be woken by interrupt
+//        ret = CALL(read_reg(RFM9XW_REG_OP_MODE, m_buff, 1));
+//        ERROR_CHECK(ret);
+//        while (true) {
+//            ret = CALL(read_reg(RFM9XW_REG_OP_MODE, m_buff, 1));
+//            ERROR_CHECK(ret);
+//
+//            ret = CALL(read_reg(RFM9XW_REG_IRQ_FLAGS, m_buff, 1));
+//            ERROR_CHECK(ret);
+//
+//
+//
+//            if ((m_buff[0] & 0b00001000) != 0) {
+//                break;
+//            }
+//
+//            YIELD();
+//        }
+
+        while (1 != m_gpio_tmp) {
+            ret = CALL(m_dio_zero.get(&m_gpio_tmp));
             ERROR_CHECK(ret);
 
-            if (m_buff[0] & 0b00001000) {
+            // Also check current mode
+            ret = CALL(read_reg(RFM9XW_REG_OP_MODE, m_buff, 1));
+            ERROR_CHECK(ret);
+            if (m_buff[0] != RFM9XW_MODE_TX) {
                 break;
             }
 
             YIELD();
+        }
+
+        if (m_gpio_tmp == 1) {
+            asm("nop");
+            asm("nop");
+
         }
 
         RESET();
