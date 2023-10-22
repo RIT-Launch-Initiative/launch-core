@@ -197,47 +197,24 @@ public:
         ERROR_CHECK(ret);
 
         // Wait for TxDone
-//        ret = CALL(m_dio_zero.get(&m_gpio_tmp));
-//        ERROR_CHECK(ret);
-
         // TODO: At some point this should just block and be woken by interrupt
-//        ret = CALL(read_reg(RFM9XW_REG_OP_MODE, m_buff, 1));
-//        ERROR_CHECK(ret);
-//        while (true) {
-//            ret = CALL(read_reg(RFM9XW_REG_OP_MODE, m_buff, 1));
-//            ERROR_CHECK(ret);
-//
-//            ret = CALL(read_reg(RFM9XW_REG_IRQ_FLAGS, m_buff, 1));
-//            ERROR_CHECK(ret);
-//
-//
-//
-//            if ((m_buff[0] & 0b00001000) != 0) {
-//                break;
-//            }
-//
-//            YIELD();
-//        }
+        ret = CALL(read_reg(RFM9XW_REG_OP_MODE, m_buff, 1));
+        ERROR_CHECK(ret);
 
-        while (1 != m_gpio_tmp) {
-            ret = CALL(m_dio_zero.get(&m_gpio_tmp));
+        while (true) {
+            ret = CALL(read_reg(RFM9XW_REG_IRQ_FLAGS, m_buff, 1));
             ERROR_CHECK(ret);
 
-            // Also check current mode
-            ret = CALL(read_reg(RFM9XW_REG_OP_MODE, m_buff, 1));
-            ERROR_CHECK(ret);
-            if (m_buff[0] != RFM9XW_MODE_TX) {
+            if ((m_buff[0] & 0b00001000) != 0) {
                 break;
             }
 
             YIELD();
         }
 
-        if (m_gpio_tmp == 1) {
-            asm("nop");
-            asm("nop");
-
-        }
+        // Put back to sleep
+        ret = CALL(write_reg(RFM9XW_REG_OP_MODE, REG_OP_MODE_SLEEP));
+        ERROR_CHECK(ret);
 
         RESET();
         return ret;
