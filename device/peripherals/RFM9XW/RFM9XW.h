@@ -49,8 +49,6 @@ public:
         RESUME();
 
         static constexpr uint32_t frequency = 920;
-        rx_mode = RFM9XW_RX_MODE_1_2;
-
         static uint8_t tmp;
         RetType ret = CALL(reset());
         ERROR_CHECK(ret);
@@ -240,8 +238,13 @@ public:
 
         RetType ret = CALL(set_mode(RFM9XW_MODE_STANDBY));
         if (RET_SUCCESS == ret) {
-            ret = CALL(set_mode(true, true, REG_OP_MODE_CONT_Rx));
+            ret = CALL(set_mode(true, false, REG_OP_MODE_CONT_Rx));
         }
+        ERROR_CHECK(ret);
+
+
+        // Make sure interrupts enabled
+        ret = CALL(write_reg(RFM9XW_REG_DIO_MAPPING_1, 0x00));
 
         RESET();
         return ret;
@@ -250,23 +253,24 @@ public:
     RetType continuous_rx(uint8_t *buff, size_t buff_len, uint8_t *rx_len) {
         RESUME();
 
-        RetType ret = CALL(write_reg(RFM9XW_REG_IRQ_FLAGS, 0xFF)); // Clear all flags
-        ERROR_CHECK(ret);
 
+        RetType ret;
+        m_gpio_tmp = 0;
         while (true) {
-            // Check for DIO1 interrupt
-            ret = CALL(read_reg(RFM9XW_REG_DIO_MAPPING_1, &m_buff[0], 1)); // TODO: Use GPIO interrupts
-            if (RET_SUCCESS == ret && (m_buff[0] & 0b00000001) != 0) {
-                // Make sure ValidHeader, PayloadCrcError, RxDone and RxTimeout are not asserted
-                ret = CALL(read_reg(RFM9XW_REG_IRQ_FLAGS, &m_buff[0], 1));
+            ret = CALL(m_dio_zero.get(&m_gpio_tmp));
 
-                if (RET_SUCCESS == ret && ((0b11110000 & m_buff[0]) == 0)) {
-                    break;
-                }
+            if (m_gpio_tmp == 0) {
+                break;
             }
 
-            YIELD();
+            ret = CALL(read_reg(RFM9XW_REG_IRQ_FLAGS, m_buff, 1));
+            ERROR_CHECK(ret);
+
+            if ((m_buff[0] & 0b01000000) != 0) {
+                break;
+            }
         }
+
         ret = CALL(receive_data(buff, buff_len, rx_len));
         ERROR_CHECK(ret);
 
@@ -286,60 +290,7 @@ public:
 
     RetType transmit2(Packet &packet, netinfo_t &, NetworkLayer *) override {
         RESUME();
-
-        // Configure modem
-        RetType ret = CALL(write_reg(RFM9XW_REG_MODEM_CONFIG_1, 0x72));
-        ERROR_CHECK(ret);
-
-        ret = CALL(write_reg(RFM9XW_REG_MODEM_CONFIG_2, 0x74));
-        ERROR_CHECK(ret);
-
-        ret = CALL(write_reg(RFM9XW_REG_MODEM_CONFIG_3, 0x04));
-        ERROR_CHECK(ret);
-
-        // Payload Length
-        ret = CALL(set_payload_len(packet.size()));
-        ERROR_CHECK(ret);
-
-        // IQ Registers
-        ret = CALL(write_reg(RFM9XW_REG_INVERT_IQ_1, 0x27));
-        ERROR_CHECK(ret);
-
-        ret = CALL(write_reg(RFM9XW_REG_INVERT_IQ_2, 0x1D));
-        ERROR_CHECK(ret);
-
-        // LORA Standby
-        ret = CALL(set_mode(RFM9XW_MODE_STANDBY));
-        ERROR_CHECK(ret);
-
-        // TODO: Interrupt
-        SLEEP(timeout_time);
-
-        // FIFO Write
-        ret = CALL(write_reg(RFM9XW_REG_FIFO_ADDR_PTR, 0x80));
-        ERROR_CHECK(ret);
-
-        packet.seek_read(false);
-        current_tx_buff = packet.read_ptr<uint8_t>();
-        current_tx_buff_end = current_tx_buff + packet.available();
-        for (; current_tx_buff < current_tx_buff_end; current_tx_buff++) {
-            ret = CALL(write_reg(RFM9XW_REG_FIFO_ACCESS, *current_tx_buff));
-            ERROR_CHECK(ret);
-        }
-
-        // Transmit
-        ret = CALL(set_mode(RFM9XW_MODE_TX));
-        ERROR_CHECK(ret);
-
-        // Wait
-        ret = CALL(wait_for_irq(RFM9XW_INT_DIO0, timeout_time));
-        SLEEP(5000);
-
-        ret = CALL(set_mode(RFM9XW_MODE_STANDBY));
-        if (RET_SUCCESS == ret) {
-            tx_frame_count++;
-        }
-
+        RetType ret;
         RESET();
         return ret;
     }
@@ -357,13 +308,6 @@ public:
         static uint8_t irq_flags;
         static int8_t packet_snr;
         static uint8_t calc_len;
-
-//        calculate_rx_timings(125000, 7, tx_ticks, &rx1_target, &rx1_window_symbols);
-
-        if (rx1_window_symbols > 0x3ff) {
-            RESET();
-            return RET_ERROR;
-        }
 
         // Configure modem (125kHz, 4/6 error coding rate, SF7, single packet, CRC enable, AGC auto on)
         RetType ret = CALL(write_reg(RFM9XW_REG_MODEM_CONFIG_1, 0x72));
@@ -453,26 +397,10 @@ private:
     uint8_t rx_one_delay{};
     uint32_t channel_frequencies[16]{};
     uint16_t channel_mask{};
-    RFM9XW_RX_MODE_T rx_mode;
     uint32_t irq_times[RFM9XW_NUM_IRQS] = {};
     uint32_t precision_tick_freq{};
     uint32_t timeout_time = 10;
 
-    RetType check_rx_termination(void) {
-        RESUME();
-
-        RetType ret = CALL(read_reg(RFM9XW_REG_IRQ_FLAGS, m_buff, 1));
-//        if (RET_SUCCESS == ret) {
-//            // ValidHeader, PayloadCrcError, RxDone and RxTimeout
-//            constexpr uint8_t mask = 0b11110000;
-//            if (0 != (m_buff[0] & mask)) {
-//                ret = RET_ERROR;
-//            }
-//        }
-
-        RESET();
-        return ret;
-    }
 
     RetType setup_data_receive(uint8_t *rx_len) {
         RESUME();
@@ -490,38 +418,6 @@ private:
         return ret;
     }
 
-    //TODO
-    RetType wait_for_irq(const RFM9XW_INT_T irq, const uint32_t timeout) {
-        RESUME();
-        static uint32_t timeout_time;
-        timeout_time = sched_time() + timeout * precision_tick_freq / 1000;
-
-        while (irq_times[irq] == 0) {
-            FAIL_IF(sched_time() >= timeout_time);
-            YIELD();
-        }
-
-        RESET();
-        return RET_SUCCESS;
-    }
-
-    RetType wait_for_rx_irq(void) {
-        RESUME();
-        static uint32_t timeout_time;
-        timeout_time = sched_time() + RX_TIMEOUT * precision_tick_freq / 1000;
-
-        while (irq_times[RFM9XW_INT_DIO0] == 0 && irq_times[RFM9XW_INT_DIO1] == 0) {
-            if (sched_time() >= timeout_time) {
-                RESET();
-                return RET_ERROR;
-            }
-
-            YIELD();
-        }
-
-        RESET();
-        return RET_SUCCESS;
-    }
 
     RetType read_reg(const uint8_t reg, uint8_t *buff, const size_t len, const uint32_t timeout = 0) {
         RESUME();
@@ -540,8 +436,9 @@ private:
         ERROR_CHECK(ret);
 
         ret = CALL(m_cs.set(1));
+
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     RetType write_reg(const uint8_t reg, const uint8_t val) {
@@ -555,14 +452,10 @@ private:
         ret = CALL(m_spi.write(m_buff, 2));
         ERROR_CHECK(ret);
 
-//        ret = CALL(m_spi.write(&m_buff[0], 1));
-//        ERROR_CHECK(ret);
-//
-//        ret = CALL(m_spi.write(&m_buff[1], 1));
-
         ret = CALL(m_cs.set(1));
+
         RESET();
-        return RET_SUCCESS;
+        return ret;
     }
 
     RetType write_reg(const uint8_t reg, const uint8_t *buff, const size_t len) {
@@ -725,25 +618,6 @@ private:
         return RET_SUCCESS;
     }
 
-    RetType configure_fsk_packet(const bool variable_len = true, const uint8_t dc_free_encoding = 0b00,
-                                 const bool crc_enabled = false,
-                                 const bool crc_auto_clear_off = false, const uint8_t addr_filter = 0b00,
-                                 const bool ibm_whitening = false) {
-        RESUME();
-
-        m_buff[0] = 0;
-        if (variable_len) m_buff[0] |= 0b1 << 7;
-        m_buff[0] |= (dc_free_encoding & 0b11) << 5;
-        if (crc_enabled) m_buff[0] |= 0b1 << 4;
-        if (crc_auto_clear_off) m_buff[0] |= 0b1 << 3;
-        m_buff[0] |= (addr_filter & 0b11) << 1;
-        if (ibm_whitening) m_buff[0] |= 0b1;
-
-        RetType ret = CALL(write_reg(RFM9XW_REG_PACKET_CONFIG_1, m_buff[0]));
-
-        RESET();
-        return RET_SUCCESS;
-    }
 
     RetType
     configure_dio_mapping_one(const uint8_t dio_zero_val, const uint8_t dio_one_val, const uint8_t dio_two_val) {
