@@ -181,6 +181,16 @@ public:
 
         ret = CALL(write_reg(RFM9XW_REG_FIFO_ACCESS, buff, len));
 
+        // Testing
+        ret = CALL(tx_init(len));
+        // Read the fifo
+        static uint8_t i = 0;
+        for (; i < len; i++) {
+            ret = CALL(read_reg(RFM9XW_REG_FIFO_ACCESS, &m_buff[i], 1));
+            ERROR_CHECK(ret);
+        }
+        i = 0;
+
         // Transmit
         ret = CALL(set_mode(RFM9XW_MODE_TX));
         ERROR_CHECK(ret);
