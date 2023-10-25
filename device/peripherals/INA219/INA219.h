@@ -78,8 +78,6 @@ public:
 
         RetType ret = CALL(getData(&data->shuntVoltage, &data->busVoltage, &data->power, &data->current));
 
-
-
         RESET();
         return ret;
     }
@@ -138,44 +136,51 @@ private:
         }
         
         RESET();
+        return RET_SUCCESS;
     }
-
-
 
     RetType getBusVolt(int16_t *bus_vol){
         RESUME();
 
         RetType ret = CALL(read_reg(BUS_VOLT_REG,mBuff,2));
-        int16_t raw_bus_vol = (mBuff[0] << 8) | (mBuff[1]);
-
-        *bus_vol = raw_bus_vol;
-
+        if(mBuff[1] & 0b1){
+            RESET();
+            return RET_ERROR;
+        }
+        *bus_vol = ((mBuff[0] << 8) | (mBuff[1]) >> 3);
         RESET();
+        return RET_SUCCESS;
     }
 
     RetType getPower(uint16_t *power){
         RESUME();
-
-        RetType ret = CALL(read_reg(SHUNT_VOLT_REG, mBuff, 10));
-        uint16_t shuntVoltage = (mBuff[0] << 8) | (mBuff[1]);
-        uint16_t busVoltage = (mBuff[2] << 8) | (mBuff[3]);
-        uint16_t power = (mBuff[4] << 8) | (mBuff[5]); 
-        uint16_t current = (mBuff[6] << 8) | (mBuff[7]);
-        uint16_t calibration = (mBuff[8] << 8) | (mBuff[9]);
         
-        *power = (current * busVoltage)/5000;
+        RetType ret = read_reg(CURRENT_REG, mBuff, 2);
+        
+        if (ret != SUCCESS) {
+            RESET();
+            return ret;
+        }
+        uint16_t raw_current = (mBuff[0] << 8) | mBuff[1]; // get the value in the current reg
+
+        ret = read_reg(BUS_VOLT_REG, mBuff, 2);
+        if (ret != SUCCESS) {
+            RESET();
+            return ret;
+        }
+        uint16_t raw_busVoltage = (mBuff[0] << 8) | mBuff[1]; // get the value in the busVolt reg
+
+        
+        *power = (raw_current * raw_busVoltage)/5000; 
+
         RESET();
+        return RET_SUCCESS;
     }
 
-    RetType getCurrent(uint16_t *current){
+    RetType getCurrent(uint16_t *current, uint16_t *power){
         RESUME();
 
-        RetType ret = CALL(read_reg(SHUNT_VOLT_REG, mBuff, 10));
-        uint16_t shuntVoltage = (mBuff[2] << 8) | (mBuff[2]);
-        uint16_t busVoltage = (mBuff[3] << 8) | (mBuff[4]);
-        uint16_t power = (mBuff[5] << 8) | (mBuff[6]); 
-        uint16_t current = (mBuff[7] << 8) | (mBuff[8]);
-        uint16_t calibration = (mBuff[9] << 8) | (mBuff[10]);
+        RetType ret = CALL(getPower(&power));
 
         *current = (shuntVoltage * calibration)/4096;
         RESET();
