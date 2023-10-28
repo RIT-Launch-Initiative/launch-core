@@ -22,6 +22,8 @@
 
 #define MAX_GPIO_DEVICES 4  // idk what to set this to so its 4 for now
 
+extern UART_HandleTypeDef huart2;
+
 namespace HALHandlers {
 
 /// @brief This is a map that maps a gpio pin to a tuple of a device and a unique number
@@ -54,6 +56,9 @@ RetType register_gpio_exti(uint16_t pin, CallbackDevice *dev, int num) {
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
     // find corresponding device in the map to call the callback function
+    HAL_UART_Transmit(&huart2, (uint8_t *)"EXTI CALLBACK\r\n", 15, 100);
+    HAL_UART_Transmit(&huart2, (uint8_t *)"\tEXTI PIN: ", 11, 100);
+    HAL_UART_Transmit(&huart2, (uint8_t *)GPIO_Pin, 1, 100);
     dev_t *mapping_ptr = gpio_exti_map[GPIO_Pin];
 
     // if the device exists call its callback function

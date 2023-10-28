@@ -16,7 +16,7 @@ typedef enum {
 } LED_STATE_T;
 
 class LED {
-public:
+   public:
     LED(GPIODevice &gpio) : m_gpio(gpio), m_state(LED_ON) {}
 
     LED(GPIODevice &gpio, LED_STATE_T ledState) : m_gpio(gpio), m_state(ledState) {}
@@ -26,6 +26,16 @@ public:
         RetType ret;
 
         ret = CALL(m_gpio.set(m_state));
+        if (RET_SUCCESS != ret) {
+            RESET();
+            return ret;
+        }
+
+        ret = CALL(m_gpio.init());
+        if (RET_SUCCESS != ret) {
+            RESET();
+            return ret;
+        }
 
         RESET();
         return ret;
@@ -89,12 +99,11 @@ public:
         return ret;
     }
 
-private:
-    GPIODevice& m_gpio;
+   private:
+    GPIODevice &m_gpio;
     LED_STATE_T m_state;
     uint32_t m_on_time;
     uint32_t m_period;
-
 };
 
-#endif //LAUNCH_CORE_LED_H
+#endif  // LAUNCH_CORE_LED_H
