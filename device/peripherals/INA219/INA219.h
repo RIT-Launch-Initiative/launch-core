@@ -175,6 +175,8 @@ private:
             return ret;
         }
         uint16_t raw_busVoltage = (mBuff[0] << 8) | mBuff[1]; // get the value in the busVolt reg
+
+        
         
         *power = (raw_current * raw_busVoltage) / 5000; // do calculation
 
