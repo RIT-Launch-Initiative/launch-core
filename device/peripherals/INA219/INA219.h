@@ -102,6 +102,7 @@ public:
 private:
     I2CDevice &mI2C;
     I2CAddr_t i2cAddr;
+
      uint8_t mBuff[10]; // INA219_LEN_CALIB_DATA is largest size
 
     RetType read_reg(uint8_t reg, uint8_t *buff, size_t len) {
@@ -174,9 +175,11 @@ private:
             RESET();
             return ret;
         }
-        uint16_t raw_busVoltage = (mBuff[0] << 8) | mBuff[1]; // get the value in the busVolt reg
-
-        
+        if(mBuff[1] & 0b1){ // check if value is LSB is valid
+            RESET();
+            return RET_ERROR;
+        }
+        uint16_t raw_busVoltage = ((mBuff[0] << 8) | (mBuff[1]) >> 3); // get busVolt reg value by shift bit the 3 LSB out
         
         *power = (raw_current * raw_busVoltage) / 5000; // do calculation
 
@@ -193,6 +196,10 @@ private:
             return ret;
         }
         uint16_t raw_shuntVolt = (mBuff[0] << 8) | mBuff[1]; // get the value in the shuntVolt register
+
+        if(raw_shuntVolt & (0b1 << 15)){ // check if value is negative
+            raw_shuntVolt = abs(~raw_shuntVolt) +1;
+        }
 
         ret = read_reg(CALIB_REG, mBuff, 2); // reaf calibration reg
         if (ret != RET_SUCCESS) { // check for error
@@ -213,19 +220,12 @@ private:
     RetType getCalibrationData(uint16_t *calibraion) {
         RESUME();
 
-        RetType ret = CALL(read_reg(SHUNT_VOLT_REG, mBuff, 10));
-        uint16_t shuntVoltage = (mBuff[0] << 8) | (mBuff[1]);
-        uint16_t busVoltage = (mBuff[2] << 8) | (mBuff[3]);
-        uint16_t power = (mBuff[4] << 8) | (mBuff[5]); 
-        uint16_t current = (mBuff[6] << 8) | (mBuff[7]);
-        uint16_t calibration = (mBuff[8] << 8) | (mBuff[9]);
+        float currentLSB = MAX_EXPECTED_CURRENT / 2^15;
+        float shuntResistance = 20 * currentLSB;
 
-        float max_expected_curr = 1.0;
-        float Current_LSB = max_expected_curr/(2^15);
-        float Power_LSB = 20(Current_LSB);
+        uint16_t Cal = trunc(0.04096 / (currentLSB * shuntResistance));
 
-        *calibraion = (uint16_t)(0.04096/Current_LSB*); 
-
+        return RET_SUCCESS;
         RESET();
     }
 
