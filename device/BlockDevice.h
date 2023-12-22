@@ -29,7 +29,6 @@ public:
      * @brief Write to a block
      * @param block     Block to write to
      * @param data      Buffer of data, at least get_block_size()
-     * @return          RET_SUCCESS if block written
      */
     virtual RetType write(size_t block, uint8_t* data) = 0;
 
@@ -37,25 +36,21 @@ public:
      * @brief Read from a block
      * @param block     Block number to read from
      * @param buff      Buffer to read into, at least BLOCK_SIZE bytes
-     * @return          RET_SUCCESS if block read
      */
     virtual RetType read(size_t block, uint8_t* buff) = 0;
 
     /**
-     * @brief Lock the device, persistently preventing all write and erase instructions
-     * @return RET_SUCCESS if the device is locked
+     * @brief Lock the device, persistently preventing all write and erase_region instructions
      */
     virtual RetType lock() = 0;
 
     /**
-     * @brief Unlock the device, persistently allowing write and erase instructions
-     * @return RET_SUCCESS if the device is unlocked
+     * @brief Unlock the device, persistently allowing write and erase_region instructions
      */
     virtual RetType unlock() = 0;
 
     /**
      * @brief Erase the entire device
-     * @return Return value of the first CALL to fail, or RET_SUCCESS
      */
     virtual RetType clear() = 0;
 
@@ -65,7 +60,7 @@ public:
     virtual size_t get_block_size() = 0;
 
     /**
-     * @return number of blocks
+     * @return number of blocks on the device
      */
     virtual size_t get_num_blocks() = 0;
 };
